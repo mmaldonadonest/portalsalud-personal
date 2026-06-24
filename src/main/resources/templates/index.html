@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Portal Salud Personal</title>
+
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css" />
+</head>
+<body>
+<header class="topbar">
+    <h1 th:text="${appName} ?: 'Portal Salud Personal'">Portal Salud Personal</h1>
+</header>
+
+<main class="container">
+    <section class="card">
+        <h2>Inicio</h2>
+        <p>Aplicación web inicial con WAR tradicional, Thymeleaf y JavaScript.</p>
+        <button id="btnPing" type="button">Probar JS</button>
+        <p id="pingResult" class="muted"></p>
+    </section>
+</main>
+
+<script th:src="@{/js/app.js}" src="/js/app.js"></script>
+</body>
+</html>
