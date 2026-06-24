@@ -1,0 +1,84 @@
+<form>
+  <div class="container d-flex justify-content-center animate__animated animate__fadeIn">
+    <div class="row col-8">
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$IRC?>" id="irc0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">IRC</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="irc"
+              id="irc1"
+              value="1"
+              
+            />
+            <label class="form-check-label" for="irc1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="irc"
+              id="irc2"
+              value="0"
+            />
+            <label class="form-check-label" for="irc2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Comentarios:</label>
+        </legend>
+        <div class="col-12">
+          <textarea class="form-control" id="ircOBS" name="ircOBS"><?=$IRC_OBS?></textarea>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$LITASIS?>" id="litiasis0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Litiasis</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="litiasis"
+              id="litiasis1"
+              value="1"
+              
+            />
+            <label class="form-check-label" for="litiasis1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="litiasis"
+              id="litiasis2"
+              value="0"
+            />
+            <label class="form-check-label" for="litiasis2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Comentarios:</label>
+        </legend>
+        <div class="col-12">
+          <textarea
+            class="form-control"
+            id="litiasisOBS"
+            name="litiasisOBS"
+          ><?=$LITASIS_OBS?></textarea>
+        </div>
+      </fieldset>
+    </div>
+  </div>
+</form>

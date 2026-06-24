@@ -1,0 +1,128 @@
+<form>
+    <div
+      class="container d-flex justify-content-center animate__animated animate__fadeIn"
+    >
+      <div class="row col-8">
+        <fieldset class="row mb-3 col-12 col-md-6">
+          <input type="hidden" value="<?=$CANCER?>" id="cancer0" />
+          <legend class="col-form-label col-12 pt-0">
+            <label for="email">Cancer</label>
+          </legend>
+          <div class="col-12">
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="cancer"
+                id="cancer1"
+                value="1"
+                
+              />
+              <label class="form-check-label" for="cancer1"> Si </label>
+            </div>
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="cancer"
+                id="cancer2"
+                value="0"
+              />
+              <label class="form-check-label" for="cancer2"> No </label>
+            </div>
+          </div>
+        </fieldset>
+        <fieldset class="row mb-3 col-12 col-md-6">
+          <legend class="col-form-label col-12 pt-0">
+            <label for="email">Comentarios:</label>
+          </legend>
+          <div class="col-12">
+            <textarea class="form-control" id="cancerOBS" name="cancerOBS"><?=$CANCER_OBS?></textarea>
+          </div>
+        </fieldset>
+        <fieldset class="row mb-3 col-12 col-md-6">
+          <input type="hidden" value="<?=$ALERGIAS?>" id="alergias0" />
+          <legend class="col-form-label col-12 pt-0">
+            <label for="email">Alergias</label>
+          </legend>
+          <div class="col-12">
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="alergias"
+                id="alergias1"
+                value="1"
+                
+              />
+              <label class="form-check-label" for="alergias1"> Si </label>
+            </div>
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="alergias"
+                id="alergias2"
+                value="0"
+              />
+              <label class="form-check-label" for="alergias2"> No </label>
+            </div>
+          </div>
+        </fieldset>
+        <fieldset class="row mb-3 col-12 col-md-6">
+          <legend class="col-form-label col-12 pt-0">
+            <label for="email">Comentarios:</label>
+          </legend>
+          <div class="col-12">
+            <textarea
+              class="form-control"
+              id="alergiasOBS"
+              name="alergiasOBS"
+            ><?=$ALERGIAS_OBS?></textarea>
+          </div>
+        </fieldset>
+        <fieldset class="row mb-3 col-12 col-md-6">
+          <input type="hidden" value="<?=$MALFORMACIONES?>" id="malforma0" />
+          <legend class="col-form-label col-12 pt-0">
+            <label for="email">Malformaciones</label>
+          </legend>
+          <div class="col-12">
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="malforma"
+                id="malforma1"
+                value="1"
+                
+              />
+              <label class="form-check-label" for="malforma1"> Si </label>
+            </div>
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="malforma"
+                id="malforma2"
+                value="0"
+              />
+              <label class="form-check-label" for="malforma2"> No </label>
+            </div>
+          </div>
+        </fieldset>
+        <fieldset class="row mb-3 col-12 col-md-6">
+          <legend class="col-form-label col-12 pt-0">
+            <label for="email">Comentarios:</label>
+          </legend>
+          <div class="col-12">
+            <textarea
+              class="form-control"
+              id="malformaObs"
+              name="malformaObs"
+            ><?=$MALFORMACIONES_OBS?></textarea>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+  </form>
+  

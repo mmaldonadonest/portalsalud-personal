@@ -1,0 +1,701 @@
+<div>
+  <div
+    class="container d-flex justify-content-center animate__animated animate__fadeIn"
+  >
+    <div class="col-8">
+      <div class="row">
+        <div class="col-12 mb-3">
+          <center>
+            <h4>Tipo de examen</h4>
+          </center>
+
+          <div class="form-group col-12">
+            <div class="form-group">
+              <select
+                class="form-control"
+                name="tipoExamenInputOrg"
+                id="tipoExamenInputOrg"
+              >
+                <option value="0">Selecciona</option>
+                <option value="1">Admisión</option>
+                <option value="2">Périodico</option>
+                <option value="3">Cambio de rol</option>
+                <option value="4">Post incapacidad</option>
+                <option value="5">Especial</option>
+              </select>
+            </div>
+          </div>
+          <center>
+            <h4>
+              Fecha de realización:
+              <?=$fechaExp?>
+            </h4>
+          </center>
+        </div>
+        <div class="form-group col-6">
+          <label for="edad_inicio_laborar"
+            >Edad en la que comenzó a laborar:</label
+          >
+          <input
+            type="number"
+            class="form-control"
+            t
+            id="edad_inicio_laborar"
+            name="edad_inicio_laborar"
+            value="<?=$edad_inicio_laborar?>"
+          />
+        </div>
+        <div class="form-group col-6">
+          <label for="cantidad_trabajos"
+            >Cantidad de trabajos anteriores:</label
+          >
+          <input
+            type="number"
+            class="form-control"
+            id="cantidad_trabajos"
+            name="cantidad_trabajos"
+            value="<?=$cantidad_trabajos?>"
+          />
+        </div>
+        <div class="form-group col-12">
+          <label for="pension">Pensión</label>
+          <input
+            type="text"
+            class="form-control"
+            id="pension"
+            name="pension"
+            value="<?=$pension?>"
+          />
+          <small id="helpId" class="form-text text-muted"
+            >¿Actualmente cuenta con una pensión por el IMSS o alguno tramité
+            pendiente como ST2,ST3,ST4,ST7 o ST9?</small
+          >
+        </div>
+      </div>
+      <hr />
+
+      <h4>Trabajos Anteriores</h4>
+      <hr />
+      <div class="row">
+        <div class="col-6">
+          <h4>Trabajo 1</h4>
+          <div class="form-group">
+            <label for="trabajo1_nombre">Nombre del Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo1_nombre"
+              name="trabajo1_nombre"
+              value="<?=$nombre1?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo1_giro">Giro del Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo1_giro"
+              name="trabajo1_giro"
+              value="<?=$giro1?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo1_puesto">Puesto en el Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo1_puesto"
+              name="trabajo1_puesto"
+              value="<?=$puesto1?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo1_turno">Turno en el Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo1_turno"
+              name="trabajo1_turno"
+              value="<?=$turno1?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo1_antiguedad">Antigüedad en el Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo1_antiguedad"
+              name="trabajo1_antiguedad"
+              value="<?=$antiguedad1?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo1_salida">Salida del Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo1_salida"
+              name="trabajo1_salida"
+              value="<?=$salida1?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo1_descripcion">Descripción del Trabajo</label>
+            <textarea
+              class="form-control"
+              id="trabajo1_descripcion"
+              name="trabajo1_descripcion"
+            >
+<?=$descripcion1?></textarea
+            >
+          </div>
+          <div class="form-group">
+            <label for="trabajo1_riesgos">Nivel de Riesgos en el Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo1_riesgos"
+              name="trabajo1_riesgos"
+              value="<?=$riesgos1?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo1_epp"
+              >¿Utiliza Equipo de Protección Personal (EPP) en el Trabajo
+              1?</label
+            >
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo1_epp"
+              name="trabajo1_epp"
+              value="<?=$epp1?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo1_observaciones"
+              >Observaciones del Trabajo</label
+            >
+            <textarea
+              class="form-control"
+              id="trabajo1_observaciones"
+              name="trabajo1_observaciones"
+            >
+<?=$observaciones1?></textarea
+            >
+          </div>
+        </div>
+        <div class="col-6">
+          <h4>Trabajo 2</h4>
+          <div class="form-group">
+            <label for="trabajo2_nombre">Nombre del Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo2_nombre"
+              name="trabajo2_nombre"
+              value="<?=$nombre2?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo2_giro">Giro del Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo2_giro"
+              name="trabajo2_giro"
+              value="<?=$giro2?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo2_puesto">Puesto en el Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo2_puesto"
+              name="trabajo2_puesto"
+              value="<?=$puesto2?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo2_turno">Turno en el Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo2_turno"
+              name="trabajo2_turno"
+              value="<?=$turno2?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo2_antiguedad">Antigüedad en el Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo2_antiguedad"
+              name="trabajo2_antiguedad"
+              value="<?=$antiguedad2?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo2_salida">Salida del Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo2_salida"
+              name="trabajo2_salida"
+              value="<?=$salida2?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo2_descripcion">Descripción del Trabajo</label>
+            <textarea
+              class="form-control"
+              id="trabajo2_descripcion"
+              name="trabajo2_descripcion"
+            >
+<?=$descripcion2?></textarea
+            >
+          </div>
+          <div class="form-group">
+            <label for="trabajo2_riesgos">Nivel de Riesgos en el Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo2_riesgos"
+              name="trabajo2_riesgos"
+              value="<?=$riesgos2?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo2_epp"
+              >¿Utiliza Equipo de Protección Personal (EPP) en el Trabajo
+              2?</label
+            >
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo2_epp"
+              name="trabajo2_epp"
+              value="<?=$epp2?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo2_observaciones"
+              >Observaciones del Trabajo</label
+            >
+            <textarea
+              class="form-control"
+              id="trabajo2_observaciones"
+              name="trabajo2_observaciones"
+            >
+<?=$observaciones2?></textarea
+            >
+          </div>
+        </div>
+        <div class="col-12">
+          <hr />
+        </div>
+        <div class="col-6">
+          <h4>Trabajo 3</h4>
+          <div class="form-group">
+            <label for="trabajo3_nombre">Nombre del Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo3_nombre"
+              name="trabajo3_nombre"
+              value="<?=$nombre3?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo3_giro">Giro del Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo3_giro"
+              name="trabajo3_giro"
+              value="<?=$giro3?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo3_puesto">Puesto en el Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo3_puesto"
+              name="trabajo3_puesto"
+              value="<?=$puesto3?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo3_turno">Turno en el Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo3_turno"
+              name="trabajo3_turno"
+              value="<?=$turno3?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo3_antiguedad">Antigüedad en el Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo3_antiguedad"
+              name="trabajo3_antiguedad"
+              value="<?=$antiguedad3?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo3_salida">Salida del Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo3_salida"
+              name="trabajo3_salida"
+              value="<?=$salida3?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo3_descripcion">Descripción del Trabajo</label>
+            <textarea
+              class="form-control"
+              id="trabajo3_descripcion"
+              name="trabajo3_descripcion"
+            >
+<?=$descripcion3?></textarea
+            >
+          </div>
+          <div class="form-group">
+            <label for="trabajo3_riesgos">Nivel de Riesgos en el Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo3_riesgos"
+              name="trabajo3_riesgos"
+              value="<?=$riesgos3?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo3_epp"
+              >¿Utiliza Equipo de Protección Personal (EPP) en el Trabajo
+              3?</label
+            >
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo3_epp"
+              name="trabajo3_epp"
+              value="<?=$epp3?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo3_observaciones"
+              >Observaciones del Trabajo</label
+            >
+            <textarea
+              class="form-control"
+              id="trabajo3_observaciones"
+              name="trabajo3_observaciones"
+            >
+<?=$observaciones3?></textarea
+            >
+          </div>
+        </div>
+        <div class="col-6">
+          <h4>Trabajo 4</h4>
+          <div class="form-group">
+            <label for="trabajo4_nombre">Nombre del Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo4_nombre"
+              name="trabajo4_nombre"
+              value="<?=$nombre4?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo4_giro">Giro del Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo4_giro"
+              name="trabajo4_giro"
+              value="<?=$giro4?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo4_puesto">Puesto en el Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo4_puesto"
+              name="trabajo4_puesto"
+              value="<?=$puesto4?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo4_turno">Turno en el Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo4_turno"
+              name="trabajo4_turno"
+              value="<?=$turno4?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo4_antiguedad">Antigüedad en el Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo4_antiguedad"
+              name="trabajo4_antiguedad"
+              value="<?=$antiguedad4?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo4_salida">Salida del Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo4_salida"
+              name="trabajo4_salida"
+              value="<?=$salida4?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo4_descripcion">Descripción del Trabajo</label>
+            <textarea
+              class="form-control"
+              id="trabajo4_descripcion"
+              name="trabajo4_descripcion"
+            >
+<?=$descripcion4?></textarea
+            >
+          </div>
+          <div class="form-group">
+            <label for="trabajo4_riesgos">Nivel de Riesgos en el Trabajo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo4_riesgos"
+              name="trabajo4_riesgos"
+              value="<?=$riesgos4?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo4_epp"
+              >¿Utiliza Equipo de Protección Personal (EPP) en el Trabajo
+              4?</label
+            >
+            <input
+              type="text"
+              class="form-control"
+              id="trabajo4_epp"
+              name="trabajo4_epp"
+              value="<?=$epp4?>"
+            />
+          </div>
+          <div class="form-group">
+            <label for="trabajo4_observaciones"
+              >Observaciones del Trabajo</label
+            >
+            <textarea
+              class="form-control"
+              id="trabajo4_observaciones"
+              name="trabajo4_observaciones"
+            >
+<?=$observaciones4?></textarea
+            >
+          </div>
+        </div>
+      </div>
+      <hr />
+
+      <div class="container mt-5">
+        <h2>Formulario de Contacto de Emergencia</h2>
+        <hr />
+        <div>
+          <div class="form-group">
+            <label for="ContactEmergenombre1">Nombre</label>
+            <input
+              type="text"
+              class="form-control"
+              id="ContactEmergenombre1"
+              value="<?=$contactoEmernombre1?>"
+              placeholder="Nombre"
+            />
+          </div>
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="ContactEmergeapellido_paterno1"
+                >Apellido Paterno</label
+              >
+              <input
+                type="text"
+                class="form-control"
+                id="ContactEmergeapellido_paterno1"
+                value="<?=$contactoEmerapellido_paterno1?>"
+                placeholder="Apellido Paterno"
+              />
+            </div>
+            <div class="form-group col-md-6">
+              <label for="ContactEmergeapellido_materno1"
+                >Apellido Materno</label
+              >
+              <input
+                type="text"
+                class="form-control"
+                id="ContactEmergeapellido_materno1"
+                value="<?=$contactoEmerapellido_materno1?>"
+                placeholder="Apellido Materno"
+              />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="ContactEmergeparentesco1">Parentesco</label>
+            <input
+              type="text"
+              class="form-control"
+              id="ContactEmergeparentesco1"
+              value="<?=$contactoEmerparentesco1?>"
+              placeholder="Parentesco"
+            />
+          </div>
+          <div class="form-group">
+            <label for="ContactEmergetelefono1">Teléfono</label>
+            <input
+              type="text"
+              class="form-control"
+              id="ContactEmergetelefono1"
+              value="<?=$contactoEmertelefono1?>"
+              placeholder="Teléfono"
+            />
+          </div>
+
+          <!-- Segundo contacto -->
+          <h3>Segundo Contacto</h3>
+          <div class="form-group">
+            <label for="ContactEmergenombre2">Nombre</label>
+            <input
+              type="text"
+              class="form-control"
+              id="ContactEmergenombre2"
+              value="<?=$contactoEmernombre2?>"
+              placeholder="Nombre"
+            />
+          </div>
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="ContactEmergeapellido_paterno2"
+                >Apellido Paterno</label
+              >
+              <input
+                type="text"
+                class="form-control"
+                id="ContactEmergeapellido_paterno2"
+                value="<?=$contactoEmerapellido_paterno2?>"
+                placeholder="Apellido Paterno"
+              />
+            </div>
+            <div class="form-group col-md-6">
+              <label for="ContactEmergeapellido_materno2"
+                >Apellido Materno</label
+              >
+              <input
+                type="text"
+                class="form-control"
+                id="ContactEmergeapellido_materno2"
+                value="<?=$contactoEmerapellido_materno2?>"
+                placeholder="Apellido Materno"
+              />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="ContactEmergeparentesco2">Parentesco</label>
+            <input
+              type="text"
+              class="form-control"
+              id="ContactEmergeparentesco2"
+              value="<?=$contactoEmerparentesco2?>"
+              placeholder="Parentesco"
+            />
+          </div>
+          <div class="form-group">
+            <label for="ContactEmergetelefono2">Teléfono</label>
+            <input
+              type="text"
+              class="form-control"
+              id="ContactEmergetelefono2"
+              value="<?=$contactoEmertelefono2?>"
+              placeholder="Teléfono"
+            />
+          </div>
+
+          <!-- Tercer contacto -->
+          <h3>Tercer Contacto</h3>
+          <div class="form-group">
+            <label for="ContactEmergenombre3">Nombre</label>
+            <input
+              type="text"
+              class="form-control"
+              id="ContactEmergenombre3"
+              value="<?=$contactoEmernombre3?>"
+              placeholder="Nombre"
+            />
+          </div>
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="ContactEmergeapellido_paterno3"
+                >Apellido Paterno</label
+              >
+              <input
+                type="text"
+                class="form-control"
+                id="ContactEmergeapellido_paterno3"
+                value="<?=$contactoEmerapellido_paterno3?>"
+                placeholder="Apellido Paterno"
+              />
+            </div>
+            <div class="form-group col-md-6">
+              <label for="ContactEmergeapellido_materno3"
+                >Apellido Materno</label
+              >
+              <input
+                type="text"
+                class="form-control"
+                id="ContactEmergeapellido_materno3"
+                value="<?=$contactoEmerapellido_materno3?>"
+                placeholder="Apellido Materno"
+              />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="ContactEmergeparentesco3">Parentesco</label>
+            <input
+              type="text"
+              class="form-control"
+              id="ContactEmergeparentesco3"
+              value="<?=$contactoEmerparentesco3?>"
+              placeholder="Parentesco"
+            />
+          </div>
+          <div class="form-group">
+            <label for="ContactEmergetelefono3">Teléfono</label>
+            <input
+              type="text"
+              class="form-control"
+              id="ContactEmergetelefono3"
+              value="<?=$contactoEmertelefono3?>"
+              placeholder="Teléfono"
+            />
+          </div>
+       
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,133 @@
+<form>
+  <div
+    class="container d-flex justify-content-center animate__animated animate__fadeIn"
+  >
+    <div class="row col-8">
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$ALCOHOLISMO?>" id="alcoholismo0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Alcoholismo</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="alcoholismo"
+              id="alcoholismo1"
+              value="1"
+              
+            />
+            <label class="form-check-label" for="alcoholismo1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="alcoholismo"
+              id="alcoholismo2"
+              value="0"
+            />
+            <label class="form-check-label" for="alcoholismo2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Comentarios:</label>
+        </legend>
+        <div class="col-12">
+          <textarea
+            class="form-control"
+            id="alcoholismoOBS"
+            name="alcoholismoOBS"
+          >
+<?=$ALCOHOLISMO_OBS?></textarea
+          >
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$TABAQUISMO?>" id="tabaquismo0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Tabaquismo</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="tabaquismo"
+              id="tabaquismo1"
+              value="1"
+              
+            />
+            <label class="form-check-label" for="tabaquismo1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="tabaquismo"
+              id="tabaquismo2"
+              value="0"
+            />
+            <label class="form-check-label" for="tabaquismo2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Comentarios:</label>
+        </legend>
+        <div class="col-12">
+          <textarea
+            class="form-control"
+            id="tabaquismoOBS"
+            name="tabaquismoOBS"
+          >
+<?=$TABAQUISMO_OBS?></textarea
+          >
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$DROGAS?>" id="drogas0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Drogas</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="drogas"
+              id="drogas1"
+              value="1"
+              
+            />
+            <label class="form-check-label" for="drogas1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="drogas"
+              id="drogas2"
+              value="0"
+            />
+            <label class="form-check-label" for="drogas2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Comentarios:</label>
+        </legend>
+        <div class="col-12">
+          <textarea class="form-control" id="drogasObs" name="drogasObs">
+<?=$DROGAS_OBS?></textarea
+          >
+        </div>
+      </fieldset>
+    </div>
+  </div>
+</form>

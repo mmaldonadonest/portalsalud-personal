@@ -1,0 +1,94 @@
+<section class="content container-fluid card animate__animated animate__fadeIn">
+  <div class="jumbotron jumbotron-fluid bg-dark" style="border-radius: 12px">
+    <div class="container-fluid">
+      <center>
+        <h3 class="text-white">
+          Resultado de búsqueda <i class="fas fa-search"></i>
+        </h3>
+      </center>
+     
+    </div>
+  </div>
+  </div>
+  
+    <div class="container-fluid">
+      <div class="card bg-light mb-3 col-12">
+        <div class="card-header"><h3>Ficha de identificación</h3></div>
+        <div class="card-body">
+          <form action="" class="row">
+            <div class="col-12 col-md-4 mt-3">
+              <div class="input-group">
+                <input
+                  readonly
+                  type="text"
+                  class="form-control form-control-sm"
+                  value="<?=$curp?>"
+                  placeholder="Cuenta"
+                />
+                <div class="input-group-append">
+                  <div class="input-group-text">
+                    <span class="fas fa-id-card-alt"></span>
+                  
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-md-8 mt-3">
+              <div class="input-group">
+                <input
+                  readonly
+                  type="text"
+                  class="form-control form-control-sm"
+                  value="<?=$nombre?>"
+                  placeholder="Nombre(s)"
+                />
+                <div class="input-group-append">
+                  <div class="input-group-text">
+                    <span class="fas fa-user"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+           
+            
+            <div class="col-12 col-md-4 mt-3">
+              <div class="input-group">
+                <input
+                  readonly
+                  type="text"
+                  class="form-control form-control-sm"
+                  placeholder="Fecha de ingreso"
+                  value="<?=$fechaIngreso?>"
+                />
+                <div class="input-group-append">
+                  <div class="input-group-text">
+                    <span class="fas fa-calendar"></span>
+                
+                  </div>
+                </div>
+              </div>
+            </div>
+         
+            <div class="col-12 col-md-6 mt-3">
+              <div class="input-group">
+                <input
+                  readonly
+                  type="text"
+                  class="form-control form-control-sm"
+                  placeholder="Estado del candidato"
+                  value="<?=$status?>"
+                />
+                <div class="input-group-append">
+                  <div class="input-group-text">
+                    <span class="fas fa-info"></span>
+                    
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+  

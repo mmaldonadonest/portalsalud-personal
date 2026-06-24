@@ -1,0 +1,376 @@
+
+<!-- Main Sidebar Container -->
+<aside
+  class="main-sidebar sidebar-dark-primary elevation-4"
+  style="font-size: 0.875em"
+>
+<style>
+  aside {
+    /* From https://css.glass */
+    background: rgba(33, 37, 41, 0.9) !important;
+    
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1) !important;
+    backdrop-filter: blur(1.2px)!important;
+    -webkit-backdrop-filter: blur(1.2px);
+    border: 1px solid rgba(33, 37, 41, 0.3) !important;
+
+    
+  }
+</style>
+  <!-- Brand Logo -->
+  <a class="brand-link">
+    <center>
+      <img
+        src="view/img/logo-menu.png"
+        alt="AdminLTE Logo"
+        class="img-fluid"
+        width="150px"
+        style="opacity: 0.8"
+      />
+    </center>
+  </a>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <!-- Sidebar user panel (optional) -->
+    <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+      <div class="image text-white">
+        <i class="fas fa-user-circle fa-2x"></i>
+      </div>
+      <div class="info">
+        <a class="d-block"><?=$user?></a>
+      </div>
+    </div>
+
+    <!-- SidebarSearch Form -->
+
+    <!-- Sidebar Menu -->
+    <nav class="mt-2">
+      <ul
+        class="nav nav-pills nav-sidebar flex-column"
+        data-widget="treeview"
+        role="menu"
+        data-accordion="false"
+      >
+        <!-- Add icons to the links using the .nav-icon class
+               with font-awesome or any other icon font library -->
+        <center>
+          <div class="spinner-border text-info mt-2 loadnav mb-3" role="status">
+            <span class="sr-only nav-icon">Loading...</span>
+          </div>
+        </center>
+
+        <li class="nav-item" id="moreInfo">
+          <a class="nav-link">
+            <i class="nav-icon fas fa-book-medical"></i>
+            <p>
+              Expediente General
+              <i class="fas fa-angle-left right"></i>
+            </p>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item 11 module">
+              <a href="#contentDash" onclick="viewPretest()" class="nav-link">
+                <i class="nav-icon fas fa-clipboard-check"></i>
+                <p>Pre-Test</p>
+              </a>
+            </li>
+            <li class="nav-item 2 module">
+              <a href="#contentDash" onclick="viewchecklist()" class="nav-link">
+                <i class="nav-icon fas fa-flask"></i>
+                <p>E.Laboratorio</p>
+              </a>
+            </li>
+            <li class="nav-item 3 module">
+              <a href="#contentDash" onclick="viewExMedPDF()" class="nav-link">
+                <i class="nav-icon far fa-file-pdf"></i>
+                <p>Historico E.M</p>
+              </a>
+            </li>
+            <li class="nav-item 4 module">
+              <a href="#contentDash" onclick="viewNotaMPDF()" class="nav-link">
+                <i class="nav-icon fas fa-file-pdf"></i>
+                <p>Nota médica</p>
+              </a>
+            </li>
+            <li class="nav-item 5 module">
+              <a href="#contentDash" onclick="viewNotaIncap()" class="nav-link">
+                <i class="nav-icon far fa-file"></i>
+                <p>Nota incapacidad</p>
+              </a>
+            </li>
+            <li class="nav-item 6 module">
+              <a
+                href="#contentDash"
+                onclick="viewExpediente()"
+                class="nav-link"
+              >
+                <i class="nav-icon fas fa-book-medical"></i>
+                <p>Archivo de consultas</p>
+              </a>
+            </li>
+            <!-- <li class="nav-item">
+              <a
+                href="#contentDash"
+                
+                onclick="viewExamenMedicoPeriodico()"
+                class="nav-link"
+              >
+              <i class="nav-icon fas fa-stethoscope"></i>
+                <p>E. médico periódico</p>
+              </a>
+            </li> -->
+            <li class="nav-item 7 module">
+              <a
+                href="#contentDash"
+                onclick="viewConsulMedic()"
+                class="nav-link"
+              >
+                <i class="nav-icon fas fa-thermometer"></i>
+                <p>Consulta médica</p>
+              </a>
+            </li>
+            <li class="nav-item 8 module">
+              <a href="#contentDash" onclick="ViewIncap()" class="nav-link">
+                <i class="nav-icon fas fa-head-side-cough"></i>
+                <p>Incapacidades</p>
+              </a>
+            </li>
+            <li class="nav-item 9 module">
+              <a
+                href="#contentDash"
+                onclick="viewArchivoInc()"
+                class="nav-link"
+              >
+                <i class="nav-icon fas fa-calendar-times"></i>
+                <p>Archivo incapacidades</p>
+              </a>
+            </li>
+          </ul>
+        </li>
+        <li class="nav-item 10 module exMedModule">
+          <a href="#contentDash" onclick="viewExpHeroFam()" class="nav-link">
+            <i class="nav-icon fas fa-clinic-medical"></i>
+            <p>Examen médico</p>
+          </a>
+        </li>
+        <li class="nav-header navarHeredoFam1">Examen médico</li>
+        <li class="nav-item navarHeredoFam1" id="">
+          <a href="#btnSave" onclick="openAll()" class="nav-link">
+            <i class="nav-icon fas fa-folder-open"></i>
+            <p>Abrir</p>
+          </a>
+        </li>
+        <li class="nav-item navarHeredoFam1" id="">
+          <a href="#btnSave" onclick="printPdf()" class="nav-link">
+            <i class="nav-icon fas fa-print"></i>
+            <p>Imprimir expediente</p>
+          </a>
+        </li>
+
+        <li class="nav-item navarHeredoFam" id="">
+          <a class="nav-link">
+            <i class="fas fa-archive nav-icon"></i>
+            <p>
+              Expediente
+              <i class="fas fa-angle-left right"></i>
+            </p>
+          </a>
+
+          <ul class="nav nav-treeview">
+            <li class="nav-item navarHeredoFam" id="">
+              <a class="nav-link">
+                <i class="nav-icon fas fa-table"></i>
+                <p>
+                  E.Heredofamiliar
+                  <i class="fas fa-angle-left right"></i>
+                </p>
+              </a>
+              <ul class="nav nav-treeview">
+                <li class="nav-item">
+                  <a
+                    id=""
+                    onclick="irAContenido('Neurología')"
+                    class="nav-link"
+                  >
+                    <i class="nav-icon fas fa-brain"></i>
+                    <p>Neurología</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a
+                    id=""
+                    onclick="irAContenido('Cardiopatía')"
+                    class="nav-link"
+                  >
+                    <i class="nav-icon fas fa-heartbeat"></i>
+                    <p>Cardiopatía</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a
+                    id=""
+                    onclick="irAContenido('Neumopatía')"
+                    class="nav-link"
+                  >
+                    <i class="nav-icon fas fa-lungs"></i>
+                    <p>Neumopatía</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a
+                    id=""
+                    onclick="irAContenido('Toxicológico')"
+                    class="nav-link"
+                  >
+                    <i class="nav-icon fas fa-prescription-bottle-alt"></i>
+                    <p>Toxicológico</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a
+                    id=""
+                    onclick="irAContenido('Nefropatías')"
+                    class="nav-link"
+                  >
+                    <i class="nav-icon fas fa-file-medical-alt"></i>
+                    <p>Nefropatías</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a
+                    id=""
+                    onclick="irAContenido('Endocrinas')"
+                    class="nav-link"
+                  >
+                    <i class="nav-icon fas fa-file-medical"></i>
+                    <p>Endocrinas</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a id="" onclick="irAContenido('Obesidad')" class="nav-link">
+                    <i class="nav-icon fas fa-egg"></i>
+                    <p>Obesidad</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a id="" onclick="irAContenido('Mentales')" class="nav-link">
+                    <i class="nav-icon fas fa-user"></i>
+
+                    <p>Mentales</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a id="" onclick="irAContenido('Generales')" class="nav-link">
+                    <i class="nav-icon far fa-circle nav-icon"></i>
+                    <p>Generales</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a id="" onclick="irAContenido('Otras')" class="nav-link">
+                    <i class="nav-icon far fa-circle nav-icon"></i>
+                    <p>Otras</p>
+                  </a>
+                </li>
+              </ul>
+            </li>
+            <li class="nav-item navarHeredoFam" id="">
+              <a id="" onclick="irAContenido('APNP')" class="nav-link">
+                <i class="nav-icon fas fa-folder-plus"></i>
+                <p>A. personales no patologicos</p>
+              </a>
+            </li>
+            <li class="nav-item navarHeredoFam" id="">
+              <a
+                id=""
+                onclick="irAContenido('Inmunizaciones')"
+                class="nav-link"
+              >
+                <i class="nav-icon fas fa-syringe"></i>
+                <p>Inmunizaciones</p>
+              </a>
+            </li>
+            <li class="nav-item navarHeredoFam" id="">
+              <a id="" onclick="irAContenido('AGO')" class="nav-link">
+                <i class="nav-icon fas fa-notes-medical"></i>
+                <p>A. Gineco-Obstétricos</p>
+              </a>
+            </li>
+            <li class="nav-item navarHeredoFam" id="">
+              <a id="" onclick="irAContenido('APP')" class="nav-link">
+                <i class="nav-icon fas fa-dna"></i>
+                <p>A. personales patologicos</p>
+              </a>
+            </li>
+            <li class="nav-item navarHeredoFam" id="">
+              <a id="" onclick="irAContenido('PA')" class="nav-link">
+                <i class="nav-icon fas fa-notes-medical"></i>
+
+                <p>Padecimiento actual</p>
+              </a>
+            </li>
+            <li class="nav-item navarHeredoFam" id="">
+              <a id="" onclick="irAContenido('IPAYS')" class="nav-link">
+                <i class="nav-icon fas fa-x-ray"></i>
+                <p>I. por aparatos y sistemas</p>
+              </a>
+            </li>
+            <li class="nav-item navarHeredoFam" id="">
+              <a id="" onclick="irAContenido('EF')" class="nav-link">
+                <i class="nav-icon fas fa-search-plus"></i>
+                <p>Exploración fisica</p>
+              </a>
+            </li>
+            <li class="nav-item navarHeredoFam" id="">
+              <a id="" onclick="irAContenido('ERR')" class="nav-link">
+                <i class="nav-icon fas fa-poll-h"></i>
+                <p>E. realizados y resultados</p>
+              </a>
+            </li>
+            <li class="nav-item navarHeredoFam" id="">
+              <a id="" onclick="irAContenido('Diagnóstico')" class="nav-link">
+                <i class="nav-icon fas fa-stethoscope"></i>
+                <p>Diagnóstico</p>
+              </a>
+            </li>
+            <li class="nav-item navarHeredoFam" id="">
+              <a id="" onclick="irAContenido('POTE')" class="nav-link">
+                <i class="nav-icon fas fa-laptop-medical"></i>
+
+                <p>P. o terapéutica empleada</p>
+              </a>
+            </li>
+            <li class="nav-item navarHeredoFam" id="">
+              <a id="" onclick="irAContenido('RE')" class="nav-link">
+                <i class="nav-icon fas fa-comment-medical"></i>
+                <p>Resultado del examen</p>
+              </a>
+            </li>
+            <li class="nav-item navarHeredoFam" id="">
+              <a href="#btnSave" onclick="printPdf()" class="nav-link">
+                <i class="nav-icon fas fa-print"></i>
+                <p>Imprimir expediente</p>
+              </a>
+            </li>
+            <li class="nav-item navarHeredoFam" id="">
+              <a href="#btnSave" onclick="showFirm()" class="nav-link">
+                <i class="nav-icon fas fa-signature"></i>
+                <p>Firma del paciente</p>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <li class="nav-header">Opciones</li>
+        <li class="nav-item">
+          <a onclick="closeApp()" class="nav-link">
+            <i class="nav-icon fas fa-sign-out-alt"></i>
+            <p>Cerrar sesión</p>
+          </a>
+        </li>
+      </ul>
+    </nav>
+    <!-- /.sidebar-menu -->
+  </div>
+  <!-- /.sidebar -->
+</aside>

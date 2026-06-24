@@ -1,0 +1,239 @@
+<form>
+  <div
+    class="container d-flex justify-content-center animate__animated animate__fadeIn"
+  >
+    <div class="row col-8">
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">AVC</label>
+        </legend>
+        <!-- <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="avc"
+              id="avc1"
+              value="1"
+            />
+            <label class="form-check-label" for="avc1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="avc"
+              id="avc2"
+              value="0"
+            />
+            <label class="form-check-label" for="avc2"> No </label>
+          </div>
+        </div> -->
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-12">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Comentarios:</label>
+        </legend>
+        <div class="col-12">
+          <textarea class="form-control" id="avc" name="avc">
+<?=$avc?></textarea
+          >
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$EPILEPSIA?>" id="emilepcheck0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Epilepsia</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="emilepcheck"
+              id="emilepcheck1"
+              value="1"
+            />
+            <label class="form-check-label" for="emilepcheck1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="emilepcheck"
+              id="emilepcheck2"
+              value="0"
+            />
+            <label class="form-check-label" for="emilepcheck2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Comentarios:</label>
+        </legend>
+        <div class="col-12">
+          <textarea class="form-control" id="epilepCom" name="epilepCom">
+<?=$EPILEPSIA_OBS?></textarea
+          >
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$PARALISIS_FACIAL?>" id="paralisisFac0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Paralisis Facial</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="paralisisFac"
+              id="paralisisFac1"
+              value="1"
+            />
+            <label class="form-check-label" for="paralisisFac1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="paralisisFac"
+              id="paralisisFac2"
+              value="0"
+            />
+            <label class="form-check-label" for="paralisisFac2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Comentarios:</label>
+        </legend>
+        <div class="col-12">
+          <textarea
+            class="form-control"
+            id="paralisisFacObs"
+            name="paralisisFacObs"
+          >
+<?=$PARALISIS_FACIAL_OBS?></textarea
+          >
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$PARKINSON?>" id="parkinson0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Parkinson</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="parkinson"
+              id="parkinson1"
+              value="1"
+            />
+            <label class="form-check-label" for="parkinson1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="parkinson"
+              id="parkinson2"
+              value="0"
+            />
+            <label class="form-check-label" for="parkinson2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Comentarios:</label>
+        </legend>
+        <div class="col-12">
+          <textarea class="form-control" id="parkinsonObs" name="parkinsonObs">
+<?=$PARKINSON_OBS?></textarea
+          >
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$ALZHEIMER?>" id="alzheimer0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Alzheimer</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="alzheimer"
+              id="alzheimer1"
+              value="1"
+            />
+            <label class="form-check-label" for="alzheimer1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="alzheimer"
+              id="alzheimer2"
+              value="0"
+            />
+            <label class="form-check-label" for="alzheimer2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Comentarios:</label>
+        </legend>
+        <div class="col-12">
+          <textarea class="form-control" id="alzheimerObs" name="alzheimerObs">
+<?=$ALZHEIMER_OBS?></textarea
+          >
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$MIGRAÑA?>" id="migraña0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Migraña</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="migraña"
+              id="migraña1"
+              value="1"
+            />
+            <label class="form-check-label" for="migraña1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="migraña"
+              id="migraña2"
+              value="0"
+            />
+            <label class="form-check-label" for="migraña2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Comentarios:</label>
+        </legend>
+        <div class="col-12">
+          <textarea class="form-control" id="migrañaObs" name="migrañaObs">
+<?=$MIGRAÑA_OBS?></textarea
+          >
+        </div>
+      </fieldset>
+    </div>
+  </div>
+</form>

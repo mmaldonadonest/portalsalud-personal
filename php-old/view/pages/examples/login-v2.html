@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sistema médico Onest</title>
+
+    <!-- Google Font: Source Sans Pro -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback"
+    />
+    <!-- Font Awesome -->
+    <link
+      rel="stylesheet"
+      href="view/plugins/fontawesome-free/css/all.min.css"
+    />
+    <!-- icheck bootstrap -->
+    <link
+      rel="stylesheet"
+      href="view/plugins/icheck-bootstrap/icheck-bootstrap.min.css"
+    />
+    <!-- Theme style -->
+    <link rel="stylesheet" href="view/dist/css/adminlte.css" />
+    <link rel="stylesheet" href="view\dist\css\alt\mystyle.css" />
+    <link rel="stylesheet" href="view/plugins/particles/particles.css">
+    <!-- Sweet Alert -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  </head>
+  <body class="hold-transition login-page" >
+    <div id="particles-js"></div>
+    <div class="login-box">
+      <!-- /.login-logo -->
+      <div class="card card-outline text-white card-primary glass">
+        <div class="card-header text-center">
+          <img src="view\img\logo-menu.png" class="img-fluid" alt="" />
+        </div>
+        <div class="card-body">
+          <p class="login-box-msg">Iniciar sesión</p>
+
+          <form>
+            <div class="input-group mb-3">
+              <input
+                type="email"
+                class="form-control"
+                id="mail"
+                placeholder="Email"
+              />
+              <div class="input-group-append">
+                <div class="input-group-text">
+                  <span class="fas fa-envelope"></span>
+                </div>
+              </div>
+            </div>
+            <div class="input-group mb-3">
+              <input
+                type="password"
+                class="form-control"
+                id="password"
+                placeholder="Password"
+              />
+              <div class="input-group-append">
+                <div class="input-group-text">
+                  <span class="fas fa-lock"></span>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-8">
+                <div class="icheck-primary">
+                  <input type="checkbox" id="rememberMe" />
+                  <label for="rememberMe"> Recuerdame </label>
+                </div>
+              </div>
+              <!-- /.col -->
+              <div class="col-4">
+                <button
+                  type="button"
+                  class="btn btn-primary btn-block"
+                  onclick="checkLogin()"
+                >
+                  Siguente
+                </button>
+              </div>
+              <!-- /.col -->
+            </div>
+          </form>
+
+          <!-- /.social-auth-links -->
+        </div>
+        <!-- /.card-body -->
+      </div>
+      <!-- /.card -->
+    </div>
+    <!-- /.login-box -->
+    <script src="http://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <!-- stats.js lib -->
+    <script src="http://threejs.org/examples/js/libs/stats.min.js"></script>
+    <script src="view/plugins/particles/particles.js"></script>
+    <!-- jQuery -->
+    <script
+      src="https://code.jquery.com/jquery-3.6.4.min.js"
+      integrity="sha256-oP6HI9z1XaZNBrJURtCoUT5SUnxFr8s3BzRl+cbzUq8="
+      crossorigin="anonymous"
+    ></script>
+    <!-- Bootstrap 4 -->
+    <script src="view/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <!-- AdminLTE App -->
+    <script src="view/dist/js/adminlte.min.js"></script>
+    <script>
+      const savedPassword = localStorage.getItem("password");
+      const savedmail = localStorage.getItem("mail");
+      if (savedPassword) {
+        document.getElementById("password").value = savedPassword;
+        document.getElementById("rememberMe").checked = true;
+      }
+      if (savedmail) {
+        document.getElementById("mail").value = savedmail;
+        document.getElementById("rememberMe").checked = true;
+      }
+      $(document).ready(function () {
+        $.ajax({
+          type: "post",
+          url: "url",
+          data: "data",
+          dataType: "html",
+          success: function (response) {},
+        });
+      });
+      function checkLogin() {
+        var user = $("#mail").val();
+        var pass = $("#password").val();
+        $.ajax({
+          type: "post",
+          url: "rest/login/checklogApi.php",
+          data: { user: user, pass: pass },
+          dataType: "html",
+          success: function (response) {
+//            alert(JSON.stringify(response));
+            if (response == 1) {
+              const password = document.getElementById("password").value;
+              const mail = document.getElementById("mail").value;
+              const rememberMe = document.getElementById("rememberMe").checked;
+
+              if (rememberMe) {
+                localStorage.setItem("password", password);
+                localStorage.setItem("mail", mail);
+              } else {
+                localStorage.removeItem("password");
+                localStorage.removeItem("mail");
+              }
+              Swal.fire({
+                title: "!Inicio correcto!",
+                text: "Datos validos",
+                icon: "success",
+                confirmButtonText: "Siguente",
+              });
+              setTimeout("document.location.reload()", 2000);
+            } else if (response == 100) {
+              Swal.fire({
+                title: "!Error!",
+                text: "Datos invalidos",
+                icon: "error",
+                confirmButtonText: "Siguente",
+              });
+            }
+          },
+        });
+      }
+    </script>
+  </body>
+</html>

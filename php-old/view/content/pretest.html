@@ -1,0 +1,705 @@
+<form>
+  <div class="container animate__animated animate__fadeIn">
+    <div class="jumbotron jumbotron-fluid">
+      <div class="container row">
+        <div class="col-12">
+          <h1 class="display-3">Pre-test</h1>
+          <hr class="my-2" />
+        </div>
+        <div class="form-group col-6">
+          <label for="cuenta">Cuenta:</label>
+          <input type="text" class="form-control" value="<?=$cuentaPRETEST?>" id="cuenta" placeholder="Cuenta"/>
+        </div>
+        <div class="form-group col-6">
+          <label for="puesto">Puesto:</label>
+          <input type="text" class="form-control" value="<?=$puestoPRETEST?>" id="puesto" placeholder="Puesto"/>
+        </div>
+        <div class="form-group col-12 mb-3">
+          <label for="agencia">Agencia:</label>
+          <input type="text" class="form-control" value="<?=$agenciaPRETEST?>" id="agencia" placeholder="Agencia"/>
+        </div>
+        <div class="col-12 mb-3">
+          <hr>
+        </div>
+
+        <!-- Datos Personales -->
+        <div class="col-12">
+          <h3>Datos Personales</h3>
+        </div>
+
+        <div class="form-group col-6">
+          <label for="num_imss">Apellido paterno:</label>
+          <input type="text" class="form-control" id="ape" value="<?=$apePRETEST?>" placeholder="Apellido paterno" />
+        </div>
+        
+        <div class="form-group col-6">
+          <label for="num_imss">Apellido materno:</label>
+          <input type="text" class="form-control" id="apm" value="<?=$apmPRETEST?>" placeholder="Apellido materno" />
+        </div>
+        
+        <div class="form-group col-6">
+          <label for="num_imss">Nombre(s):</label>
+          <input type="text" class="form-control" id="nom" value="<?=$nomPRETEST?>" placeholder="Nombre(s)" />
+        </div>
+        <div class="form-group col-6">
+          <label for="num_imss">Fecha de nacimiento:</label>
+          <input type="text" class="form-control" id="fechN" value="<?=$fechNPRETEST?>" placeholder="Fecha de nacimiento" />
+        </div>
+        <div class="form-group col-6">
+          <label for="num_imss">Estado civil:</label>
+          <input type="text" class="form-control" id="ecivil" value="<?=$ecivilPRETEST?>" placeholder="Estado civil" />
+        </div>
+        <div class="form-group col-6">
+          <label for="num_imss">Número IMSS:</label>
+          <input type="text" class="form-control" id="num_imss" value="<?=$num_imssPRETEST?>" placeholder="Número IMSS" />
+        </div>
+        <div class="col-12 mb-3">
+          <hr>
+        </div>
+
+        <!-- Datos Personales -->
+        <div class="col-12">
+          <h3>Domicilio</h3>
+        </div>
+        <div class="col-12 mb-3">
+          <hr>
+        </div>
+        <div class="form-group col-6">
+          <label for="num_imss">Calle:</label>
+          <input type="text" class="form-control" id="calleIn" value="<?=$calleInPRETEST?>" placeholder="Calle" />
+        </div>
+        <div class="form-group col-6">
+          <label for="num_imss">Numero:</label>
+          <input type="text" class="form-control" id="numeroCin" value="<?=$numeroCinPRETEST?>" placeholder="Numero" />
+        </div>
+        <div class="form-group col-6">
+          <label for="num_imss">Colonia:</label>
+          <input type="text" class="form-control" id="coloniaInp" value="<?=$coloniaInpPRETEST?>" placeholder="Colonia" />
+        </div>
+        <div class="form-group col-6">
+          <label for="num_imss">Delegación o municipio:</label>
+          <input type="text" class="form-control" id="delegOmUn" value="<?=$delegOmUnPRETEST?>" placeholder="Delegación o municipio" />
+        </div>
+        <div class="col-12 mb-3">
+          <hr>
+        </div>
+        <div class="col-12">
+          <h3>Teléfonos</h3>
+        </div>
+
+        <div class="form-group col-6">
+          <label for="tel_personal">Teléfono Personal:</label>
+          <input type="text" class="form-control" id="tel_personal" value="<?=$tel_personalPRETEST?>" placeholder="Teléfono Personal" />
+        </div>
+        <div class="form-group col-6">
+          <label for="tel_casa">Teléfono de Casa:</label>
+          <input type="text" class="form-control" id="tel_casa" value="<?=$tel_casaPRETEST?>" placeholder="Teléfono de Casa" />
+        </div>
+        <div class="col-12">
+          <h4>Teléfono en Caso de Emergencia</h4>
+        </div>
+
+        <div class="form-group col-6">
+          <label for="contacto_emergencia">Telefono:</label>
+          <input type="text" class="form-control" id="contacto_emergencia" value="<?=$contacto_emergenciaPRETEST?>" placeholder="Teléfono en Caso de Emergencia" />
+        </div>
+        <div class="form-group col-6">
+          <label for="contactar_a">Contactar a:</label>
+          <input type="text" class="form-control" id="contactar_a" value="<?=$contactar_aPRETEST?>" placeholder="Contactar a" />
+        </div>
+        <div class="form-group col-6">
+          <label for="contacto_emergencia1">Telefono:</label>
+          <input type="text" class="form-control" id="contacto_emergencia1" value="<?=$contacto_emergencia1PRETEST?>" placeholder="Teléfono en Caso de Emergencia" />
+        </div>
+        <div class="form-group col-6">
+          <label for="contactar_a1">Contactar a:</label>
+          <input type="text" class="form-control" id="contactar_a1" value="<?=$contactar_a1PRETEST?>" placeholder="Contactar a" />
+        </div>
+      
+        <!-- Información General de Salud -->
+        <div class="col-12 mb-3">
+          <hr>
+          <h3>Información General de Salud</h3>
+        </div>
+        <br />
+
+        <div class="form-group col-6">
+          <fieldset class="row col-12">
+            <input type="hidden" value="<?=$LHOPPRETEST?>" id="LHOP0" />
+            <legend class="col-form-label col-12 pt-0">
+              <label>¿Lo han operado en menos de 6 meses?</label>
+            </legend>
+            <div class="col-12">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="LHOP"
+                  id="LHOP1"
+                  value="1"
+                />
+                <label class="form-check-label" for="LHOP1"> Si </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="LHOP"
+                  id="LHOP2"
+                  value="0"
+                />
+                <label class="form-check-label" for="LHOP2"> No </label>
+              </div>
+              <label for="LHOPOBS">Observaciones:</label>
+              <input type="text" class="form-control" value="<?=$LHOPOBSPRETEST?>" id="LHOPOBS" />
+            </div>
+          </fieldset>
+         
+        </div>
+        <div class="form-group col-6">
+          <fieldset class="row col-12">
+            <input type="hidden" value="<?=$TALMEDPRETEST?>" id="TALMED0" />
+            <legend class="col-form-label col-12 pt-0">
+              <label>¿Toma algún medicamento en específico?</label>
+            </legend>
+            <div class="col-12">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="TALMED"
+                  id="TALMED1"
+                  value="1"
+                />
+                <label class="form-check-label" for="TALMED1"> Si </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="TALMED"
+                  id="TALMED2"
+                  value="0"
+                />
+                <label class="form-check-label" for="TALMED2"> No </label>
+              </div>
+              <label for="TALMEDOBS">Observaciones:</label>
+          <input type="text" class="form-control" value="<?=$TALMEDOBSPRETEST?>" id="TALMEDOBS" />
+            </div>
+          </fieldset>
+          
+        </div>
+        <div class="form-group col-6">
+          <fieldset class="row col-12">
+            <input type="hidden" value="<?=$SUAAPRETEST?>" id="SUAA0" />
+            <legend class="col-form-label col-12 pt-0">
+              <label>¿Sufre de alguna alergia?</label>
+            </legend>
+            <div class="col-12">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="SUAA"
+                  id="SUAA1"
+                  value="1"
+                />
+                <label class="form-check-label" for="SUAA1"> Si </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="SUAA"
+                  id="SUAA2"
+                  value="0"
+                />
+                <label class="form-check-label" for="SUAA2"> No </label>
+              </div>
+              <label for="SUAAOBS">Observaciones:</label>
+          <input type="text" class="form-control" value="<?=$SUAAOBSPRETEST?>" id="SUAAOBS" />
+            </div>
+          </fieldset>
+          
+        </div>
+        <div class="form-group col-6">
+          <fieldset class="row col-12">
+            <input type="hidden" value="<?=$SAFOPHPRETEST?>" id="SAFOPH0" />
+            <legend class="col-form-label col-12 pt-0">
+              <label>¿Se ha fracturado o padece hernias?</label>
+            </legend>
+            <div class="col-12">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="SAFOPH"
+                  id="SAFOPH1"
+                  value="1"
+                />
+                <label class="form-check-label" for="SAFOPH1"> Si </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="SAFOPH"
+                  id="SAFOPH2"
+                  value="0"
+                />
+                <label class="form-check-label" for="SAFOPH2"> No </label>
+              </div>
+              <label for="SAFOPHOBS">Observaciones:</label>
+              <input type="text" class="form-control" value="<?=$SAFOPHOBSPRETEST?>" id="SAFOPHOBS" />
+            </div>
+          </fieldset>
+         
+        </div>
+        <div class="form-group col-6">
+          <fieldset class="row col-12">
+            <input type="hidden" value="<?=$ESEMBPRETEST?>" id="ESEMB0" />
+            <legend class="col-form-label col-12 pt-0">
+              <label>¿Está embarazada (solo mujeres)?</label>
+            </legend>
+            <div class="col-12">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="ESEMB"
+                  id="ESEMB1"
+                  value="1"
+                />
+                <label class="form-check-label" for="ESEMB1"> Si </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="ESEMB"
+                  id="ESEMB2"
+                  value="0"
+                />
+                <label class="form-check-label" for="ESEMB2"> No </label>
+              </div>
+              <label for="ESEMBOBS">Observaciones:</label>
+              <input type="text" class="form-control" value="<?=$ESEMBOBSPRETEST?>" id="ESEMBOBS" />
+            </div>
+          </fieldset>
+         
+        </div>
+        <div class="form-group col-6">
+          <fieldset class="row col-12">
+            <input type="hidden" value="<?=$PALENFPRETEST?>" id="PALENF0" />
+            <legend class="col-form-label col-12 pt-0">
+              <label>¿Padece alguna enfermedad(es)?</label>
+            </legend>
+            <div class="col-12">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="PALENF"
+                  id="PALENF1"
+                  value="1"
+                />
+                <label class="form-check-label" for="PALENF1"> Si </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="PALENF"
+                  id="PALENF2"
+                  value="0"
+                />
+                <label class="form-check-label" for="PALENF2"> No </label>
+              </div>
+              <label for="PALENFOBS">Observaciones:</label>
+          <input type="text" class="form-control" value="<?=$PALENFOBSPRETEST?>" id="PALENFOBS" />
+            </div>
+          </fieldset>
+          
+        </div>
+        <div class="form-group col-6">
+          <fieldset class="row col-12">
+            <input type="hidden" value="<?=$CONDROGPRETEST?>" id="CONDROG0" />
+            <legend class="col-form-label col-12 pt-0">
+              <label>¿Actualmente consume drogas?</label>
+            </legend>
+            <div class="col-12">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="CONDROG"
+                  id="CONDROG1"
+                  value="1"
+                />
+                <label class="form-check-label" for="CONDROG1"> Si </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="CONDROG"
+                  id="CONDROG2"
+                  value="0"
+                />
+                <label class="form-check-label" for="CONDROG2"> No </label>
+              </div>
+              <label for="CONDROGOBS">Observaciones:</label>
+              <input type="text" class="form-control" value="<?=$CONDROGOBSPRETEST?>" id="CONDROGOBS" />
+            </div>
+          </fieldset>
+         
+        </div>
+        <div class="form-group col-12">
+          <label for="comentarios">Comentarios:</label>
+          <textarea class="form-control" id="comentarios" rows="4"><?=$comentariosPRETEST?></textarea>
+        </div>
+        <div class="col-12">
+          <h2>Cuestionario de Síntomas Respiratorios</h2>
+        </div>
+        <div class="form-group col-6">
+          <fieldset class="row col-12">
+            <input type="hidden" value="<?=$TOSINPRETEST?>" id="TOSIN0" />
+            <legend class="col-form-label col-12 pt-0">
+              <label>Tos</label>
+            </legend>
+            <div class="col-12">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="TOSIN"
+                  id="TOSIN1"
+                  value="1"
+                />
+                <label class="form-check-label" for="TOSIN1"> Si </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="TOSIN"
+                  id="TOSIN2"
+                  value="0"
+                />
+                <label class="form-check-label" for="TOSIN2"> No </label>
+              </div>
+              <label for="TOSINOBS">Observaciones:</label>
+              <input type="text" class="form-control" value="<?=$TOSINOBSPRETEST?>" id="TOSINOBS" />
+            </div>
+          </fieldset>
+        </div>
+        <div class="form-group col-6">
+          <fieldset class="row col-12">
+            <input type="hidden" value="<?=$FIEBREINPRETEST?>" id="FIEBREIN0" />
+            <legend class="col-form-label col-12 pt-0">
+              <label>Fiebre</label>
+            </legend>
+            <div class="col-12">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="FIEBREIN"
+                  id="FIEBREIN1"
+                  value="1"
+                />
+                <label class="form-check-label" for="FIEBREIN1"> Si </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="FIEBREIN"
+                  id="FIEBREIN2"
+                  value="0"
+                />
+                <label class="form-check-label" for="FIEBREIN2"> No </label>
+              </div>
+              <label for="FIEBREINOBS">Observaciones:</label>
+              <input type="text" class="form-control" value="<?=$FIEBREINOBSPRETEST?>" id="FIEBREINOBS" />
+            </div>
+          </fieldset>
+        </div>
+        <div class="form-group col-6">
+          <fieldset class="row col-12">
+            <input type="hidden" value="<?=$DOLOCABINPPRETEST?>" id="DOLOCABINP0" />
+            <legend class="col-form-label col-12 pt-0">
+              <label>Dolor de Cabeza</label>
+            </legend>
+            <div class="col-12">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="DOLOCABINP"
+                  id="DOLOCABINP1"
+                  value="1"
+                />
+                <label class="form-check-label" for="DOLOCABINP1"> Si </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="DOLOCABINP"
+                  id="DOLOCABINP2"
+                  value="0"
+                />
+                <label class="form-check-label" for="DOLOCABINP2"> No </label>
+              </div>
+              <label for="DOLOCABINPOBS">Observaciones:</label>
+              <input type="text" class="form-control" value="<?=$DOLOCABINPOBSPRETEST?>" id="DOLOCABINPOBS" />
+            </div>
+          </fieldset>
+        </div>
+        <div class="form-group col-6">
+          <fieldset class="row col-12">
+            <input type="hidden" value="<?=$DIFRESPPRETEST?>" id="DIFRESP0" />
+            <legend class="col-form-label col-12 pt-0">
+              <label>Dificultad para Respirar</label>
+            </legend>
+            <div class="col-12">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="DIFRESP"
+                  id="DIFRESP1"
+                  value="1"
+                />
+                <label class="form-check-label" for="DIFRESP1"> Si </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="DIFRESP"
+                  id="DIFRESP2"
+                  value="0"
+                />
+                <label class="form-check-label" for="DIFRESP2"> No </label>
+              </div>
+              <label for="DIFRESPOBS">Observaciones:</label>
+              <input type="text" class="form-control" value="<?=$DIFRESPOBSPRETEST?>" id="DIFRESPOBS" />
+            </div>
+          </fieldset>
+        </div>
+        <div class="form-group col-6">
+          <fieldset class="row col-12">
+            <input type="hidden" value="<?=$DOLARDGARGPRETEST?>" id="DOLARDGARG0" />
+            <legend class="col-form-label col-12 pt-0">
+              <label>Dolor o Ardor en la Garganta</label>
+            </legend>
+            <div class="col-12">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="DOLARDGARG"
+                  id="DOLARDGARG1"
+                  value="1"
+                />
+                <label class="form-check-label" for="DOLARDGARG1"> Si </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="DOLARDGARG"
+                  id="DOLARDGARG2"
+                  value="0"
+                />
+                <label class="form-check-label" for="DOLARDGARG2"> No </label>
+              </div>
+              <label for="DOLARDGARGOBS">Observaciones:</label>
+              <input type="text" class="form-control" value="<?=$DOLARDGARGOBSPRETEST?>" id="DOLARDGARGOBS" />
+            </div>
+          </fieldset>
+        </div>
+        <div class="form-group col-6">
+          <fieldset class="row col-12">
+            <input type="hidden" value="<?=$ESCURRINAZPRETEST?>" id="ESCURRINAZ0" />
+            <legend class="col-form-label col-12 pt-0">
+              <label>Escurrimiento Nasal</label>
+            </legend>
+            <div class="col-12">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="ESCURRINAZ"
+                  id="ESCURRINAZ1"
+                  value="1"
+                />
+                <label class="form-check-label" for="ESCURRINAZ1"> Si </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="ESCURRINAZ"
+                  id="ESCURRINAZ2"
+                  value="0"
+                />
+                <label class="form-check-label" for="ESCURRINAZ2"> No </label>
+              </div>
+              <label for="ESCURRINAZOBS">Observaciones:</label>
+              <input type="text" class="form-control" value="<?=$ESCURRINAZOBSPRETEST?>" id="ESCURRINAZOBS" />
+            </div>
+          </fieldset>
+        </div>
+        <div class="form-group col-6">
+          <fieldset class="row col-12">
+            <input type="hidden" value="<?=$OJOSROJOSPRETEST?>" id="OJOSROJOS0" />
+            <legend class="col-form-label col-12 pt-0">
+              <label>Ojos Rojos</label>
+            </legend>
+            <div class="col-12">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="OJOSROJOS"
+                  id="OJOSROJOS1"
+                  value="1"
+                />
+                <label class="form-check-label" for="OJOSROJOS1"> Si </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="OJOSROJOS"
+                  id="OJOSROJOS2"
+                  value="0"
+                />
+                <label class="form-check-label" for="OJOSROJOS2"> No </label>
+              </div>
+              <label for="OJOSROJOSOBS">Observaciones:</label>
+              <input type="text" class="form-control" value="<?=$OJOSROJOSOBSPRETEST?>" id="OJOSROJOSOBS" />
+            </div>
+          </fieldset>
+        </div>
+        <div class="form-group col-6">
+          <fieldset class="row col-12">
+            <input type="hidden" value="<?=$DOLMUSARTPRETEST?>" id="DOLMUSART0" />
+            <legend class="col-form-label col-12 pt-0">
+              <label>Dolores en Músculos o Articulaciones</label>
+            </legend>
+            <div class="col-12">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="DOLMUSART"
+                  id="DOLMUSART1"
+                  value="1"
+                />
+                <label class="form-check-label" for="DOLMUSART1"> Si </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="DOLMUSART"
+                  id="DOLMUSART2"
+                  value="0"
+                />
+                <label class="form-check-label" for="DOLMUSART2"> No </label>
+              </div>
+              <label for="DOLMUSARTOBS">Observaciones:</label>
+              <input type="text" class="form-control" value="<?=$DOLMUSARTOBSPRETEST?>" id="DOLMUSARTOBS" />
+            </div>
+          </fieldset>
+        </div>
+
+        <!-- Caso COVID Familiar -->
+        <div class="col-12">
+          <h4>Caso COVID Familiar</h4>
+        </div>
+
+        <div class="form-group col-6">
+          <label for="caso_covid_quien"
+            >¿Quién tiene un caso de COVID en la familia?</label
+          >
+          <input type="text" class="form-control" value="<?=$caso_covid_quienPRETEST?>" id="caso_covid_quien" />
+        </div>
+        <div class="form-group col-6">
+          <label for="caso_covid_cuando"
+            >¿Hace cuánto tiempo se confirmó el caso?</label
+          >
+          <input type="text" class="form-control" value="<?=$caso_covid_cuandoPRETEST?>" id="caso_covid_cuando" />
+        </div>
+
+        <div class="form-group col-6">
+          <label for="comentarios_adicionales">Comentarios Adicionales:</label>
+          <textarea
+            class="form-control"
+            id="comentarios_adicionales"
+            rows="4"
+          ><?=$comentarios_adicionalesPRETEST?></textarea>
+        </div>
+        <div class="col-12" id="firmaDiv">
+          <hr>
+          <div class="container">
+              <div class="form-group">
+                  <h3>Firma del paciente</h3>
+                  <textarea style="display: none;" class="form-control" name="com" id="draw-dataUrl" rows="3"></textarea>
+              </div>
+          </div>
+    
+          <div class="row mb-3">
+              <div class="col-md-12">
+                  <center>
+                      <canvas id="draw-canvas" class="bg-light border border-dark" style="border-radius: 12px;" width="300" height="360">
+                          No tienes un buen navegador.
+                      </canvas>
+                  </center>
+    
+              </div>
+          </div>
+          <div class="row">
+              <div class="col-md-12">
+                  <div class="row">
+                      <div class="col-6 mb-3">
+                          <input type="button" class="btn btn-info btn-block" id="draw-submitBtn" value="Firmar"></input>
+                      </div>
+                      <div class="col-6 mb-3">
+                          <input type="button" class="btn btn-warning btn-block" id="draw-clearBtn" value="Borrar Firma"></input>
+                      </div>
+                      <div class="col-6 mb-3" style="display: none;">
+                          <label>Color</label>
+                          <input type="color" class="form-control" id="color">
+                      </div>
+                      <div class="col-6 mb-3" style="display: none;">
+                          <label>Tamaño Puntero</label>
+                          <input type="range" class="form-control-range" id="puntero" min="1" default="1" max="5" width="10%">
+    
+                      </div>
+                  </div>
+              </div>
+    
+          </div>
+          <br>
+          <div class="col-12">
+            <center>
+              <button type="button" name="" id="" class="btn btn-primary" onclick="insertDatsPretest()" btn-lg btn-block">Guardar</button>
+            </center>
+          </div>
+          <script>
+              $('#draw-submitBtn').click(function(e) {
+                Swal.fire('Datos firmados');
+    
+              });
+          </script>
+         
+        </div>
+      </div>
+    </div>
+  </div>
+</form>

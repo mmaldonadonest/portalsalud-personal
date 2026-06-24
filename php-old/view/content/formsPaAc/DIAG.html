@@ -1,0 +1,41 @@
+<div>
+    <div
+      class="container d-flex justify-content-center animate__animated animate__fadeIn"
+    >
+      <div class="row col-8">
+        <fieldset class="row mb-3 col-12 col-md-12">
+       
+          <div class="form-group col-12">
+            <label for="">Consultar ICD</label>
+            <input
+              type="text"
+              class="form-control"
+              value=""
+              name="icdConsult"
+              id="icdConsult"
+              aria-describedby="helpId"
+              placeholder="Consultar ICD"
+              onchange="showIcdConsult()"
+            />
+          </div>
+          <div class="col-12">
+            <legend class="col-form-label col-12 pt-0">
+              <label for="email">Diagnóstico:</label>
+            </legend>
+            <center>
+              <div id="chargeIcdIcon">
+                <lottie-player src="https://lottie.host/23d5439d-e941-4675-9d44-b5fe19e1c0f4/JJARj3P684.json"  speed="1" style="width: 100px; height: 100px" loop  autoplay direction="1" mode="normal"></lottie-player>
+              </div>
+             
+            </center>
+            <div id="showIcdConsult"></div>
+          </div>
+          <div class="col-12">
+            <textarea class="form-control" id="DIAGNOSTICOINPUT" name="DIAGNOSTICOINPUT"><?=$OBSERVACIONES?></textarea
+            >
+          </div>
+        </fieldset>
+      </div>
+    </div>
+  </div>
+  

@@ -1,0 +1,215 @@
+<form>
+  <div
+    class="container d-flex justify-content-center animate__animated animate__fadeIn"
+  >
+    <div class="row col-8">
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$CARDIOPATIA_ISQUEMICA?>" id="cardIsq0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Cardiopatía Isquémica</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="cardIsq"
+              id="cardIsq1"
+              value="1"
+              
+            />
+            <label class="form-check-label" for="cardIsq1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="cardIsq"
+              id="cardIsq2"
+              value="0"
+            />
+            <label class="form-check-label" for="cardIsq2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Comentarios:</label>
+        </legend>
+        <div class="col-12">
+          <textarea class="form-control" id="cardIsqOBS" name="cardIsqOBS">
+<?=$CARDIOPATIA_ISQUEMICA_OBS?></textarea
+          >
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$HIPERTENSION?>" id="hiper0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Hipertensión</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="hiper"
+              id="hiper1"
+              value="1"
+              
+            />
+            <label class="form-check-label" for="hiper1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="hiper"
+              id="hiper2"
+              value="0"
+            />
+            <label class="form-check-label" for="hiper2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Comentarios:</label>
+        </legend>
+        <div class="col-12">
+          <textarea class="form-control" id="hiperOBS" name="hiperOBS">
+<?=$HIPERTENSION_OBS?></textarea
+          >
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$HIPOTENSION?>" id="hipotension0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Hipotensión</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="hipotension"
+              id="hipotension1"
+              value="1"
+              
+            />
+            <label class="form-check-label" for="hipotension1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="hipotension"
+              id="hipotension2"
+              value="0"
+            />
+            <label class="form-check-label" for="hipotension2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Comentarios:</label>
+        </legend>
+        <div class="col-12">
+          <textarea
+            class="form-control"
+            id="hipotensionObs"
+            name="hipotensionObs"
+          >
+<?=$HIPOTENSION_OBS?></textarea
+          >
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$INSUFICIENCIA_CARDIACA?>" id="insuCard0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Insuficiencia Cardiaca</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="insuCard"
+              id="insuCard1"
+              value="1"
+              
+            />
+            <label class="form-check-label" for="insuCard1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="insuCard"
+              id="insuCard2"
+              value="0"
+            />
+            <label class="form-check-label" for="insuCard2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Comentarios:</label>
+        </legend>
+        <div class="col-12">
+          <textarea class="form-control" id="insuCardObs" name="insuCardObs">
+<?=$INSUFICIENCIA_CARDIACA_OBS?></textarea
+          >
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input
+          type="hidden"
+          value="<?=$INSUFICIENCIA_VASCULAR_PERIFERICA?>"
+          id="insuVasPer0"
+        />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Insuficiencia Vascular Periférica</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="insuVasPer"
+              id="insuVasPer1"
+              value="1"
+              
+            />
+            <label class="form-check-label" for="insuVasPer1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="insuVasPer"
+              id="insuVasPer2"
+              value="0"
+            />
+            <label class="form-check-label" for="insuVasPer2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Comentarios:</label>
+        </legend>
+        <div class="col-12">
+          <textarea
+            class="form-control"
+            id="insuVasPerObs"
+            name="insuVasPerObs"
+          >
+<?=$INSUFICIENCIA_VASCULAR_PERIFERICA_OBS?></textarea
+          >
+        </div>
+      </fieldset>
+    </div>
+  </div>
+</form>

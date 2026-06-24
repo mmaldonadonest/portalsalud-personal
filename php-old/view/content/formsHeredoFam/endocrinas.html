@@ -1,0 +1,127 @@
+<form>
+  <div
+    class="container d-flex justify-content-center animate__animated animate__fadeIn"
+  >
+    <div class="row col-8">
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$DM?>" id="dm0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">DM</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="dm"
+              id="dm1"
+              value="1"
+              
+            />
+            <label class="form-check-label" for="dm1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="dm"
+              id="dm2"
+              value="0"
+            />
+            <label class="form-check-label" for="dm2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Comentarios:</label>
+        </legend>
+        <div class="col-12">
+          <textarea class="form-control" id="dmOBS" name="dmOBS"><?=$DM_OBS?></textarea>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$HIPERTIROIDISMO?>" id="hipertirod0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Hipertiroidismo</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="hipertirod"
+              id="hipertirod1"
+              value="1"
+              
+            />
+            <label class="form-check-label" for="hipertirod1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="hipertirod"
+              id="hipertirod2"
+              value="0"
+            />
+            <label class="form-check-label" for="hipertirod2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Comentarios:</label>
+        </legend>
+        <div class="col-12">
+          <textarea
+            class="form-control"
+            id="hipertirodOBS"
+            name="hipertirodOBS"
+          ><?=$HIPERTIROIDISMO_OBS?></textarea>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$HIPOTIROIDISMO?>" id="hipotiro0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Hipotiroidismo</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="hipotiro"
+              id="hipotiro1"
+              value="1"
+              
+            />
+            <label class="form-check-label" for="hipotiro1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="hipotiro"
+              id="hipotiro2"
+              value="0"
+            />
+            <label class="form-check-label" for="hipotiro2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Comentarios:</label>
+        </legend>
+        <div class="col-12">
+          <textarea
+            class="form-control"
+            id="hipotiroObs"
+            name="hipotiroObs"
+          ><?=$HIPOTIROIDISMO_OBS?></textarea>
+        </div>
+      </fieldset>
+    </div>
+  </div>
+</form>

@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "1.0.0",
+  "manifestId": "portal-salud-sql-manifest-v1",
+  "description": "Orden oficial de ejecución de scripts SQL base sin Flyway/Liquibase",
+  "execution": {
+    "mode": "manual-or-startup-runner",
+    "idempotencyRequired": true,
+    "stopOnError": true,
+    "allowedProfiles": ["local", "dev"],
+    "forbiddenProfiles": ["prod"]
+  },
+  "scriptRoot": "src/main/resources/db/sql",
+  "phases": [
+    {
+      "order": 1,
+      "name": "schema",
+      "scripts": ["00_schema.sql"]
+    },
+    {
+      "order": 2,
+      "name": "core-ddl",
+      "scripts": [
+        "01_tables_security.sql",
+        "01_tables_audit.sql",
+        "01_tables_menu.sql",
+        "01_tables_jobs.sql",
+        "01_tables_notifications.sql",
+        "01_tables_files.sql"
+      ]
+    },
+    {
+      "order": 3,
+      "name": "indexes-and-constraints",
+      "scripts": [
+        "02_indexes.sql",
+        "03_constraints.sql"
+      ]
+    },
+    {
+      "order": 4,
+      "name": "seed-base",
+      "scripts": [
+        "04_catalogs_seed.sql",
+        "05_roles_permissions_seed.sql",
+        "05_admin_user_seed.sql",
+        "06_menu_seed.sql",
+        "07_job_catalog_seed.sql",
+        "08_notification_templates_seed.sql"
+      ]
+    },
+    {
+      "order": 5,
+      "name": "programmability",
+      "scripts": [
+        "09_views.sql",
+        "10_procedures.sql",
+        "11_triggers_audit_support.sql"
+      ]
+    }
+  ],
+  "fileModuleTables": {
+    "required": [
+      "FS_FILE",
+      "FS_FILE_VERSION",
+      "FS_FILE_ACCESS_LOG",
+      "FS_FILE_POLICY",
+      "FS_FILE_ORPHAN_TRACKING"
+    ],
+    "minimumColumns": {
+      "FS_FILE": [
+        "ID",
+        "BUSINESS_KEY",
+        "ORIGINAL_NAME",
+        "EXTENSION",
+        "MIME_TYPE",
+        "SIZE_BYTES",
+        "CHECKSUM_SHA256",
+        "STORAGE_PATH",
+        "STORAGE_PROVIDER",
+        "STATUS",
+        "CURRENT_VERSION",
+        "CREATED_AT",
+        "CREATED_BY",
+        "UPDATED_AT",
+        "UPDATED_BY"
+      ]
+    }
+  },
+  "postExecutionChecks": [
+    "validate required tables exist",
+    "validate admin role and base permissions exist",
+    "validate base menu loaded",
+    "validate quartz tables exist if jdbc-job-store enabled",
+    "validate file tables and indexes created",
+    "log manifest execution in AUDIT_SQL_EXECUTION"
+  ]
+}

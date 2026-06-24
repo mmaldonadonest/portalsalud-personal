@@ -1,0 +1,3123 @@
+<?php
+
+require_once('../app/app.php');
+$model = new app;
+$others = new another();
+$idNss = (isset($_GET['nss']) ? $_GET['nss'] : null);
+$jason =  $model->getDatsNss($idNss);
+$decoded = json_decode($jason);
+foreach ($decoded->Datos as $key) {
+    $FECHAExam = $key->Data->FECHA;
+    $avc = $key->Data->NEUROLOGIA->AVC;
+    $EPILEPSIA = $key->Data->NEUROLOGIA->EPILEPSIA;
+    $PARALISIS_FACIAL = $key->Data->NEUROLOGIA->PARALISIS_FACIAL;
+    $PARKINSON = $key->Data->NEUROLOGIA->PARKINSON;
+    $ALZHEIMER = $key->Data->NEUROLOGIA->ALZHEIMER;
+    $MIGRAÑA = $key->Data->NEUROLOGIA->MIGRAÑA;
+    $AVC_OBS = $key->Data->NEUROLOGIA->AVC_OBS;
+    $EPILEPSIA_OBS = $key->Data->NEUROLOGIA->EPILEPSIA_OBS;
+    $PARALISIS_FACIAL_OBS = $key->Data->NEUROLOGIA->PARALISIS_FACIAL_OBS;
+    $PARKINSON_OBS = $key->Data->NEUROLOGIA->PARKINSON_OBS;
+    $ALZHEIMER_OBS = $key->Data->NEUROLOGIA->ALZHEIMER_OBS;
+    $MIGRAÑA_OBS = $key->Data->NEUROLOGIA->MIGRAÑA_OBS;
+
+    $EPILEPSIA = ($EPILEPSIA == 0) ? "No" : "Sí";
+    $PARALISIS_FACIAL = ($PARALISIS_FACIAL == 0) ? "No" : "Sí";
+    $PARKINSON = ($PARKINSON == 0) ? "No" : "Sí";
+    $ALZHEIMER = ($ALZHEIMER == 0) ? "No" : "Sí";
+    $MIGRAÑA = ($MIGRAÑA == 0) ? "No" : "Sí";
+
+
+    /* cardiopatia */
+    $CARDIOPATIA_ISQUEMICA = $key->Data->CARDIOPATIA->CARDIOPATIA_ISQUEMICA;
+    $HIPERTENSION = $key->Data->CARDIOPATIA->HIPERTENSION;
+    $HIPOTENSION = $key->Data->CARDIOPATIA->HIPOTENSION;
+    $INSUFICIENCIA_CARDIACA = $key->Data->CARDIOPATIA->INSUFICIENCIA_CARDIACA;
+    $INSUFICIENCIA_VASCULAR_PERIFERICA = $key->Data->CARDIOPATIA->INSUFICIENCIA_VASCULAR_PERIFERICA;
+    $CARDIOPATIA_ISQUEMICA_OBS = $key->Data->CARDIOPATIA->CARDIOPATIA_ISQUEMICA_OBS;
+    $HIPERTENSION_OBS = $key->Data->CARDIOPATIA->HIPERTENSION_OBS;
+    $HIPOTENSION_OBS = $key->Data->CARDIOPATIA->HIPOTENSION_OBS;
+    $INSUFICIENCIA_CARDIACA_OBS = $key->Data->CARDIOPATIA->INSUFICIENCIA_CARDIACA_OBS;
+    $INSUFICIENCIA_VASCULAR_PERIFERICA_OBS = $key->Data->CARDIOPATIA->INSUFICIENCIA_VASCULAR_PERIFERICA_OBS;
+
+    $CARDIOPATIA_ISQUEMICA = ($key->Data->CARDIOPATIA->CARDIOPATIA_ISQUEMICA == 0) ? "No" : "Sí";
+    $HIPERTENSION = ($key->Data->CARDIOPATIA->HIPERTENSION == 0) ? "No" : "Sí";
+    $HIPOTENSION = ($key->Data->CARDIOPATIA->HIPOTENSION == 0) ? "No" : "Sí";
+    $INSUFICIENCIA_CARDIACA = ($key->Data->CARDIOPATIA->INSUFICIENCIA_CARDIACA == 0) ? "No" : "Sí";
+    $INSUFICIENCIA_VASCULAR_PERIFERICA = ($key->Data->CARDIOPATIA->INSUFICIENCIA_VASCULAR_PERIFERICA == 0) ? "No" : "Sí";
+
+    /* Neumopatica */
+    $BRONQUITIS = $key->Data->NEUMOPATICA->BRONQUITIS;
+    $TUBERCULOSIS = $key->Data->NEUMOPATICA->TUBERCULOSIS;
+    $ASMA = $key->Data->NEUMOPATICA->ASMA;
+    $INSUFICIENCIA_RESPIRATORIA = $key->Data->NEUMOPATICA->INSUFICIENCIA_RESPIRATORIA;
+    $BRONQUITIS_OBS = $key->Data->NEUMOPATICA->BRONQUITIS_OBS;
+    $TUBERCULOSIS_OBS = $key->Data->NEUMOPATICA->TUBERCULOSIS_OBS;
+    $ASMA_OBS = $key->Data->NEUMOPATICA->ASMA_OBS;
+    $INSUFICIENCIA_RESPIRATORIA_OBS = $key->Data->NEUMOPATICA->INSUFICIENCIA_RESPIRATORIA_OBS;
+
+    $BRONQUITIS = ($key->Data->NEUMOPATICA->BRONQUITIS == 0) ? "No" : "Sí";
+    $TUBERCULOSIS = ($key->Data->NEUMOPATICA->TUBERCULOSIS == 0) ? "No" : "Sí";
+    $ASMA = ($key->Data->NEUMOPATICA->ASMA == 0) ? "No" : "Sí";
+    $INSUFICIENCIA_RESPIRATORIA = ($key->Data->NEUMOPATICA->INSUFICIENCIA_RESPIRATORIA == 0) ? "No" : "Sí";
+
+    /* Toxicologico */
+    $ALCOHOLISMO = $key->Data->TOXICOLOGIOCAS->ALCOHOLISMO;
+    $TABAQUISMO = $key->Data->TOXICOLOGIOCAS->TABAQUISMO;
+    $DROGAS = $key->Data->TOXICOLOGIOCAS->DROGAS;
+    $ALCOHOLISMO_OBS = $key->Data->TOXICOLOGIOCAS->ALCOHOLISMO_OBS;
+    $TABAQUISMO_OBS = $key->Data->TOXICOLOGIOCAS->TABAQUISMO_OBS;
+    $DROGAS_OBS = $key->Data->TOXICOLOGIOCAS->DROGAS_OBS;
+
+    $ALCOHOLISMO = ($key->Data->TOXICOLOGIOCAS->ALCOHOLISMO == 0) ? "No" : "Sí";
+    $TABAQUISMO = ($key->Data->TOXICOLOGIOCAS->TABAQUISMO == 0) ? "No" : "Sí";
+    $DROGAS = ($key->Data->TOXICOLOGIOCAS->DROGAS == 0) ? "No" : "Sí";
+
+    /* Nefropatias */
+    $IRC = $key->Data->NEFROPATIA->IRC;
+    $LITASIS = $key->Data->NEFROPATIA->LITASIS;
+    $IRC_OBS = $key->Data->NEFROPATIA->IRC_OBS;
+    $LITASIS_OBS = $key->Data->NEFROPATIA->LITASIS_OBS;
+
+    $IRC = ($key->Data->NEFROPATIA->IRC == 0) ? "No" : "Sí";
+    $LITASIS = ($key->Data->NEFROPATIA->LITASIS == 0) ? "No" : "Sí";
+
+    /* Endocrinas */
+    $DM = $key->Data->ENDOCRINA->DM;
+    $HIPERTIROIDISMO = $key->Data->ENDOCRINA->HIPERTIROIDISMO;
+    $HIPOTIROIDISMO = $key->Data->ENDOCRINA->HIPOTIROIDISMO;
+    $DM_OBS = $key->Data->ENDOCRINA->DM_OBS;
+    $HIPERTIROIDISMO_OBS = $key->Data->ENDOCRINA->HIPERTIROIDISMO_OBS;
+    $HIPOTIROIDISMO_OBS = $key->Data->ENDOCRINA->HIPOTIROIDISMO_OBS;
+
+    $DM = ($key->Data->ENDOCRINA->DM == 0) ? "No" : "Sí";
+    $HIPERTIROIDISMO = ($key->Data->ENDOCRINA->HIPERTIROIDISMO == 0) ? "No" : "Sí";
+    $HIPOTIROIDISMO = ($key->Data->ENDOCRINA->HIPOTIROIDISMO == 0) ? "No" : "Sí";
+
+    /* Obesidad */
+    $TRANSTORNO_DE_CRECIMIENTO = $key->Data->OBESIDAD->TRANSTORNO_DE_CRECIMIENTO;
+    $TRANSTORNO_DE_CRECIMIENTO_OBS = $key->Data->OBESIDAD->TRANSTORNO_DE_CRECIMIENTO_OBS;
+
+    $TRANSTORNO_DE_CRECIMIENTO = ($key->Data->OBESIDAD->TRANSTORNO_DE_CRECIMIENTO == 0) ? "No" : "Sí";
+    /* Mentales */
+    $NEUROSIS = $key->Data->MENTALES->NEUROSIS;
+    $PSICOSIS = $key->Data->MENTALES->PSICOSIS;
+    $INTENTO_DE_SUICIDIO = $key->Data->MENTALES->INTENTO_DE_SUICIDIO;
+    $ESQUIZOFRENIA = $key->Data->MENTALES->ESQUIZOFRENIA;
+    $NEUROSIS_OBS = $key->Data->MENTALES->NEUROSIS_OBS;
+    $PSICOSIS_OBS = $key->Data->MENTALES->PSICOSIS_OBS;
+    $INTENTO_DE_SUICIDIO_OBS = $key->Data->MENTALES->INTENTO_DE_SUICIDIO_OBS;
+    $ESQUIZOFRENIA_OBS = $key->Data->MENTALES->ESQUIZOFRENIA_OBS;
+
+    $NEUROSIS = ($key->Data->MENTALES->NEUROSIS == 0) ? "No" : "Sí";
+    $PSICOSIS = ($key->Data->MENTALES->PSICOSIS == 0) ? "No" : "Sí";
+    $INTENTO_DE_SUICIDIO = ($key->Data->MENTALES->INTENTO_DE_SUICIDIO == 0) ? "No" : "Sí";
+    $ESQUIZOFRENIA = ($key->Data->MENTALES->ESQUIZOFRENIA == 0) ? "No" : "Sí";
+
+    /* Generales */
+    $CANCER = $key->Data->GENERALES->CANCER;
+    $ALERGIAS = $key->Data->GENERALES->ALERGIAS;
+    $MALFORMACIONES = $key->Data->GENERALES->MALFORMACIONES;
+    $CANCER_OBS = $key->Data->GENERALES->CANCER_OBS;
+    $ALERGIAS_OBS = $key->Data->GENERALES->ALERGIAS_OBS;
+    $MALFORMACIONES_OBS = $key->Data->GENERALES->MALFORMACIONES_OBS;
+
+    $CANCER = ($key->Data->GENERALES->CANCER == 0) ? "No" : "Sí";
+    $ALERGIAS = ($key->Data->GENERALES->ALERGIAS == 0) ? "No" : "Sí";
+    $MALFORMACIONES = ($key->Data->GENERALES->MALFORMACIONES == 0) ? "No" : "Sí";
+
+    /* Otras */
+    $OTRAS = $key->Data->OTRAS->OTRAS;
+    $OTRAS_OBS = $key->Data->OTRAS->OTRAS_OBS;
+
+    $OTRAS = ($key->Data->OTRAS->OTRAS == 0) ? "No" : "Sí";
+    /* APNP */
+    $HABITACION = $key->Data->SERV_MED_ANT_PATOLOGICOS->HABITACION;
+    $NO_DORMITORIOS = $key->Data->SERV_MED_ANT_PATOLOGICOS->NO_DORMITORIOS;
+    $NO_HABITANTES = $key->Data->SERV_MED_ANT_PATOLOGICOS->NO_HABITANTES;
+    $PISO = $key->Data->SERV_MED_ANT_PATOLOGICOS->PISO;
+    $TECHO = $key->Data->SERV_MED_ANT_PATOLOGICOS->TECHO;
+    $AGUA_POTABLE = $key->Data->SERV_MED_ANT_PATOLOGICOS->AGUA_POTABLE;
+    $LUZ = $key->Data->SERV_MED_ANT_PATOLOGICOS->LUZ;
+    $DRENAJE = $key->Data->SERV_MED_ANT_PATOLOGICOS->DRENAJE;
+    $CONVIVENCIA_CON_ANIMALES = $key->Data->SERV_MED_ANT_PATOLOGICOS->CONVIVENCIA_CON_ANIMALES;
+    $AIRE_ACONDICIONADO = $key->Data->SERV_MED_ANT_PATOLOGICOS->{'AIRE_ACONDICIONADO'};
+    $RELIGION = $key->Data->SERV_MED_ANT_PATOLOGICOS->RELIGION;
+    $HIGIENE_PERSONAL = $key->Data->SERV_MED_ANT_PATOLOGICOS->HIGIENE_PERSONAL;
+    $BAÑO = $key->Data->SERV_MED_ANT_PATOLOGICOS->BAÑO;
+    $CAMBIO_DE_ROPA = $key->Data->SERV_MED_ANT_PATOLOGICOS->CAMBIO_DE_ROPA;
+    $ASEO_BUCAL = $key->Data->SERV_MED_ANT_PATOLOGICOS->ASEO_BUCAL;
+    $ALIMENTACION = $key->Data->SERV_MED_ANT_PATOLOGICOS->ALIMENTACION;
+    $NO_COMIDAS_AL_DIA = $key->Data->SERV_MED_ANT_PATOLOGICOS->NO_COMIDAS_AL_DIA;
+    $BALANCEADA = $key->Data->SERV_MED_ANT_PATOLOGICOS->BALANCEADA;
+    $SUFICIENTE = $key->Data->SERV_MED_ANT_PATOLOGICOS->SUFICIENTE;
+    $DEPORTE = $key->Data->SERV_MED_ANT_PATOLOGICOS->DEPORTE;
+    $FC1 = $key->Data->SERV_MED_ANT_PATOLOGICOS->FC1;
+    $HOBBIES_PASATIEMPOS = $key->Data->SERV_MED_ANT_PATOLOGICOS->HOBBIES_PASATIEMPOS;
+    $FC2 = $key->Data->SERV_MED_ANT_PATOLOGICOS->FC2;
+
+    $AGUA_POTABLE = ($key->Data->SERV_MED_ANT_PATOLOGICOS->AGUA_POTABLE == 0) ? "No" : "Sí";
+    $LUZ = ($key->Data->SERV_MED_ANT_PATOLOGICOS->LUZ == 0) ? "No" : "Sí";
+    $AIRE_ACONDICIONADO = ($key->Data->SERV_MED_ANT_PATOLOGICOS->AIRE_ACONDICIONADO == 0) ? "No" : "Sí";
+    $ALIMENTACION = ($key->Data->SERV_MED_ANT_PATOLOGICOS->ALIMENTACION == 0) ? "No" : "Sí";
+    $SUFICIENTE = ($key->Data->SERV_MED_ANT_PATOLOGICOS->SUFICIENTE == 0) ? "No" : "Sí";
+    $BALANCEADA = ($key->Data->SERV_MED_ANT_PATOLOGICOS->BALANCEADA == 0) ? "No" : "Sí";
+    /* Inmunizaciones */
+    $BLG = $key->Data->SERV_MED_INMUNIZACIONES->BLG;
+    $SABIN = $key->Data->SERV_MED_INMUNIZACIONES->{'SABIN '};
+    $DPT = $key->Data->SERV_MED_INMUNIZACIONES->DPT;
+    $HEPATITIS_B = $key->Data->SERV_MED_INMUNIZACIONES->HEPATITIS_B;
+    $SR = $key->Data->SERV_MED_INMUNIZACIONES->SR;
+    $INFLUENZA = $key->Data->SERV_MED_INMUNIZACIONES->INFLUENZA;
+    $TD = $key->Data->SERV_MED_INMUNIZACIONES->TD;
+    $COVID = $key->Data->SERV_MED_INMUNIZACIONES->COVID;
+    $FECHA = $key->Data->SERV_MED_INMUNIZACIONES->FECHA;
+
+    $BLG = ($key->Data->SERV_MED_INMUNIZACIONES->BLG == 0) ? "No" : "Sí";
+    $SABIN = ($key->Data->SERV_MED_INMUNIZACIONES->{'SABIN '} == 0) ? "No" : "Sí"; // Ten en cuenta el espacio en 'SABIN '
+    $DPT = ($key->Data->SERV_MED_INMUNIZACIONES->DPT == 0) ? "No" : "Sí";
+    $HEPATITIS_B = ($key->Data->SERV_MED_INMUNIZACIONES->HEPATITIS_B == 0) ? "No" : "Sí";
+    $SR = ($key->Data->SERV_MED_INMUNIZACIONES->SR == 0) ? "No" : "Sí";
+    $INFLUENZA = ($key->Data->SERV_MED_INMUNIZACIONES->INFLUENZA == 0) ? "No" : "Sí";
+    $TD = ($key->Data->SERV_MED_INMUNIZACIONES->TD == 0) ? "No" : "Sí";
+
+    /* AGO */
+    $MENARCA = $key->Data->SERV_MED_ANT_GIN_OBSTETRICOS->{'MENARCA'};
+    $RITMO = $key->Data->SERV_MED_ANT_GIN_OBSTETRICOS->{'RITMO'};
+    $IVSA = $key->Data->SERV_MED_ANT_GIN_OBSTETRICOS->{'IVSA'};
+    $FUM = $key->Data->SERV_MED_ANT_GIN_OBSTETRICOS->{'FUM'};
+    $G = $key->Data->SERV_MED_ANT_GIN_OBSTETRICOS->{'G'};
+    $A = $key->Data->SERV_MED_ANT_GIN_OBSTETRICOS->{'A'};
+    $P = $key->Data->SERV_MED_ANT_GIN_OBSTETRICOS->{'P'};
+    $C = $key->Data->SERV_MED_ANT_GIN_OBSTETRICOS->{'C'};
+    $MET_PLANIFICACION = $key->Data->SERV_MED_ANT_GIN_OBSTETRICOS->{'MET_PLANIFICACION'};
+    $PAPANICOLAOU = $key->Data->SERV_MED_ANT_GIN_OBSTETRICOS->PAPANICOLAOU;
+    $INFECC_REP = $key->Data->SERV_MED_ANT_GIN_OBSTETRICOS->INFECC_REP;
+    $FUP = $key->Data->SERV_MED_ANT_GIN_OBSTETRICOS->{'FUP'};
+    /* ANTECEDENTES PERSONALES  PATOLÓGICOS */
+    $ENF_CONGENITAS = $key->Data->SERV_MED_ANT_PER_PATOLOGICOS->ENF_CONGENITAS;
+    $GENITAL = $key->Data->SERV_MED_ANT_PER_PATOLOGICOS->{'GENITAL'};
+    $ENF_PROP_INF = $key->Data->SERV_MED_ANT_PER_PATOLOGICOS->{'ENF_PROP_INF'};
+    $DERMATOPATIAS = $key->Data->SERV_MED_ANT_PER_PATOLOGICOS->{'DERMATOPATIAS'};
+    $SIST_AUDITIVO = $key->Data->SERV_MED_ANT_PER_PATOLOGICOS->{'SIST_AUDITIVO'};
+    $RESPIRATORIO = $key->Data->SERV_MED_ANT_PER_PATOLOGICOS->{'RESPIRATORIO'};
+    $SIS_OLFATIVO = $key->Data->SERV_MED_ANT_PER_PATOLOGICOS->{'SIS_OLFATIVO'};
+    $TRAUMATICOS = $key->Data->SERV_MED_ANT_PER_PATOLOGICOS->{'TRAUMATICOS'};
+    /* pt1 */
+    $USO_LENTES = $key->Data->SERV_MED_OFTALMOLOGICO->{'USO_LENTES'};
+    $USO_LENTES_OBS = $key->Data->SERV_MED_OFTALMOLOGICO->{'USO_LENTES_OBS'};
+    $ASTIGMATISMO = $key->Data->SERV_MED_OFTALMOLOGICO->{'ASTIGMATISMO'};
+    $ASTIGMATISMO_OBS = $key->Data->SERV_MED_OFTALMOLOGICO->{'ASTIGMATISMO_OBS'};
+    $PRESBICIA = $key->Data->SERV_MED_OFTALMOLOGICO->{'PRESBICIA'};
+    $PRESBICIA_OBS = $key->Data->SERV_MED_OFTALMOLOGICO->{'PRESBICIA_OBS'};
+    $ESTRABISMO = $key->Data->SERV_MED_OFTALMOLOGICO->{'ESTRABISMO'};
+    $ESTRABISMO_OBS = $key->Data->SERV_MED_OFTALMOLOGICO->{'ESTRABISMO_OBS'};
+    $DALTONISMO = $key->Data->SERV_MED_OFTALMOLOGICO->{'DALTONISMO'};
+    $DALTONISMO_OBS = $key->Data->SERV_MED_OFTALMOLOGICO->{'DALTONISMO_OBS'};
+    $DESPENDIMIENTO_RET = $key->Data->SERV_MED_OFTALMOLOGICO->{'DESPENDIMIENTO_RET'};
+    $DESPENDIMIENTO_RET_OBS = $key->Data->SERV_MED_OFTALMOLOGICO->{'DESPENDIMIENTO_RET_OBS'};
+    $MIOPIA = $key->Data->SERV_MED_OFTALMOLOGICO->{'MIOPIA'};
+    $MIOPIA_OBS = $key->Data->SERV_MED_OFTALMOLOGICO->{'MIOPIA_OBS'};
+
+    $USO_LENTES = ($key->Data->SERV_MED_OFTALMOLOGICO->{'USO_LENTES'} == 0) ? "No" : "Sí";
+    $ASTIGMATISMO = ($key->Data->SERV_MED_OFTALMOLOGICO->{'ASTIGMATISMO'} == 0) ? "No" : "Sí";
+    $PRESBICIA = ($key->Data->SERV_MED_OFTALMOLOGICO->{'PRESBICIA'} == 0) ? "No" : "Sí";
+    $ESTRABISMO = ($key->Data->SERV_MED_OFTALMOLOGICO->{'ESTRABISMO'} == 0) ? "No" : "Sí";
+    $DALTONISMO = ($key->Data->SERV_MED_OFTALMOLOGICO->{'DALTONISMO'} == 0) ? "No" : "Sí";
+    $DESPENDIMIENTO_RET = ($key->Data->SERV_MED_OFTALMOLOGICO->{'DESPENDIMIENTO_RET'} == 0) ? "No" : "Sí";
+    $MIOPIA = ($key->Data->SERV_MED_OFTALMOLOGICO->{'MIOPIA'} == 0) ? "No" : "Sí";
+
+    /* pt2 */
+    $HERNIAS = $key->Data->SERV_MED_DIGESTIVO->{'HERNIAS'};
+    $HERNIAS_OBS = $key->Data->SERV_MED_DIGESTIVO->{'HERNIAS_OBS'};
+    $CIRROSIS = $key->Data->SERV_MED_DIGESTIVO->{'CIRROSIS'};
+    $CIRROSIS_OBS = $key->Data->SERV_MED_DIGESTIVO->{'CIRROSIS_OBS'};
+    $COLITIS = $key->Data->SERV_MED_DIGESTIVO->{'COLITIS'};
+    $COLITIS_OBS = $key->Data->SERV_MED_DIGESTIVO->{'COLITIS_OBS'};
+    $GASTRITIS = $key->Data->SERV_MED_DIGESTIVO->{'GASTRITIS'};
+    $GASTRITIS_OBS = $key->Data->SERV_MED_DIGESTIVO->{'GASTRITIS_OBS'};
+    $HEMORROIDES = $key->Data->SERV_MED_DIGESTIVO->{'HEMORROIDES'};
+    $HEMORROIDES_OBS = $key->Data->SERV_MED_DIGESTIVO->{'HEMORROIDES_OBS'};
+    $CIRUGIAS = $key->Data->SERV_MED_DIGESTIVO->{'CIRUGIAS'};
+    $CIRUGIAS_OBS = $key->Data->SERV_MED_DIGESTIVO->{'CIRUGIAS_OBS'};
+
+    $HERNIAS = ($key->Data->SERV_MED_DIGESTIVO->{'HERNIAS'} == 0) ? "No" : "Sí";
+    $CIRROSIS = ($key->Data->SERV_MED_DIGESTIVO->{'CIRROSIS'} == 0) ? "No" : "Sí";
+    $COLITIS = ($key->Data->SERV_MED_DIGESTIVO->{'COLITIS'} == 0) ? "No" : "Sí";
+    $GASTRITIS = ($key->Data->SERV_MED_DIGESTIVO->{'GASTRITIS'} == 0) ? "No" : "Sí";
+    $HEMORROIDES = ($key->Data->SERV_MED_DIGESTIVO->{'HEMORROIDES'} == 0) ? "No" : "Sí";
+    $CIRUGIAS = ($key->Data->SERV_MED_DIGESTIVO->{'CIRUGIAS'} == 0) ? "No" : "Sí";
+
+    /* pt3 */
+    $INCONTINENSIA = $key->Data->SERV_MED_RENAL->{'INCONTINENSIA'};
+    $INCONTINENSIA_OBS = $key->Data->SERV_MED_RENAL->{'INCONTINENSIA_OBS'};
+    $INSUFICIENCIA = $key->Data->SERV_MED_RENAL->{'INSUFICIENCIA'};
+    $INSUFICIENCIA_OBS = $key->Data->SERV_MED_RENAL->{'INSUFICIENCIA_OBS'};
+    $LITIASIS = $key->Data->SERV_MED_RENAL->{'LITIASIS'};
+    $LITIASIS_OBS = $key->Data->SERV_MED_RENAL->{'LITIASIS_OBS'};
+
+    $INCONTINENSIA = ($key->Data->SERV_MED_RENAL->{'INCONTINENSIA'} == 0) ? "No" : "Sí";
+    $INSUFICIENCIA = ($key->Data->SERV_MED_RENAL->{'INSUFICIENCIA'} == 0) ? "No" : "Sí";
+    $LITIASIS = ($key->Data->SERV_MED_RENAL->{'LITIASIS'} == 0) ? "No" : "Sí";
+
+    /* pt4 */
+    $ANEURISMA = $key->Data->SERV_MED_SIST_NERVIOSO->{'ANEURISMA'};
+    $ANEURISMA_OBS = $key->Data->SERV_MED_SIST_NERVIOSO->{'ANEURISMA_OBS'};
+    $ENF_DEG_MUS_NEU = $key->Data->SERV_MED_SIST_NERVIOSO->{'ENF_DEG_MUS_NEU'};
+    $ENF_DEG_MUS_NEU_OBS = $key->Data->SERV_MED_SIST_NERVIOSO->{'ENF_DEG_MUS_NEU_OBS'};
+    $ACC_CER_VASCU = $key->Data->SERV_MED_SIST_NERVIOSO->{'ACC_CER_VASCU'};
+    $ACC_CER_VASCU_OBS = $key->Data->SERV_MED_SIST_NERVIOSO->{'ACC_CER_VASCU_OBS'};
+    $EPILEPSIA2 = $key->Data->SERV_MED_SIST_NERVIOSO->EPILEPSIA;
+    $EPILEPSIA_OBS2 = $key->Data->SERV_MED_SIST_NERVIOSO->EPILEPSIA_OBS;
+    $PAR_FACIAL = $key->Data->SERV_MED_SIST_NERVIOSO->{'PAR_FACIAL'};
+    $PAR_FACIAL_OBS = $key->Data->SERV_MED_SIST_NERVIOSO->{'PAR_FACIAL_OBS'};
+
+    $ANEURISMA = ($key->Data->SERV_MED_SIST_NERVIOSO->{'ANEURISMA'} == 0) ? "No" : "Sí";
+    $ENF_DEG_MUS_NEU = ($key->Data->SERV_MED_SIST_NERVIOSO->{'ENF_DEG_MUS_NEU'} == 0) ? "No" : "Sí";
+    $ACC_CER_VASCU = ($key->Data->SERV_MED_SIST_NERVIOSO->{'ACC_CER_VASCU'} == 0) ? "No" : "Sí";
+    $EPILEPSIA2 = ($key->Data->SERV_MED_SIST_NERVIOSO->EPILEPSIA == 0) ? "No" : "Sí";
+    $PAR_FACIAL = ($key->Data->SERV_MED_SIST_NERVIOSO->{'PAR_FACIAL'} == 0) ? "No" : "Sí";
+
+    /* pt5 */
+    $ESCOLIOSIS = $key->Data->SERV_MED_MUS_ESQUELETICO->{'ESCOLIOSIS'};
+    $ESCOLIOSIS_OBS = $key->Data->SERV_MED_MUS_ESQUELETICO->{'ESCOLIOSIS_OBS'};
+    $XIFOSIS = $key->Data->SERV_MED_MUS_ESQUELETICO->{'XIFOSIS'};
+    $XIFOSIS_OBS = $key->Data->SERV_MED_MUS_ESQUELETICO->{'XIFOSIS_OBS'};
+    $LORDOSISI = $key->Data->SERV_MED_MUS_ESQUELETICO->{'LORDOSISI'};
+    $LORDOSISI_OBS = $key->Data->SERV_MED_MUS_ESQUELETICO->{'LORDOSIS_OBS'};
+    $LUMBALGIA = $key->Data->SERV_MED_MUS_ESQUELETICO->{'LUMBALGIA '};
+    $LUMBALGIA_OBS = $key->Data->SERV_MED_MUS_ESQUELETICO->{'LUMBALGIA _OBS'};
+    $BASCULAMIENTO = $key->Data->SERV_MED_MUS_ESQUELETICO->{'BASCULAMIENTO'};
+    $BASCULAMIENTO_OBS = $key->Data->SERV_MED_MUS_ESQUELETICO->{'BASCULAMIENTO_OBS'};
+    $ALTERACION_DISCAL = $key->Data->SERV_MED_MUS_ESQUELETICO->{'ALTERACION_DISCAL'};
+    $ALTERACION_DISCAL_OBS = $key->Data->SERV_MED_MUS_ESQUELETICO->{'ALTERACION_DISCAL_OBS'};
+
+    $ESCOLIOSIS = ($key->Data->SERV_MED_MUS_ESQUELETICO->{'ESCOLIOSIS'} == 0) ? "No" : "Sí";
+    $XIFOSIS = ($key->Data->SERV_MED_MUS_ESQUELETICO->{'XIFOSIS'} == 0) ? "No" : "Sí";
+    $LORDOSISI = ($key->Data->SERV_MED_MUS_ESQUELETICO->{'LORDOSISI'} == 0) ? "No" : "Sí";
+    $LUMBALGIA = ($key->Data->SERV_MED_MUS_ESQUELETICO->{'LUMBALGIA '} == 0) ? "No" : "Sí"; // Fijate que hay un espacio en 'LUMBALGIA '
+    $BASCULAMIENTO = ($key->Data->SERV_MED_MUS_ESQUELETICO->{'BASCULAMIENTO'} == 0) ? "No" : "Sí";
+    $ALTERACION_DISCAL = ($key->Data->SERV_MED_MUS_ESQUELETICO->{'ALTERACION_DISCAL'} == 0) ? "No" : "Sí";
+
+    /* pt6 */
+    $ANEURISMA2 = $key->Data->SERV_MED_CARDIO_NO_PATO->{'ANEURISMA'};
+    $ANEURISMA_OBS2 = $key->Data->SERV_MED_CARDIO_NO_PATO->{'ANEURISMA_OBS'};
+    $HIPERTENSION2 = $key->Data->SERV_MED_CARDIO_NO_PATO->{'HIPERTENSION'};
+    $HIPERTENSION_OBS2 = $key->Data->SERV_MED_CARDIO_NO_PATO->{'HIPERTENSION_OBS'};
+    $HIPOTENSION2 = $key->Data->SERV_MED_CARDIO_NO_PATO->{'HIPOTENSION'};
+    $HIPOTENSION_OBS2 = $key->Data->SERV_MED_CARDIO_NO_PATO->{'HIPOTENSION_OBS'};
+    $INFARTOS = $key->Data->SERV_MED_CARDIO_NO_PATO->{'INFARTOS '};
+    $INFARTOS_OBS = $key->Data->SERV_MED_CARDIO_NO_PATO->{'INFARTOS_OBS'};
+    $INSUFIC_CAR = $key->Data->SERV_MED_CARDIO_NO_PATO->{'INSUFIC_CAR'};
+    $INSUFIC_CAR_OBS = $key->Data->SERV_MED_CARDIO_NO_PATO->{'INSUFIC_CAR_OBS'};
+
+    $ANEURISMA2 = ($key->Data->SERV_MED_CARDIO_NO_PATO->{'ANEURISMA'} == 0) ? "No" : "Sí";
+    $HIPERTENSION2 = ($key->Data->SERV_MED_CARDIO_NO_PATO->{'HIPERTENSION'} == 0) ? "No" : "Sí";
+    $HIPOTENSION2 = ($key->Data->SERV_MED_CARDIO_NO_PATO->{'HIPOTENSION'} == 0) ? "No" : "Sí";
+    $INFARTOS = ($key->Data->SERV_MED_CARDIO_NO_PATO->{'INFARTOS '} == 0) ? "No" : "Sí";
+    $INSUFIC_CAR = ($key->Data->SERV_MED_CARDIO_NO_PATO->{'INSUFIC_CAR'} == 0) ? "No" : "Sí";
+
+    /* pt7 */
+    $ALRGNEWINP = $key->Data->SERV_MED_TOXI_NO_PATO->{'ALERGIAS'};
+    $ALRGNEWINPOBS = $key->Data->SERV_MED_TOXI_NO_PATO->{'ALERGIAS_OBS'};
+    $TABAQUISMO2 = $key->Data->SERV_MED_TOXI_NO_PATO->{'TABAQUISMO'};
+    $TABAQUISMO_OBS2 = $key->Data->SERV_MED_TOXI_NO_PATO->{'TABAQUISMO_OBS'};
+    $ALCOHOLISMO2 = $key->Data->SERV_MED_TOXI_NO_PATO->{'ALCOHOLISMO'};
+    $ALCOHOLISMO_OBS2 = $key->Data->SERV_MED_TOXI_NO_PATO->{'ALCOHOLISMO_OBS'};
+    $DROGAS2 = $key->Data->SERV_MED_TOXI_NO_PATO->{'DROGAS'};
+    $DROGAS_OBS2 = $key->Data->SERV_MED_TOXI_NO_PATO->{'DROGAS_OBS'};
+    $ALT_CARGA = $key->Data->SERV_MED_TOXI_NO_PATO->{'ALT_CARGA '};
+    $ALT_CARGA_OBS = $key->Data->SERV_MED_TOXI_NO_PATO->{'ALT_CARGA_OBS'};
+    $PERFORACIONES = $key->Data->SERV_MED_TOXI_NO_PATO->{'PERFORACIONES'};
+    $PERFORACIONES_OBS = $key->Data->SERV_MED_TOXI_NO_PATO->{'PERFORACIONES_OBS'};
+    $TATUAJES = $key->Data->SERV_MED_TOXI_NO_PATO->{'TATUAJES'};
+    $TATUAJES_OBS = $key->Data->SERV_MED_TOXI_NO_PATO->{'TATUAJES_OBS'};
+
+    $ALRGNEWINP = ($key->Data->SERV_MED_TOXI_NO_PATO->{'ALERGIAS'} == 0) ? "No" : "Sí";
+    $TABAQUISMO2 = ($key->Data->SERV_MED_TOXI_NO_PATO->{'TABAQUISMO'} == 0) ? "No" : "Sí";
+    $ALCOHOLISMO2 = ($key->Data->SERV_MED_TOXI_NO_PATO->{'ALCOHOLISMO'} == 0) ? "No" : "Sí";
+    $DROGAS2 = ($key->Data->SERV_MED_TOXI_NO_PATO->{'DROGAS'} == 0) ? "No" : "Sí";
+    $ALT_CARGA = ($key->Data->SERV_MED_TOXI_NO_PATO->{'ALT_CARGA '} == 0) ? "No" : "Sí";
+    $PERFORACIONES = ($key->Data->SERV_MED_TOXI_NO_PATO->{'PERFORACIONES'} == 0) ? "No" : "Sí";
+    $TATUAJES = ($key->Data->SERV_MED_TOXI_NO_PATO->{'TATUAJES'} == 0) ? "No" : "Sí";
+
+    /* pt8 */
+    $DIABETES = $key->Data->SERV_MED_ENDOCRI_NO_PATO->{'DIABETES'};
+    $DIABETES_OBS = $key->Data->SERV_MED_ENDOCRI_NO_PATO->{'DIABETES_OBS'};
+    $HIPERTIROIDISMO2 = $key->Data->SERV_MED_ENDOCRI_NO_PATO->{'HIPERTIROIDISMO'};
+    $HIPERTIROIDISMO_OBS2 = $key->Data->SERV_MED_ENDOCRI_NO_PATO->{'HIPERTIROIDISMO_OBS'};
+    $HIPOTIROIDISMO2 = $key->Data->SERV_MED_ENDOCRI_NO_PATO->{'HIPOTIROIDISMO'};
+    $HIPOTIROIDISMO_OBS2 = $key->Data->SERV_MED_ENDOCRI_NO_PATO->{'HIPOTIROIDISMO_OBS'};
+
+    $DIABETES = ($key->Data->SERV_MED_ENDOCRI_NO_PATO->DIABETES == 0) ? "No" : "Sí";
+    $HIPERTIROIDISMO2 = ($key->Data->SERV_MED_ENDOCRI_NO_PATO->HIPERTIROIDISMO == 0) ? "No" : "Sí";
+    $HIPOTIROIDISMO2 = ($key->Data->SERV_MED_ENDOCRI_NO_PATO->HIPOTIROIDISMO == 0) ? "No" : "Sí";
+
+    /* PA */
+    $OBSERVACIONES = $key->Data->SERV_MED_PADECI_ACTUAL->{'OBSERVACIONES'};
+    /* IPAYS */
+    $OBSERVACIONES2 = $key->Data->SERV_MED_INT_APARATO_SIST->{'OBSERVACIONES'};
+    /* EXFIS */
+    $PESO = $key->Data->SERV_MED_EXPLORACION_FISICA->{"PESO"};
+    $TALLA = $key->Data->SERV_MED_EXPLORACION_FISICA->{"TALLA"};
+    $IMC = $key->Data->SERV_MED_EXPLORACION_FISICA->{"IMC"};
+    $FC = $key->Data->SERV_MED_EXPLORACION_FISICA->{"FC"};
+    $FR = $key->Data->SERV_MED_EXPLORACION_FISICA->{"FR"};
+    $TA = $key->Data->SERV_MED_EXPLORACION_FISICA->{"TA"};
+    $TEMP = $key->Data->SERV_MED_EXPLORACION_FISICA->{"TEMP"};
+    $ECTOMORFICO = $key->Data->SERV_MED_EXPLORACION_FISICA->{"ECTOMORFICO"};
+    $MESOMORFO = $key->Data->SERV_MED_EXPLORACION_FISICA->{"MESOMORFO"};
+    $ENDOMORFICA = $key->Data->SERV_MED_EXPLORACION_FISICA->{"ENDOMORFICA"};
+    $SATISFACCION = $key->Data->SERV_MED_EXPLORACION_FISICA->{"SATISFACCION"};
+    $COMP_TRABAJO = $key->Data->SERV_MED_EXPLORACION_FISICA->{"COMP_TRABAJO"};
+    $COMP_ORGANIZACION = $key->Data->SERV_MED_EXPLORACION_FISICA->{"COMP_ORGANIZACION"};
+    $TIEMPO = $key->Data->SERV_MED_EXPLORACION_FISICA->{"TIEMPO"};
+
+    $SATISFACCION = ($key->Data->SERV_MED_EXPLORACION_FISICA->{"SATISFACCION"} == 0) ? "No" : "Sí";
+    $COMP_TRABAJO = ($key->Data->SERV_MED_EXPLORACION_FISICA->{"COMP_TRABAJO"} == 0) ? "No" : "Sí";
+    $COMP_ORGANIZACION = ($key->Data->SERV_MED_EXPLORACION_FISICA->{"COMP_ORGANIZACION"} == 0) ? "No" : "Sí";
+
+    $ESPACIO = $key->Data->SERV_MED_EXPLORACION_FISICA->{"ESPACIO"};
+    $PERSONA = $key->Data->SERV_MED_EXPLORACION_FISICA->{"PERSONA"};
+    $SERENIDAD = $key->Data->SERV_MED_EXPLORACION_FISICA->{"SERENIDAD"};
+    $INTERES = $key->Data->SERV_MED_EXPLORACION_FISICA->{"INTERES"};
+    $ANTAGONICO = $key->Data->SERV_MED_EXPLORACION_FISICA->{"ANTAGONICO"};
+    $ENTUSIASTA = $key->Data->SERV_MED_EXPLORACION_FISICA->{"ENTUSIASTA"};
+    $ENOJO = $key->Data->SERV_MED_EXPLORACION_FISICA->{"ENOJO"};
+    $HIPOCRITA = $key->Data->SERV_MED_EXPLORACION_FISICA->{"HIPOCRITA"};
+    $ICTERICA = $key->Data->SERV_MED_EXPLORACION_FISICA->{"ICTERICA"};
+    $ANEMICA = $key->Data->SERV_MED_EXPLORACION_FISICA->{"ANEMICA"};
+    $TIROIDEA = $key->Data->SERV_MED_EXPLORACION_FISICA->{"TIROIDEA"};
+    $NOLMAL_FASCIES = $key->Data->SERV_MED_EXPLORACION_FISICA->{"NOLMAL_FASCIES"};
+    $PARKINSON2 = $key->Data->SERV_MED_EXPLORACION_FISICA->{"PARKINSON"};
+    $HEMIPLEJICO = $key->Data->SERV_MED_EXPLORACION_FISICA->{"HEMIPLEJICO"};
+    $ATAXICA = $key->Data->SERV_MED_EXPLORACION_FISICA->{"ATAXICA"};
+    $HEMIPARESIA = $key->Data->SERV_MED_EXPLORACION_FISICA->{"HEMIPARESIA"};
+    $NORMAL_MARCHA = $key->Data->SERV_MED_EXPLORACION_FISICA->{"NORMAL_MARCHA"};
+    $LENGUAJE = $key->Data->SERV_MED_EXPLORACION_FISICA->{"LENGUAJE"};
+    $CONVER_FLUIDA = $key->Data->SERV_MED_EXPLORACION_FISICA->{"CONVER_FLUIDA"};
+    $COHERENCIA_PALABLAS = $key->Data->SERV_MED_EXPLORACION_FISICA->{"COHERENCIA_PALABLAS"};
+
+    $LENGUAJE = ($key->Data->SERV_MED_EXPLORACION_FISICA->{"LENGUAJE"} == 0) ? "No" : "Sí";
+    $CONVER_FLUIDA = ($key->Data->SERV_MED_EXPLORACION_FISICA->{"CONVER_FLUIDA"} == 0) ? "No" : "Sí";
+    $COHERENCIA_PALABLAS = ($key->Data->SERV_MED_EXPLORACION_FISICA->{"COHERENCIA_PALABLAS"} == 0) ? "No" : "Sí";
+
+
+    $OJOS = $key->Data->SERV_MED_CRANEO->{"OJOS"};
+    $PUPILAS = $key->Data->SERV_MED_CRANEO->{"PUPILAS"};
+    $CONJUNTIVAS = $key->Data->SERV_MED_CRANEO->{"CONJUNTIVAS"};
+    $REFLEJOS = $key->Data->SERV_MED_CRANEO->{"REFLEJOS"};
+    $FONDO_OJO = $key->Data->SERV_MED_CRANEO->{"FONDO_OJO"};
+
+
+    $OD = $key->Data->SERV_MED_AGUDEZA_VISUAL->{"OD"};
+    $OIZ = $key->Data->SERV_MED_AGUDEZA_VISUAL->{"OIZ"};
+    $COLORES = $key->Data->SERV_MED_AGUDEZA_VISUAL->{"COLORES"};
+
+
+    $CAVIDAD_NASAL = $key->Data->SERV_MED_NARIZ->{"CAVIDAD_NASAL"};
+    $MUCOSA = $key->Data->SERV_MED_NARIZ->{"MUCOSA"};
+    $TABIQUE_NASAL = $key->Data->SERV_MED_NARIZ->{"TABIQUE_NASA"};
+    $OLFATO = $key->Data->SERV_MED_NARIZ->{"OLFATO"};
+
+
+    $CERVICAL = $key->Data->SERV_MED_COLUMNA_VERTEBRAL->{"CERVICA"};
+    $DORSAL = $key->Data->SERV_MED_COLUMNA_VERTEBRAL->{"DORSAL"};
+    $LUMBAR = $key->Data->SERV_MED_COLUMNA_VERTEBRAL->{"LUMBAR"};
+
+
+    $LESIONES = $key->Data->SERV_MED_BOCA->{"LESIONES"};
+    $ENCIAS = $key->Data->SERV_MED_BOCA->{"ENCIAS"};
+    $OROIFARINGE = $key->Data->SERV_MED_BOCA->{"OROIFARINGE"};
+
+
+    $CAE = $key->Data->SERV_MED_OIDOS->{"CAE"};
+    $MEM_TIM = $key->Data->SERV_MED_OIDOS->{"MEM_TIM"};
+    $AGUD_AUDIT = $key->Data->SERV_MED_OIDOS->{"AGUD_AUDIT"};
+    $OID = $key->Data->SERV_MED_OIDOS->{"OD"};
+    $OI = $key->Data->SERV_MED_OIDOS->{"OI"};
+
+
+    $RUIDOS_CARDIACOS = $key->Data->SERV_MED_TORAX->{"RUIDOS_CARDIACOS"};
+    $REG_PRECORDIAL = $key->Data->SERV_MED_TORAX->{"REG_PRECORDIAL"};
+    $CAMPOS_PULM = $key->Data->SERV_MED_TORAX->{"CAMPOS_PULM"};
+
+
+    $DEFORMACIONES = $key->Data->SERV_MED_COLUMNA_VERTEBRAL_AUX->{"DEFORMACIONES"};
+    $DOLOR = $key->Data->SERV_MED_COLUMNA_VERTEBRAL_AUX->{"DOLOR"};
+    $MOVIMIENTOS = $key->Data->SERV_MED_COLUMNA_VERTEBRAL_AUX->{"MOVIMIENTOS"};
+    $MARCHA = $key->Data->SERV_MED_COLUMNA_VERTEBRAL_AUX->{"MARCHA"};
+    $LASSEGUE = $key->Data->SERV_MED_COLUMNA_VERTEBRAL_AUX->LASSEGUE;
+    $PUNTA_TALON = $key->Data->SERV_MED_COLUMNA_VERTEBRAL_AUX->PUNTA_TALON;
+
+
+    $FORMA = $key->Data->SERV_MED_ABDOMEN->{"FORMA"};
+    $VISCEROMEGALIAS = $key->Data->SERV_MED_ABDOMEN->{"VISCEROMEGALIAS"};
+    $HERNIAS2 = $key->Data->SERV_MED_ABDOMEN->{"HERNIAS"};
+    $DOLOR = $key->Data->SERV_MED_ABDOMEN->{"DOLOR"};
+    $PERISTALSIS = $key->Data->SERV_MED_ABDOMEN->{"PERISTALSIS"};
+
+
+    $MASCULINO = $key->Data->SERV_MED_GENITALES->{"MASCULINO"};
+    $FEMENINO = $key->Data->SERV_MED_GENITALES->{"FEMENINO"};
+
+
+    $PUNTOS_URETRALES = $key->Data->SERV_MED_URINARIO->{"PUNTOS_URETRALES"};
+    $FOSAS_RENALES = $key->Data->SERV_MED_URINARIO->{"FOSAS_RENALES"};
+
+
+    $SUPERIOR = $key->Data->SERV_MED_EXTREMIDADES->{"SUPERIOR"};
+    $INFERIOR = $key->Data->SERV_MED_EXTREMIDADES->{"INFERIOR"};
+    $IVP = $key->Data->SERV_MED_EXTREMIDADES->{"IVP"};
+    $EDEMA = $key->Data->SERV_MED_EXTREMIDADES->{"EDEMA"};
+
+
+    $LUNARES = $key->Data->SERV_MED_PIEL->{"LUNARES"};
+    $PIGMENTACION = $key->Data->SERV_MED_PIEL->{"PIGMENTACION"};
+    $CICATRICES_QUIRUR = $key->Data->SERV_MED_PIEL->{"CICATRICES_QUIRUR"};
+
+    $DIENTE_11 = $key->Data->SERV_MED_DIENTES->{"DIENTE_11"};
+    $DIENTE_12 = $key->Data->SERV_MED_DIENTES->{"DIENTE_12"};
+    $DIENTE_13 = $key->Data->SERV_MED_DIENTES->{"DIENTE_13"};
+    $DIENTE_14 = $key->Data->SERV_MED_DIENTES->{"DIENTE_14"};
+    $DIENTE_15 = $key->Data->SERV_MED_DIENTES->{"DIENTE_15"};
+    $DIENTE_16 = $key->Data->SERV_MED_DIENTES->{"DIENTE_16"};
+    $DIENTE_17 = $key->Data->SERV_MED_DIENTES->{"DIENTE_17"};
+    $DIENTE_18 = $key->Data->SERV_MED_DIENTES->{"DIENTE_18"};
+    $DIENTE_41 = $key->Data->SERV_MED_DIENTES->{"DIENTE_41"};
+    $DIENTE_42 = $key->Data->SERV_MED_DIENTES->{"DIENTE_42"};
+    $DIENTE_43 = $key->Data->SERV_MED_DIENTES->{"DIENTE_43"};
+    $DIENTE_44 = $key->Data->SERV_MED_DIENTES->{"DIENTE_44"};
+    $DIENTE_45 = $key->Data->SERV_MED_DIENTES->{"DIENTE_45"};
+    $DIENTE_46 = $key->Data->SERV_MED_DIENTES->{"DIENTE_46"};
+    $DIENTE_47 = $key->Data->SERV_MED_DIENTES->{"DIENTE_47"};
+    $DIENTE_48 = $key->Data->SERV_MED_DIENTES->{"DIENTE_48"};
+    $DIENTE_2 = $key->Data->SERV_MED_DIENTES->{"DIENTE_2"};
+    $DIENTE_22 = $key->Data->SERV_MED_DIENTES->{"DIENTE_22"};
+    $DIENTE_23 = $key->Data->SERV_MED_DIENTES->{"DIENTE_23"};
+    $DIENTE_24 = $key->Data->SERV_MED_DIENTES->{"DIENTE_24"};
+    $DIENTE_25 = $key->Data->SERV_MED_DIENTES->{"DIENTE_25"};
+    $DIENTE_26 = $key->Data->SERV_MED_DIENTES->{"DIENTE_26"};
+    $DIENTE_27 = $key->Data->SERV_MED_DIENTES->{"DIENTE_27"};
+    $DIENTE_28 = $key->Data->SERV_MED_DIENTES->{"DIENTE_28"};
+    $DIENTE_31 = $key->Data->SERV_MED_DIENTES->{"DIENTE_31"};
+    $DIENTE_32 = $key->Data->SERV_MED_DIENTES->{"DIENTE_32"};
+    $DIENTE_33 = $key->Data->SERV_MED_DIENTES->{"DIENTE_33"};
+    $DIENTE_34 = $key->Data->SERV_MED_DIENTES->{"DIENTE_34"};
+    $DIENTE_35 = $key->Data->SERV_MED_DIENTES->{"DIENTE_35"};
+    $DIENTE_36 = $key->Data->SERV_MED_DIENTES->{"DIENTE_36"};
+    $DIENTE_37 = $key->Data->SERV_MED_DIENTES->{"DIENTE_37"};
+    $DIENTE_38 = $key->Data->SERV_MED_DIENTES->{"DIENTE_38"};
+
+    $RESULTADOS3 = $key->Data->SERV_MED_ESTUDIOS_REALIZADOS->{"RESULTADOS"};
+    $OBSERVACIONES3 = $key->Data->SERV_MED_DIAGNOSTICO->{"OBSERVACIONES"};
+    $OBSERVACIONES32 = $key->Data->SERV_MED_PLAN_TERAPIA->{"OBSERVACIONES"};
+
+    $DEFORMACIONES_OBS = $key->Data->SERV_MED_CUELLO->{"DEFORMACIONES_OBS"};
+    $TIROIDES_OBS = $key->Data->SERV_MED_CUELLO->{"TIROIDES_OBS"};
+    $TRAQUEA_OBS = $key->Data->SERV_MED_CUELLO->{"TRAQUEA_OBS"};
+
+    $OBSERVACIONESRESEXAM = $key->Data->SERV_MED_RESULTADO_EXAMEN->{"OBSERVACIONES"};
+
+    if ($OBSERVACIONESRESEXAM == 4) {
+        $OBSERVACIONESRESEXAM1 = "No apto";
+    } elseif ($OBSERVACIONESRESEXAM == 1) {
+        $OBSERVACIONESRESEXAM1 = "Apto";
+    } elseif ($OBSERVACIONESRESEXAM == 2) {
+        $OBSERVACIONESRESEXAM1 = "Apto condicionado";
+    } elseif ($OBSERVACIONESRESEXAM == 3) {
+        $OBSERVACIONESRESEXAM1 = "Apto restringido";
+    }
+
+
+    $FIRMA = $key->Data->SERV_MED_RESULTADO_EXAMEN->{"FIRMA_DIGITAL"};
+}
+
+$jsonUser =  $model->searchUser($idNss);
+$dataUser = json_decode($jsonUser);
+
+foreach ($dataUser->Datos as $user) {
+    $nombre = $user->nombre;
+    $apellidoP = $user->apellidoPaterno;
+    $apellidoM = $user->apellidoMaterno;
+    $RFC = $user->rfc;
+    $NSS = $user->nss;
+    $sexo = $user->sexo;
+    $cuenta = $user->cuenta;
+    $fechaNacimiento = $user->fecha_nacimiento;
+    $edoCivil = $user->estado_civil;
+    $direccion = $user->direccion;
+    $telefono = $user->celular;
+    $turno = $user->turno;
+    $rfc = $user->rfc;
+    $telefonoF = $user->tel_fijo;
+    $check = $user->completo;
+    $puesto = $user->nombre_puesto;
+    $empresa = $user->nombre_empresa;
+}
+
+
+
+
+
+
+
+
+$DRENAJE = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "Drenaje"
+]);
+$DRENAJE = ($DRENAJE == 0) ? "No" : "Sí";
+$CONVIVENCIA_CON_ANIMALES = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "CCA"
+]);
+$VOZCLARAYFUERTE = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "VOZCLARAYFUERTE"
+]);
+$VOZCLARAYFUERTE = ($VOZCLARAYFUERTE == 0) ? "No" : "Sí";
+$STPO2 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "STPO2"
+]);
+
+$edad_inicio_laborar = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "edad_inicio_laborar"
+]);
+$cantidad_trabajos = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "cantidad_trabajos"
+]);
+$pension = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "pension"
+]);
+
+$nombre1 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "nombre1"
+]);
+$giro1 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "giro1"
+]);
+$puesto1 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "puesto1"
+]);
+$turno1 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "turno1"
+]);
+$antiguedad1 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "antiguedad1"
+]);
+$salida1 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "salida1"
+]);
+$descripcion1 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "descripcion1"
+]);
+$riesgos1 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "riesgos1"
+]);
+$epp1 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "epp1"
+]);
+$observaciones1 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "observaciones1"
+]);
+$nombre2 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "nombre2"
+]);
+$giro2 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "giro2"
+]);
+$puesto2 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "puesto2"
+]);
+$turno2 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "turno2"
+]);
+$antiguedad2 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "antiguedad2"
+]);
+$salida2 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "salida2"
+]);
+$descripcion2 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "descripcion2"
+]);
+$riesgos2 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "riesgos2"
+]);
+$epp2 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "epp2"
+]);
+$observaciones2 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "observaciones2"
+]);
+$nombre3 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "nombre3"
+]);
+$giro3 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "giro3"
+]);
+$puesto3 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "puesto3"
+]);
+$turno3 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "turno3"
+]);
+$antiguedad3 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "antiguedad3"
+]);
+$salida3 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "salida3"
+]);
+$descripcion3 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "descripcion3"
+]);
+$riesgos3 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "riesgos3"
+]);
+$epp3 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "epp3"
+]);
+$observaciones3 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "observaciones3"
+]);
+$nombre4 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "nombre4"
+]);
+$giro4 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "giro4"
+]);
+$puesto4 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "puesto4"
+]);
+$turno4 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "turno4"
+]);
+$antiguedad4 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "antiguedad4"
+]);
+$salida4 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "salida4"
+]);
+$descripcion4 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "descripcion4"
+]);
+$riesgos4 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "riesgos4"
+]);
+$epp4 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "epp4"
+]);
+$observaciones4 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "observaciones4"
+]);
+$OBSGENERALINPEX = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "OBSGENERALINPEX"
+]);
+
+
+
+$ODCAEINPEXP = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "ODCAEINPEXP"
+]);
+$ODMEMTIMINPEXP = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "ODMEMTIMINPEXP"
+]);
+$ODAGAUDIINPEXP = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "ODAGAUDIINPEXP"
+]);
+$OIMEMTIMINPEXP = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "OIMEMTIMINPEXP"
+]);
+$OIAGAUDIINPEXP = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "OIAGAUDIINPEXP"
+]);
+$TRAQUEA_OBS = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "TRAQUEA_OBSINP"
+]);
+$DIENTE_2 = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "DIENTE_2"
+]);
+$CIRUGIAS_OBS = $others->selectDatsExMed($data = [
+    "nss" => $idNss,
+    "type" => "ciruOBS"
+]);
+
+
+?>
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>SISTEMA MEDICO ONEST</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js" integrity="sha384-cuYeSxntonz0PPNlHhBs68uyIAVpIIOZZ5JqeqvYYIcEL727kskC66kF92t6Xl2V" crossorigin="anonymous"></script>
+    <style>
+        td,
+        th,
+        p {
+            font-size: 9px;
+        }
+
+        .footerTxt {
+            font-size: 7px;
+        }
+    </style>
+</head>
+
+
+
+<body class="container">
+    <div class="row">
+        <div class="navbar-brand col-3 " href="#">
+            <center><img src="../files/Imagen1.png" alt="" width="100" class="mt-2"></center>
+        </div>
+
+        <div class="col-9">
+            <table class="table table-bordered table-sm border-top border-dark">
+                <thead>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="2">
+                            <center>CONSENTIMIENTO DE REALIZACIÓN DE EXAMEN MÉDICO (ADMISIÓN, PERIÓDICO, CAMBIO DE ROL, POST INCAPACIDAD Y ESPECIAL).</center>
+                        </td>
+                    </tr>
+                    <tr class="">
+                        <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                        <td>Revisión: 03</td>
+
+
+                    </tr>
+                    <td>Clave de control: FT-SO-11</td>
+                    <td>Reemplaza a: 02</td>
+                    <tr>
+
+                    </tr>
+                    <tr class="">
+
+                        <td>Motivo del cambio: Revisión por vigencia.</td>
+                        <td></td>
+
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col-4">
+            <p>Agencia: ___________________________________</p>
+        </div>
+        <div class="col-4">
+            <p>Departamento: <?php echo $cuenta; ?></p>
+        </div>
+        <div class="col-4">
+            <p>Puesto: ___________________________________</p>
+        </div>
+    </div>
+    <div class="container">
+        <p style="font-size: 11px; margin-top: 150px;">
+            Entiendo que, de acuerdo con la Política de la Compañía sobre proporcionar y mantener un ambiente de trabajo seguro y saludable para sus empleados, me someteré a la realización de un Examen Médico.
+        </p>
+        <p style="font-size: 11px;">Por medio del presente autorizo la realización del Examen Médico de Admisión, Periódico o Especiales, el cual consiste en 2 etapas, exploración física e Interrogación Verbal que consta de: </p>
+        <p style="font-size: 11px;">
+            Ficha de Identificación, Antecedentes Laborales, Antecedentes Heredo familiares, Antecedentes Personales no patológicos, Antecedentes Ginecoobstetricos, Antecedentes Personales Patológicos.
+        </p>
+        <p style="font-size: 11px;">
+            Exploración Física que consta de: Peso, Talla, Toma de Signos Vitales, revisión de Cráneo, Nariz, Boca, Oídos, Cuello, Tórax , Columna Vertebral, Abdomen, Urinario, Extremidades y Piel. Tomando en cuenta que para ello, me tendré que retirar la ropa conservando mi ropa interior, así como se me pedirá que realice algunos movimientos.
+        </p>
+        <p style="font-size: 11px;">
+            Esto será realizado por personal altamente calificado y profesional.
+        </p>
+    </div>
+    <hr style="margin-top: 350px;">
+    <div class="row mt-3">
+        <div class="col-6">
+            <center>
+                <h6>Nombre y firma</h6>
+                <img src="<?= $FIRMA  ?>" class="img-fluid" width="50px" alt=""><br>
+                <p><?php echo $apellidoP; ?> <?php echo $apellidoM; ?> <?php echo $nombre; ?></p>
+            </center>
+        </div>
+        <div class="col-6">
+            <center>
+                <h6>Fecha</h6>
+                <p><?= $FECHAExam; ?></p>
+            </center>
+
+        </div>
+    </div>
+    <div class="row">
+        <div class="navbar-brand col-3 " href="#">
+            <center><img src="../files/Imagen1.png" alt="" width="100" class="mt-2"></center>
+        </div>
+
+        <div class="col-9">
+            <table class="table table-bordered table-sm border-top border-dark">
+                <thead>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="2">
+                            <center>AVISO DE PRIVACIDAD</center>
+                        </td>
+                    </tr>
+                    <tr class="">
+                        <td>F. Implementación: 18 DE OCTUBRE DE 2022</td>
+                        <td>Revisión: 01</td>
+
+
+                    </tr>
+                    <td>Clave de control: FT-SO-32</td>
+                    <td>Reemplaza a: 00</td>
+                    <tr>
+
+                    </tr>
+                    <tr class="">
+
+                        <td>Motivo del cambio: Actualización por vigencia.</td>
+                        <td></td>
+
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="mt-3 mb-3">
+        <center>
+            <h6>AVISO DE PRIVACIDAD</h6>
+        </center>
+        <p style="font-size: 11px;">SALUD OCUPACIONAL DE GRUPO LOGISTICO INTEGRAL, mejor conocido como ONEST LOGISTICS, con domicilio en calle
+            Autopista México Querétaro Km 34.5 Nave 5, colonia San Isidro, ciudad Cuautitlán Izcalli, municipio o delegación Cuautitlán Izcalli,
+            c.p. 54730, en la entidad de Estado de México, país México, y portal de internet https://www.onestlogistics.com, es el responsable del
+            uso y protección de sus datos personales, y al respecto le informamos lo siguiente:</p>
+        <p style="font-size: 11px;">
+            ¿Para qué fines utilizaremos sus datos personales? Los datos personales que recabamos de usted, los utilizaremos para las
+            siguientes finalidades que son necesarias para el servicio que solicita: Conservar información médica de otras instituciones en
+            expediente médico laboral. De manera adicional, utilizaremos su información personal para las siguientes finalidades secundarias que
+            no son necesarias para el servicio solicitado, pero que nos permiten y facilitan brindarle una mejor atención: Obtener muestras
+            biológicas en los casos que sean necesarios para evaluar las aptitudes médicas o para algún tamizaje de diagnóstico Conocer los
+            datos de índole médico para evaluar el estado de salud para ingresar, cambiar de puesto, ascender, de manera periódica o concluir
+            su relación laboral. En caso de que no desee que sus datos personales se utilicen para estos fines secundarios, indíquelo a
+            continuación:
+        </p>
+        <p style="font-size: 11px;">
+            Sí consiento que mis datos personales se utilicen para los siguientes fines:
+            *Obtener muestras biológicas en los casos que sean necesarios para evaluar las aptitudes médicas o para algún tamizaje
+            de diagnóstico
+            *Conocer los datos de índole médico para evaluar el estado de salud para ingresar, cambiar de puesto, ascender, de
+            manera periódica o concluir su relación laboral
+        </p>
+        <p style="font-size: 11px;">
+            La negativa para el uso de sus datos personales para estas finalidades no podrá ser un motivo para que le neguemos los servicios y
+            productos que solicita o contrata con nosotros. ¿Qué datos personales utilizaremos para estos fines? Para llevar a cabo las finalidades
+            descritas en el presente aviso de privacidad, utilizaremos los siguientes datos personales: Nombre, Estado Civil, Lugar de nacimiento,
+            Fecha de nacimiento, Nacionalidad, Domicilio, Teléfono particular, Teléfono celular, Correo electrónico, Firma autógrafa, Edad,
+            Fotografía, Señas particulares, Estatura, Peso, Cicatrices, Tipo de sangre, Puesto o cargo que desempeña, Domicilio de trabajo,
+            Correo electrónico institucional, Teléfono institucional, Referencias laborales, Información generada durante los procesos de
+            reclutamiento, selección y contratación, Capacitación laboral, Trayectoria educativa, Títulos, Bienes muebles, Pasatiempos, Aficiones,
+            Deportes que practica, Juegos de su interés. Además de los datos personales mencionados anteriormente, para las finalidades
+            informadas en el presente aviso de privacidad utilizaremos los siguientes datos personales considerados como sensibles, que
+            requieren de especial protección: Religión que profesa, Pertenencia a un sindicato, Estado de salud físico presente, pasado o futuro,
+            Estado de salud mental presente, pasado o futuro, Información genética, Preferencias sexuales, Prácticas o hábitos sexuales,
+            Pertenencia a un pueblo, etnia o región ¿Con quién compartimos su información personal y para qué fines?
+        </p>
+        <p style="font-size: 11px;">
+            Le informamos que sus datos personales son compartidos dentro del país con las siguientes personas, empresas, organizaciones o
+            autoridades distintas a nosotros, para los siguientes fines: Destinatario de los datos personales: P&G Certificación de Aptitud Médica
+            Laboral, Unilever de México, Certificación de Aptitud Médica Laboral, Inditex, Certificación de Aptitud Médica Laboral, u Otros clientes
+            Certificación de Aptitud Médica Laboral.
+        </p>
+        <p style="font-size: 11px;">
+            Con relación a las transferencias que requieren de su consentimiento, por favor indique a continuación si nos lo otorga:
+        </p>
+        <b class="form-check-label" style="font-size: 11px;" for="exampleCheck1">[*]Sí otorgo mi consentimiento para las siguientes transferencias de mis datos personales: P&G, Unilever de México, Inditex
+            y Otros clientes.</b>
+        <p style="font-size: 11px;">
+            ¿Cómo puede acceder, rectificar o cancelar sus datos personales, u oponerse a su uso?
+        </p>
+        <p style="font-size: 11px;">
+            Usted tiene derecho a conocer qué datos personales tenemos de usted, para qué los utilizamos y las condiciones del uso que les
+            damos (Acceso). Asimismo, es su derecho solicitar la corrección de su información personal en caso de que esté desactualizada, sea
+            inexacta o incompleta (Rectificación); que la eliminemos de nuestros registros o bases de datos cuando considere que la misma no
+            está siendo utilizada adecuadamente (Cancelación); así como oponerse al uso de sus datos personales para fines específicos
+            (Oposición). Estos derechos se conocen como derechos ARCO. Para el ejercicio de cualquiera de los derechos ARCO, usted deberá
+            presentar la solicitud respectiva a través del siguiente medio: Número telefónico 5563595902 Para conocer el procedimiento y
+            requisitos para el ejercicio de los derechos ARCO, ponemos a su disposición el siguiente medio: Número telefónico 5563595902 Los
+            datos de contacto de la persona o departamento de datos personales, que está a cargo de dar trámite a las solicitudes de derechos
+            ARCO, son los siguientes:
+        </p>
+        <div class="row" style="margin-top: 150px;">
+            <div class="navbar-brand col-3 " href="#">
+                <center><img src="../files/Imagen1.png" alt="" width="100" class="mt-2"></center>
+            </div>
+
+            <div class="col-9">
+                <table class="table table-bordered table-sm border-top border-dark">
+                    <thead>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="2">
+                                <center>EXAMEN MEDICO LABORAL</center>
+                            </td>
+                        </tr>
+                        <tr class="">
+                            <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                            <td>Revisión: 03</td>
+
+
+                        </tr>
+                        <td>Clave de control: FT-SO-04</td>
+                        <td>Reemplaza a: 02</td>
+                        <tr>
+
+                        </tr>
+                        <tr class="">
+
+                            <td>Motivo del cambio: Actualización por vigencia.</td>
+                            <td></td>
+
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <p style="font-size: 11px;">
+            a) Nombre de la persona o departamento de datos personales: Salud Ocupacional
+        </p>
+        <p style="font-size: 11px;">
+            b) Domicilio: calle Carretera México Querétaro Km 34.5 Nave 5, colonia San Isidro, ciudad Cuautitlán Izcalli, municipio o delegación
+            Cuautitlán Izcalli, C.P. 54730, en la entidad de Estado de México, país México
+        </p>
+        <p style="font-size: 11px;">
+            C) Correo electrónico: saludocupacional@grupoonest.com d) Número telefónico: 5563595902.
+        </p>
+        <p style="font-size: 11px;">
+            Usted puede revocar su consentimiento para el uso de sus datos personales, Usted puede revocar el consentimiento que, en su caso,
+            nos haya otorgado para el tratamiento de sus datos personales. Sin embargo, es importante que tenga en cuenta que no en todos los
+            casos podremos atender su solicitud o concluir el uso de forma inmediata, ya que es posible que por alguna obligación legal requiramos
+            seguir tratando sus datos personales. Asimismo, usted deberá considerar que, para ciertos fines, la revocación de su consentimiento
+            implicará que no le podamos seguir prestando el servicio que nos solicitó, o la conclusión de su relación con nosotros. Para revocar
+            su consentimiento deberá presentar su solicitud a través del siguiente medio: Número telefónico 5563595902 Con relación al
+            procedimiento y requisitos para la revocación de su consentimiento, le informamos lo siguiente:
+        </p>
+        <p style="font-size: 11px;">
+            a) ¿A través de qué medios pueden acreditar su identidad el titular y, en su caso, su representante, así como la personalidad este
+            último? Identificación oficial
+
+        </p>
+        <p style="font-size: 11px;">
+            b) ¿Qué información y/o documentación deberá contener la solicitud? Solicitud puntual
+        </p>
+        <p style="font-size: 11px;">
+            c) ¿En cuántos días le daremos respuesta a su solicitud? 72 horas hábiles
+        </p>
+        <p style="font-size: 11px;">d) ¿Por qué medio le comunicaremos la respuesta a su solicitud? Correo electrónico</p>
+        <p style="font-size: 11px;">
+            e) Para más información sobre el procedimiento, ponemos a disposición los siguientes medios: Número telefónico 5563595902
+        </p>
+        <p style="font-size: 11px;">
+            ¿Cómo puede limitar el uso o divulgación de su información personal? Con objeto de que usted pueda limitar el uso y divulgación de
+            su información personal, le ofrecemos los siguientes medios: Número telefónico 5563595902 ¿Cómo puede conocer los cambios en
+            este aviso de privacidad? El presente aviso de privacidad puede sufrir modificaciones, cambios o actualizaciones derivadas de nuevos
+            requerimientos legales; de nuestras propias necesidades por los productos o servicios que ofrecemos; de nuestras prácticas de
+            privacidad; de cambios en nuestro modelo de negocio, o por otras causas. Nos comprometemos a mantenerlo informado sobre los
+            cambios que pueda sufrir el presente aviso de privacidad, a través de: Carteles a través de cada consultorio médico.
+        </p>
+        <p style="font-size: 11px;">El procedimiento a través del cual se llevarán a cabo las notificaciones sobre cambios o actualizaciones al presente aviso de privacidad
+            es el siguiente:
+        </p>
+        <p style="font-size: 11px;">Por medio de cartel en el consultorio médico Su consentimiento para el tratamiento de sus datos personal</p>
+        <b class="form-check-label" style="font-size: 11px;" for="exampleCheck2">[*]Sí consiento que mis datos personales sean tratados de conformidad con los términos y condiciones informados en el
+            presente aviso de privacidad.</b>
+        <center>
+            <h6>Nombre y firma</h6>
+            <img src="<?= $FIRMA  ?>" class="img-fluid" width="50px" alt=""><br>
+            <p><?php echo $apellidoP; ?> <?php echo $apellidoM; ?> <?php echo $nombre; ?></p>
+        </center>
+    </div>
+    <div class="row" style="margin-top: 130px;">
+        <div class="navbar-brand col-3 " href="#">
+            <center><img src="../files/Imagen1.png" alt="" width="100" class="mt-2"></center>
+        </div>
+
+        <div class="col-9">
+            <table class="table table-bordered table-sm border-top border-dark">
+                <thead>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="2">
+                            <center>EXAMEN MEDICO LABORAL</center>
+                        </td>
+                    </tr>
+                    <tr class="">
+                        <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                        <td>Revisión: 03</td>
+
+
+                    </tr>
+                    <td>Clave de control: FT-SO-04</td>
+                    <td>Reemplaza a: 02</td>
+                    <tr>
+
+                    </tr>
+                    <tr class="">
+
+                        <td>Motivo del cambio: Actualización por vigencia.</td>
+                        <td>Hoja 1 de 5</td>
+
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+
+
+
+    </div>
+
+
+    <div class="col-12">
+        <h6>Información Personal</h6>
+        <div class="row">
+            <div class="col-6">
+                <table class="table table-bordered table-sm">
+                    <tr>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                    <tr>
+                        <td>Nombre</td>
+                        <td><?php echo $nombre; ?></td>
+                    </tr>
+                    <tr>
+                        <td>Apellido Paterno</td>
+                        <td><?php echo $apellidoP; ?></td>
+                    </tr>
+                    <tr>
+                        <td>Apellido Materno</td>
+                        <td><?php echo $apellidoM; ?></td>
+                    </tr>
+                    <tr>
+                        <td>RFC</td>
+                        <td><?php echo $RFC; ?></td>
+                    </tr>
+                    <tr>
+                        <td>NSS</td>
+                        <td><?php echo $NSS; ?></td>
+                    </tr>
+                    <tr>
+                        <td>Sexo</td>
+                        <td><?php echo $sexo; ?></td>
+                    </tr>
+                    <tr>
+                        <td>Cuenta</td>
+                        <td><?php echo $cuenta; ?></td>
+                    </tr>
+                    <tr>
+                        <td>Empresa</td>
+                        <td><?php echo $empresa; ?></td>
+                    </tr>
+                    <tr>
+                        <td>Puesto</td>
+                        <td><?php echo $puesto; ?></td>
+                    </tr>
+
+                </table>
+            </div>
+            <div class="col-6">
+                <table class="table table-bordered table-sm">
+                    <tr>
+                        <th></th>
+                        <th></th>
+                    <tr>
+                        <td>Edad</td>
+                        <td><?php echo $edad; ?></td>
+                    </tr>
+                    <tr>
+                        <td>Fecha de Nacimiento</td>
+                        <td><?php echo $fechaNacimiento; ?></td>
+                    </tr>
+                    <tr>
+                        <td>Estado Civil</td>
+                        <td><?php echo $edoCivil; ?></td>
+                    </tr>
+                    <tr>
+                        <td>Dirección</td>
+                        <td><?php echo $direccion; ?></td>
+                    </tr>
+                    <tr>
+                        <td>Teléfono Celular</td>
+                        <td><?php echo $telefono; ?></td>
+                    </tr>
+                    <tr>
+                        <td>Turno</td>
+                        <td><?php echo $turno; ?></td>
+                    </tr>
+                    <tr>
+                        <td>Teléfono Fijo</td>
+                        <td><?php echo $telefonoF; ?></td>
+                    </tr>
+                    <tr>
+                        <td>Completo</td>
+                        <td><?php echo $check; ?></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <hr>
+    <h6>Antecedentes Laborales</h6>
+    <hr>
+    <table class="table table-bordered table-sm">
+        <tr>
+            <th>Edad de inicio al trabajar</th>
+            <td><?= $edad_inicio_laborar ?></td>
+        </tr>
+        <tr>
+            <th>Cantidad de trabajos</th>
+            <td><?= $cantidad_trabajos ?></td>
+        </tr>
+        <tr>
+            <th>Pensión</th>
+            <td><?= $pension ?></td>
+        </tr>
+    </table>
+
+    <h6>Detalles de Trabajos Anteriores</h6>
+    <table class="table table-bordered table-sm">
+        <tr>
+            <th>Nombre</th>
+            <th>Giro</th>
+            <th>Puesto</th>
+            <th>Turno</th>
+            <th>Antigüedad</th>
+            <th>Salida</th>
+            <th>Descripción</th>
+            <th>Riesgos</th>
+            <th>EPP (Equipo de Protección Personal)</th>
+            <th>Observaciones</th>
+        </tr>
+        <tr>
+            <td><?= $nombre1 ?></td>
+            <td><?= $giro1 ?></td>
+            <td><?= $puesto1 ?></td>
+            <td><?= $turno1 ?></td>
+            <td><?= $antiguedad1 ?></td>
+            <td><?= $salida1 ?></td>
+            <td><?= $descripcion1 ?></td>
+            <td><?= $riesgos1 ?></td>
+            <td><?= $epp1 ?></td>
+            <td><?= $observaciones1 ?></td>
+        </tr>
+        <tr>
+            <td><?= $nombre2 ?></td>
+            <td><?= $giro2 ?></td>
+            <td><?= $puesto2 ?></td>
+            <td><?= $turno2 ?></td>
+            <td><?= $antiguedad2 ?></td>
+            <td><?= $salida2 ?></td>
+            <td><?= $descripcion2 ?></td>
+            <td><?= $riesgos2 ?></td>
+            <td><?= $epp2 ?></td>
+            <td><?= $observaciones2 ?></td>
+        </tr>
+        <tr>
+            <td><?= $nombre3 ?></td>
+            <td><?= $giro3 ?></td>
+            <td><?= $puesto3 ?></td>
+            <td><?= $turno3 ?></td>
+            <td><?= $antiguedad3 ?></td>
+            <td><?= $salida3 ?></td>
+            <td><?= $descripcion3 ?></td>
+            <td><?= $riesgos3 ?></td>
+            <td><?= $epp3 ?></td>
+            <td><?= $observaciones3 ?></td>
+        </tr>
+        <tr>
+            <td><?= $nombre4 ?></td>
+            <td><?= $giro4 ?></td>
+            <td><?= $puesto4 ?></td>
+            <td><?= $turno4 ?></td>
+            <td><?= $antiguedad4 ?></td>
+            <td><?= $salida4 ?></td>
+            <td><?= $descripcion4 ?></td>
+            <td><?= $riesgos4 ?></td>
+            <td><?= $epp4 ?></td>
+            <td><?= $observaciones4 ?></td>
+        </tr>
+    </table>
+    <div class="col-12" style="margin-top: 510px;">
+        <div class="row">
+            <div class="navbar-brand col-3 " href="#">
+                <center><img src="../files/Imagen1.png" alt="" width="100" class="mt-2"></center>
+            </div>
+
+            <div class="col-9">
+                <table class="table table-bordered table-sm border-top border-dark">
+                    <thead>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="2">
+                                <center>EXAMEN MEDICO LABORAL</center>
+                            </td>
+                        </tr>
+                        <tr class="">
+                            <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                            <td>Revisión: 03</td>
+
+
+                        </tr>
+                        <td>Clave de control: FT-SO-04</td>
+                        <td>Reemplaza a: 02</td>
+                        <tr>
+
+                        </tr>
+                        <tr class="">
+
+                            <td>Motivo del cambio: Actualización por vigencia.</td>
+                            <td>Hoja 1 de 5</td>
+
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+
+
+
+        </div>
+    </div>
+    <hr>
+    <h6>Antecedentes Heredofamiliares</h6>
+    <hr>
+
+
+    <div class="row">
+        <div class="col-6">
+            <h6>Neurología</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>AVC (Accidente Cerebrovascular)</td>
+                    <td><?php echo $avc; ?></td>
+                    <td><?php echo $AVC_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Epilepsia</td>
+                    <td><?php echo $EPILEPSIA;?></td>
+                    <td><?php echo $EPILEPSIA_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Parálisis Facial</td>
+                    <td><?php echo $PARALISIS_FACIAL; ?></td>
+                    <td><?php echo $PARALISIS_FACIAL_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Parkinson</td>
+                    <td><?php echo $PARKINSON; ?></td>
+                    <td><?php echo $PARKINSON_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Alzheimer</td>
+                    <td><?php echo $ALZHEIMER; ?></td>
+                    <td><?php echo $ALZHEIMER_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Migraña</td>
+                    <td><?php echo $MIGRAÑA; ?></td>
+                    <td><?php echo $MIGRAÑA_OBS; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Cardiopatía</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Cardiopatía Isquémica</td>
+                    <td><?php echo $CARDIOPATIA_ISQUEMICA; ?></td>
+                    <td><?php echo $CARDIOPATIA_ISQUEMICA_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Hipertensión</td>
+                    <td><?php echo $HIPERTENSION; ?></td>
+                    <td><?php echo $HIPERTENSION_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Hipotensión</td>
+                    <td><?php echo $HIPOTENSION; ?></td>
+                    <td><?php echo $HIPOTENSION_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Insuficiencia Cardíaca</td>
+                    <td><?php echo $INSUFICIENCIA_CARDIACA; ?></td>
+                    <td><?php echo $INSUFICIENCIA_CARDIACA_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Insuficiencia Vascular Periférica</td>
+                    <td><?php echo $INSUFICIENCIA_VASCULAR_PERIFERICA; ?></td>
+                    <td><?php echo $INSUFICIENCIA_VASCULAR_PERIFERICA_OBS; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Neumopatía</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Bronquitis</td>
+                    <td><?php echo $BRONQUITIS; ?></td>
+                    <td><?php echo $BRONQUITIS_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Tuberculosis</td>
+                    <td><?php echo $TUBERCULOSIS; ?></td>
+                    <td><?php echo $TUBERCULOSIS_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Asma</td>
+                    <td><?php echo $ASMA; ?></td>
+                    <td><?php echo $ASMA_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Insuficiencia Respiratoria</td>
+                    <td><?php echo $INSUFICIENCIA_RESPIRATORIA; ?></td>
+                    <td><?php echo $INSUFICIENCIA_RESPIRATORIA_OBS; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Toxicología</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Alcoholismo</td>
+                    <td><?php echo $ALCOHOLISMO; ?></td>
+                    <td><?php echo $ALCOHOLISMO_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Tabaquismo</td>
+                    <td><?php echo $TABAQUISMO; ?></td>
+                    <td><?php echo $TABAQUISMO_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Drogas</td>
+                    <td><?php echo $DROGAS; ?></td>
+                    <td><?php echo $DROGAS_OBS; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Nefropatía</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>IRC (Insuficiencia Renal Crónica)</td>
+                    <td><?php echo $IRC; ?></td>
+                    <td><?php echo $IRC_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Litiasis Renal</td>
+                    <td><?php echo $LITASIS; ?></td>
+                    <td><?php echo $LITASIS_OBS; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Endocrina</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Diabetes Mellitus (DM)</td>
+                    <td><?php echo $DM; ?></td>
+                    <td><?php echo $DM_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Hipertiroidismo</td>
+                    <td><?php echo $HIPERTIROIDISMO; ?></td>
+                    <td><?php echo $HIPERTIROIDISMO_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Hipotiroidismo</td>
+                    <td><?php echo $HIPOTIROIDISMO; ?></td>
+                    <td><?php echo $HIPOTIROIDISMO_OBS; ?></td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="col-6">
+            <h6>Obesidad</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Trastorno de Crecimiento</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Trastorno de Crecimiento</td>
+                    <td><?php echo $TRANSTORNO_DE_CRECIMIENTO; ?></td>
+                    <td><?php echo $TRANSTORNO_DE_CRECIMIENTO_OBS; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Salud Mental</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Neurosis</td>
+                    <td><?php echo $NEUROSIS; ?></td>
+                    <td><?php echo $NEUROSIS_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Psicosis</td>
+                    <td><?php echo $PSICOSIS; ?></td>
+                    <td><?php echo $PSICOSIS_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Intento de Suicidio</td>
+                    <td><?php echo $INTENTO_DE_SUICIDIO; ?></td>
+                    <td><?php echo $INTENTO_DE_SUICIDIO_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Esquizofrenia</td>
+                    <td><?php echo $ESQUIZOFRENIA; ?></td>
+                    <td><?php echo $ESQUIZOFRENIA_OBS; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-12" style="margin-top: 170px;">
+            <div class="row">
+                <div class="navbar-brand col-3 " href="#">
+                    <center><img src="../files/Imagen1.png" alt="" width="100" class="mt-2"></center>
+                </div>
+
+                <div class="col-9">
+                    <table class="table table-bordered table-sm border-top border-dark">
+                        <thead>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="2">
+                                    <center>EXAMEN MEDICO LABORAL</center>
+                                </td>
+                            </tr>
+                            <tr class="">
+                                <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                                <td>Revisión: 03</td>
+
+
+                            </tr>
+                            <td>Clave de control: FT-SO-04</td>
+                            <td>Reemplaza a: 02</td>
+                            <tr>
+
+                            </tr>
+                            <tr class="">
+
+                                <td>Motivo del cambio: Actualización por vigencia.</td>
+                                <td>Hoja 2 de 5</td>
+
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+
+
+
+            </div>
+        </div>
+        <div class="col-6">
+            <h6>Generales</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Cáncer</td>
+                    <td><?php echo $CANCER; ?></td>
+                    <td><?php echo $CANCER_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Alergias</td>
+                    <td><?php echo $ALERGIAS; ?></td>
+                    <td><?php echo $ALERGIAS_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Malformaciones</td>
+                    <td><?php echo $MALFORMACIONES; ?></td>
+                    <td><?php echo $MALFORMACIONES_OBS; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Otras Condiciones</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Otras</td>
+                    <td><?php echo $OTRAS; ?></td>
+                    <td><?php echo $OTRAS_OBS; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-12">
+            <hr>
+            <h6>Antecedentes personales no Patológicos</h6>
+            <div class="row">
+                <div class="col-6">
+                    <table class="table table table-bordered table-sm">
+                        <tr>
+                            <th class="table-primary">Aspecto</th>
+                            <th class="table-primary">Valor</th>
+                        </tr>
+                        <tr>
+                            <td>Habitación</td>
+                            <td><?php echo $HABITACION; ?></td>
+                        </tr>
+                        <tr>
+                            <td>Número de Dormitorios</td>
+                            <td><?php echo $NO_DORMITORIOS; ?></td>
+                        </tr>
+                        <tr>
+                            <td>Número de Habitantes</td>
+                            <td><?php echo $NO_HABITANTES; ?></td>
+                        </tr>
+                        <tr>
+                            <td>Piso</td>
+                            <td><?php echo $PISO; ?></td>
+                        </tr>
+                        <tr>
+                            <td>Techo</td>
+                            <td><?php echo $TECHO; ?></td>
+                        </tr>
+                        <tr>
+                            <td>Agua Potable</td>
+                            <td><?php echo $AGUA_POTABLE; ?></td>
+                        </tr>
+                        <tr>
+                            <td>Luz Eléctrica</td>
+                            <td><?php echo $LUZ; ?></td>
+                        </tr>
+                        <tr>
+                            <td>Drenaje</td>
+                            <td><?php echo $DRENAJE; ?></td>
+                        </tr>
+                        <tr>
+                            <td>Convivencia con Animales</td>
+                            <td><?php echo $CONVIVENCIA_CON_ANIMALES; ?></td>
+                        </tr>
+                        <tr>
+                            <td>Aire Acondicionado</td>
+                            <td><?php echo $AIRE_ACONDICIONADO; ?></td>
+                        </tr>
+                        <tr>
+                            <td>Religión</td>
+                            <td><?php echo $RELIGION; ?></td>
+                        </tr>
+                        <tr>
+                            <td>Higiene Personal</td>
+                            <td><?php echo $HIGIENE_PERSONAL; ?></td>
+                        </tr>
+
+                    </table>
+                </div>
+                <div class="col-6">
+                    <table class="table table table-bordered table-sm">
+                        <tr>
+                            <th class="table-primary">Aspecto</th>
+                            <th class="table-primary">Valor</th>
+                        </tr>
+
+                        <tr>
+                            <td>Baño</td>
+                            <td><?php echo $BAÑO; ?></td>
+                        </tr>
+                        <tr>
+                            <td>Cambio de Ropa</td>
+                            <td><?php echo $CAMBIO_DE_ROPA; ?></td>
+                        </tr>
+                        <tr>
+                            <td>Aseo Bucal</td>
+                            <td><?php echo $ASEO_BUCAL; ?></td>
+                        </tr>
+                        <tr>
+                            <td>Alimentación</td>
+                            <td><?php echo $ALIMENTACION; ?></td>
+                        </tr>
+                        <tr>
+                            <td>Número de Comidas al Día</td>
+                            <td><?php echo $NO_COMIDAS_AL_DIA; ?></td>
+                        </tr>
+                        <tr>
+                            <td>Alimentación Balanceada</td>
+                            <td><?php echo $BALANCEADA; ?></td>
+                        </tr>
+                        <tr>
+                            <td>Alimentación Suficiente</td>
+                            <td><?php echo $SUFICIENTE; ?></td>
+                        </tr>
+                        <tr>
+                            <td>Deporte</td>
+                            <td><?php echo $DEPORTE; ?></td>
+                        </tr>
+                        <tr>
+                            <td>Frecuencia 1</td>
+                            <td><?php echo $FC1; ?></td>
+                        </tr>
+                        <tr>
+                            <td>Hobbies y Pasatiempos</td>
+                            <td><?php echo $HOBBIES_PASATIEMPOS; ?></td>
+                        </tr>
+                        <tr>
+                            <td>Frecuencia 2</td>
+                            <td><?php echo $FC2; ?></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="col-12">
+            <h6>Inmunizaciones</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Vacuna</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>BCG</td>
+                    <td><?php echo $BLG; ?></td>
+                </tr>
+                <tr>
+                    <td>Sabin</td>
+                    <td><?php echo $SABIN; ?></td>
+                </tr>
+                <tr>
+                    <td>DPT</td>
+                    <td><?php echo $DPT; ?></td>
+                </tr>
+                <tr>
+                    <td>Hepatitis B</td>
+                    <td><?php echo $HEPATITIS_B; ?></td>
+                </tr>
+                <tr>
+                    <td>SR</td>
+                    <td><?php echo $SR; ?></td>
+                </tr>
+                <tr>
+                    <td>Influenza</td>
+                    <td><?php echo $INFLUENZA; ?></td>
+                </tr>
+                <tr>
+                    <td>TD</td>
+                    <td><?php echo $TD; ?></td>
+                </tr>
+                <tr>
+                    <td>COVID</td>
+                    <td><?php echo $COVID; ?></td>
+                </tr>
+                <tr>
+                    <td>Fecha</td>
+                    <td><?php echo $FECHA; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-12" style="margin-top: 140px;">
+            <div class="row">
+                <div class="navbar-brand col-3 " href="#">
+                    <center><img src="../files/Imagen1.png" alt="" width="100" class="mt-2"></center>
+                </div>
+
+                <div class="col-9">
+                    <table class="table table-bordered table-sm border-top border-dark">
+                        <thead>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="2">
+                                    <center>EXAMEN MEDICO LABORAL</center>
+                                </td>
+                            </tr>
+                            <tr class="">
+                                <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                                <td>Revisión: 03</td>
+
+
+                            </tr>
+                            <td>Clave de control: FT-SO-04</td>
+                            <td>Reemplaza a: 02</td>
+                            <tr>
+
+                            </tr>
+                            <tr class="">
+
+                                <td>Motivo del cambio: Actualización por vigencia.</td>
+                                <td>Hoja 2 de 5</td>
+
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+
+
+
+            </div>
+        </div>
+        <div class="col-12">
+            <h6>Antecedentes Ginecológicos y Obstétricos</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Variable</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Menarca</td>
+                    <td><?php echo $MENARCA; ?></td>
+                </tr>
+                <tr>
+                    <td>Ritmo Menstrual</td>
+                    <td><?php echo $RITMO; ?></td>
+                </tr>
+                <tr>
+                    <td>IVSA (Inicio de Vida Sexual Activa)</td>
+                    <td><?php echo $IVSA; ?></td>
+                </tr>
+                <tr>
+                    <td>FUM (Fecha de Última Menstruación)</td>
+                    <td><?php echo $FUM; ?></td>
+                </tr>
+                <tr>
+                    <td>G (Gestas)</td>
+                    <td><?php echo $G; ?></td>
+                </tr>
+                <tr>
+                    <td>A (Abortos)</td>
+                    <td><?php echo $A; ?></td>
+                </tr>
+                <tr>
+                    <td>P (Partos)</td>
+                    <td><?php echo $P; ?></td>
+                </tr>
+                <tr>
+                    <td>C (Cesáreas)</td>
+                    <td><?php echo $C; ?></td>
+                </tr>
+                <tr>
+                    <td>Método de Planificación</td>
+                    <td><?php echo $MET_PLANIFICACION; ?></td>
+                </tr>
+                <tr>
+                    <td>Papanicolaou</td>
+                    <td><?php echo $PAPANICOLAOU; ?></td>
+                </tr>
+                <tr>
+                    <td>Infecciones Reproductivas</td>
+                    <td><?php echo $INFECC_REP; ?></td>
+                </tr>
+                <tr>
+                    <td>Fecha de Última Consulta Ginecológica</td>
+                    <td><?php echo $FUP; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-12">
+            <h6>Antecedentes Patológicos Personales</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Enfermedades Congénitas</td>
+                    <td><?php echo $ENF_CONGENITAS; ?></td>
+                </tr>
+                <tr>
+                    <td>Genital</td>
+                    <td><?php echo $GENITAL; ?></td>
+                </tr>
+                <tr>
+                    <td>Enfermedades Propias de la Infancia</td>
+                    <td><?php echo $ENF_PROP_INF; ?></td>
+                </tr>
+                <tr>
+                    <td>Dermatopatías</td>
+                    <td><?php echo $DERMATOPATIAS; ?></td>
+                </tr>
+                <tr>
+                    <td>Sistema Auditivo</td>
+                    <td><?php echo $SIST_AUDITIVO; ?></td>
+                </tr>
+                <tr>
+                    <td>Sistema Respiratorio</td>
+                    <td><?php echo $RESPIRATORIO; ?></td>
+                </tr>
+                <tr>
+                    <td>Sistema Olfativo</td>
+                    <td><?php echo $SIS_OLFATIVO; ?></td>
+                </tr>
+                <tr>
+                    <td>Traumatismos</td>
+                    <td><?php echo $TRAUMATICOS; ?></td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="col-6">
+            <h6>Oftalmológico</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Uso de Lentes</td>
+                    <td><?php echo $USO_LENTES; ?></td>
+                    <td><?php echo $USO_LENTES_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Astigmatismo</td>
+                    <td><?php echo $ASTIGMATISMO; ?></td>
+                    <td><?php echo $ASTIGMATISMO_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Presbicia</td>
+                    <td><?php echo $PRESBICIA; ?></td>
+                    <td><?php echo $PRESBICIA_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Estrabismo</td>
+                    <td><?php echo $ESTRABISMO; ?></td>
+                    <td><?php echo $ESTRABISMO_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Daltonismo</td>
+                    <td><?php echo $DALTONISMO; ?></td>
+                    <td><?php echo $DALTONISMO_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Desprendimiento de Retina</td>
+                    <td><?php echo $DESPENDIMIENTO_RET; ?></td>
+                    <td><?php echo $DESPENDIMIENTO_RET_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Miopia</td>
+                    <td><?php echo $MIOPIA; ?></td>
+                    <td><?php echo $MIOPIA_OBS; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Trastornos Digestivos</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Hernias</td>
+                    <td><?php echo $HERNIAS; ?></td>
+                    <td><?php echo $HERNIAS_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Cirrosis</td>
+                    <td><?php echo $CIRROSIS; ?></td>
+                    <td><?php echo $CIRROSIS_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Colitis</td>
+                    <td><?php echo $COLITIS; ?></td>
+                    <td><?php echo $COLITIS_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Gastritis</td>
+                    <td><?php echo $GASTRITIS; ?></td>
+                    <td><?php echo $GASTRITIS_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Hemorroides</td>
+                    <td><?php echo $HEMORROIDES; ?></td>
+                    <td><?php echo $HEMORROIDES_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Cirugías</td>
+                    <td><?php echo $CIRUGIAS; ?></td>
+                    <td><?php echo $CIRUGIAS_OBS; ?></td>
+                </tr>
+            </table>
+
+        </div>
+        <div class="col-12" style="margin-top: 100px;">
+            <div class="row">
+                <div class="navbar-brand col-3 " href="#">
+                    <center><img src="../files/Imagen1.png" alt="" width="100" class="mt-2"></center>
+                </div>
+
+                <div class="col-9">
+                    <table class="table table-bordered table-sm border-top border-dark">
+                        <thead>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="2">
+                                    <center>EXAMEN MEDICO LABORAL</center>
+                                </td>
+                            </tr>
+                            <tr class="">
+                                <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                                <td>Revisión: 03</td>
+
+
+                            </tr>
+                            <td>Clave de control: FT-SO-04</td>
+                            <td>Reemplaza a: 02</td>
+                            <tr>
+
+                            </tr>
+                            <tr class="">
+
+                                <td>Motivo del cambio: Actualización por vigencia.</td>
+                                <td>Hoja 3 de 5</td>
+
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+
+
+
+            </div>
+        </div>
+        <div class="col-6">
+            <h6>Renal</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Incontinencia</td>
+                    <td><?php echo $INCONTINENSIA; ?></td>
+                    <td><?php echo $INCONTINENSIA_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Insuficiencia Renal</td>
+                    <td><?php echo $INSUFICIENCIA; ?></td>
+                    <td><?php echo $INSUFICIENCIA_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Litiasis Renal</td>
+                    <td><?php echo $LITIASIS; ?></td>
+                    <td><?php echo $LITIASIS_OBS; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Sistema Nervioso</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Aneurisma</td>
+                    <td><?php echo $ANEURISMA; ?></td>
+                    <td><?php echo $ANEURISMA_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Enfermedad Degenerativa Muscular/Nerviosa</td>
+                    <td><?php echo $ENF_DEG_MUS_NEU; ?></td>
+                    <td><?php echo $ENF_DEG_MUS_NEU_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Accidente Cerebrovascular</td>
+                    <td><?php echo $ACC_CER_VASCU; ?></td>
+                    <td><?php echo $ACC_CER_VASCU_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Epilepsia</td>
+                    <td><?php echo $EPILEPSIA2; ?></td>
+                    <td><?php echo $EPILEPSIA_OBS2; ?></td>
+                </tr>
+                <tr>
+                    <td>Parálisis Facial</td>
+                    <td><?php echo $PAR_FACIAL; ?></td>
+                    <td><?php echo $PAR_FACIAL_OBS; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Musculoesquelético</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Escoliosis</td>
+                    <td><?php echo $ESCOLIOSIS; ?></td>
+                    <td><?php echo $ESCOLIOSIS_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Xifosis</td>
+                    <td><?php echo $XIFOSIS; ?></td>
+                    <td><?php echo $XIFOSIS_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Lordosis</td>
+                    <td><?php echo $LORDOSISI; ?></td>
+                    <td><?php echo $LORDOSISI_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Lumbalgia</td>
+                    <td><?php echo $LUMBALGIA; ?></td>
+                    <td><?php echo $LUMBALGIA_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Basculamiento</td>
+                    <td><?php echo $BASCULAMIENTO; ?></td>
+                    <td><?php echo $BASCULAMIENTO_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Alteración Discal</td>
+                    <td><?php echo $ALTERACION_DISCAL; ?></td>
+                    <td><?php echo $ALTERACION_DISCAL_OBS; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Cardiopatía</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Aneurisma</td>
+                    <td><?php echo $ANEURISMA2; ?></td>
+                    <td><?php echo $ANEURISMA_OBS2; ?></td>
+                </tr>
+                <tr>
+                    <td>Hipertensión</td>
+                    <td><?php echo $HIPERTENSION2; ?></td>
+                    <td><?php echo $HIPERTENSION_OBS2; ?></td>
+                </tr>
+                <tr>
+                    <td>Hipotensión</td>
+                    <td><?php echo $HIPOTENSION2; ?></td>
+                    <td><?php echo $HIPOTENSION_OBS2; ?></td>
+                </tr>
+                <tr>
+                    <td>Infartos</td>
+                    <td><?php echo $INFARTOS; ?></td>
+                    <td><?php echo $INFARTOS_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Insuficiencia Cardíaca</td>
+                    <td><?php echo $INSUFIC_CAR; ?></td>
+                    <td><?php echo $INSUFIC_CAR_OBS; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Toxicológicos</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Factor</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Alergias</td>
+                    <td><?php echo $ALRGNEWINP; ?></td>
+                    <td><?php echo $ALRGNEWINPOBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Tabaquismo</td>
+                    <td><?php echo $TABAQUISMO2; ?></td>
+                    <td><?php echo $TABAQUISMO_OBS2; ?></td>
+                </tr>
+                <tr>
+                    <td>Alcoholismo</td>
+                    <td><?php echo $ALCOHOLISMO2; ?></td>
+                    <td><?php echo $ALCOHOLISMO_OBS2; ?></td>
+                </tr>
+                <tr>
+                    <td>Drogas</td>
+                    <td><?php echo $DROGAS2; ?></td>
+                    <td><?php echo $DROGAS_OBS2; ?></td>
+                </tr>
+                <tr>
+                    <td>Alteración de Carga</td>
+                    <td><?php echo $ALT_CARGA; ?></td>
+                    <td><?php echo $ALT_CARGA_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Perforaciones</td>
+                    <td><?php echo $PERFORACIONES; ?></td>
+                    <td><?php echo $PERFORACIONES_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Tatuajes</td>
+                    <td><?php echo $TATUAJES; ?></td>
+                    <td><?php echo $TATUAJES_OBS; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Endocrinología</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Diabetes</td>
+                    <td><?php echo $DIABETES; ?></td>
+                    <td><?php echo $DIABETES_OBS; ?></td>
+                </tr>
+                <tr>
+                    <td>Hipertiroidismo</td>
+                    <td><?php echo $HIPERTIROIDISMO2; ?></td>
+                    <td><?php echo $HIPERTIROIDISMO_OBS2; ?></td>
+                </tr>
+                <tr>
+                    <td>Hipotiroidismo</td>
+                    <td><?php echo $HIPOTIROIDISMO2; ?></td>
+                    <td><?php echo $HIPOTIROIDISMO_OBS2; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-12">
+            <hr>
+        </div>
+
+        <div class="col-12">
+            <h6>Padecimiento Actual</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td><?php echo $OBSERVACIONES; ?></td>
+                </tr>
+            </table>
+
+            <h6>Interrogatorio por Aparatos y Sistemas</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td><?php echo $OBSERVACIONES2; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-12" style="margin-top: 120px;">
+            <div class="row">
+                <div class="navbar-brand col-3 " href="#">
+                    <center><img src="../files/Imagen1.png" alt="" width="100" class="mt-2"></center>
+                </div>
+
+                <div class="col-9">
+                    <table class="table table-bordered table-sm border-top border-dark">
+                        <thead>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="2">
+                                    <center>EXAMEN MEDICO LABORAL</center>
+                                </td>
+                            </tr>
+                            <tr class="">
+                                <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                                <td>Revisión: 03</td>
+
+
+                            </tr>
+                            <td>Clave de control: FT-SO-04</td>
+                            <td>Reemplaza a: 02</td>
+                            <tr>
+
+                            </tr>
+                            <tr class="">
+
+                                <td>Motivo del cambio: Actualización por vigencia.</td>
+                                <td>Hoja 3 de 5</td>
+
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+
+
+
+            </div>
+        </div>
+        <div class="col-12">
+
+            <h6>Exploración Física</h6>
+        </div>
+        <div class="col-6">
+
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Medición</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Peso</td>
+                    <td><?php echo $PESO; ?></td>
+                </tr>
+                <tr>
+                    <td>Talla</td>
+                    <td><?php echo $TALLA; ?></td>
+                </tr>
+                <tr>
+                    <td>IMC (Índice de Masa Corporal)</td>
+                    <td><?php echo $IMC; ?></td>
+                </tr>
+                <tr>
+                    <td>Frecuencia Cardíaca (FC)</td>
+                    <td><?php echo $FC; ?></td>
+                </tr>
+                <tr>
+                    <td>Frecuencia Respiratoria (FR)</td>
+                    <td><?php echo $FR; ?></td>
+                </tr>
+                <tr>
+                    <td>Tensión Arterial (TA)</td>
+                    <td><?php echo $TA; ?></td>
+                </tr>
+                <tr>
+                    <td>Temperatura</td>
+                    <td><?php echo $TEMP; ?></td>
+                </tr>
+                <tr>
+                    <td>STPO2</td>
+                    <td><?php echo $STPO2; ?></td>
+                </tr>
+                <tr>
+                    <td>Constitución</td>
+                    <td><?php echo $ECTOMORFICO; ?></td>
+                </tr>
+                <tr>
+                    <td>Satisfacción</td>
+                    <td><?php echo $SATISFACCION; ?></td>
+                </tr>
+                <tr>
+                    <td>Compromiso con el Trabajo</td>
+                    <td><?php echo $COMP_TRABAJO; ?></td>
+                </tr>
+                <tr>
+                    <td>Compromiso con la Organización</td>
+                    <td><?php echo $COMP_ORGANIZACION; ?></td>
+                </tr>
+                <tr>
+                    <td>Tiempo</td>
+                    <td><?php echo $TIEMPO; ?></td>
+                </tr>
+                <tr>
+                    <td>Espacio Personal</td>
+                    <td><?php echo $ESPACIO; ?></td>
+                </tr>
+                <tr>
+                    <td>Persona</td>
+                    <td><?php echo $PERSONA; ?></td>
+                </tr>
+                <tr>
+                    <td>Estado emocional</td>
+                    <td><?php echo $SERENIDAD; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Aspecto</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Fascies</td>
+                    <td><?php echo $HIPOCRITA; ?></td>
+                </tr>
+                <tr>
+                    <td>Marcha</td>
+                    <td><?php echo $PARKINSON2; ?></td>
+                </tr>
+                <tr>
+                    <td>Voz clara y fuerte</td>
+                    <td><?php echo $VOZCLARAYFUERTE; ?></td>
+                </tr>
+                <tr>
+                    <td>Lenguaje</td>
+                    <td><?php echo $LENGUAJE; ?></td>
+                </tr>
+                <tr>
+                    <td>Conversación Fluida</td>
+                    <td><?php echo $CONVER_FLUIDA; ?></td>
+                </tr>
+                <tr>
+                    <td>Coherencia Palabras</td>
+                    <td><?php echo $COHERENCIA_PALABLAS; ?></td>
+                </tr>
+            </table>
+        </div>
+        <hr>
+        <div class="col-12">
+            <h6>Cráneo</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Ítem</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Ojos</td>
+                    <td><?php echo $OJOS; ?></td>
+                </tr>
+                <tr>
+                    <td>Pupilas</td>
+                    <td><?php echo $PUPILAS; ?></td>
+                </tr>
+                <tr>
+                    <td>Conjuntivas</td>
+                    <td><?php echo $CONJUNTIVAS; ?></td>
+                </tr>
+                <tr>
+                    <td>Reflejos</td>
+                    <td><?php echo $REFLEJOS; ?></td>
+                </tr>
+                <tr>
+                    <td>Fondo de Ojo</td>
+                    <td><?php echo $FONDO_OJO; ?></td>
+                </tr>
+            </table>
+
+            <h6>Agudeza Visual</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Ítem</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>OD (Ojo Derecho)</td>
+                    <td><?php echo $OD; ?></td>
+                </tr>
+                <tr>
+                    <td>OIZ (Ojo Izquierdo)</td>
+                    <td><?php echo $OIZ; ?></td>
+                </tr>
+                <tr>
+                    <td>Colores</td>
+                    <td><?php echo $COLORES; ?></td>
+                </tr>
+            </table>
+            <div class="col-12" style="margin-top: 170px;">
+                <div class="row">
+                    <div class="navbar-brand col-3 " href="#">
+                        <center><img src="../files/Imagen1.png" alt="" width="100" class="mt-2"></center>
+                    </div>
+
+                    <div class="col-9">
+                        <table class="table table-bordered table-sm border-top border-dark">
+                            <thead>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="2">
+                                        <center>EXAMEN MEDICO LABORAL</center>
+                                    </td>
+                                </tr>
+                                <tr class="">
+                                    <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                                    <td>Revisión: 03</td>
+
+
+                                </tr>
+                                <td>Clave de control: FT-SO-04</td>
+                                <td>Reemplaza a: 02</td>
+                                <tr>
+
+                                </tr>
+                                <tr class="">
+
+                                    <td>Motivo del cambio: Actualización por vigencia.</td>
+                                    <td>Hoja 4 de 5</td>
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+
+
+
+                </div>
+            </div>
+            <h6>Nariz</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Ítem</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Cavidad Nasal</td>
+                    <td><?php echo $CAVIDAD_NASAL; ?></td>
+                </tr>
+                <tr>
+                    <td>Mucosa</td>
+                    <td><?php echo $MUCOSA; ?></td>
+                </tr>
+                <tr>
+                    <td>Tabique Nasal</td>
+                    <td><?php echo $TABIQUE_NASAL; ?></td>
+                </tr>
+                <tr>
+                    <td>Olfato</td>
+                    <td><?php echo $OLFATO; ?></td>
+                </tr>
+            </table>
+
+            <h6>Columna Vertebral</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Ítem</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Cervical</td>
+                    <td><?php echo $CERVICAL; ?></td>
+                </tr>
+                <tr>
+                    <td>Dorsal</td>
+                    <td><?php echo $DORSAL; ?></td>
+                </tr>
+                <tr>
+                    <td>Lumbar</td>
+                    <td><?php echo $LUMBAR; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-12">
+            <!-- Lesiones en la Boca -->
+            <h6>Lesiones en la Boca</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Lesiones</th>
+                    <th class="table-primary">Encías</th>
+                    <th class="table-primary">Orofaringe</th>
+                </tr>
+                <tr>
+                    <td><?php echo $LESIONES; ?></td>
+                    <td><?php echo $ENCIAS; ?></td>
+                    <td><?php echo $OROIFARINGE; ?></td>
+                </tr>
+            </table>
+
+            <!-- Oídos -->
+            <h6>Oídos</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">CAE</th>
+                    <th class="table-primary">Membrana Timpanica</th>
+                    <th class="table-primary">Agudeza Auditiva</th>
+                    <th class="table-primary">Oído Derecho (OD)</th>
+                    <th class="table-primary">Oído Izquierdo (OI)</th>
+                </tr>
+                <tr>
+                    <td><?= $ODCAEINPEXP ?></td>
+                    <td><?= $ODMEMTIMINPEXP ?></td>
+                    <td><?= $ODAGAUDIINPEXP ?></td>
+                    <td><?= $OIMEMTIMINPEXP ?></td>
+                    <td><?= $OIAGAUDIINPEXP ?></td>
+                </tr>
+            </table>
+
+            <!-- Tórax -->
+            <h6>Tórax</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Ruidos Cardiacos</th>
+                    <th class="table-primary">Región Precordial</th>
+                    <th class="table-primary">Campos Pulmonares</th>
+                </tr>
+                <tr>
+                    <td><?php echo $RUIDOS_CARDIACOS; ?></td>
+                    <td><?php echo $REG_PRECORDIAL; ?></td>
+                    <td><?php echo $CAMPOS_PULM; ?></td>
+                </tr>
+            </table>
+
+            <!-- Columna Vertebral -->
+            <h6>Columna Vertebral</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Deformaciones</th>
+                    <th class="table-primary">Dolor</th>
+                    <th class="table-primary">Movimientos</th>
+                    <th class="table-primary">Marcha</th>
+                    <th class="table-primary">Lasègue</th>
+                    <th class="table-primary">Punta del Talón</th>
+                </tr>
+                <tr>
+                    <td><?php echo $DEFORMACIONES; ?></td>
+                    <td><?php echo $DOLOR; ?></td>
+                    <td><?php echo $MOVIMIENTOS; ?></td>
+                    <td><?php echo $MARCHA; ?></td>
+                    <td><?php echo $LASSEGUE; ?></td>
+                    <td><?php echo $PUNTA_TALON; ?></td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="col-12">
+            <h6>Abdomen</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Forma</td>
+                    <td><?php echo $FORMA; ?></td>
+                </tr>
+                <tr>
+                    <td>Visceromegalias</td>
+                    <td><?php echo $VISCEROMEGALIAS; ?></td>
+                </tr>
+                <tr>
+                    <td>Hernias</td>
+                    <td><?php echo $HERNIAS2; ?></td>
+                </tr>
+                <tr>
+                    <td>Dolor</td>
+                    <td><?php echo $DOLOR; ?></td>
+                </tr>
+                <tr>
+                    <td>Peristalsis</td>
+                    <td><?php echo $PERISTALSIS; ?></td>
+                </tr>
+            </table>
+            <div class="col-12" style="margin-top: 150px;">
+                <div class="row">
+                    <div class="navbar-brand col-3 " href="#">
+                        <center><img src="../files/Imagen1.png" alt="" width="100" class="mt-2"></center>
+                    </div>
+
+                    <div class="col-9">
+                        <table class="table table-bordered table-sm border-top border-dark">
+                            <thead>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="2">
+                                        <center>EXAMEN MEDICO LABORAL</center>
+                                    </td>
+                                </tr>
+                                <tr class="">
+                                    <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                                    <td>Revisión: 03</td>
+
+
+                                </tr>
+                                <td>Clave de control: FT-SO-04</td>
+                                <td>Reemplaza a: 02</td>
+                                <tr>
+
+                                </tr>
+                                <tr class="">
+
+                                    <td>Motivo del cambio: Actualización por vigencia.</td>
+                                    <td>Hoja 4 de 5</td>
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+
+
+
+                </div>
+            </div>
+            <h6>Genitales</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Género</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Masculino</td>
+                    <td><?php echo $MASCULINO; ?></td>
+                </tr>
+                <tr>
+                    <td>Femenino</td>
+                    <td><?php echo $FEMENINO; ?></td>
+                </tr>
+            </table>
+
+            <h6>Urinario</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Puntos Ureterales</td>
+                    <td><?php echo $PUNTOS_URETRALES; ?></td>
+                </tr>
+                <tr>
+                    <td>Fosas Renales</td>
+                    <td><?php echo $FOSAS_RENALES; ?></td>
+                </tr>
+            </table>
+
+            <h6>Extremidades</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Extremidad</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Superior</td>
+                    <td><?php echo $SUPERIOR; ?></td>
+                </tr>
+                <tr>
+                    <td>Inferior</td>
+                    <td><?php echo $INFERIOR; ?></td>
+                </tr>
+                <tr>
+                    <td>IVP</td>
+                    <td><?php echo $IVP; ?></td>
+                </tr>
+                <tr>
+                    <td>Edema</td>
+                    <td><?php echo $EDEMA; ?></td>
+                </tr>
+            </table>
+
+            <h6>Piel</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Lunares</td>
+                    <td><?php echo $LUNARES; ?></td>
+                </tr>
+                <tr>
+                    <td>Pigmentación</td>
+                    <td><?php echo $PIGMENTACION; ?></td>
+                </tr>
+                <tr>
+                    <td>Cicatrices Quirúrgicas</td>
+                    <td><?php echo $CICATRICES_QUIRUR; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-12">
+            <h6>Cuello</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Deformaciones</th>
+                    <th class="table-primary">Observaciones Tiroides</th>
+                    <th class="table-primary">Observaciones Tráquea</th>
+                </tr>
+                <tr>
+                    <td><?php echo $DEFORMACIONES_OBS; ?></td>
+                    <td><?php echo $TIROIDES_OBS; ?></td>
+                    <td><?php echo $TRAQUEA_OBS; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-12">
+            <h6>Observaciones generales</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td><?php echo $OBSGENERALINPEX; ?></td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="col-12" style="margin-top: 190px;">
+            <div class="row">
+                <div class="navbar-brand col-3 " href="#">
+                    <center><img src="../files/Imagen1.png" alt="" width="100" class="mt-2"></center>
+                </div>
+
+                <div class="col-9">
+                    <table class="table table-bordered table-sm border-top border-dark">
+                        <thead>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="2">
+                                    <center>EXAMEN MEDICO LABORAL</center>
+                                </td>
+                            </tr>
+                            <tr class="">
+                                <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                                <td>Revisión: 03</td>
+
+
+                            </tr>
+                            <td>Clave de control: FT-SO-04</td>
+                            <td>Reemplaza a: 02</td>
+                            <tr>
+
+                            </tr>
+                            <tr class="">
+
+                                <td>Motivo del cambio: Actualización por vigencia.</td>
+                                <td>Hoja 5 de 5</td>
+
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+
+
+
+            </div>
+        </div>
+        <div class="col-6">
+            <h6>Dientes</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Diente</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Diente 11</td>
+                    <td><?php echo $DIENTE_11; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 12</td>
+                    <td><?php echo $DIENTE_12; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 13</td>
+                    <td><?php echo $DIENTE_13; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 14</td>
+                    <td><?php echo $DIENTE_14; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 15</td>
+                    <td><?php echo $DIENTE_15; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 16</td>
+                    <td><?php echo $DIENTE_16; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 17</td>
+                    <td><?php echo $DIENTE_17; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 18</td>
+                    <td><?php echo $DIENTE_18; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 41</td>
+                    <td><?php echo $DIENTE_41; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 42</td>
+                    <td><?php echo $DIENTE_42; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 43</td>
+                    <td><?php echo $DIENTE_43; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 44</td>
+                    <td><?php echo $DIENTE_44; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 45</td>
+                    <td><?php echo $DIENTE_45; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 46</td>
+                    <td><?php echo $DIENTE_46; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 47</td>
+                    <td><?php echo $DIENTE_47; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 48</td>
+                    <td><?php echo $DIENTE_48; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Dientes</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Diente</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Diente 21</td>
+                    <td><?php echo $DIENTE_2; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 22</td>
+                    <td><?php echo $DIENTE_22; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 23</td>
+                    <td><?php echo $DIENTE_23; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 24</td>
+                    <td><?php echo $DIENTE_24; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 25</td>
+                    <td><?php echo $DIENTE_25; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 26</td>
+                    <td><?php echo $DIENTE_26; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 27</td>
+                    <td><?php echo $DIENTE_27; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 28</td>
+                    <td><?php echo $DIENTE_28; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 31</td>
+                    <td><?php echo $DIENTE_31; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 32</td>
+                    <td><?php echo $DIENTE_32; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 33</td>
+                    <td><?php echo $DIENTE_33; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 34</td>
+                    <td><?php echo $DIENTE_34; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 35</td>
+                    <td><?php echo $DIENTE_35; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 36</td>
+                    <td><?php echo $DIENTE_36; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 37</td>
+                    <td><?php echo $DIENTE_37; ?></td>
+                </tr>
+                <tr>
+                    <td>Diente 38</td>
+                    <td><?php echo $DIENTE_38; ?></td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-12">
+            <hr>
+        </div>
+        <div class="col-6">
+            <h6>Resultados de Estudios Realizados</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Resultados</th>
+                </tr>
+                <tr>
+                    <td><?php echo $RESULTADOS3; ?></td>
+                </tr>
+            </table>
+
+            <h6>Diagnóstico</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td><?php echo $OBSERVACIONES3; ?></td>
+                </tr>
+            </table>
+
+
+        </div>
+        <div class="col-6">
+            <h6>Plan de Terapia</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td><?php echo $OBSERVACIONES32; ?></td>
+                </tr>
+            </table>
+            <h6>Resultado de Examen</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td><?php echo $OBSERVACIONESRESEXAM1; ?></td>
+                </tr>
+            </table>
+        </div>
+
+
+        <div class="col-6">
+            <hr>
+            <center>
+                <p>Dr. Mauricio Cerón Solana CP 5154089 / 7237048
+                <p>
+                    <hr>
+                    <img src="../files/firmaDoc.png" class="img-fluid" width="70px" alt="">
+                    <br>
+                    <hr>
+                <p class="footerTxt">Realizó</p>
+            </center>
+        </div>
+        <div class="col-6">
+            <hr>
+            <center>
+                <p>Firma del Trabajador
+                <p>
+                    <hr>
+                    <img src="<?= $FIRMA  ?>" class="img-fluid" width="50px" alt="">
+                    <br>
+                    <hr>
+                <p class="footerTxt">
+                    Bajo protesta de decir verdad, certifico que los datos anteriormente proporcionados son verdaderos y estoy consciente que cualquier omisión o falsificación pueden ser motivo de despido, y autorizo al servicio médico de la compañía para que realice exámenes necesarios con motivo de mi trabajo para protección para detección oportuna y estudio de enfermedades o accidentes.
+                </p>
+            </center>
+        </div>
+    </div>
+
+
+</body>
+<script src="https://code.jquery.com/jquery-3.7.0.min.js" integrity="sha256-2Pmvv0kuTBOenSvLm6bvfBSSHrUJ+3A7x6P5Ebd07/g=" crossorigin="anonymous"></script>
+<script>
+    $(document).ready(function() {
+        window.print();
+    });
+</script>
+
+</html>

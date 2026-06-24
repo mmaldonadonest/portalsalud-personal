@@ -1,0 +1,433 @@
+<section class="content container-fluid card animate__animated animate__fadeIn">
+  <div class="jumbotron jumbotron-fluid">
+    <div class="container">
+      <h1 class="display-4">Incapacidades</h1>
+      <br />
+      <div class="row">
+        <div class="form-group col-md-6 col-12" id="labelRubro">
+          <label for="">Rubro</label>
+          <select class="form-control" name="rubroInput" id="rubroInput" onchange="">
+            <option value="">Seleccionar</option>
+            <option value="Interna">Interna</option>
+            <option value="IMSS">IMSS</option>
+          </select>
+        </div>
+        <div class="form-group col-12 col-md-6">
+          <label for="">Folio</label>
+          <input
+            type="text"
+            class="form-control"
+            value=""
+            name="foilioInc"
+            id="foilioInc"
+            aria-describedby="helpId"
+            placeholder="Folio"
+          />
+        </div>
+        <div class="form-group col-md-6 col-12">
+          <label for="">Ramo</label>
+          <select class="form-control" name="ramoInp" id="ramoInp" onchange="showIncapa()">
+            <option value="">Seleccionar</option>
+            <option value="enfermedad_general">Enfermedad General</option>
+            <option value="profesional">Enfermedad profesional</option>
+            <option value="rt1">RT1</option>
+            <option value="rt2">RT2</option>
+            <option value="maternidad">Maternidad</option>
+          </select>
+        </div>
+        <div class="form-group col-md-6 col-12" id="labelInca">
+          <label for="">Tipo de incapacidad</label>
+          <select class="form-control" onchange="tipoInca()" name="tipoIncInput" id="tipoIncInput">
+<!--             <option value="enfermedad_general">Enfermedad General</option>
+            <option value="accidente_trabajo">Accidente de Trabajo</option>
+            <option value="accidente_trayecto">Accidente de Trayecto</option>
+            <option value="maternidad">Maternidad</option>
+            <option value="enlace">Enlace</option> -->
+            <option value="">Elegir</option>
+            <option value="inicial">Inicial</option>
+            <option value="subsecuente">Subsecuente</option>
+          </select>
+        </div>
+        <div class="form-group col-md-6 col-12" id="labelFechaInINI">
+          <label for="">Fecha inicial, primera incapacidad</label>
+          <input
+            type="date"
+            class="form-control"
+            value=""
+            name="fechainiInpINI"
+            id="fechainiInpINI"
+            aria-describedby="helpId"
+            placeholder="Fecha inicio"
+            
+          />
+        </div>
+        <div class="form-group col-md-6 col-12" id="labelFechaIn">
+          <label for="">Fecha inicial subsecuente</label>
+          <input
+            type="date"
+            class="form-control"
+            value=""
+            name="fechainiInp"
+            id="fechainiInp"
+            aria-describedby="helpId"
+            placeholder="Fecha inicio subsecuente"
+            onchange="traerDias()"
+          />
+        </div>
+        <div class="form-group col-12 col-md-6" id="labelFolioIni">
+          <label for="">Dias acumulados</label>
+          <input
+            type="value"
+            class="form-control"
+            value=""
+            readonly
+            name="diasAcumuladosInp"
+            id="diasAcumuladosInp"
+            aria-describedby="helpId"
+            placeholder="Folio"
+          />
+        </div>
+        <div class="form-group col-12 col-md-6" id="labelSalarioAcomu">
+          <label for="">Salario acumulado</label>
+          <input
+            type="value"
+            class="form-control"
+            value=""
+            readonly
+            name="salarioAcomuIn"
+            id="salarioAcomuIn"
+            aria-describedby="helpId"
+            placeholder="Folio"
+          />
+        </div>
+        
+        <div class="form-group col-md-6 col-12" id="labelSalDiario">
+          <label for="">Salario diario</label>
+          <input
+            type="number"
+            class="form-control"
+            value=""
+            name="SalIntegrInp"
+            id="SalIntegrInp"
+            aria-describedby="helpId"
+            placeholder="Salario integrado"
+          />
+        </div>
+        <div class="form-group col-md-6 col-12" id="labelDiasAuth">
+          <label for="">Dias autorizados</label>
+          <input
+            type="number"
+            class="form-control"
+            value=""
+            name="DiasAutInp"
+            id="DiasAutInp"
+            aria-describedby="helpId"
+            placeholder="Dias autorizados"
+            onchange="calcularSalario()"
+          />
+        </div>
+        <div class="form-group col-md-6 col-12" id="labelFechaTerm">
+          <label for="">Fecha termino</label>
+          <input
+            type="date"
+            class="form-control"
+            value=""
+            name="fechaTermInp"
+            id="fechaTermInp"
+            readonly
+            aria-describedby="helpId"
+            placeholder="Fecha termino"
+          />
+        </div>
+        
+        
+        <div class="form-group col-md-6 col-12" id="labelCosco">
+          <label for="">Costo</label>
+          <input
+            type="number"
+            readonly
+            class="form-control"
+            value=""
+            name="CostoInp"
+            id="CostoInp"
+            aria-describedby="helpId"
+            placeholder="Costo"
+          />
+        </div>
+      <!--   <div class="form-group col-md-6 col-12" id="labelAtribui">
+          <label for="">Atribuible</label> -->
+
+          <!-- <select name="InpuInput" id="InpuInput" class="form-control">
+            <option value="N/A">N/A</option> -->
+            <!-- <option value="si_rt1">Sí RT1</option>
+            <option value="si_rt2">Sí RT2</option> -->
+            <!-- <option value="enf_general">EG (Enfermedad General)</option> -->
+           <!--  <option value="enf_laboral">
+              Enf Laboral (Enfermedad Laboral)
+            </option> -->
+      <!--     </select> -->
+    <!--     </div> -->
+        <div class="form-group col-md-6 col-12" id="labelST2">
+          <label for="">ST2</label>
+          <select class="form-control" name="st2Input" id="st2Input">
+            <option value="">Seleccionar</option>
+            <option value="Si">Si</option>
+            <option value="No">No</option>
+            <option value="No_aplica">No aplica</option>
+            
+          </select>
+        </div>
+        
+        <div class="form-group col-md-6 col-12" id="labelEstadoDic">
+          <label for="">Estado dictamen</label>
+
+          <select name="EstDictInput" id="EstDictInput" class="form-control">
+            <option value="N/A">N/A</option>
+            <option value="si_calificado">Sí Calificado</option>
+            <option value="no_calificado">No Calificado</option>
+            <option value="pendiente_calificaciones">
+              Pendiente de Calificaciones
+            </option>
+          </select>
+        </div>
+        <div class="form-group col-md-6 col-12" id="labelAltat">
+          <label for="">Alta</label>
+          <select class="form-control" name="altaInput" id="altaInput">
+            <option value="">Seleccionar</option>
+            <option value="Si">Si</option>
+            <option value="No">No</option>
+            
+          </select>
+        </div>
+        <div class="form-group col-md-6 col-12" id="labelFechaAlta">
+          <label for="">Fecha de alta</label>
+          <input
+            type="date"
+            class="form-control"
+            value=""
+            name="fechaAltaInp"
+            id="fechaAltaInp"
+            aria-describedby="helpId"
+            placeholder="Fecha de alta"
+          />
+        </div>
+        <div class="form-group col-md-6 col-12" id="labelGoceSueldo">
+          <label for="">Goce de sueldo</label>
+
+          <select name="GoceSueldoInp" id="GoceSueldoInp" class="form-control">
+            <option value="1">Sí</option>
+            <option value="0">No</option>
+          </select>
+        </div>
+        <div class="form-group col-md-6 col-12" id="labelCompleSala">
+          <label for="">Complemento salarial</label>
+          <input
+            type="number"
+            class="form-control"
+            value=""
+            name="ComplSalaInp"
+            id="ComplSalaInp"
+            aria-describedby="helpId"
+            placeholder="Complemento salarial"
+          />
+        </div>
+        <div class="col-12" id="firmaDiv">
+          <hr>
+          <div class="container">
+              <div class="form-group">
+                  <h3>Firma del paciente</h3>
+                  <textarea style="display: none;" class="form-control" name="com" id="draw-dataUrl" rows="3"></textarea>
+              </div>
+          </div>
+    
+          <div class="row mb-3">
+              <div class="col-md-12">
+                  <center>
+                      <canvas id="draw-canvas" class="bg-light border border-dark" style="border-radius: 12px;" width="300" height="360">
+                          No tienes un buen navegador.
+                      </canvas>
+                  </center>
+    
+              </div>
+          </div>
+          <div class="row">
+              <div class="col-md-12">
+                  <div class="row">
+                      <div class="col-6 mb-3">
+                          <input type="button" class="btn btn-info btn-block" id="draw-submitBtn" value="Firmar"></input>
+                      </div>
+                      <div class="col-6 mb-3">
+                          <input type="button" class="btn btn-warning btn-block" id="draw-clearBtn" value="Borrar Firma"></input>
+                      </div>
+                      <div class="col-6 mb-3" style="display: none;">
+                          <label>Color</label>
+                          <input type="color" class="form-control" id="color">
+                      </div>
+                      <div class="col-6 mb-3" style="display: none;">
+                          <label>Tamaño Puntero</label>
+                          <input type="range" class="form-control-range" id="puntero" min="1" default="1" max="5" width="10%">
+    
+                      </div>
+                  </div>
+    
+    
+    
+    
+              </div>
+    
+          </div>
+          <script>
+              $('#draw-submitBtn').click(function(e) {
+                Swal.fire('Datos firmados');
+              });
+          </script>
+          <!--  <br /> -->
+          <!--  <div class="row">
+              <div class="col-md-12">
+                  <textarea id="draw-dataUrl" class="form-control" rows="5">Para los que saben que es esto:</textarea>
+              </div>
+          </div> -->
+          <!--  <br /> -->
+          <!--  <div class="contenedor">
+              <div class="col-md-12">
+                  <img id="draw-image" src="" alt="Tu Imagen aparecera Aqui!" />
+              </div>
+          </div> -->
+      </div>
+      </div>
+      <hr>
+      <p class="lead">Subir archivo</p>
+      <hr class="my-2" />
+      <form id="ImgCatA" class="dropzone" style="border-radius: 10px">
+        <input type="hidden" name="id" id="idInPic" />
+        <input type="hidden" name="type" value="<?=$number?>" id="typeInput" />
+        <div class="dz-message" data-dz-message>
+          <span
+            >Arrastra los archivos aquí para subirlos
+            <i class="fas fa-cloud-upload-alt"></i
+          ></span>
+        </div>
+      </form>
+      <br />
+      <div class="d-flex justify-content-right">
+        <button
+          type="button"
+          id="subirIncap"
+          class="btn btn-info btn-lg btn-block"
+        >
+          Subir <i class="fas fa-upload"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+<script>
+  $(document).ready(function () {
+    $("#labelST2").hide();
+    
+    $("#labelAltat").hide();
+    $("#labelFechaAlta").hide();
+    
+$("#labelFechaInINI").hide();
+$("#labelSalarioAcomu").hide();
+$("#labelInca").hide();
+$("#labelFechaIn").hide();
+$("#labelSalDiario").hide();
+$("#labelDiasAuth").hide();
+$("#labelFechaTerm").hide();
+$("#labelCosco").hide();
+$("#labelAtribui").hide();
+$("#labelEstadoDic").hide();
+$("#labelGoceSueldo").hide();
+$("#labelCompleSala").hide();
+$("#firmaDiv").hide();
+$("#labelFolioIni").hide();
+
+  });
+
+  function traerDias() {
+    var idNss = $("#inputSearchData").val();
+    var fechaIni = $("#fechainiInpINI").val();
+    
+    console.log(fechaIni);
+
+    $.ajax({
+        type: "get",
+        url: "rest/incapacidades/traerDias.php",
+        data: {nss:idNss},
+        dataType: "json",
+        success: function (response) {
+            console.log(response);
+
+            // Función para sumar los días autorizados según el folio_incapacidad
+            function sumarDiasAutorizados(folio) {
+                let totalDias = 0;
+                // Iterar sobre los datos para encontrar las coincidencias del folio_incapacidad
+                response.Datos.forEach((dato) => {
+                    var fechaHora = dato.fecha_primera_incapacidad;
+
+                    var fechaCadena = fechaHora.split(' ')[0].split('/').reverse().join('-');
+
+// Crear un objeto de fecha con la fecha en el formato deseado
+                    var fechaJS = new Date(fechaCadena);
+
+// Comparar las fechas
+if (fechaJS.getTime() === folio.getTime()) {
+    totalDias += dato.dias_autorizados;
+}
+                });
+                return totalDias;
+            }
+
+            // Ejemplo de uso
+            const folioBuscado = new Date(fechaIni);
+            const totalDiasAutorizados = sumarDiasAutorizados(folioBuscado);
+            $("#labelFolioIni").show();
+            $("#diasAcumuladosInp").val(totalDiasAutorizados);
+            traerSalarioAcomulado();
+        }
+    });
+}
+function traerSalarioAcomulado() {
+    var idNss = $("#inputSearchData").val();
+    var fechaIni = $("#fechainiInpINI").val();
+    
+    console.log(fechaIni);
+
+    $.ajax({
+        type: "get",
+        url: "rest/incapacidades/traerDias.php",
+        data: {nss:idNss},
+        dataType: "json",
+        success: function (response) {
+            console.log(response);
+
+            // Función para sumar los días autorizados según el folio_incapacidad
+            function sumarDiasAutorizados(folio) {
+                let totalDias = 0;
+                // Iterar sobre los datos para encontrar las coincidencias del folio_incapacidad
+                response.Datos.forEach((dato) => {
+                    var fechaHora = dato.fecha_primera_incapacidad;
+
+                    var fechaCadena = fechaHora.split(' ')[0].split('/').reverse().join('-');
+
+// Crear un objeto de fecha con la fecha en el formato deseado
+                    var fechaJS = new Date(fechaCadena);
+
+// Comparar las fechas
+if (fechaJS.getTime() === folio.getTime()) {
+    totalDias += dato.costo;
+}
+                });
+                return totalDias;
+            }
+
+            // Ejemplo de uso
+            const folioBuscado = new Date(fechaIni);
+            const totalCostoAcomu = sumarDiasAutorizados(folioBuscado);
+            $("#labelSalarioAcomu").show();
+            $("#salarioAcomuIn").val(totalCostoAcomu);
+        }
+    });
+}
+</script>

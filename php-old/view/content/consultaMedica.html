@@ -1,0 +1,338 @@
+<section class="content container-fluid card animate__animated animate__fadeIn">
+  <div class="jumbotron jumbotron-fluid">
+    <div class="container">
+      <h1 class="display-4">Consulta médica</h1>
+      <br />
+      <div class="row">
+        <div class="form-group col-md-6 col-12">
+          <label for="">Tipo de consulta</label>
+          <select
+            class="form-control"
+            name="TipoConsultaInput"
+            id="TipoConsultaInput"
+          >
+            <option value="enfermedad_general">Enfermedad General</option>
+            <option value="incidente_accidente">Incidente/Accidente</option>
+            <option value="pase_salida">Pase de Salida</option>
+            <option value="cronico_degenerativo">Crónico Degenerativo</option>
+            <option value="campana">Campaña</option>
+            <option value="entrega_incapacidad">Entrega de Incapacidad</option>
+            <option value="st7">ST7</option>
+            <option value="otros_consulta">Otros</option>
+          </select>
+        </div>
+        <div class="form-group col-md-6 col-12">
+          <label for="">Area accidente</label>
+          <select
+            class="form-control"
+            name="AreaAccidenteInput"
+            id="AreaAccidenteInput"
+          >
+            <option value="oficinas">Oficinas</option>
+            <option value="patio_maniobras">Patio de Maniobras</option>
+            <option value="acceso">Acceso</option>
+            <option value="filtro">Filtro</option>
+            <option value="rampas">Rampas</option>
+            <option value="picking">Picking</option>
+            <option value="surtido">Surtido</option>
+            <option value="paletizadoras">Paletizadoras</option>
+            <option value="preparado">Preparado</option>
+            <option value="comedor">Comedor</option>
+            <option value="estacionamiento">Estacionamiento</option>
+            <option value="via_publica">Vía Pública</option>
+            <option value="trayecto_empresa">Trayecto a Empresa</option>
+            <option value="trayecto_domicilio">Trayecto a Domicilio</option>
+            <option value="comision">En Comisión</option>
+            <option value="trabajos_especiales">En Trabajos Especiales</option>
+            <option value="otros_accidente">Otros</option>
+          </select>
+        </div>
+        <div class="form-group col-md-6 col-12">
+          <label for="">Area anatomica</label>
+          <select
+            name="AreaAnatomicaInput"
+            id="AreaAnatomicaInput"
+            class="form-control"
+          >
+            <option value="cabeza">Cabeza</option>
+            <option value="cuello">Cuello</option>
+            <option value="torax">Tórax</option>
+            <option value="abdomen">Abdomen</option>
+            <option value="pelvis">Pelvis</option>
+            <option value="extremidad_superior_derecha">
+              Extremidad Superior Derecha
+            </option>
+            <option value="extremidad_superior_izquierda">
+              Extremidad Superior Izquierda
+            </option>
+            <option value="extremidad_inferior_derecha">
+              Extremidad Inferior Derecha
+            </option>
+            <option value="extremidad_inferior_izquierda">
+              Extremidad Inferior Izquierda
+            </option>
+            <option value="dos_o_mas_segmentos">
+              Dos o más Segmentos Corporales
+            </option>
+          </select>
+        </div>
+        <div class="form-group col-md-6 col-12">
+          <label for="">Causa</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$RUIDOS_CARDIACOS?>"
+            name="CausaInput"
+            id="CausaInput"
+            aria-describedby="helpId"
+            placeholder="Causa"
+          />
+        </div>
+        <div class="form-group col-md-4 col-12">
+          <label for="">Peso en Kg.</label>
+          <input
+            type="number"
+            class="form-control"
+            name="PesoInput"
+            id="PesoInput"
+            aria-describedby="helpId"
+            placeholder="Peso"
+            step="0.01"
+            onchange="changeImcConsult()"
+            ;
+          />
+        </div>
+        <div class="form-group col-md-4 col-12">
+          <label for="">Talla en metros</label>
+          <input
+            type="number"
+            class="form-control"
+            name="TallaInput"
+            id="TallaInput"
+            aria-describedby="helpId"
+            placeholder="Talla"
+            onchange="changeImcConsult()"
+            ;
+          />
+        </div>
+        <div class="form-group col-md-4 col-12">
+          <label for="">IMC</label>
+          <input
+            type="number"
+            class="form-control"
+            name="IMCINPUT"
+            id="IMCINPUT"
+            aria-describedby="helpId"
+            placeholder="IMC"
+          />
+        </div>
+        <div class="form-group col-md-4 col-12">
+          <label for="">FC</label>
+          <input
+            type="number"
+            class="form-control"
+            value="<?=$RUIDOS_CARDIACOS?>"
+            name="FCINPUT"
+            id="FCINPUT"
+            aria-describedby="helpId"
+            placeholder="FC"
+          />
+        </div>
+        <div class="form-group col-md-4 col-12">
+          <label for="">FR</label>
+          <input
+            type="number"
+            class="form-control"
+            value="<?=$RUIDOS_CARDIACOS?>"
+            name="FRINPUT"
+            id="FRINPUT"
+            aria-describedby="helpId"
+            placeholder="FR"
+          />
+        </div>
+        <div class="form-group col-md-4 col-12">
+          <label for="">TA</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$RUIDOS_CARDIACOS?>"
+            name="TAINPUT"
+            id="TAINPUT"
+            aria-describedby="helpId"
+            placeholder="TA"
+          />
+        </div>
+        <div class="form-group col-md-4 col-12">
+          <label for="">Temperatura</label>
+          <input
+            type="number"
+            class="form-control"
+            value="<?=$RUIDOS_CARDIACOS?>"
+            name="TemperaturaInput"
+            id="TemperaturaInput"
+            aria-describedby="helpId"
+            placeholder="Temperatura"
+          />
+        </div>
+        <div class="form-group col-md-8 col-12">
+          <label for="">Motivo de consulta</label>
+          <textarea
+            class="form-control"
+            name="MOTIVOCONSULTAINP"
+            id="MOTIVOCONSULTAINP"
+            aria-describedby="helpId"
+            rows="3"
+          >
+<?=$RUIDOS_CARDIACOS?></textarea
+          >
+        </div>
+        <div class="form-group col-12">
+          <label for="">Consultar ICD</label>
+          <input
+            type="text"
+            class="form-control"
+            value=""
+            name="icdConsult"
+            id="icdConsult"
+            aria-describedby="helpId"
+            placeholder="Consultar ICD"
+            onchange="showIcdConsult()"
+          />
+        </div>
+        <div class="col-12">
+          <center>
+            <div id="chargeIcdIcon">
+              <lottie-player src="https://lottie.host/23d5439d-e941-4675-9d44-b5fe19e1c0f4/JJARj3P684.json"  speed="1" style="width: 100px; height: 100px" loop  autoplay direction="1" mode="normal"></lottie-player>
+            </div>
+           
+          </center>
+          <div id="showIcdConsult"></div>
+        </div>
+        <div class="form-group col-md-6 col-12">
+          <label for="">Exploración fisica</label>
+          <textarea
+            class="form-control"
+            name="EXPLOFISIINP"
+            id="EXPLOFISIINP"
+            aria-describedby="helpId"
+            rows="3"
+          >
+<?=$RUIDOS_CARDIACOS?></textarea
+          >
+        </div>
+        <div class="form-group col-md-6 col-12">
+          <label for="">Diagnóstico</label>
+          <textarea
+            class="form-control"
+            name="DIAGNOSTICOINPUT"
+            id="DIAGNOSTICOINPUT"
+            aria-describedby="helpId"
+            rows="3"
+          ></textarea>
+        </div>
+        
+        <div class="form-group col-md-12 col-12">
+          <label for="">Tratamiento</label>
+
+          <textarea
+            class="form-control"
+            name="TRATAMIENTOINPUT"
+            id="TRATAMIENTOINPUT"
+            aria-describedby="helpId"
+            rows="3"
+          >
+<?=$RUIDOS_CARDIACOS?></textarea
+          >
+        </div>
+        
+        <div class="col-12" id="firmaDiv">
+          <hr>
+          <div class="container">
+              <div class="form-group">
+                  <h3>Firma del paciente</h3>
+                  <textarea style="display: none;" class="form-control" name="com" id="draw-dataUrl" rows="3"></textarea>
+              </div>
+          </div>
+    
+          <div class="row mb-3">
+              <div class="col-md-12">
+                  <center>
+                      <canvas id="draw-canvas" class="bg-light border border-dark" style="border-radius: 12px; " width="300" height="360">
+                          No tienes un buen navegador.
+                      </canvas>
+                  </center>
+    
+              </div>
+          </div>
+          <div class="row">
+              <div class="col-md-12">
+                  <div class="row">
+                      <div class="col-6 mb-3">
+                          <input type="button" class="btn btn-info btn-block" id="draw-submitBtn" value="Firmar"></input>
+                      </div>
+                      <div class="col-6 mb-3">
+                          <input type="button" class="btn btn-warning btn-block" id="draw-clearBtn" value="Borrar Firma"></input>
+                      </div>
+                      <div class="col-6 mb-3" style="display: none;">
+                          <label>Color</label>
+                          <input type="color" class="form-control" id="color">
+                      </div>
+                      <div class="col-6 mb-3" style="display: none;">
+                          <label>Tamaño Puntero</label>
+                          <input type="range" class="form-control-range" id="puntero" min="1" default="1" max="5" width="10%">
+    
+                      </div>
+                  </div>
+    
+    
+    
+    
+              </div>
+    
+          </div>
+          <script>
+              $('#draw-submitBtn').click(function(e) {
+                Swal.fire('Datos firmados');
+    
+              });
+          </script>
+          <!--  <br /> -->
+          <!--  <div class="row">
+              <div class="col-md-12">
+                  <textarea id="draw-dataUrl" class="form-control" rows="5">Para los que saben que es esto:</textarea>
+              </div>
+          </div> -->
+          <!--  <br /> -->
+          <!--  <div class="contenedor">
+              <div class="col-md-12">
+                  <img id="draw-image" src="" alt="Tu Imagen aparecera Aqui!" />
+              </div>
+          </div> -->
+      </div>
+      </div>
+      <hr>
+      <p class="lead">Subir archivo</p>
+      <hr class="my-2" />
+      <form id="ImgCatA" class="dropzone" style="border-radius: 10px">
+        <input type="hidden" name="id" id="idInPic" />
+        <input type="hidden" name="type" value="<?=$number?>" id="typeInput" />
+        <div class="dz-message" data-dz-message>
+          <span
+            >Arrastra los archivos aquí para subirlos
+            <i class="fas fa-cloud-upload-alt"></i
+          ></span>
+        </div>
+      </form>
+      <br />
+      <div class="d-flex justify-content-right">
+        <button
+          type="button"
+          id="subirConsultaMed"
+          class="btn btn-info btn-lg btn-block"
+        >
+          Subir <i class="fas fa-upload"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>

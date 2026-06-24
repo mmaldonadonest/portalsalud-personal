@@ -1,0 +1,60 @@
+%PDF-1.4
+1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj
+4 0 obj << /Length 885 >> stream
+BT
+/F1 16 Tf
+72 740 Td
+(Diagrama de Casos de Uso - PORTAL-SALUD) Tj
+0 -26 Td
+/F1 11 Tf
+(Actores identificados:) Tj
+0 -18 Td
+(- Paciente) Tj
+0 -16 Td
+(- Personal de gestion / Administrador) Tj
+0 -16 Td
+(- Sistema externo / API REST) Tj
+0 -26 Td
+(Casos de uso identificados en la estructura del codigo:) Tj
+0 -18 Td
+(1. Autenticarse en el portal) Tj
+0 -16 Td
+(2. Consultar contenido y vistas del portal) Tj
+0 -16 Td
+(3. Gestionar informacion administrativa) Tj
+0 -16 Td
+(4. Consumir servicios REST) Tj
+0 -16 Td
+(5. Generar/consultar documentos PDF) Tj
+0 -16 Td
+(6. Gestionar archivos y contenido estatico) Tj
+0 -26 Td
+(Relaciones generales:) Tj
+0 -18 Td
+(- Paciente -> Autenticarse, Consultar contenido) Tj
+0 -16 Td
+(- Administrador -> Autenticarse, Gestionar informacion, Gestionar archivos) Tj
+0 -16 Td
+(- Sistema externo -> Consumir servicios REST) Tj
+0 -16 Td
+(- Gestion de informacion incluye Generar/consultar PDF) Tj
+0 -30 Td
+(Nota: Este diagrama se elaboro a partir de directorios app/, gestion/, rest/, pdf/, view/, files/.) Tj
+ET
+endstream
+endobj
+5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
+xref
+0 6
+0000000000 65535 f 
+0000000010 00000 n 
+0000000060 00000 n 
+0000000117 00000 n 
+0000000243 00000 n 
+0000001179 00000 n 
+trailer << /Size 6 /Root 1 0 R >>
+startxref
+1249
+%%EOF

@@ -1,0 +1,1531 @@
+<form>
+  <div
+    class="container d-flex justify-content-center animate__animated animate__fadeIn"
+  >
+    <div class="row col-8">
+      <fieldset class="row mb-3 col-12 col-md-12">
+        <div class="form-group col-md-6">
+          <label for="">Peso en Kgs.</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$PESO?>"
+            name="PESOEXFISINP"
+            id="PESOEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Peso"
+            onchange="changeImcExFis()"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Talla en Metros</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$TALLA?>"
+            name="TALLAEXFISINP"
+            id="TALLAEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Talla"
+            onchange="changeImcExFis()"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">IMC</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$IMC?>"
+            name="IMCEXFISINP"
+            id="IMCEXFISINP"
+            aria-describedby="helpId"
+            placeholder="IMC"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">FC</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$FC?>"
+            name="FCEXFISINP"
+            id="FCEXFISINP"
+            aria-describedby="helpId"
+            placeholder="FC"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">FR</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$FR?>"
+            name="FREXFISINP"
+            id="FREXFISINP"
+            aria-describedby="helpId"
+            placeholder="FR"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">T/A</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$TA?>"
+            name="TAEXFISINP"
+            id="TAEXFISINP"
+            aria-describedby="helpId"
+            placeholder="T/A"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Temp.</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$TEMP?>"
+            name="TEMPEXFISINP"
+            id="TEMPEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Temp."
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">STPO2.</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$STPO2?>"
+            name="STPO2INP"
+            id="STPO2INP"
+            aria-describedby="helpId"
+            placeholder="STPO2."
+          />
+        </div>
+        <div class="form-group col-12 col-md-12">
+          <label for="">Constitucíon</label>
+          <select
+            class="form-control"
+            name="ECTOMORFICOEXFISINP"
+            id="ECTOMORFICOEXFISINP"
+          >
+            <option value="<?=$ECTOMORFICO?>">
+              <?php echo empty($ECTOMORFICO) ? 'Seleccionar' : $ECTOMORFICO; ?>
+            </option>
+            <option value="Ectomórfica">
+              Ectomórfica (delgados por debajo del peso)
+            </option>
+            <option value="Mesomorfo">Mesomorfo (músculos)</option>
+            <option value="Endomórfica">Endomórfica (sobrepeso)</option>
+          </select>
+        </div>
+        <hr />
+        <div class="col-12"><h4>Actitud</h4></div>
+
+        <div class="form-group col-md-6">
+          <label for="">Satisfacción</label>
+
+          <select
+            class="form-control"
+            name="SATISFACCIONEXFISINP"
+            id="SATISFACCIONEXFISINP"
+          >
+            <option
+              value="<?=(is_string($SATISFACCION) && $SATISFACCION === '1') ? '1' : '0';?>"
+            >
+              <?php echo (is_string($SATISFACCION) && $SATISFACCION === '1') ? 'Sí' : 'No';?>
+            </option>
+            <option value="<?php echo ($SATISFACCION == 0) ? '1' : '0'; ?>">
+              <?php echo ($SATISFACCION == 0) ? 'Sí' : 'No'; ?>
+            </option>
+          </select>
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Compromiso con trabajo</label>
+
+          <select
+            class="form-control"
+            name="COMP_TRABAJOEXFISINP"
+            id="COMP_TRABAJOEXFISINP"
+          >
+            <option
+              value="<?=(is_string($COMP_TRABAJO) && $COMP_TRABAJO === '1') ? '1' : '0';?>"
+            >
+              <?php echo (is_string($COMP_TRABAJO) && $COMP_TRABAJO === '1') ? 'Sí' : 'No';?>
+            </option>
+            <option value="<?php echo ($COMP_TRABAJO == 0) ? '1' : '0'; ?>">
+              <?php echo ($COMP_TRABAJO == 0) ? 'Sí' : 'No'; ?>
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group col-md-6">
+          <label for="">Comprimiso organizacional</label>
+          <select
+            class="form-control"
+            name="COMP_ORGANIZACIONEXFISINP"
+            id="COMP_ORGANIZACIONEXFISINP"
+          >
+            <option
+              value="<?=(is_string($COMP_ORGANIZACION) && $COMP_ORGANIZACION === '1') ? '1' : '0';?>"
+            >
+              <?php echo (is_string($COMP_ORGANIZACION) && $COMP_ORGANIZACION === '1') ? 'Sí' : 'No';?>
+            </option>
+            <option
+              value="<?php echo ($COMP_ORGANIZACION == 0) ? '1' : '0'; ?>"
+            >
+              <?php echo ($COMP_ORGANIZACION == 0) ? 'Sí' : 'No'; ?>
+            </option>
+          </select>
+        </div>
+        <hr />
+        <div class="col-12"><h4>Orientación</h4></div>
+        <div class="form-group col-md-6">
+          <label for="">Tiempo</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$TIEMPO?>"
+            name="TIEMPOEXFISINP"
+            id="TIEMPOEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Tiempo"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Espacio</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$ESPACIO?>"
+            name="ESPACIOEXFISINP"
+            id="ESPACIOEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Espacio"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Persona</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$PERSONA?>"
+            name="PERSONAEXFISINP"
+            id="PERSONAEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Persona"
+          />
+        </div>
+        <hr />
+        <div class="col-12"><h4>Estado emocional</h4></div>
+        <div class="form-group col-12">
+          <select
+            class="form-control"
+            name="SERENIDADEXFISINP"
+            id="SERENIDADEXFISINP"
+          >
+            <option value="<?=$SERENIDAD?>">
+              <?php echo empty($SERENIDAD) ? 'Seleccionar' : $SERENIDAD; ?>
+            </option>
+            <option value="serenidad">Serenidad</option>
+            <option value="interés">Interés</option>
+            <option value="antagónico">Antagónico</option>
+            <option value="entusiasta">Entusiasta</option>
+            <option value="enojo">Enojo</option>
+          </select>
+        </div>
+
+        <hr />
+        <div class="col-12"><h4>Fascies</h4></div>
+
+        <div class="form-group col-12">
+          <select
+            class="form-control"
+            name="HIPOCRITAEXFISINP"
+            id="HIPOCRITAEXFISINP"
+          >
+            <option value="<?=$HIPOCRITA?>">
+              <?php echo empty($HIPOCRITA) ? 'Seleccionar' : $HIPOCRITA; ?>
+            </option>
+            <option value="hipocrática">Hipocrática</option>
+            <option value="ictérica">Ictérica</option>
+            <option value="anémica">Anémica</option>
+            <option value="tiroidea">Tiroidea</option>
+            <option value="normal">Normal</option>
+          </select>
+        </div>
+
+        <hr />
+        <div class="col-12"><h4>Marcha</h4></div>
+
+        <div class="form-group col-12">
+          <select
+            class="form-control"
+            name="PARKINSONEXFISINP"
+            id="PARKINSONEXFISINP"
+          >
+            <option value="<?=$PARKINSON?>">
+              <?php echo empty($PARKINSON2) ? 'Seleccionar' : $PARKINSON2; ?>
+            </option>
+            <option value="parkinson">Parkinson</option>
+            <option value="hemipléjico">Hemipléjico</option>
+            <option value="Atáxica">Atáxica</option>
+            <option value="hemiparesia">Hemiparesia</option>
+            <option value="normal">Normal</option>
+          </select>
+        </div>
+
+        <div class="form-group col-md-6">
+          <label for="">Lenguaje</label>
+
+          <select
+            class="form-control"
+            name="LENGUAJEEXFISINP"
+            id="LENGUAJEEXFISINP"
+          >
+            <option
+              value="<?=(is_string($LENGUAJE) && $LENGUAJE === '1') ? '1' : '0';?>"
+            >
+              <?php echo (is_string($LENGUAJE) && $LENGUAJE === '1') ? 'Sí' : 'No'; ?>
+            </option>
+            <option value="<?php echo ($LENGUAJE == 0) ? '1' : '0'; ?>">
+              <?php echo ($LENGUAJE == 0) ? 'Sí' : 'No'; ?>
+            </option>
+          </select>
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Conversación fluida</label>
+          <select
+            class="form-control"
+            name="CONVER_FLUIDAEXFISINP"
+            id="CONVER_FLUIDAEXFISINP"
+          >
+            <option
+              value="<?=(is_string($CONVER_FLUIDA) && $CONVER_FLUIDA === '1') ? '1' : '0';?>"
+            >
+              <?php echo (is_string($CONVER_FLUIDA) && $CONVER_FLUIDA === '1') ? 'Sí' : 'No'; ?>
+            </option>
+            <option value="<?php echo ($CONVER_FLUIDA == 0) ? '1' : '0'; ?>">
+              <?php echo ($CONVER_FLUIDA == 0) ? 'Sí' : 'No'; ?>
+            </option>
+          </select>
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Coherencia de palabras</label>
+
+          <select
+            class="form-control"
+            name="COHERENCIA_PALABLASEXFISINP"
+            id="COHERENCIA_PALABLASEXFISINP"
+          >
+            <option
+              value="<?=(is_string($COHERENCIA_PALABLAS) && $COHERENCIA_PALABLAS === '1') ? '1' : '0';?>"
+            >
+              <?php echo (is_string($COHERENCIA_PALABLAS) && $COHERENCIA_PALABLAS === '1') ? 'Sí' : 'No'; ?>
+            </option>
+            <option
+              value="<?php echo ($COHERENCIA_PALABLAS == 0) ? '1' : '0'; ?>"
+            >
+              <?php echo ($COHERENCIA_PALABLAS == 0) ? 'Sí' : 'No'; ?>
+            </option>
+          </select>
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Voz clara y fuerte</label>
+
+          <select
+            class="form-control"
+            name="VOZCLARAYFUERTEINP"
+            id="VOZCLARAYFUERTEINP"
+          >
+            <option
+              value="<?=(is_string($VOZCLARAYFUERTE) && $VOZCLARAYFUERTE === '1') ? '1' : '0';?>"
+            >
+              <?php echo (is_string($VOZCLARAYFUERTE) && $VOZCLARAYFUERTE === '1') ? 'Sí' : 'No'; ?>
+            </option>
+            <option value="<?php echo ($VOZCLARAYFUERTE == 0) ? '1' : '0'; ?>">
+              <?php echo ($VOZCLARAYFUERTE == 0) ? 'Sí' : 'No'; ?>
+            </option>
+          </select>
+        </div>
+        <br />
+        <div class="col-12">
+          <h3>Cráneo</h3>
+          <hr />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Ojos</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$OJOS?>"
+            name="OJOSEXFISINP"
+            id="OJOSEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Ojos"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Pupilas</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$PUPILAS?>"
+            name="PUPILASEXFISINP"
+            id="PUPILASEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Pupilas"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Conjuntivas</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$CONJUNTIVAS?>"
+            name="CONJUNTIVASEXFISINP"
+            id="CONJUNTIVASEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Conjuntivas"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Reflejos</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$REFLEJOS?>"
+            name="REFLEJOSEXFISINP"
+            id="REFLEJOSEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Reflejos"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Fondo ojo</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$FONDO_OJO?>"
+            name="FONDO_OJOEXFISINP"
+            id="FONDO_OJOEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Fondo ojo"
+          />
+        </div>
+        <br />
+        <div class="col-12">
+          <h3>Agudeza visual</h3>
+          <hr />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">OJO/D</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$OD?>"
+            name="ODEXFISINP"
+            id="ODEXFISINP"
+            aria-describedby="helpId"
+            placeholder="O/D"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">VISIÓN CERCANA CON LENTES</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$ODEXFISINPCERC?>"
+            name="ODEXFISINPCERC"
+            id="ODEXFISINPCERC"
+            aria-describedby="helpId"
+            placeholder="V/D"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">LENTE D</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$LENTEOJODERECHOEXP?>"
+            name="LENTEOJODERECHOEXP"
+            id="LENTEOJODERECHOEXP"
+            aria-describedby="helpId"
+            placeholder="Lente Derecho"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">OJO/IZ</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$OIZ?>"
+            name="OIZEXFISINP"
+            id="OIZEXFISINP"
+            aria-describedby="helpId"
+            placeholder="O/IZ"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">VISIÓN CERCANA SIN LENTES</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$ODEXFISINPCERCIZQ?>"
+            name="ODEXFISINPCERCIZQ"
+            id="ODEXFISINPCERCIZQ"
+            aria-describedby="helpId"
+            placeholder="V/IZ"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">LENTE IZ</label>
+          
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$LENTEOJOIZQUIERDOEXP?>"
+            name="LENTEOJOIZQUIERDOEXP"
+            id="LENTEOJOIZQUIERDOEXP"
+            aria-describedby="helpId"
+            placeholder="Lente Izquierdo"
+          />
+        </div>
+        <div class="form-group col-md-12">
+          <label for="">ROMBERG</label>
+          <select class="form-control" name="ROMBERGEXFIS" id="ROMBERGEXFIS">
+            <option
+              value="<?=(is_string($ROMBERGEXFIS) && $ROMBERGEXFIS === '1') ? '1' : '0';?>"
+            >
+              <?php echo (is_string($ROMBERGEXFIS) && $ROMBERGEXFIS === '1') ? 'Positivo' : 'Negativo'; ?>
+            </option>
+            <option value="<?php echo ($ROMBERGEXFIS == 0) ? '1' : '0'; ?>">
+              <?php echo ($ROMBERGEXFIS == 0) ? 'Positivo' : 'Negativo'; ?>
+            </option>
+          </select>
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Colores</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$COLORES?>"
+            name="COLORESEXFISINP"
+            id="COLORESEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Colores"
+          />
+        </div>
+        <br />
+        <br />
+        <div class="col-12">
+          <h3>Nariz</h3>
+          <hr />
+        </div>
+        <br />
+        <div class="form-group col-md-6">
+          <label for="">Cavidad nasal</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$CAVIDAD_NASAL?>"
+            name="CAVIDAD_NASALEXFISINP"
+            id="CAVIDAD_NASALEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Cavidad nasal"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Mucosa</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$MUCOSA?>"
+            name="MUCOSAEXFISINP"
+            id="MUCOSAEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Mucosa"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Tabique nasal</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$TABIQUE_NASAL?>"
+            name="TABIQUE_NASALEXFISINP"
+            id="TABIQUE_NASALEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Tabique nasal"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Olfato</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$OLFATO?>"
+            name="OLFATOEXFISINP"
+            id="OLFATOEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Olfato"
+          />
+        </div>
+        <br />
+        <div class="col-12">
+          <h3>Columna vertebral</h3>
+          <hr />
+        </div>
+        <br />
+        <div class="form-group col-md-6">
+          <label for="">Cervical</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$CERVICAL?>"
+            name="CERVICALEXFISINP"
+            id="CERVICALEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Cervical"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Dorsal</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$DORSAL?>"
+            name="DORSALEXFISINP"
+            id="DORSALEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Dorsal"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Lumbar</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$LUMBAR?>"
+            name="LUMBAREXFISINP"
+            id="LUMBAREXFISINP"
+            aria-describedby="helpId"
+            placeholder="Lumbar"
+          />
+        </div>
+        <br />
+        <div class="col-12">
+          <h3>Boca</h3>
+          <hr />
+        </div>
+        <br />
+        <div class="form-group col-md-6">
+          <label for="">Lesiones</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$LESIONES?>"
+            name="LESIONESEXFISINP"
+            id="LESIONESEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Lesiones"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Encías</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$ENCIAS?>"
+            name="ENCIASEXFISINP"
+            id="ENCIASEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Encías"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Orofaringe</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$OROIFARINGE?>"
+            name="OROIFARINGEEXFISINP"
+            id="OROIFARINGEEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Orofaringe"
+          />
+        </div>
+        <br />
+        <div class="col-12">
+          <h3>Oídos</h3>
+          <hr />
+        </div>
+        <br />
+        <div class="form-group col-md-4">
+          <label for="">CAE.</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$ODCAEINPEXP?>"
+            name="ODCAEINPEXP"
+            id="ODCAEINPEXP"
+            aria-describedby="helpId"
+            placeholder="Observaciones"
+          />
+        </div>
+        <div class="form-group col-md-4">
+          <label for="">Mem. Tím.</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$ODMEMTIMINPEXP?>"
+            name="ODMEMTIMINPEXP"
+            id="ODMEMTIMINPEXP"
+            aria-describedby="helpId"
+            placeholder="Observaciones"
+          />
+        </div>
+        <div class="form-group col-md-4">
+          <label for="">Agud. audit.</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$ODAGAUDIINPEXP?>"
+            name="ODAGAUDIINPEXP"
+            id="ODAGAUDIINPEXP"
+            aria-describedby="helpId"
+            placeholder="Observaciones"
+          />
+        </div>
+
+        <div class="form-group col-md-6">
+          <label for="">Oído Derecho (OD)</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$OIMEMTIMINPEXP?>"
+            name="OIMEMTIMINPEXP"
+            id="OIMEMTIMINPEXP"
+            aria-describedby="helpId"
+            placeholder="Observaciones"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Oído Izquierdo (OI)</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$OIAGAUDIINPEXP?>"
+            name="OIAGAUDIINPEXP"
+            id="OIAGAUDIINPEXP"
+            aria-describedby="helpId"
+            placeholder="Observaciones"
+          />
+        </div>
+        <br />
+        <div class="col-12">
+          <h3>Cuello</h3>
+          <hr />
+        </div>
+        <br />
+        <div class="form-group col-md-6">
+          <label for="">Deformaciones</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$DEFORMACIONES_OBS?>"
+            name="DEFORMACIONES_OBSINP"
+            id="DEFORMACIONES_OBSINP"
+            aria-describedby="helpId"
+            placeholder="Deformaciones"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Tiroides</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$TIROIDES_OBS?>"
+            name="TIROIDES_OBSINP"
+            id="TIROIDES_OBSINP"
+            aria-describedby="helpId"
+            placeholder="Tiroides"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Traquea</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$TRAQUEA_OBS?>"
+            name="TRAQUEA_OBSINP"
+            id="TRAQUEA_OBSINP"
+            aria-describedby="helpId"
+            placeholder="Traquea"
+          />
+        </div>
+        <br />
+        <div class="col-12">
+          <h3>Tórax</h3>
+          <hr />
+        </div>
+        <br />
+        <div class="form-group col-md-6">
+          <label for="">Ruidos cardiacos</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$RUIDOS_CARDIACOS?>"
+            name="RUIDOS_CARDIACOSEXFISINP"
+            id="RUIDOS_CARDIACOSEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Ruidos cardiacos"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Reg. precordial</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$REG_PRECORDIAL?>"
+            name="REG_PRECORDIALEXFISINP"
+            id="REG_PRECORDIALEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Reg. precordial"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Campos pulm.</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$CAMPOS_PULM?>"
+            name="CAMPOS_PULMEXFISINP"
+            id="CAMPOS_PULMEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Campos pulm."
+          />
+        </div>
+        <br />
+        <div class="col-12">
+          <h3>Columna vertebral</h3>
+          <hr />
+        </div>
+        <br />
+        <div class="form-group col-md-6">
+          <label for="">Deformaciones</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$DEFORMACIONES?>"
+            name="DEFORMACIONESEXFISINP"
+            id="DEFORMACIONESEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Deformaciones"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Dolor</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$DOLOR?>"
+            name="DOLOREXFISINP"
+            id="DOLOREXFISINP"
+            aria-describedby="helpId"
+            placeholder="Dolor"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Movimientos</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$MOVIMIENTOS?>"
+            name="MOVIMIENTOSEXFISINP"
+            id="MOVIMIENTOSEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Movimientos"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Marcha</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$MARCHA?>"
+            name="MARCHAEXFISINP"
+            id="MARCHAEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Marcha"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Lassegue</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$LASSEGUE?>"
+            name="LASSEGUEEXFISINP"
+            id="LASSEGUEEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Lassegue"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Punta-talón</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$PUNTA_TALON?>"
+            name="PUNTA_TALONEXFISINP"
+            id="PUNTA_TALONEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Punta-talón"
+          />
+        </div>
+        <br />
+        <div class="col-12">
+          <h3>Abdomen</h3>
+          <hr />
+        </div>
+        <br />
+        <div class="form-group col-md-6">
+          <label for="">Forma</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$FORMA?>"
+            name="FORMAEXFISINP"
+            id="FORMAEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Forma"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Visceromegalias</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$VISCEROMEGALIAS?>"
+            name="VISCEROMEGALIASEXFISINP"
+            id="VISCEROMEGALIASEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Visceromegalias"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Hernias</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$HERNIAS2?>"
+            name="HERNIASEXFISINP"
+            id="HERNIASEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Hernias"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Dolor</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$DOLOR?>"
+            name="DOLOREXFISINP"
+            id="DOLOREXFISINP"
+            aria-describedby="helpId"
+            placeholder="Dolor"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Peristalsis</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$PERISTALSIS?>"
+            name="PERISTALSISEXFISINP"
+            id="PERISTALSISEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Peristalsis"
+          />
+        </div>
+        <br />
+        <div class="col-12">
+          <h3>Genitales</h3>
+          <hr />
+        </div>
+        <br />
+        <div class="form-group col-md-6">
+          <label for="">Masculino</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$MASCULINO?>"
+            name="MASCULINOEXFISINP"
+            id="MASCULINOEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Masculino"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Femenino</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$FEMENINO?>"
+            name="FEMENINOEXFISINP"
+            id="FEMENINOEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Femenino"
+          />
+        </div>
+        <br />
+        <div class="col-12">
+          <h3>Urinario</h3>
+          <hr />
+        </div>
+        <br />
+        <div class="form-group col-md-6">
+          <label for="">Puntos uretrales</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$PUNTOS_URETRALES?>"
+            name="PUNTOS_URETRALESEXFISINP"
+            id="PUNTOS_URETRALESEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Puntos uretrales"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Fosas renales</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$FOSAS_RENALES?>"
+            name="FOSAS_RENALESEXFISINP"
+            id="FOSAS_RENALESEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Fosas renales"
+          />
+        </div>
+        <br />
+        <div class="col-12">
+          <h3>Extremidades</h3>
+          <hr />
+        </div>
+        <br />
+        <div class="form-group col-md-6">
+          <label for="">Superiores</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$SUPERIOR?>"
+            name="SUPERIOREXFISINP"
+            id="SUPERIOREXFISINP"
+            aria-describedby="helpId"
+            placeholder="Superiores"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Inferiores</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$INFERIOR?>"
+            name="INFERIOREXFISINP"
+            id="INFERIOREXFISINP"
+            aria-describedby="helpId"
+            placeholder="Inferiores"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">IVP</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$IVP?>"
+            name="IVPEXFISINP"
+            id="IVPEXFISINP"
+            aria-describedby="helpId"
+            placeholder="IVP"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Edema</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$EDEMA?>"
+            name="EDEMAEXFISINP"
+            id="EDEMAEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Edema"
+          />
+        </div>
+        <br />
+        <div class="col-12">
+          <h3>Piel</h3>
+          <hr />
+        </div>
+        <br />
+        <div class="form-group col-md-6">
+          <label for="">Lunares</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$LUNARES?>"
+            name="LUNARESEXFISINP"
+            id="LUNARESEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Lunares"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Pigmentación</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$PIGMENTACION?>"
+            name="PIGMENTACIONEXFISINP"
+            id="PIGMENTACIONEXFISINP"
+            aria-describedby="helpId"
+            placeholder="Pigmentación"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Cicatrices quirúrgicas</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$CICATRICES_QUIRUR?>"
+            name="CICATRICES_QUIRUREXFISINP"
+            id="CICATRICES_QUIRUREXFISINP"
+            aria-describedby="helpId"
+            placeholder="Cicatrices quirúrgicas"
+          />
+        </div>
+        <div class="col-12">
+          <hr />
+        </div>
+        <div class="form-group col-12">
+          <label for="">Observaciones generales</label>
+          <textarea
+            class="form-control"
+            name="OBSGENERALINPEX"
+            id="OBSGENERALINPEX"
+            rows="3"
+          >
+<?=$OBSGENERALINPEX?></textarea
+          >
+        </div>
+        <br />
+        <div class="col-12">
+          <h3>Dientes</h3>
+          <hr />
+        </div>
+        <br />
+        <div class="col-12 mb-3">
+          <label for=""
+            >Caries (C), Amalgamas (A), Endodoncias(E), Protesis(P),
+            Ausencias(X)</label
+          >
+        </div>
+        <div class="col-12 col-md-6 row border rounded mb-3">
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 18</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_18?>"
+              name="DIENTE_18"
+              id="DIENTE_18"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 17</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_17?>"
+              name="DIENTE_17"
+              id="DIENTE_17"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 16</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_16?>"
+              name="DIENTE_16"
+              id="DIENTE_16"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 15</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_15?>"
+              name="DIENTE_15"
+              id="DIENTE_15"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 14</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_14?>"
+              name="DIENTE_14"
+              id="DIENTE_14"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 13</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_13?>"
+              name="DIENTE_13"
+              id="DIENTE_13"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 12</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_12?>"
+              name="DIENTE_12"
+              id="DIENTE_12"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 11</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_11?>"
+              name="DIENTE_11"
+              id="DIENTE_11"
+              aria-describedby="helpId"
+            />
+          </div>
+        </div>
+        <div class="col-12 col-md-6 row border rounded mb-3">
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 21</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_2?>"
+              name="DIENTE_2"
+              id="DIENTE_2"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 22</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_22?>"
+              name="DIENTE_22"
+              id="DIENTE_22"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 23</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_23?>"
+              name="DIENTE_23"
+              id="DIENTE_23"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 24</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_24?>"
+              name="DIENTE_24"
+              id="DIENTE_24"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 25</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_25?>"
+              name="DIENTE_25"
+              id="DIENTE_25"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 26</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_26?>"
+              name="DIENTE_26"
+              id="DIENTE_26"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 27</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_27?>"
+              name="DIENTE_27"
+              id="DIENTE_27"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 28</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_28?>"
+              name="DIENTE_28"
+              id="DIENTE_28"
+              aria-describedby="helpId"
+            />
+          </div>
+        </div>
+        <div class="col-12 col-md-6 row border rounded mb-3">
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 48</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_48?>"
+              name="DIENTE_48"
+              id="DIENTE_48"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 47</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_47?>"
+              name="DIENTE_47"
+              id="DIENTE_47"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 46</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_46?>"
+              name="DIENTE_46"
+              id="DIENTE_46"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 45</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_45?>"
+              name="DIENTE_45"
+              id="DIENTE_45"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 44</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_44?>"
+              name="DIENTE_44"
+              id="DIENTE_44"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 43</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_43?>"
+              name="DIENTE_43"
+              id="DIENTE_43"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 42</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_42?>"
+              name="DIENTE_42"
+              id="DIENTE_42"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 41</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_41?>"
+              name="DIENTE_41"
+              id="DIENTE_41"
+              aria-describedby="helpId"
+            />
+          </div>
+        </div>
+
+        <div class="col-12 col-md-6 row border rounded mb-3">
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 31</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_31?>"
+              name="DIENTE_31"
+              id="DIENTE_31"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 32</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_32?>"
+              name="DIENTE_32"
+              id="DIENTE_32"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 33</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_33?>"
+              name="DIENTE_33"
+              id="DIENTE_33"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 34</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_34?>"
+              name="DIENTE_34"
+              id="DIENTE_34"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 35</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_35?>"
+              name="DIENTE_35"
+              id="DIENTE_35"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 36</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_36?>"
+              name="DIENTE_36"
+              id="DIENTE_36"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 37</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_37?>"
+              name="DIENTE_37"
+              id="DIENTE_37"
+              aria-describedby="helpId"
+            />
+          </div>
+          <div class="form-group col" style="width: 11%">
+            <label for=""><i class="fas fa-tooth"></i> 38</label>
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              style="font-size: 9px"
+              value="<?=$DIENTE_38?>"
+              name="DIENTE_38"
+              id="DIENTE_38"
+              aria-describedby="helpId"
+            />
+          </div>
+        </div>
+      </fieldset>
+    </div>
+  </div>
+</form>

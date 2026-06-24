@@ -1,0 +1,46 @@
+<form>
+  <div
+    class="container d-flex justify-content-center animate__animated animate__fadeIn"
+  >
+    <div class="row col-8">
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$OTRAS?>" id="otras0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Otras</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="otras"
+              id="otras1"
+              value="1"
+            />
+            <label class="form-check-label" for="otras1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="otras"
+              id="otras2"
+              value="0"
+            />
+            <label class="form-check-label" for="otras2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Comentarios:</label>
+        </legend>
+        <div class="col-12">
+          <textarea class="form-control" id="otrasOBS" name="otrasOBS">
+<?=$OTRAS_OBS?></textarea
+          >
+        </div>
+      </fieldset>
+    </div>
+  </div>
+</form>

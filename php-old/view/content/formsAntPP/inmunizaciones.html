@@ -1,0 +1,251 @@
+<form>
+  <div
+    class="container d-flex justify-content-center animate__animated animate__fadeIn"
+  >
+    <div class="row col-8">
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$BLG?>" id="bcgs0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">BCG</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="bcgs"
+              id="bcgs1"
+              value="1"
+            />
+            <label class="form-check-label" for="bcgs1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="bcgs"
+              id="bcgs2"
+              value="0"
+            />
+            <label class="form-check-label" for="bcgs2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$SABIN?>" id="sabin0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">SABIN</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="sabin"
+              id="sabin1"
+              value="1"
+            />
+            <label class="form-check-label" for="sabin1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="sabin"
+              id="sabin2"
+              value="0"
+            />
+            <label class="form-check-label" for="sabin2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$DPT?>" id="dptin0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">DPT</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="dptin"
+              id="dptin1"
+              value="1"
+            />
+            <label class="form-check-label" for="dptin1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="dptin"
+              id="dptin2"
+              value="0"
+            />
+            <label class="form-check-label" for="dptin2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$HEPATITIS_B?>" id="hepatitis0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Hepatitis</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="hepatitis"
+              id="hepatitis1"
+              value="1"
+            />
+            <label class="form-check-label" for="hepatitis1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="hepatitis"
+              id="hepatitis2"
+              value="0"
+            />
+            <label class="form-check-label" for="hepatitis2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$SR?>" id="srinp0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">SR</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="srinp"
+              id="srinp1"
+              value="1"
+            />
+            <label class="form-check-label" for="srinp1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="srinp"
+              id="srinp2"
+              value="0"
+            />
+            <label class="form-check-label" for="srinp2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$INFLUENZA?>" id="influenza0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Influenza</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="influenza"
+              id="influenza1"
+              value="1"
+            />
+            <label class="form-check-label" for="influenza1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="influenza"
+              id="influenza2"
+              value="0"
+            />
+            <label class="form-check-label" for="influenza2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Fecha Influenza</label>
+        </legend>
+        <div class="col-12">
+          <input
+            type="date"
+            class="form-control"
+            name="fechaINFLUEN"
+            id="fechaINFLUEN"
+            value="<?=$FECHAINFLUEN?>"
+            aria-describedby="helpId"
+            placeholder=""
+          />
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <input type="hidden" value="<?=$TD?>" id="tdinp0" />
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">TD</label>
+        </legend>
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="tdinp"
+              id="tdinp1"
+              value="1"
+            />
+            <label class="form-check-label" for="tdinp1"> Si </label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="tdinp"
+              id="tdinp2"
+              value="0"
+            />
+            <label class="form-check-label" for="tdinp2"> No </label>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">COVID</label>
+        </legend>
+        <div class="col-12">
+          <input
+            type="number"
+            class="form-control"
+            value="<?=$COVID?>"
+            name="covidInp"
+            id="covidInp"
+            aria-describedby="helpId"
+          />
+        </div>
+      </fieldset>
+      <fieldset class="row mb-3 col-12 col-md-6">
+        <legend class="col-form-label col-12 pt-0">
+          <label for="email">Fecha COVID</label>
+        </legend>
+        <div class="col-12">
+          <input
+            type="date"
+            class="form-control"
+            name="fechaInm"
+            id="fechaInm"
+            value="<?=$FECHA?>"
+            aria-describedby="helpId"
+            placeholder=""
+          />
+        </div>
+      </fieldset>
+    </div>
+  </div>
+</form>

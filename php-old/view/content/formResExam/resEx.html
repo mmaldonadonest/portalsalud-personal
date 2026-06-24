@@ -1,0 +1,58 @@
+<form>
+    <div
+      class="container d-flex justify-content-center animate__animated animate__fadeIn"
+    >
+      <div class="row col-8">
+        <fieldset class="row mb-3 col-12 col-md-12">
+            <input type="hidden" value="<?=$OBSERVACIONES?>" id="resExamIn0" />
+            <legend class="col-form-label col-12 pt-0">
+              <label for="email">Resultado del Examen</label>
+            </legend>
+            <div class="col-12">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="resExamIn"
+                  id="resExamIn1"
+                  value="1"
+                  
+                />
+                <label class="form-check-label" for="resExamIn1"> Apto </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="resExamIn"
+                  id="resExamIn2"
+                  value="2"
+                />
+                <label class="form-check-label" for="resExamIn3"> Apto condicionado</label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="resExamIn"
+                  id="resExamIn3"
+                  value="3"
+                />
+                <label class="form-check-label" for="resExamIn2"> Apto restringido </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="resExamIn"
+                  id="resExamIn4"
+                  value="4"
+                />
+                <label class="form-check-label" for="resExamIn4"> No apto </label>
+              </div>
+            </div>
+          </fieldset>
+      </div>
+    </div>
+  </form>
+  

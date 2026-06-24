@@ -1,0 +1,87 @@
+<section class="content container-fluid card animate__animated animate__fadeIn">
+  <div class="jumbotron jumbotron-fluid">
+    <div class="container">
+      <h1 class="display-4">Expediente incapacidades</h1>
+      <p class="lead">Lista de archivos</p>
+      <hr class="my-2" />
+      <center>
+        <div id="chargeImgArch">
+          <lottie-player
+            src="https://assets1.lottiefiles.com/packages/lf20_pcqghvjn.json"
+            background="transparent"
+            speed="1"
+            style="width: 300px; height: 300px"
+            loop
+            autoplay
+          ></lottie-player>
+        </div>
+      </center>
+      <div id="fileView"></div>
+      <hr class="hr mt-3" />
+      <p class="lead">Expediente general</p>
+      <div class="row">
+        <div class="form-group col-6">
+          <label for="">Fecha inicial</label>
+          <input
+            type="date"
+            class="form-control"
+            name=""
+            id="fechaInINI"
+            aria-describedby="helpId"
+            placeholder=""
+          />
+          
+        </div>
+        <div class="form-group col-6">
+          <label for="">Fecha final</label>
+          <input
+            type="date"
+            class="form-control"
+            name=""
+            id="fechaInFINI"
+            aria-describedby="helpId"
+            placeholder=""
+          />
+          
+        </div>
+      </div>
+      <center>
+        <button type="button" class="btn btn-primary" onclick="generarExcelIncapa()">Generar</button>
+      </center>
+    </div>
+
+    <div class="container row justify-content-center"></div>
+  </div>
+</section>
+<div
+  class="modal fade"
+  id="exampleModal"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="exampleModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">ONEST</h5>
+        <button
+          type="button"
+          class="close"
+          data-dismiss="modal"
+          aria-label="Close"
+        >
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div id="respModal"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

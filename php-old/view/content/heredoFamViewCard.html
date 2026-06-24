@@ -1,0 +1,28 @@
+<style>
+  .cristals {
+    /* From https://css.glass */
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(8.5px);
+    -webkit-backdrop-filter: blur(8.5px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  .div-con-imagen {
+    background-image: url("http://salud.onestcloud.mx:70/scontent/maxresdefault.jpg");
+    background-size: cover; /* La imagen cubrirá todo el contenido del div */
+    background-position: center; /* La imagen estará centrada */
+  }
+</style>
+<div class="div-con-imagen">
+  <div class="jumbotron jumbotron-fluid bg-dark" style="border-radius: 16px">
+    <div class="container">
+      <h3><?=$tittle?></h3>
+    </div>
+  </div>
+  <div class="container cristals">
+    <br />
+    <?=$form?>
+  </div>
+</div>
+

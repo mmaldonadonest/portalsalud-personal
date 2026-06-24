@@ -1,0 +1,19 @@
+{
+    "Resultado": {
+        "Proceso": "Selecci\u00f3n de ID_APP",
+        "Estado": 1000,
+        "Mensaje": "Aplicaci\u00f3n encontrada y seleccionada",
+        "Datos": [
+            {
+                "id_app": 2,
+                "nombre_app": "DASHBOARD",
+                "Roles": [
+                    {
+                        "id_rol": 0,
+                        "nombre_rol": "sin roles"
+                    }
+                ]
+            }
+        ]
+    }
+}

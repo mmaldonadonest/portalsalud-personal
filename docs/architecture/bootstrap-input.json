@@ -1,0 +1,86 @@
+{
+  "project": {
+    "name": "portal-salud",
+    "groupId": "mx.onest",
+    "artifactId": "portal-salud",
+    "basePackage": "mx.onest.portalsalud"
+  },
+  "profiles": ["local", "dev", "test", "prod"],
+  "server": {
+    "port": 8080,
+    "contextPath": "/"
+  },
+  "oracle": {
+    "host": "localhost",
+    "port": 1521,
+    "serviceName": "FREEPDB1",
+    "username": "PORTAL_SALUD",
+    "password": "CHANGE_ME",
+    "pool": {
+      "maxPoolSize": 20,
+      "minIdle": 5,
+      "connectionTimeoutMs": 30000
+    }
+  },
+  "security": {
+    "sessionBasedAuth": true,
+    "bcryptStrength": 12,
+    "maxLoginAttempts": 5,
+    "lockMinutes": 15,
+    "publicPaths": ["/login", "/error", "/css/**", "/js/**", "/img/**"]
+  },
+  "mail": {
+    "host": "smtp.example.com",
+    "port": 587,
+    "username": "noreply@example.com",
+    "password": "CHANGE_ME",
+    "starttls": true,
+    "from": "noreply@example.com"
+  },
+  "push": {
+    "desktop": {
+      "provider": "webpush",
+      "vapidPublicKey": "CHANGE_ME",
+      "vapidPrivateKey": "CHANGE_ME",
+      "subject": "mailto:admin@example.com"
+    },
+    "mobile": {
+      "fcm": {
+        "enabled": true,
+        "serviceAccountPath": "/secure/fcm-service-account.json"
+      },
+      "apns": {
+        "enabled": false,
+        "teamId": "CHANGE_ME",
+        "keyId": "CHANGE_ME",
+        "privateKeyPath": "/secure/apns-key.p8",
+        "bundleId": "com.onest.portalsalud"
+      }
+    }
+  },
+  "filesystem": {
+    "rootPath": "/opt/portal-salud/files",
+    "tempPath": "/opt/portal-salud/files/tmp",
+    "quarantinePath": "/opt/portal-salud/files/quarantine",
+    "maxFileSizeMb": 25,
+    "allowedMimeTypes": [
+      "application/pdf",
+      "image/png",
+      "image/jpeg",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ],
+    "shardingPattern": "yyyy/MM/dd/{first2OfHash}"
+  },
+  "jobs": {
+    "orphanReconciliationCron": "0 0/30 * * * ?",
+    "checksumVerificationCron": "0 0 2 * * ?",
+    "mailRetryCron": "0 0/5 * * * ?",
+    "pushRetryCron": "0 0/3 * * * ?",
+    "auditPurgeCron": "0 0 3 * * ?"
+  },
+  "observability": {
+    "actuatorExposed": ["health", "info", "metrics", "prometheus"],
+    "jsonLogsInProd": true,
+    "correlationIdHeader": "X-Correlation-Id"
+  }
+}

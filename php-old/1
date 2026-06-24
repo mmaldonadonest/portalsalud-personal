@@ -1,0 +1,2622 @@
+$(document).ready(function () {
+  $(".navarHeredoFam").hide();
+  $(".navarHeredoFam1").hide();
+  $("#moreInfo").hide();
+  $(".exMedModule").hide();
+  $(".loadnav").hide();
+
+  $("#loadingData").hide();
+  $("#pushmenuNav").click();
+});
+function buscarEmpleado() {
+  var data = $("#inputSearchData").val();
+  $("#loadingData").show();
+
+  $("#searchResultDiv").hide();
+  $("#viewHeredoSec").hide();
+  $("#menuHeredoFam").hide();
+  $("#secSaveChanges").hide();
+  $("#btnShohHide").hide();
+  $("#inicioDiv").hide();
+
+  $.ajax({
+    type: "POST",
+    url: "rest/dashboard/searchEmploye.php",
+    data: { data: data },
+    dataType: "html",
+    success: function (response) {
+      $("#moreInfo").show();
+      $(".exMedModule").show();
+      $("#mostrador").val(0);
+      $("#loadingData").hide();
+      $("#menuHeredoFam").hide();
+      $("#searchResultDiv").show();
+      $("#searchResultDiv").html(response);
+      $("#contentDash").empty();
+      viewExpHeroFam();
+      traerDatsUser();
+    },
+  });
+}
+function buscarEmpleadoIni() {
+  var data = $("#SearchInpitInicio").val();
+  $("#loadingData").show();
+
+  $("#searchResultDiv").hide();
+  $("#viewHeredoSec").hide();
+  $("#menuHeredoFam").hide();
+  $("#secSaveChanges").hide();
+  $("#inicioDiv").hide();
+  $("#inputSearchData").val(data);
+  $.ajax({
+    type: "POST",
+    url: "rest/dashboard/searchEmploye.php",
+    data: { data: data },
+    dataType: "html",
+    success: function (response) {
+      $("#moreInfo").show();
+      $(".exMedModule").show();
+      $("#mostrador").val(0);
+      $("#loadingData").hide();
+      $("#menuHeredoFam").hide();
+      $("#searchResultDiv").show();
+      $("#searchResultDiv").html(response);
+      $("#contentDash").empty();
+      traerDatsUser();
+    },
+  });
+}
+function viewExamenMedico() {
+  $.ajax({
+    type: "POST",
+    url: "rest/dashboard/viewExamenMedico.php",
+    data: "data",
+    dataType: "html",
+    success: function (response) {
+      $("#contentDash").html(response);
+    },
+  });
+}
+function viewExpediente() {
+  $(".navarHeredoFam").hide();
+  $.ajax({
+    type: "POST",
+    url: "rest/dashboard/expediente.php",
+    data: "data",
+    dataType: "html",
+    success: function (response) {
+      $("#contentDash").html(response);
+      setTimeout(function () {
+        $("#chargeImgArch").hide();
+        viewFiles("expedienteConsulta");
+      }, 2000);
+    },
+  });
+}
+function viewFiles(type) {
+  var data = $("#inputSearchData").val();
+  $(".navarHeredoFam").hide();
+  $.ajax({
+    type: "GET",
+    url: "rest/dashboard/expedienteShowConsults.php",
+    data: { data: data, type: type },
+    dataType: "html",
+    success: function (response) {
+      $("#fileView").html(response);
+      setTimeout(function () {
+        $("#filetable").DataTable({
+          language: {
+            url: "//cdn.datatables.net/plug-ins/1.10.20/i18n/Spanish.json",
+          },
+          dom: "Bfrtip",
+          buttons: [
+            {
+              extend: "excel",
+              text: "Exportar a Excel",
+              title: "incapacidades",
+              exportOptions: {
+                columns: ":visible",
+              },
+            },
+          ],
+        });
+      }, 500);
+    },
+  });
+}
+function viewArchivoInc() {
+  $(".navarHeredoFam").hide();
+  $.ajax({
+    type: "POST",
+    url: "rest/dashboard/expedienteArch.php",
+    data: "data",
+    dataType: "html",
+    success: function (response) {
+      $("#contentDash").html(response);
+      setTimeout(function () {
+        $("#chargeImgArch").hide();
+        viewFiles("expedienteIncapacidad");
+      }, 2000);
+    },
+  });
+}
+function viewConsulMedic() {
+  $(".navarHeredoFam").hide();
+  $.ajax({
+    type: "POST",
+    url: "rest/dashboard/consultaMedica.php",
+    data: "data",
+    dataType: "html",
+    success: function (response) {
+      $("#contentDash").html(response);
+      efirm();
+      $("#chargeIcdIcon").hide();
+      var data = $("#inputSearchData").val();
+      $("#idInPic").val(data);
+      setTimeout(function () {
+        var myDropzone = new Dropzone("form#ImgCatA", {
+          url: "rest/dashboard/uploadFile.php",
+          acceptedFiles: ".pdf",
+          paramName: "file",
+          maxFiles: "5",
+          filesizeBase: "1000",
+          maxFilesize: "6250",
+          addRemoveLinks: "true",
+          autoProcessQueue: false,
+        });
+        $("#subirConsultaMed").click(function () {
+          Swal.fire({
+            title: "¿Estas de acuerdo con la información?",
+            showDenyButton: true,
+            confirmButtonText: "Guardar",
+            denyButtonText: `Cancelar`,
+          }).then((result) => {
+            /* Read more about isConfirmed, isDenied below */
+            if (result.isConfirmed) {
+              sabeDats();
+            } else if (result.isDenied) {
+              Swal.fire("Cambios no guardados", "", "info");
+            }
+          });
+
+          function sabeDats() {
+            myDropzone.processQueue();
+            var idNss = $("#idInPic").val();
+            var idArchivoRel = $("#typeInput").val();
+            var TipoConsultaInput = $("#TipoConsultaInput").val();
+            var AreaAccidenteInput = $("#AreaAccidenteInput").val();
+            var AreaAnatomicaInput = $("#AreaAnatomicaInput").val();
+            var CausaInput = $("#CausaInput").val();
+            var PesoInput = $("#PesoInput").val();
+            var TallaInput = $("#TallaInput").val();
+            var IMCINPUT = $("#IMCINPUT").val();
+            var FCINPUT = $("#FCINPUT").val();
+            var FRINPUT = $("#FRINPUT").val();
+            var TAINPUT = $("#TAINPUT").val();
+            var TemperaturaInput = $("#TemperaturaInput").val();
+            var MOTIVOCONSULTAINP = $("#MOTIVOCONSULTAINP").val();
+            var EXPLOFISIINP = $("#EXPLOFISIINP").val();
+            var DIAGNOSTICOINPUT = $("#DIAGNOSTICOINPUT").val();
+            var TRATAMIENTOINPUT = $("#TRATAMIENTOINPUT").val();
+            var FIRMA = $("#draw-dataUrl").val();
+            $.ajax({
+              type: "POST",
+              url: "rest/forms/consultMedic.php",
+              data: {
+                idNss: idNss,
+                idArchivoRel: idArchivoRel,
+                TipoConsultaInput: TipoConsultaInput,
+                AreaAccidenteInput: AreaAccidenteInput,
+                AreaAnatomicaInput: AreaAnatomicaInput,
+                CausaInput: CausaInput,
+                PesoInput: PesoInput,
+                TallaInput: TallaInput,
+                IMCINPUT: IMCINPUT,
+                FCINPUT: FCINPUT,
+                FRINPUT: FRINPUT,
+                TAINPUT: TAINPUT,
+                TemperaturaInput: TemperaturaInput,
+                MOTIVOCONSULTAINP: MOTIVOCONSULTAINP,
+                EXPLOFISIINP: EXPLOFISIINP,
+                DIAGNOSTICOINPUT: DIAGNOSTICOINPUT,
+                TRATAMIENTOINPUT: TRATAMIENTOINPUT,
+                FIRMA: FIRMA,
+              },
+              dataType: "html",
+              success: function (response) {
+                Swal.fire({
+                  icon: "success",
+                  title: response,
+                });
+                console.log(response);
+              },
+            });
+          }
+        });
+      }, 500);
+    },
+  });
+}
+function ViewIncap() {
+  $(".navarHeredoFam").hide();
+  $.ajax({
+    type: "POST",
+    url: "rest/dashboard/incapacidades.php",
+    data: "data",
+    dataType: "html",
+    success: function (response) {
+      $("#contentDash").html(response);
+      efirm();
+      var data = $("#inputSearchData").val();
+      $("#idInPic").val(data);
+      setTimeout(function () {
+        var myDropzone = new Dropzone("form#ImgCatA", {
+          url: "rest/dashboard/uploadFile.php",
+          acceptedFiles: ".pdf",
+          paramName: "file",
+          maxFiles: "5",
+          filesizeBase: "1000",
+          maxFilesize: "6250",
+          addRemoveLinks: "true",
+          autoProcessQueue: false,
+        });
+        $("#subirIncap").click(function () {
+          Swal.fire({
+            title: "¿Estas de acuerdo con la información?",
+            showDenyButton: true,
+            confirmButtonText: "Guardar",
+            denyButtonText: `Cancelar`,
+          }).then((result) => {
+            /* Read more about isConfirmed, isDenied below */
+            if (result.isConfirmed) {
+              sabeDatsInc();
+            } else if (result.isDenied) {
+              Swal.fire("Cambios no guardados", "", "info");
+            }
+          });
+
+          function sabeDatsInc() {
+            myDropzone.processQueue();
+            var idNss = $("#inputSearchData").val();
+            var foilioInc = $("#foilioInc").val();
+            var idArchivoRel = $("#typeInput").val();
+            var ramoInp = $("#ramoInp").val();
+            var tipoIncInput = $("#tipoIncInput").val();
+            var fechainiInp = $("#fechainiInp").val();
+            var fechainiInpINI = $("#fechainiInpINI").val();
+            var fechaTermInp = $("#fechaTermInp").val();
+            var DiasAutInp = $("#DiasAutInp").val();
+            var SalIntegrInp = $("#SalIntegrInp").val();
+            var CostoInp = $("#CostoInp").val();
+            var InpuInput = $("#InpuInput").val();
+            var EstDictInput = $("#EstDictInput").val();
+            var GoceSueldoInp = $("#GoceSueldoInp").val();
+            var ComplSalaInp = $("#ComplSalaInp").val();
+            var salarioAcomuIn = $("#salarioAcomuIn").val();
+            var st2Input = $("#st2Input").val();
+            var rubroInput = $("#rubroInput").val();
+            var altaInput = $("#altaInput").val();
+            var fechaAltaInp = $("#fechaAltaInp").val();
+
+            var FIRMA = $("#draw-dataUrl").val();
+
+            $.ajax({
+              type: "POST",
+              url: "rest/forms/incap.php",
+              data: {
+                idNss: idNss,
+                foilioInc: foilioInc,
+                idArchivoRel: idArchivoRel,
+                ramoInp: ramoInp,
+                tipoIncInput: tipoIncInput,
+                fechainiInp: fechainiInp,
+                fechainiInpINI: fechainiInpINI,
+                fechaTermInp: fechaTermInp,
+                DiasAutInp: DiasAutInp,
+                SalIntegrInp: SalIntegrInp,
+                CostoInp: CostoInp,
+                InpuInput: InpuInput,
+                EstDictInput: EstDictInput,
+                GoceSueldoInp: GoceSueldoInp,
+                ComplSalaInp: ComplSalaInp,
+                salarioAcomuIn: salarioAcomuIn,
+                st2Input: st2Input,
+                rubroInput: rubroInput,
+                altaInput: altaInput,
+                fechaAltaInp: fechaAltaInp,
+                FIRMA: FIRMA,
+              },
+              dataType: "html",
+              success: function (response) {
+                Swal.fire({
+                  icon: "success",
+                  title: response,
+                });
+                console.log(response);
+              },
+            });
+          }
+        });
+      }, 500);
+    },
+  });
+}
+function viewchecklist() {
+  $(".navarHeredoFam").hide();
+  $.ajax({
+    type: "POST",
+    url: "rest/dashboard/checklist.php",
+    data: "data",
+    dataType: "html",
+    success: function (response) {
+      $("#contentDash").html(response);
+      var data = $("#inputSearchData").val();
+      $("#idInPic").val(data);
+      setTimeout(function () {
+        $("form#ImgCatA").dropzone({
+          url: "rest/dashboard/uploadFile.php",
+          acceptedFiles: ".pdf",
+          paramName: "file",
+          maxFiles: "5",
+          filesizeBase: "1000",
+          maxFilesize: "6250",
+          addRemoveLinks: "true",
+          success: function (file, response) {
+            viewFilesLab(data);
+          },
+        });
+      }, 500);
+      viewFilesLab(data);
+    },
+  });
+}
+function viewPretest() {
+  var data = $("#inputSearchData").val();
+  $(".navarHeredoFam").hide();
+  $.ajax({
+    type: "POST",
+    url: "rest/dashboard/pretest.php",
+    data: { data: data },
+    dataType: "html",
+    success: function (response) {
+      $("#contentDash").html(response);
+      checkCheckbox();
+      efirm();
+    },
+  });
+}
+
+function checkCheckbox() {
+  var fields = [
+    { inputId: "#LHOP", value: $("#LHOP0").val() },
+    { inputId: "#TALMED", value: $("#TALMED0").val() },
+    { inputId: "#SUAA", value: $("#SUAA0").val() },
+    { inputId: "#SAFOPH", value: $("#SAFOPH0").val() },
+    { inputId: "#ESEMB", value: $("#ESEMB0").val() },
+    { inputId: "#PALENF", value: $("#PALENF0").val() },
+    { inputId: "#CONDROG", value: $("#CONDROG0").val() },
+    { inputId: "#TOSIN", value: $("#TOSIN0").val() },
+    { inputId: "#FIEBREIN", value: $("#FIEBREIN0").val() },
+    { inputId: "#DOLOCABINP", value: $("#DOLOCABINP0").val() },
+    { inputId: "#DIFRESP", value: $("#DIFRESP0").val() },
+    { inputId: "#DOLARDGARG", value: $("#DOLARDGARG0").val() },
+    { inputId: "#ESCURRINAZ", value: $("#ESCURRINAZ0").val() },
+    { inputId: "#OJOSROJOS", value: $("#OJOSROJOS0").val() },
+    { inputId: "#DOLMUSART", value: $("#DOLMUSART0").val() },
+  ];
+  fields.forEach(function (field) {
+    var checkedValue = field.value == 1 ? true : false;
+    $(field.inputId + "1").prop("checked", checkedValue);
+    $(field.inputId + "2").prop("checked", !checkedValue);
+  });
+}
+function viewExMedPDF() {
+  $(".navarHeredoFam").hide();
+  $.ajax({
+    type: "POST",
+    url: "rest/dashboard/viexExpExMedPdf.php",
+    data: "data",
+    dataType: "html",
+    success: function (response) {
+      $("#contentDash").html(response);
+      var data = $("#inputSearchData").val();
+      $("#idInPic").val(data);
+      setTimeout(function () {
+        $("form#ImgCatA").dropzone({
+          url: "rest/dashboard/uploadFile.php",
+          acceptedFiles: ".pdf",
+          paramName: "file",
+          maxFiles: "5",
+          filesizeBase: "1000",
+          maxFilesize: "6250",
+          addRemoveLinks: "true",
+          success: function (file, response) {
+            viewFilesExpMedPdf(data);
+          },
+        });
+      }, 500);
+      viewFilesExpMedPdf(data);
+    },
+  });
+}
+function viewNotaMPDF() {
+  $(".navarHeredoFam").hide();
+  $.ajax({
+    type: "POST",
+    url: "rest/dashboard/vieNotaMedPdf.php",
+    data: "data",
+    dataType: "html",
+    success: function (response) {
+      $("#contentDash").html(response);
+      var data = $("#inputSearchData").val();
+      $("#idInPic").val(data);
+      setTimeout(function () {
+        $("form#ImgCatA").dropzone({
+          url: "rest/dashboard/uploadFile.php",
+          acceptedFiles: ".pdf",
+          paramName: "file",
+          maxFiles: "5",
+          filesizeBase: "1000",
+          maxFilesize: "6250",
+          addRemoveLinks: "true",
+          success: function (file, response) {
+            viewFilesNotaMedPdf(data);
+          },
+        });
+      }, 500);
+      viewFilesNotaMedPdf(data);
+    },
+  });
+}
+function viewNotaIncap() {
+  $(".navarHeredoFam").hide();
+  $.ajax({
+    type: "POST",
+    url: "rest/dashboard/viewNotaIncap.php",
+    data: "data",
+    dataType: "html",
+    success: function (response) {
+      $("#contentDash").html(response);
+      var data = $("#inputSearchData").val();
+      $("#idInPic").val(data);
+      setTimeout(function () {
+        $("form#ImgCatA").dropzone({
+          url: "rest/dashboard/uploadFile.php",
+          acceptedFiles: ".pdf",
+          paramName: "file",
+          maxFiles: "5",
+          filesizeBase: "1000",
+          maxFilesize: "6250",
+          addRemoveLinks: "true",
+          success: function (file, response) {
+            viewFilesNotaIncPdf(data);
+          },
+        });
+      }, 500);
+      viewFilesNotaIncPdf(data);
+    },
+  });
+}
+function viewFilesNotaIncPdf(data) {
+  $.ajax({
+    type: "GET",
+    url: "rest/dashboard/expFileNotaIncp.php",
+    data: { data: data },
+    dataType: "html",
+    success: function (response) {
+      $("#tablelab").html(response);
+      $("#filetable").DataTable({
+        language: {
+          url: "//cdn.datatables.net/plug-ins/1.10.20/i18n/Spanish.json",
+        },
+      });
+    },
+  });
+}
+function viewFilesNotaMedPdf(data) {
+  $.ajax({
+    type: "GET",
+    url: "rest/dashboard/expeFileNotaMedPdf.php",
+    data: { data: data },
+    dataType: "html",
+    success: function (response) {
+      $("#tablelab").html(response);
+      $("#filetable").DataTable({
+        language: {
+          url: "//cdn.datatables.net/plug-ins/1.10.20/i18n/Spanish.json",
+        },
+      });
+    },
+  });
+}
+function viewFilesExpMedPdf(data) {
+  $.ajax({
+    type: "GET",
+    url: "rest/dashboard/expedienteFilePrintExMedPdf.php",
+    data: { data: data },
+    dataType: "html",
+    success: function (response) {
+      $("#tablelab").html(response);
+      $("#filetable").DataTable({
+        language: {
+          url: "//cdn.datatables.net/plug-ins/1.10.20/i18n/Spanish.json",
+        },
+      });
+      $("#filetable2").DataTable({
+        language: {
+          url: "//cdn.datatables.net/plug-ins/1.10.20/i18n/Spanish.json",
+        },
+      });
+    },
+  });
+}
+function viewFilesLab(data) {
+  $.ajax({
+    type: "GET",
+    url: "rest/dashboard/expedienteFilePrint.php",
+    data: { data: data },
+    dataType: "html",
+    success: function (response) {
+      $("#tablelab").html(response);
+      $("#filetable").DataTable({
+        language: {
+          url: "//cdn.datatables.net/plug-ins/1.10.20/i18n/Spanish.json",
+        },
+      });
+    },
+  });
+}
+function viewExpHeroFam() {
+  $(".navarHeredoFam").hide();
+
+  $.ajax({
+    type: "POST",
+    url: "rest/dashboard/viewExpHeroFam.php",
+    data: "data",
+    dataType: "html",
+    success: function (response) {
+      $("#contentDash").html(response);
+      $(".navarHeredoFam1").show();
+      $("#loadingData2").hide();
+      $(".nav-link").show();
+      efirm();
+      $("#firmaDiv").hide();
+      checarPermisoExam();
+      $("#btnSave").hide();
+    },
+  });
+}
+function checarPermisoExam() {
+  var nss = $("#inputSearchData").val();
+  $.ajax({
+    type: "POST",
+    url: "rest/forms/verificarPermisoExa.php",
+    data: { nss: nss },
+    dataType: "html",
+    success: function (response) {
+      if (response == 1) {
+        $("#modalPriva").modal("hide");
+      } else {
+        $("#modalPriva").modal("show");
+      }
+    },
+  });
+}
+function eraseDat() {
+  Swal.fire({
+    title: "¿Realmente desea eliminar este archivo?",
+    showDenyButton: true,
+    showCancelButton: false,
+    confirmButtonText: "Borrar",
+    denyButtonText: `Cancelar`,
+  }).then((result) => {
+    /* Read more about isConfirmed, isDenied below */
+    if (result.isConfirmed) {
+      Swal.fire("¡Archivo borrado!", "", "error");
+    } else if (result.isDenied) {
+      Swal.fire("Cambios cancelados", "", "info");
+    }
+  });
+}
+
+function viewExpedHeredoFam(type) {
+  let numero = $("#mostrador").val();
+  //console.log(numero);
+  $("#loadingData2").show();
+  var nss = $("#inputSearchData").val();
+  $("#" + type + "BTN").removeAttr("onclick");
+  $("#" + type + "BTN2").hide();
+  $("#" + type + "BTN").addClass("btn-dark");
+  /*  $("#" + type + "BTN2").addClass("disabled text-info"); */
+$.ajaxSetup({
+    cache: true
+});
+  $.ajax({
+    type: "POST",
+    url: "rest/dashboard/viewTypeExped.php",
+    headers: {
+        'Connection': 'keep-alive'
+    },	  
+    data: { data: type, nss: nss },
+    dataType: "html",
+    success: function (response) {
+      numero++;
+      mostrador.value = numero;
+      $("#viewHeredoSec").append(response);
+      $("#chargeIcdIcon").hide();
+      //console.log(type);
+      setTimeout(chackValues, 1000, type);
+      $("#loadingData2").hide();
+      var textAreas = document.querySelectorAll("textarea");
+      textAreas.forEach(function (textArea) {
+        textArea.addEventListener("input", function () {
+          if (textArea.value.length > 500) {
+            textArea.value = textArea.value.substring(0, 500);
+          }
+        });
+      });
+    },
+  });
+}
+function chackValues(type) {
+  switch (type) {
+    case "Neurología":
+      if ($("#avc0").val() == 1) {
+        $("#avc1").prop("checked", true);
+      } else {
+        $("#avc2").prop("checked", true);
+      }
+
+      if ($("#emilepcheck0").val() == 1) {
+        $("#emilepcheck1").prop("checked", true);
+      } else {
+        $("#emilepcheck2").prop("checked", true);
+      }
+
+      if ($("#paralisisFac0").val() == 1) {
+        $("#paralisisFac1").prop("checked", true);
+      } else {
+        $("#paralisisFac2").prop("checked", true);
+      }
+
+      if ($("#parkinson0").val() == 1) {
+        $("#parkinson1").prop("checked", true);
+      } else {
+        $("#parkinson2").prop("checked", true);
+      }
+
+      if ($("#alzheimer0").val() == 1) {
+        $("#alzheimer1").prop("checked", true);
+      } else {
+        $("#alzheimer2").prop("checked", true);
+      }
+
+      if ($("#migraña0").val() == 1) {
+        $("#migraña1").prop("checked", true);
+      } else {
+        $("#migraña2").prop("checked", true);
+      }
+      break;
+    case "Cardiopatía":
+      /* cardiopatia */
+      if ($("#cardIsq0").val() == 1) {
+        $("#cardIsq1").prop("checked", true);
+      } else {
+        $("#cardIsq2").prop("checked", true);
+      }
+
+      if ($("#hiper0").val() == 1) {
+        $("#hiper1").prop("checked", true);
+      } else {
+        $("#hiper2").prop("checked", true);
+      }
+
+      if ($("#hipotension0").val() == 1) {
+        $("#hipotension1").prop("checked", true);
+      } else {
+        $("#hipotension2").prop("checked", true);
+      }
+
+      if ($("#insuCard0").val() == 1) {
+        $("#insuCard1").prop("checked", true);
+      } else {
+        $("#insuCard2").prop("checked", true);
+      }
+
+      if ($("#insuVasPer0").val() == 1) {
+        $("#insuVasPer1").prop("checked", true);
+      } else {
+        $("#insuVasPer2").prop("checked", true);
+      }
+      break;
+    case "Neumopatía":
+      /* Neumopatica */
+
+      if ($("#bronqui0").val() == 1) {
+        $("#bronqui1").prop("checked", true);
+      } else {
+        $("#bronqui2").prop("checked", true);
+      }
+
+      if ($("#tuber0").val() == 1) {
+        $("#tuber1").prop("checked", true);
+      } else {
+        $("#tuber2").prop("checked", true);
+      }
+
+      if ($("#asma0").val() == 1) {
+        $("#asma1").prop("checked", true);
+      } else {
+        $("#asma2").prop("checked", true);
+      }
+
+      if ($("#insuResp0").val() == 1) {
+        $("#insuResp1").prop("checked", true);
+      } else {
+        $("#insuResp2").prop("checked", true);
+      }
+      break;
+    case "Toxicológico":
+      /* Toxicologico */
+
+      if ($("#alcoholismo0").val() == 1) {
+        $("#alcoholismo1").prop("checked", true);
+      } else {
+        $("#alcoholismo2").prop("checked", true);
+      }
+
+      if ($("#tabaquismo0").val() == 1) {
+        $("#tabaquismo1").prop("checked", true);
+      } else {
+        $("#tabaquismo2").prop("checked", true);
+      }
+
+      if ($("#drogas0").val() == 1) {
+        $("#drogas1").prop("checked", true);
+      } else {
+        $("#drogas2").prop("checked", true);
+      }
+      break;
+    case "Nefropatías":
+      /* Nefropatias */
+
+      if ($("#irc0").val() == 1) {
+        $("#irc1").prop("checked", true);
+      } else {
+        $("#irc2").prop("checked", true);
+      }
+
+      if ($("#litiasis0").val() == 1) {
+        $("#litiasis1").prop("checked", true);
+      } else {
+        $("#litiasis2").prop("checked", true);
+      }
+      break;
+    case "Endocrinas":
+      /* Endocrinas */
+
+      if ($("#dm0").val() == 1) {
+        $("#dm1").prop("checked", true);
+      } else {
+        $("#dm2").prop("checked", true);
+      }
+
+      if ($("#hipertirod0").val() == 1) {
+        $("#hipertirod1").prop("checked", true);
+      } else {
+        $("#hipertirod2").prop("checked", true);
+      }
+
+      if ($("#hipotiro0").val() == 1) {
+        $("#hipotiro1").prop("checked", true);
+      } else {
+        $("#hipotiro2").prop("checked", true);
+      }
+      break;
+    case "Obesidad":
+      /* Obecidad */
+
+      if ($("#transtornoCreci0").val() == 1) {
+        $("#transtornoCreci1").prop("checked", true);
+      } else {
+        $("#transtornoCreci2").prop("checked", true);
+      }
+      break;
+    case "Mentales":
+      /*  Mentales */
+
+      if ($("#neurosis0").val() == 1) {
+        $("#neurosis1").prop("checked", true);
+      } else {
+        $("#neurosis2").prop("checked", true);
+      }
+
+      if ($("#psicosis0").val() == 1) {
+        $("#psicosis1").prop("checked", true);
+      } else {
+        $("#psicosis2").prop("checked", true);
+      }
+
+      if ($("#intentoSuicidio0").val() == 1) {
+        $("#intentoSuicidio1").prop("checked", true);
+      } else {
+        $("#intentoSuicidio2").prop("checked", true);
+      }
+
+      if ($("#esquizo0").val() == 1) {
+        $("#esquizo1").prop("checked", true);
+      } else {
+        $("#esquizo2").prop("checked", true);
+      }
+
+      break;
+    case "Generales":
+      /* Generales */
+
+      if ($("#cancer0").val() == 1) {
+        $("#cancer1").prop("checked", true);
+      } else {
+        $("#cancer2").prop("checked", true);
+      }
+
+      if ($("#alergias0").val() == 1) {
+        $("#alergias1").prop("checked", true);
+      } else {
+        $("#alergias2").prop("checked", true);
+      }
+
+      if ($("#malforma0").val() == 1) {
+        $("#malforma1").prop("checked", true);
+      } else {
+        $("#malforma2").prop("checked", true);
+      }
+      break;
+    case "Otras":
+      /* Otras */
+
+      if ($("#otras0").val() == 1) {
+        $("#otras1").prop("checked", true);
+      } else {
+        $("#otras2").prop("checked", true);
+      }
+      break;
+    case "APNP":
+      break;
+    case "Inmunizaciones":
+      /* Inmunizaciones */
+
+      if ($("#bcgs0").val() == 1) {
+        $("#bcgs1").prop("checked", true);
+      } else {
+        $("#bcgs2").prop("checked", true);
+      }
+
+      if ($("#sabin0").val() == 1) {
+        $("#sabin1").prop("checked", true);
+      } else {
+        $("#sabin2").prop("checked", true);
+      }
+
+      if ($("#dptin0").val() == 1) {
+        $("#dptin1").prop("checked", true);
+      } else {
+        $("#dptin2").prop("checked", true);
+      }
+
+      if ($("#hepatitis0").val() == 1) {
+        $("#hepatitis1").prop("checked", true);
+      } else {
+        $("#hepatitis2").prop("checked", true);
+      }
+
+      if ($("#srinp0").val() == 1) {
+        $("#srinp1").prop("checked", true);
+      } else {
+        $("#srinp2").prop("checked", true);
+      }
+
+      if ($("#influenza0").val() == 1) {
+        $("#influenza1").prop("checked", true);
+      } else {
+        $("#influenza2").prop("checked", true);
+      }
+
+      if ($("#tdinp0").val() == 1) {
+        $("#tdinp1").prop("checked", true);
+      } else {
+        $("#tdinp2").prop("checked", true);
+      }
+      if ($("#covidInp0").val() == 1) {
+        $("#covidInp1").prop("checked", true);
+      } else {
+        $("#covidInp2").prop("checked", true);
+      }
+      break;
+    case "AGO":
+      break;
+    case "APP":
+      var fields = [
+        { inputId: "#ofta", value: $("#ofta0").val() },
+        { inputId: "#astigma", value: $("#astigma0").val() },
+        { inputId: "#prebisia", value: $("#prebisia0").val() },
+        { inputId: "#estra", value: $("#estra0").val() },
+        { inputId: "#dalto", value: $("#dalto0").val() },
+        { inputId: "#desp", value: $("#desp0").val() },
+        { inputId: "#miope", value: $("#miope0").val() },
+        { inputId: "#herns", value: $("#herns0").val() },
+        { inputId: "#cirrosiss", value: $("#cirrosiss0").val() },
+        { inputId: "#colis", value: $("#colis0").val() },
+        { inputId: "#gast", value: $("#gast0").val() },
+        { inputId: "#hemos", value: $("#hemos0").val() },
+        { inputId: "#ciru", value: $("#ciru0").val() },
+        { inputId: "#inconti", value: $("#inconti0").val() },
+        { inputId: "#insufi", value: $("#insufi0").val() },
+        { inputId: "#litia", value: $("#litia0").val() },
+        { inputId: "#aneuri", value: $("#aneuri0").val() },
+        { inputId: "#enfdegneu", value: $("#enfdegneu0").val() },
+        { inputId: "#acccervascu", value: $("#acccervascu0").val() },
+        { inputId: "#epilep", value: $("#epilep0").val() },
+        { inputId: "#parfacil", value: $("#parfacil0").val() },
+        { inputId: "#escoliosi", value: $("#escoliosi0").val() },
+        { inputId: "#xifosis", value: $("#xifosis0").val() },
+        { inputId: "#lordosis", value: $("#lordosis0").val() },
+        { inputId: "#lumbagia", value: $("#lumbagia0").val() },
+        { inputId: "#basculamiento", value: $("#basculamiento0").val() },
+        { inputId: "#altdiscal", value: $("#altdiscal0").val() },
+        { inputId: "#aneurism2", value: $("#aneurism20").val() },
+        { inputId: "#himertensss", value: $("#himertensss0").val() },
+        { inputId: "#hipotensi", value: $("#hipotensi0").val() },
+        { inputId: "#infs", value: $("#infs0").val() },
+        { inputId: "#insfcards", value: $("#insfcards0").val() },
+        { inputId: "#tabaqqq", value: $("#tabaqqq0").val() },
+        { inputId: "#alergiasInp", value: $("#alergiasInp0").val() },
+        { inputId: "#alcohool", value: $("#alcohool0").val() },
+        { inputId: "#grugss", value: $("#grugss0").val() },
+        { inputId: "#altcargs", value: $("#altcargs0").val() },
+        { inputId: "#perfoss", value: $("#perfoss0").val() },
+        { inputId: "#tattoo", value: $("#tattoo0").val() },
+        { inputId: "#diabolica", value: $("#diabolica0").val() },
+        { inputId: "#hipertirones", value: $("#hipertirones0").val() },
+        { inputId: "#superhipo", value: $("#superhipo0").val() },
+      ];
+      fields.forEach(function (field) {
+        var checkedValue = field.value == 1 ? true : false;
+        $(field.inputId + "1").prop("checked", checkedValue);
+        $(field.inputId + "2").prop("checked", !checkedValue);
+      });
+
+      break;
+    case "PA":
+      break;
+    case "IPA&S":
+      break;
+    case "EF":
+      break;
+    case "ERR":
+      break;
+    case "Diagnóstico":
+      break;
+    case "POTE":
+      break;
+    case "RE":
+      if ($("#resExamIn0").val() == 1) {
+        $("#resExamIn1").prop("checked", true);
+      } else if ($("#resExamIn0").val() == 2) {
+        $("#resExamIn2").prop("checked", true);
+      } else if ($("#resExamIn0").val() == 3) {
+        $("#resExamIn3").prop("checked", true);
+      } else if ($("#resExamIn0").val() == 4) {
+        $("#resExamIn4").prop("checked", true);
+      }
+      break;
+
+    default:
+      break;
+  }
+}
+function saveNeurologia() {
+  var data = $("#inputSearchData").val();
+  $.ajax({
+    type: "POST",
+    url: "rest/forms/saveNeurolog.php",
+    data: { data: data },
+    dataType: "html",
+    success: function (response) {
+      console.log(response);
+    },
+  });
+}
+function saveDatsFormHe() {
+  $("#btnSave").html('<i class="fas fa-sync fa-spin">');
+  var nss = $("#inputSearchData").val();
+  var tipoExamenInputO = $("#tipoExamenInputOrg").val();
+  /* cardiopatia */
+  var cardIsq = $("input[name='cardIsq']:checked").val();
+  var cardIsqOBS = $("#cardIsqOBS").val();
+  var hiper = $("input[name='hiper']:checked").val();
+  var hiperOBS = $("#hiperOBS").val();
+  var hipotension = $("input[name='hipotension']:checked").val();
+  var hipotensionObs = $("#hipotensionObs").val();
+  var insuCard = $("input[name='insuCard']:checked").val();
+  var insuCardObs = $("#insuCardObs").val();
+  var insuVasPer = $("input[name='insuVasPer']:checked").val();
+  var insuVasPerObs = $("#insuVasPerObs").val();
+  /* cardiopatia */
+  /* endocrinas */
+  var dm = $("input[name='dm']:checked").val();
+  var dmOBS = $("#dmOBS").val();
+  var hipertirod = $("input[name='hipertirod']:checked").val();
+  var hipertirodOBS = $("#hipertirodOBS").val();
+  var hipotiro = $("input[name='hipotiro']:checked").val();
+  var hipotiroObs = $("#hipotiroObs").val();
+  /* endocrinas */
+  /* mentales */
+  var neurosis = $("input[name='neurosis']:checked").val();
+  var neurosisOBS = $("#neurosisOBS").val();
+  var psicosis = $("input[name='psicosis']:checked").val();
+  var psicosisOBS = $("#psicosisOBS").val();
+  var intentoSuicidio = $("input[name='intentoSuicidio']:checked").val();
+  var intentoSuicidioObs = $("#intentoSuicidioObs").val();
+  var esquizo = $("input[name='esquizo']:checked").val();
+  var esquizoObs = $("#esquizoObs").val();
+  /* mentales */
+  /* nefropatias */
+  var irc = $("input[name='irc']:checked").val();
+  var ircOBS = $("#ircOBS").val();
+  var litiasis = $("input[name='litiasis']:checked").val();
+  var litiasisOBS = $("#litiasisOBS").val();
+  /* nefropatias */
+  /* neumopatía */
+  var bronqui = $("input[name='bronqui']:checked").val();
+  var bronquiOBS = $("#bronquiOBS").val();
+  var tuber = $("input[name='tuber']:checked").val();
+  var tuberOBS = $("#tuberOBS").val();
+  var asma = $("input[name='asma']:checked").val();
+  var asmaObs = $("#asmaObs").val();
+  var insuResp = $("input[name='insuResp']:checked").val();
+  var insuRespObs = $("#insuRespObs").val();
+  /* neumopatía */
+  /* neurologia */
+  var avc = $("#avc").val();
+  var emilepcheck = $("input[name='emilepcheck']:checked").val();
+  var epilepCom = $("#epilepCom").val();
+  var paralisisFac = $("input[name='paralisisFac']:checked").val();
+  var paralisisFacObs = $("#paralisisFacObs").val();
+  var parkinson = $("input[name='parkinson']:checked").val();
+  var parkinsonObs = $("#parkinsonObs").val();
+  var alzheimer = $("input[name='alzheimer']:checked").val();
+  var alzheimerObs = $("#alzheimerObs").val();
+  var migraña = $("input[name='migraña']:checked").val();
+  var migrañaObs = $("#migrañaObs").val();
+  /* neurologia */
+  /* obesidad */
+  var transtornoCreci = $("input[name='transtornoCreci']:checked").val();
+  var transtornoCreciOBS = $("#transtornoCreciOBS").val();
+  /* obesidad */
+  /* toxicologico */
+  var alcoholismo = $("input[name='alcoholismo']:checked").val();
+  var alcoholismoOBS = $("#alcoholismoOBS").val();
+  var tabaquismo = $("input[name='tabaquismo']:checked").val();
+  var tabaquismoOBS = $("#tabaquismoOBS").val();
+  var drogas = $("input[name='drogas']:checked").val();
+  var drogasObs = $("#drogasObs").val();
+  /* generales */
+  var cancer = $("input[name='cancer']:checked").val();
+  var cancerOBS = $("#cancerOBS").val();
+  var alergias = $("input[name='alergias']:checked").val();
+  var alergiasOBS = $("#alergiasOBS").val();
+  var malforma = $("input[name='malforma']:checked").val();
+  var malformaObs = $("#malformaObs").val();
+  /* otras */
+  var otras = $("input[name='otras']:checked").val();
+  var otrasOBS = $("#otrasOBS").val();
+  /* APNP */
+  var habitaInp = $("#habitaInp").val();
+  var NoDorm = $("#NoDorm").val();
+  var NoHabita = $("#NoHabita").val();
+  var pisoInp = $("#pisoInp").val();
+  var techoInp = $("#techoInp").val();
+  var AguaPotable = $("#AguaPotable").val();
+  var LuzInput = $("#LuzInput").val();
+  var Drenajein = $("#Drenajein").val();
+  var CCAIn = $("#CCAIn").val();
+  var AAconIn = $("#AAconIn").val();
+  var ReligionIn = $("#ReligionIn").val();
+  var HPIn = $("#HPIn").val();
+  var BañoIn = $("#BañoIn").val();
+  var CrInp = $("#CrInp").val();
+  var ABInp = $("#ABInp").val();
+  var AlimInp = $("#AlimInp").val();
+  var NCDInp = $("#NCDInp").val();
+  var BalIn = $("#BalIn").val();
+  var SufIn = $("#SufIn").val();
+  var DepIn = $("#DepIn").val();
+  var FCInp1 = $("#FCInp1").val();
+  var HOPInp = $("#HOPInp").val();
+  var FCInp2 = $("#FCInp2").val();
+  /* Inmunizaciones */
+  var bcgs = $("input[name='bcgs']:checked").val();
+  var sabin = $("input[name='sabin']:checked").val();
+  var dptin = $("input[name='dptin']:checked").val();
+  var hepatitis = $("input[name='hepatitis']:checked").val();
+  var srinp = $("input[name='srinp']:checked").val();
+  var influenza = $("input[name='influenza']:checked").val();
+  var tdinp = $("input[name='tdinp']:checked").val();
+  var covidInp = $("#covidInp").val();
+  var fechaInm = $("#fechaInm").val();
+  /* AGO */
+  var MenarcaInp = $("#MenarcaInp").val();
+  var RitmoInp = $("#RitmoInp").val();
+  var IvsaInp = $("#IvsaInp").val();
+  var FumInp = $("#FumInp").val();
+  var GInp = $("#GInp").val();
+  var AInp = $("#AInp").val();
+  var PInp = $("#PInp").val();
+  var CInp = $("#CInp").val();
+  var MdPFInp = $("#MdPFInp").val();
+  var PapanInp = $("#PapanInp").val();
+  var InReInp = $("#InReInp").val();
+  var FupInp = $("#FupInp").val();
+  /* APP */
+  var ENFcONGiNP = $("#ENFcONGiNP").val();
+  var genitals = $("#genitals").val();
+  var enfPropInf = $("#enfPropInf").val();
+  var dermopatics = $("#dermopatics").val();
+  var sisTAudt = $("#sisTAudt").val();
+  var respirInp = $("#respirInp").val();
+  var SisOlfas = $("#SisOlfas").val();
+  var TraumasInp = $("#TraumasInp").val();
+
+  var ofta = $("input[name='ofta']:checked").val();
+  var oftaOBS = $("#oftaOBS").val();
+  var astigma = $("input[name='astigma']:checked").val();
+  var astigmaOBS = $("#astigmaOBS").val();
+  var prebisia = $("input[name='prebisia']:checked").val();
+  var prebisiaOBS = $("#prebisiaOBS").val();
+  var estra = $("input[name='estra']:checked").val();
+  var estraOBS = $("#estraOBS").val();
+  var dalto = $("input[name='dalto']:checked").val();
+  var daltoOBS = $("#daltoOBS").val();
+  var desp = $("input[name='desp']:checked").val();
+  var despOBS = $("#despOBS").val();
+  var miope = $("input[name='miope']:checked").val();
+  var miopeOBS = $("#miopeOBS").val();
+
+  var herns = $("input[name='herns']:checked").val();
+  var hernsOBS = $("#hernsOBS").val();
+  var cirrosiss = $("input[name='cirrosiss']:checked").val();
+  var cirrosissOBS = $("#cirrosissOBS").val();
+  var colis = $("input[name='colis']:checked").val();
+  var colisOBS = $("#colisOBS").val();
+  var gast = $("input[name='gast']:checked").val();
+  var gastOBS = $("#gastOBS").val();
+  var hemos = $("input[name='hemos']:checked").val();
+  var hemosOBS = $("#hemosOBS").val();
+  var ciru = $("input[name='ciru']:checked").val();
+  var ciruOBS = $("#ciruOBS").val();
+
+  var inconti = $("input[name='inconti']:checked").val();
+  var incontiOBS = $("#incontiOBS").val();
+  var insufi = $("input[name='insufi']:checked").val();
+  var insufiOBS = $("#insufiOBS").val();
+  var litia = $("input[name='litia']:checked").val();
+  var litiaOBS = $("#litiaOBS").val();
+
+  var aneuri = $("input[name='aneuri']:checked").val();
+  var aneuriOBS = $("#aneuriOBS").val();
+  var enfdegneu = $("input[name='enfdegneu']:checked").val();
+  var enfdegneuOBS = $("#enfdegneuOBS").val();
+  var acccervascu = $("input[name='acccervascu']:checked").val();
+  var acccervascuOBS = $("#acccervascuOBS").val();
+  var epilep = $("input[name='epilep']:checked").val();
+  var epilepOBS = $("#epilepOBS").val();
+  var parfacil = $("input[name='parfacil']:checked").val();
+  var parfacilOBS = $("#parfacilOBS").val();
+
+  var escoliosi = $("input[name='escoliosi']:checked").val();
+  var escoliosiOBS = $("#escoliosiOBS").val();
+  var xifosis = $("input[name='xifosis']:checked").val();
+  var xifosisOBS = $("#xifosisOBS").val();
+  var lordosis = $("input[name='lordosis']:checked").val();
+  var lordosisOBS = $("#lordosisOBS").val();
+  var lumbagia = $("input[name='lumbagia']:checked").val();
+  var lumbagiaOBS = $("#lumbagiaOBS").val();
+  var basculamiento = $("input[name='basculamiento']:checked").val();
+  var basculamientoOBS = $("#basculamientoOBS").val();
+  var altdiscal = $("input[name='altdiscal']:checked").val();
+  var altdiscalOBS = $("#altdiscalOBS").val();
+
+  var aneurism2 = $("input[name='aneurism2']:checked").val();
+  var aneurism2OBS = $("#aneurism2OBS").val();
+  var himertensss = $("input[name='himertensss']:checked").val();
+  var himertensssOBS = $("#himertensssOBS").val();
+  var hipotensi = $("input[name='hipotensi']:checked").val();
+  var hipotensiOBS = $("#hipotensiOBS").val();
+  var infs = $("input[name='infs']:checked").val();
+  var infsOBS = $("#infsOBS").val();
+  var insfcards = $("input[name='insfcards']:checked").val();
+  var insfcardsOBS = $("#insfcardsOBS").val();
+
+  var tabaqqq = $("input[name='tabaqqq']:checked").val();
+  var tabaqqqOBS = $("#tabaqqqOBS").val();
+  var alcohool = $("input[name='alcohool']:checked").val();
+  var alcohoolOBS = $("#alcohoolOBS").val();
+  var grugss = $("input[name='grugss']:checked").val();
+  var grugssOBS = $("#grugssOBS").val();
+  var altcargs = $("input[name='altcargs']:checked").val();
+  var altcargsOBS = $("#altcargsOBS").val();
+  var perfoss = $("input[name='perfoss']:checked").val();
+  var perfossOBS = $("#perfossOBS").val();
+  var tattoo = $("input[name='tattoo']:checked").val();
+  var tattooOBS = $("#tattooOBS").val();
+  var alergiasInOBS = $("#alergiasInOBS").val();
+  var alergiasInp = $("input[name='alergiasInp']:checked").val();
+
+  var diabolica = $("input[name='diabolica']:checked").val();
+  var diabolicaOBS = $("#diabolicaOBS").val();
+  var hipertirones = $("input[name='hipertirones']:checked").val();
+  var hipertironesOBS = $("#hipertironesOBS").val();
+  var superhipo = $("input[name='superhipo']:checked").val();
+  var superhipoOBS = $("#superhipoOBS").val();
+  /* Padecimiento Actual */
+  var padecimientoActual = $("#padecimientoActual").val();
+  /* INTERROGATORIO POR APARATOS Y SISTEMAS */
+  var interAS = $("#interAS").val();
+  /* Exámen médico */
+  var PESOEXFISINP = $("#PESOEXFISINP").val();
+  var TALLAEXFISINP = $("#TALLAEXFISINP").val();
+  var IMCEXFISINP = $("#IMCEXFISINP").val();
+  var FCEXFISINP = $("#FCEXFISINP").val();
+  var FREXFISINP = $("#FREXFISINP").val();
+  var TAEXFISINP = $("#TAEXFISINP").val();
+  var TEMPEXFISINP = $("#TEMPEXFISINP").val();
+  var STPO2INP = $("#STPO2INP").val();
+  var ECTOMORFICOEXFISINP = $("#ECTOMORFICOEXFISINP").val();
+  var MESOMORFOEXFISINP = $("#MESOMORFOEXFISINP").val();
+  var ENDOMORFICAEXFISINP = $("#ENDOMORFICAEXFISINP").val();
+  var SATISFACCIONEXFISINP = $("#SATISFACCIONEXFISINP").val();
+  var COMP_TRABAJOEXFISINP = $("#COMP_TRABAJOEXFISINP").val();
+  var COMP_ORGANIZACIONEXFISINP = $("#COMP_ORGANIZACIONEXFISINP").val();
+  var TIEMPOEXFISINP = $("#TIEMPOEXFISINP").val();
+  var ESPACIOEXFISINP = $("#ESPACIOEXFISINP").val();
+  var PERSONAEXFISINP = $("#PERSONAEXFISINP").val();
+  var SERENIDADEXFISINP = $("#SERENIDADEXFISINP").val();
+  var INTERESEXFISINP = $("#INTERESEXFISINP").val();
+  var ANTAGONICOEXFISINP = $("#ANTAGONICOEXFISINP").val();
+  var ENTUSIASTAEXFISINP = $("#ENTUSIASTAEXFISINP").val();
+  var ENOJOEXFISINP = $("#ENOJOEXFISINP").val();
+  var HIPOCRITAEXFISINP = $("#HIPOCRITAEXFISINP").val();
+  var ICTERICAEXFISINP = $("#ICTERICAEXFISINP").val();
+  var ANEMICAEXFISINP = $("#ANEMICAEXFISINP").val();
+  var TIROIDEAEXFISINP = $("#TIROIDEAEXFISINP").val();
+  var NOLMAL_FASCIESEXFISINP = $("#NOLMAL_FASCIESEXFISINP").val();
+  var PARKINSONEXFISINP = $("#PARKINSONEXFISINP").val();
+  var HEMIPLEJICOEXFISINP = $("#HEMIPLEJICOEXFISINP").val();
+  var ATAXICAEXFISINP = $("#ATAXICAEXFISINP").val();
+  var HEMIPARESIAEXFISINP = $("#HEMIPARESIAEXFISINP").val();
+  var NORMAL_MARCHAEXFISINP = $("#NORMAL_MARCHAEXFISINP").val();
+  var LENGUAJEEXFISINP = $("#LENGUAJEEXFISINP").val();
+  var CONVER_FLUIDAEXFISINP = $("#CONVER_FLUIDAEXFISINP").val();
+  var COHERENCIA_PALABLASEXFISINP = $("#COHERENCIA_PALABLASEXFISINP").val();
+  var VOZCLARAYFUERTEINP = $("#VOZCLARAYFUERTEINP").val();
+  var OJOSEXFISINP = $("#OJOSEXFISINP").val();
+  var PUPILASEXFISINP = $("#PUPILASEXFISINP").val();
+  var CONJUNTIVASEXFISINP = $("#CONJUNTIVASEXFISINP").val();
+  var REFLEJOSEXFISINP = $("#REFLEJOSEXFISINP").val();
+  var FONDO_OJOEXFISINP = $("#FONDO_OJOEXFISINP").val();
+  var ODEXFISINP = $("#ODEXFISINP").val();
+  var LENTEOJODERECHOEXP = $("#LENTEOJODERECHOEXP").val();
+  var LENTEOJOIZQUIERDOEXP = $("#LENTEOJOIZQUIERDOEXP").val();
+  var ROMBERGEXFIS = $("#ROMBERGEXFIS").val();
+  var OIZEXFISINP = $("#OIZEXFISINP").val();
+  var COLORESEXFISINP = $("#COLORESEXFISINP").val();
+  var CAVIDAD_NASALEXFISINP = $("#CAVIDAD_NASALEXFISINP").val();
+  var MUCOSAEXFISINP = $("#MUCOSAEXFISINP").val();
+  var TABIQUE_NASALEXFISINP = $("#TABIQUE_NASALEXFISINP").val();
+  var OLFATOEXFISINP = $("#OLFATOEXFISINP").val();
+  var CERVICALEXFISINP = $("#CERVICALEXFISINP").val();
+  var DORSALEXFISINP = $("#DORSALEXFISINP").val();
+  var LUMBAREXFISINP = $("#LUMBAREXFISINP").val();
+  var LESIONESEXFISINP = $("#LESIONESEXFISINP").val();
+  var ENCIASEXFISINP = $("#ENCIASEXFISINP").val();
+  var OROIFARINGEEXFISINP = $("#OROIFARINGEEXFISINP").val();
+  var CAEEXFISINP = $("#CAEEXFISINP").val();
+  var MEM_TIMEXCAEEXFISINP = $("#MEM_TIMEXCAEEXFISINP").val();
+  var AGUD_AUDITEXCAEEXFISINP = $("#AGUD_AUDITEXCAEEXFISINP").val();
+  var ODEXCAEEXFISINP = $("#ODEXCAEEXFISINP").val();
+  var OIEXCAEEXFISINP = $("#OIEXCAEEXFISINP").val();
+  var RUIDOS_CARDIACOSEXFISINP = $("#RUIDOS_CARDIACOSEXFISINP").val();
+  var REG_PRECORDIALEXFISINP = $("#REG_PRECORDIALEXFISINP").val();
+  var CAMPOS_PULMEXFISINP = $("#CAMPOS_PULMEXFISINP").val();
+  var DEFORMACIONESEXFISINP = $("#DEFORMACIONESEXFISINP").val();
+  var DOLOREXFISINP = $("#DOLOREXFISINP").val();
+  var MOVIMIENTOSEXFISINP = $("#MOVIMIENTOSEXFISINP").val();
+  var MARCHAEXFISINP = $("#MARCHAEXFISINP").val();
+  var LASSEGUEEXFISINP = $("#LASSEGUEEXFISINP").val();
+  var PUNTA_TALONEXFISINP = $("#PUNTA_TALONEXFISINP").val();
+  var FORMAEXFISINP = $("#FORMAEXFISINP").val();
+  var VISCEROMEGALIASEXFISINP = $("#VISCEROMEGALIASEXFISINP").val();
+  var HERNIASEXFISINP = $("#HERNIASEXFISINP").val();
+  var DOLOREXFISINP = $("#DOLOREXFISINP").val();
+  var PERISTALSISEXFISINP = $("#PERISTALSISEXFISINP").val();
+  var MASCULINOEXFISINP = $("#MASCULINOEXFISINP").val();
+  var FEMENINOEXFISINP = $("#FEMENINOEXFISINP").val();
+  var PUNTOS_URETRALESEXFISINP = $("#PUNTOS_URETRALESEXFISINP").val();
+  var FOSAS_RENALESEXFISINP = $("#FOSAS_RENALESEXFISINP").val();
+  var SUPERIOREXFISINP = $("#SUPERIOREXFISINP").val();
+  var INFERIOREXFISINP = $("#INFERIOREXFISINP").val();
+  var IVPEXFISINP = $("#IVPEXFISINP").val();
+  var EDEMAEXFISINP = $("#EDEMAEXFISINP").val();
+  var LUNARESEXFISINP = $("#LUNARESEXFISINP").val();
+  var PIGMENTACIONEXFISINP = $("#PIGMENTACIONEXFISINP").val();
+  var CICATRICES_QUIRUREXFISINP = $("#CICATRICES_QUIRUREXFISINP").val();
+
+  var DEFORMACIONES_OBSINP = $("#DEFORMACIONES_OBSINP").val();
+  var TIROIDES_OBSINP = $("#TIROIDES_OBSINP").val();
+  var TRAQUEA_OBSINP = $("#TRAQUEA_OBSINP").val();
+
+  var DIENTE_11 = $("#DIENTE_11").val();
+  var DIENTE_12 = $("#DIENTE_12").val();
+  var DIENTE_13 = $("#DIENTE_13").val();
+  var DIENTE_14 = $("#DIENTE_14").val();
+  var DIENTE_15 = $("#DIENTE_15").val();
+  var DIENTE_16 = $("#DIENTE_16").val();
+  var DIENTE_17 = $("#DIENTE_17").val();
+  var DIENTE_18 = $("#DIENTE_18").val();
+  var DIENTE_41 = $("#DIENTE_41").val();
+  var DIENTE_42 = $("#DIENTE_42").val();
+  var DIENTE_43 = $("#DIENTE_43").val();
+  var DIENTE_44 = $("#DIENTE_44").val();
+  var DIENTE_45 = $("#DIENTE_45").val();
+  var DIENTE_46 = $("#DIENTE_46").val();
+  var DIENTE_47 = $("#DIENTE_47").val();
+  var DIENTE_48 = $("#DIENTE_48").val();
+  var DIENTE_2 = $("#DIENTE_2").val();
+  var DIENTE_22 = $("#DIENTE_22").val();
+  var DIENTE_23 = $("#DIENTE_23").val();
+  var DIENTE_24 = $("#DIENTE_24").val();
+  var DIENTE_25 = $("#DIENTE_25").val();
+  var DIENTE_26 = $("#DIENTE_26").val();
+  var DIENTE_27 = $("#DIENTE_27").val();
+  var DIENTE_28 = $("#DIENTE_28").val();
+  var DIENTE_31 = $("#DIENTE_31").val();
+  var DIENTE_32 = $("#DIENTE_32").val();
+  var DIENTE_33 = $("#DIENTE_33").val();
+  var DIENTE_34 = $("#DIENTE_34").val();
+  var DIENTE_35 = $("#DIENTE_35").val();
+  var DIENTE_36 = $("#DIENTE_36").val();
+  var DIENTE_37 = $("#DIENTE_37").val();
+  var DIENTE_38 = $("#DIENTE_38").val();
+
+  var RESULTADOSESYRES = $("#RESULTADOSESYRES").val();
+  var OBSERVACIONESDIAGINP = $("#DIAGNOSTICOINPUT").val();
+  var OBSERVACIONESPLATERINP = $("#OBSERVACIONESPLATERINP").val();
+
+  var resExamIn = $("input[name='resExamIn']:checked").val();
+
+  var FIRMA = $("#draw-dataUrl").val();
+
+  var edad_inicio_laborar = $("#edad_inicio_laborar").val();
+  var cantidad_trabajos = $("#cantidad_trabajos").val();
+  var pension = $("#pension").val();
+
+  var nombre1 = $("#trabajo1_nombre").val();
+  var giro1 = $("#trabajo1_giro").val();
+  var puesto1 = $("#trabajo1_puesto").val();
+  var turno1 = $("#trabajo1_turno").val();
+  var antiguedad1 = $("#trabajo1_antiguedad").val();
+  var salida1 = $("#trabajo1_salida").val();
+  var descripcion1 = $("#trabajo1_descripcion").val();
+  var riesgos1 = $("#trabajo1_riesgos").val();
+  var epp1 = $("#trabajo1_epp").val();
+  var observaciones1 = $("#trabajo1_observaciones").val();
+
+  var nombre2 = $("#trabajo2_nombre").val();
+  var giro2 = $("#trabajo2_giro").val();
+  var puesto2 = $("#trabajo2_puesto").val();
+  var turno2 = $("#trabajo2_turno").val();
+  var antiguedad2 = $("#trabajo2_antiguedad").val();
+  var salida2 = $("#trabajo2_salida").val();
+  var descripcion2 = $("#trabajo2_descripcion").val();
+  var riesgos2 = $("#trabajo2_riesgos").val();
+  var epp2 = $("#trabajo2_epp").val();
+  var observaciones2 = $("#trabajo2_observaciones").val();
+
+  var nombre3 = $("#trabajo3_nombre").val();
+  var giro3 = $("#trabajo3_giro").val();
+  var puesto3 = $("#trabajo3_puesto").val();
+  var turno3 = $("#trabajo3_turno").val();
+  var antiguedad3 = $("#trabajo3_antiguedad").val();
+  var salida3 = $("#trabajo3_salida").val();
+  var descripcion3 = $("#trabajo3_descripcion").val();
+  var riesgos3 = $("#trabajo3_riesgos").val();
+  var epp3 = $("#trabajo3_epp").val();
+  var observaciones3 = $("#trabajo3_observaciones").val();
+
+  var nombre4 = $("#trabajo4_nombre").val();
+  var giro4 = $("#trabajo4_giro").val();
+  var puesto4 = $("#trabajo4_puesto").val();
+  var turno4 = $("#trabajo4_turno").val();
+  var antiguedad4 = $("#trabajo4_antiguedad").val();
+  var salida4 = $("#trabajo4_salida").val();
+  var descripcion4 = $("#trabajo4_descripcion").val();
+  var riesgos4 = $("#trabajo4_riesgos").val();
+  var epp4 = $("#trabajo4_epp").val();
+  var observaciones4 = $("#trabajo4_observaciones").val();
+  var OBSGENERALINPEX = $("#OBSGENERALINPEX").val();
+
+  var ODCAEINPEXP = $("#ODCAEINPEXP").val();
+  var ODMEMTIMINPEXP = $("#ODMEMTIMINPEXP").val();
+  var ODAGAUDIINPEXP = $("#ODAGAUDIINPEXP").val();
+  var OICAEINPEXP = $("#OICAEINPEXP").val();
+  var OIMEMTIMINPEXP = $("#OIMEMTIMINPEXP").val();
+  var OIAGAUDIINPEXP = $("#OIAGAUDIINPEXP").val();
+
+  if ($("#mostrador").val() == 20) {
+    $.ajax({
+      type: "POST",
+      url: "rest/forms/saveFormHeredoFam1.php",
+      data: {
+        nss: nss,
+        tipoExamenInputO: tipoExamenInputO,
+        cardIsq: cardIsq,
+        cardIsqOBS: cardIsqOBS,
+        hiper: hiper,
+        hiperOBS: hiperOBS,
+        hipotension: hipotension,
+        hipotensionObs: hipotensionObs,
+        insuCard: insuCard,
+        insuCardObs: insuCardObs,
+        insuVasPer: insuVasPer,
+        insuVasPerObs: insuVasPerObs,
+        dm: dm,
+        dmOBS: dmOBS,
+        hipertirod: hipertirod,
+        hipertirodOBS: hipertirodOBS,
+        hipotiro: hipotiro,
+        hipotiroObs: hipotiroObs,
+        neurosis: neurosis,
+        neurosisOBS: neurosisOBS,
+        psicosis: psicosis,
+        psicosisOBS: psicosisOBS,
+        intentoSuicidio: intentoSuicidio,
+        intentoSuicidioObs: intentoSuicidioObs,
+        esquizo: esquizo,
+        esquizoObs: esquizoObs,
+        irc: irc,
+        ircOBS: ircOBS,
+        litiasis: litiasis,
+        litiasisOBS: litiasisOBS,
+        bronqui: bronqui,
+        bronquiOBS: bronquiOBS,
+        tuber: tuber,
+        tuberOBS: tuberOBS,
+        asma: asma,
+        asmaObs: asmaObs,
+        insuResp: insuResp,
+        insuRespObs: insuRespObs,
+        avc: avc,
+        emilepcheck: emilepcheck,
+        epilepCom: epilepCom,
+        paralisisFac: paralisisFac,
+        paralisisFacObs: paralisisFacObs,
+        parkinson: parkinson,
+        parkinsonObs: parkinsonObs,
+        alzheimer: alzheimer,
+        alzheimerObs: alzheimerObs,
+        migraña: migraña,
+        migrañaObs: migrañaObs,
+        transtornoCreci: transtornoCreci,
+        transtornoCreciOBS: transtornoCreciOBS,
+        alcoholismo: alcoholismo,
+        alcoholismoOBS: alcoholismoOBS,
+        tabaquismo: tabaquismo,
+        tabaquismoOBS: tabaquismoOBS,
+        drogas: drogas,
+        drogasObs: drogasObs,
+        cancer: cancer,
+        cancerOBS: cancerOBS,
+        alergias: alergias,
+        alergiasOBS: alergiasOBS,
+        malforma: malforma,
+        malformaObs: malformaObs,
+        otras: otras,
+        otrasOBS: otrasOBS,
+        habitaInp: habitaInp,
+        NoDorm: NoDorm,
+        NoHabita: NoHabita,
+        pisoInp: pisoInp,
+        techoInp: techoInp,
+        AguaPotable: AguaPotable,
+        LuzInput: LuzInput,
+        Drenajein: Drenajein,
+        CCAIn: CCAIn,
+        AAconIn: AAconIn,
+        ReligionIn: ReligionIn,
+        HPIn: HPIn,
+        BañoIn: BañoIn,
+        CrInp: CrInp,
+        ABInp: ABInp,
+        AlimInp: AlimInp,
+        NCDInp: NCDInp,
+        BalIn: BalIn,
+        SufIn: SufIn,
+        DepIn: DepIn,
+        FCInp1: FCInp1,
+        HOPInp: HOPInp,
+        FCInp2: FCInp2,
+        bcgs: bcgs,
+        sabin: sabin,
+        dptin: dptin,
+        hepatitis: hepatitis,
+        srinp: srinp,
+        influenza: influenza,
+        tdinp: tdinp,
+        MenarcaInp: MenarcaInp,
+        RitmoInp: RitmoInp,
+        IvsaInp: IvsaInp,
+        FumInp: FumInp,
+        GInp: GInp,
+        AInp: AInp,
+        PInp: PInp,
+        CInp: CInp,
+        MdPFInp: MdPFInp,
+        PapanInp: PapanInp,
+        InReInp: InReInp,
+        FupInp: FupInp,
+        ENFcONGiNP,
+        genitals: genitals,
+        enfPropInf: enfPropInf,
+        dermopatics: dermopatics,
+        sisTAudt: sisTAudt,
+        respirInp: respirInp,
+        SisOlfas: SisOlfas,
+        TraumasInp: TraumasInp,
+        covidInp: covidInp,
+        fechaInm: fechaInm,
+        ofta: ofta,
+        oftaOBS: oftaOBS,
+        astigma: astigma,
+        astigmaOBS: astigmaOBS,
+        prebisia: prebisia,
+        prebisiaOBS: prebisiaOBS,
+        estra: estra,
+        estraOBS: estraOBS,
+        dalto: dalto,
+        daltoOBS: daltoOBS,
+        desp: desp,
+        despOBS: despOBS,
+        miope: miope,
+        miopeOBS: miopeOBS,
+        herns: herns,
+        hernsOBS: hernsOBS,
+        cirrosiss: cirrosiss,
+        cirrosissOBS: cirrosissOBS,
+        colis: colis,
+        colisOBS: colisOBS,
+        gast: gast,
+        gastOBS: gastOBS,
+        hemos: hemos,
+        hemosOBS: hemosOBS,
+        ciru: ciru,
+        ciruOBS: ciruOBS,
+        inconti: inconti,
+        incontiOBS: incontiOBS,
+        insufi: insufi,
+        insufiOBS: insufiOBS,
+        litia: litia,
+        litiaOBS: litiaOBS,
+        aneuri: aneuri,
+        aneuriOBS: aneuriOBS,
+        enfdegneu: enfdegneu,
+        enfdegneuOBS: enfdegneuOBS,
+        acccervascu: acccervascu,
+        acccervascuOBS: acccervascuOBS,
+        epilep: epilep,
+        epilepOBS: epilepOBS,
+        parfacil: parfacil,
+        parfacilOBS: parfacilOBS,
+        escoliosi: escoliosi,
+        escoliosiOBS: escoliosiOBS,
+        xifosis: xifosis,
+        xifosisOBS: xifosisOBS,
+        lordosis: lordosis,
+        lordosisOBS: lordosisOBS,
+        lumbagia: lumbagia,
+        lumbagiaOBS: lumbagiaOBS,
+        basculamiento: basculamiento,
+        basculamientoOBS: basculamientoOBS,
+        altdiscal: altdiscal,
+        altdiscalOBS: altdiscalOBS,
+        aneurism2: aneurism2,
+        aneurism2OBS: aneurism2OBS,
+        himertensss: himertensss,
+        himertensssOBS: himertensssOBS,
+        hipotensi: hipotensi,
+        hipotensiOBS: hipotensiOBS,
+        infs: infs,
+        infsOBS: infsOBS,
+        insfcards: insfcards,
+        insfcardsOBS: insfcardsOBS,
+        tabaqqq: tabaqqq,
+        tabaqqqOBS: tabaqqqOBS,
+        alcohool: alcohool,
+        alcohoolOBS: alcohoolOBS,
+        grugss: grugss,
+        grugssOBS: grugssOBS,
+        altcargs: altcargs,
+        altcargsOBS: altcargsOBS,
+        perfoss: perfoss,
+        perfossOBS: perfossOBS,
+        tattoo: tattoo,
+        tattooOBS: tattooOBS,
+        alergiasInOBS: alergiasInOBS,
+        alergiasInp: alergiasInp,
+        diabolica: diabolica,
+        diabolicaOBS: diabolicaOBS,
+        hipertirones: hipertirones,
+        hipertironesOBS: hipertironesOBS,
+        superhipo: superhipo,
+        superhipoOBS: superhipoOBS,
+        padecimientoActual: padecimientoActual,
+        interAS: interAS,
+        PESOEXFISINP: PESOEXFISINP,
+        TALLAEXFISINP: TALLAEXFISINP,
+        IMCEXFISINP: IMCEXFISINP,
+        FCEXFISINP: FCEXFISINP,
+        FREXFISINP: FREXFISINP,
+        TAEXFISINP: TAEXFISINP,
+        TEMPEXFISINP: TEMPEXFISINP,
+        STPO2INP: STPO2INP,
+        ECTOMORFICOEXFISINP: ECTOMORFICOEXFISINP,
+        MESOMORFOEXFISINP: MESOMORFOEXFISINP,
+        ENDOMORFICAEXFISINP: ENDOMORFICAEXFISINP,
+        SATISFACCIONEXFISINP: SATISFACCIONEXFISINP,
+        COMP_TRABAJOEXFISINP: COMP_TRABAJOEXFISINP,
+        COMP_ORGANIZACIONEXFISINP: COMP_ORGANIZACIONEXFISINP,
+        TIEMPOEXFISINP: TIEMPOEXFISINP,
+        ESPACIOEXFISINP: ESPACIOEXFISINP,
+        PERSONAEXFISINP: PERSONAEXFISINP,
+        SERENIDADEXFISINP: SERENIDADEXFISINP,
+        INTERESEXFISINP: INTERESEXFISINP,
+        ANTAGONICOEXFISINP: ANTAGONICOEXFISINP,
+        ENTUSIASTAEXFISINP: ENTUSIASTAEXFISINP,
+        ENOJOEXFISINP: ENOJOEXFISINP,
+        HIPOCRITAEXFISINP: HIPOCRITAEXFISINP,
+        ICTERICAEXFISINP: ICTERICAEXFISINP,
+        ANEMICAEXFISINP: ANEMICAEXFISINP,
+        TIROIDEAEXFISINP: TIROIDEAEXFISINP,
+        NOLMAL_FASCIESEXFISINP: NOLMAL_FASCIESEXFISINP,
+        PARKINSONEXFISINP: PARKINSONEXFISINP,
+        HEMIPLEJICOEXFISINP: HEMIPLEJICOEXFISINP,
+        ATAXICAEXFISINP: ATAXICAEXFISINP,
+        HEMIPARESIAEXFISINP: HEMIPARESIAEXFISINP,
+        NORMAL_MARCHAEXFISINP: NORMAL_MARCHAEXFISINP,
+        LENGUAJEEXFISINP: LENGUAJEEXFISINP,
+        CONVER_FLUIDAEXFISINP: CONVER_FLUIDAEXFISINP,
+        COHERENCIA_PALABLASEXFISINP: COHERENCIA_PALABLASEXFISINP,
+        VOZCLARAYFUERTEINP: VOZCLARAYFUERTEINP,
+        OJOSEXFISINP: OJOSEXFISINP,
+        PUPILASEXFISINP: PUPILASEXFISINP,
+        CONJUNTIVASEXFISINP: CONJUNTIVASEXFISINP,
+        REFLEJOSEXFISINP: REFLEJOSEXFISINP,
+        FONDO_OJOEXFISINP: FONDO_OJOEXFISINP,
+        ODEXFISINP: ODEXFISINP,
+        LENTEOJODERECHOEXP: LENTEOJODERECHOEXP,
+        LENTEOJOIZQUIERDOEXP: LENTEOJOIZQUIERDOEXP,
+        ROMBERGEXFIS: ROMBERGEXFIS,
+        OIZEXFISINP: OIZEXFISINP,
+        COLORESEXFISINP: COLORESEXFISINP,
+        CAVIDAD_NASALEXFISINP: CAVIDAD_NASALEXFISINP,
+        MUCOSAEXFISINP: MUCOSAEXFISINP,
+        TABIQUE_NASALEXFISINP: TABIQUE_NASALEXFISINP,
+        OLFATOEXFISINP: OLFATOEXFISINP,
+        CERVICALEXFISINP: CERVICALEXFISINP,
+        DORSALEXFISINP: DORSALEXFISINP,
+        LUMBAREXFISINP: LUMBAREXFISINP,
+        LESIONESEXFISINP: LESIONESEXFISINP,
+        ENCIASEXFISINP: ENCIASEXFISINP,
+        OROIFARINGEEXFISINP: OROIFARINGEEXFISINP,
+        CAEEXFISINP: CAEEXFISINP,
+        MEM_TIMEXCAEEXFISINP: MEM_TIMEXCAEEXFISINP,
+        AGUD_AUDITEXCAEEXFISINP: AGUD_AUDITEXCAEEXFISINP,
+        ODEXCAEEXFISINP: ODEXCAEEXFISINP,
+        OIEXCAEEXFISINP: OIEXCAEEXFISINP,
+        RUIDOS_CARDIACOSEXFISINP: RUIDOS_CARDIACOSEXFISINP,
+        REG_PRECORDIALEXFISINP: REG_PRECORDIALEXFISINP,
+        CAMPOS_PULMEXFISINP: CAMPOS_PULMEXFISINP,
+        DEFORMACIONESEXFISINP: DEFORMACIONESEXFISINP,
+        DOLOREXFISINP: DOLOREXFISINP,
+        MOVIMIENTOSEXFISINP: MOVIMIENTOSEXFISINP,
+        MARCHAEXFISINP: MARCHAEXFISINP,
+        LASSEGUEEXFISINP: LASSEGUEEXFISINP,
+        PUNTA_TALONEXFISINP: PUNTA_TALONEXFISINP,
+        FORMAEXFISINP: FORMAEXFISINP,
+        VISCEROMEGALIASEXFISINP: VISCEROMEGALIASEXFISINP,
+        HERNIASEXFISINP: HERNIASEXFISINP,
+        DOLOREXFISINP: DOLOREXFISINP,
+        PERISTALSISEXFISINP: PERISTALSISEXFISINP,
+        MASCULINOEXFISINP: MASCULINOEXFISINP,
+        FEMENINOEXFISINP: FEMENINOEXFISINP,
+        PUNTOS_URETRALESEXFISINP: PUNTOS_URETRALESEXFISINP,
+        FOSAS_RENALESEXFISINP: FOSAS_RENALESEXFISINP,
+        SUPERIOREXFISINP: SUPERIOREXFISINP,
+        INFERIOREXFISINP: INFERIOREXFISINP,
+        IVPEXFISINP: IVPEXFISINP,
+        EDEMAEXFISINP: EDEMAEXFISINP,
+        LUNARESEXFISINP: LUNARESEXFISINP,
+        PIGMENTACIONEXFISINP: PIGMENTACIONEXFISINP,
+        CICATRICES_QUIRUREXFISINP: CICATRICES_QUIRUREXFISINP,
+        DIENTE_11: DIENTE_11,
+        DIENTE_12: DIENTE_12,
+        DIENTE_13: DIENTE_13,
+        DIENTE_14: DIENTE_14,
+        DIENTE_15: DIENTE_15,
+        DIENTE_16: DIENTE_16,
+        DIENTE_17: DIENTE_17,
+        DIENTE_18: DIENTE_18,
+        DIENTE_41: DIENTE_41,
+        DIENTE_42: DIENTE_42,
+        DIENTE_43: DIENTE_43,
+        DIENTE_44: DIENTE_44,
+        DIENTE_45: DIENTE_45,
+        DIENTE_46: DIENTE_46,
+        DIENTE_47: DIENTE_47,
+        DIENTE_48: DIENTE_48,
+        DIENTE_2: DIENTE_2,
+        DIENTE_22: DIENTE_22,
+        DIENTE_23: DIENTE_23,
+        DIENTE_24: DIENTE_24,
+        DIENTE_25: DIENTE_25,
+        DIENTE_26: DIENTE_26,
+        DIENTE_27: DIENTE_27,
+        DIENTE_28: DIENTE_28,
+        DIENTE_31: DIENTE_31,
+        DIENTE_32: DIENTE_32,
+        DIENTE_33: DIENTE_33,
+        DIENTE_34: DIENTE_34,
+        DIENTE_35: DIENTE_35,
+        DIENTE_36: DIENTE_36,
+        DIENTE_37: DIENTE_37,
+        DIENTE_38: DIENTE_38,
+        RESULTADOSESYRES: RESULTADOSESYRES,
+        OBSERVACIONESDIAGINP: OBSERVACIONESDIAGINP,
+        OBSERVACIONESPLATERINP: OBSERVACIONESPLATERINP,
+        DEFORMACIONES_OBSINP: DEFORMACIONES_OBSINP,
+        TIROIDES_OBSINP: TIROIDES_OBSINP,
+        TRAQUEA_OBSINP: TRAQUEA_OBSINP,
+        resExamIn: resExamIn,
+        FIRMA: FIRMA,
+        edad_inicio_laborar: edad_inicio_laborar,
+        cantidad_trabajos: cantidad_trabajos,
+        pension: pension,
+        nombre1: nombre1,
+        giro1: giro1,
+        puesto1: puesto1,
+        turno1: turno1,
+        antiguedad1: antiguedad1,
+        salida1: salida1,
+        descripcion1: descripcion1,
+        riesgos1: riesgos1,
+        epp1: epp1,
+        observaciones1: observaciones1,
+        nombre2: nombre2,
+        giro2: giro2,
+        puesto2: puesto2,
+        turno2: turno2,
+        antiguedad2: antiguedad2,
+        salida2: salida2,
+        descripcion2: descripcion2,
+        riesgos2: riesgos2,
+        epp2: epp2,
+        observaciones2: observaciones2,
+        nombre3: nombre3,
+        giro3: giro3,
+        puesto3: puesto3,
+        turno3: turno3,
+        antiguedad3: antiguedad3,
+        salida3: salida3,
+        descripcion3: descripcion3,
+        riesgos3: riesgos3,
+        epp3: epp3,
+        observaciones3: observaciones3,
+        nombre4: nombre4,
+        giro4: giro4,
+        puesto4: puesto4,
+        turno4: turno4,
+        antiguedad4: antiguedad4,
+        salida4: salida4,
+        descripcion4: descripcion4,
+        riesgos4: riesgos4,
+        epp4: epp4,
+        observaciones4: observaciones4,
+        OBSGENERALINPEX: OBSGENERALINPEX,
+        ODCAEINPEXP: ODCAEINPEXP,
+        ODMEMTIMINPEXP: ODMEMTIMINPEXP,
+        ODAGAUDIINPEXP: ODAGAUDIINPEXP,
+        OICAEINPEXP: OICAEINPEXP,
+        OIMEMTIMINPEXP: OIMEMTIMINPEXP,
+        OIAGAUDIINPEXP: OIAGAUDIINPEXP,
+      },
+      dataType: "html",
+      success: function (response) {
+        $("#btnSave").html('Guardar datos <i class="fas fa-save"></i>');
+        console.log(response);
+        if (response == "Registro aceptado") {
+          $("#mostrador").val(0);
+          let timerInterval;
+          Swal.fire({
+            title: "Guardando cambios",
+            html: "<b></b>",
+            timer: 2000,
+            timerProgressBar: true,
+            didOpen: () => {
+              Swal.showLoading();
+              const b = Swal.getHtmlContainer().querySelector("b");
+              timerInterval = setInterval(() => {
+                b.textContent = Swal.getTimerLeft();
+              }, 100);
+            },
+            willClose: () => {
+              clearInterval(timerInterval);
+            },
+          }).then((result) => {
+            /* Read more about handling dismissals below */
+            if (result.dismiss === Swal.DismissReason.timer) {
+              salvarContactosEmergencia();
+              Swal.fire({
+                icon: "success",
+                title: "Cambios guardados",
+                text: response,
+              });
+            }
+          });
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "Error al procesar cambios",
+            text: response,
+          });
+        }
+      },
+    });
+  } else {
+    $("#btnSave").html('Guardar datos <i class="fas fa-save"></i>');
+
+    Swal.fire({
+      title: "¿Estas de acuerdo con la información?",
+      showDenyButton: true,
+      confirmButtonText: "Guardar",
+      denyButtonText: `Cancelar`,
+    }).then((result) => {
+      /* Read more about isConfirmed, isDenied below */
+      if (result.isConfirmed) {
+        $("#mostrador").val(20);
+        saveDatsFormHe();
+      } else if (result.isDenied) {
+        Swal.fire("Cambios no guardados", "", "info");
+      }
+    });
+  }
+}
+function closeApp() {
+  $.ajax({
+    type: "get",
+    url: "rest/dashboard/closeApp.php",
+    data: "data",
+    dataType: "html",
+    success: function (response) {
+      window.location.reload();
+    },
+  });
+}
+function hideMenu() {
+  if ($("#btnShohHide").val() == "0") {
+    $("#menuHeredoFam").hide();
+    $("#searchResultDiv").hide();
+    $("#btnShohHide").html(
+      'Ver más <i class="far fa-arrow-alt-circle-down"></i>'
+    );
+    $("#btnShohHide").val(1);
+  } else {
+    $("#menuHeredoFam").show();
+    $("#searchResultDiv").show();
+    $("#btnShohHide").html(
+      'Ver menos <i class="far fa-arrow-alt-circle-up"></i>'
+    );
+    $("#btnShohHide").val(0);
+  }
+}
+function showDetailsCons(data) {
+  var nss = $("#inputSearchData").val();
+  $.ajax({
+    type: "POST",
+    url: "rest/dashboard/viewConsultaDetails.php",
+    data: { data: nss, serieId: data },
+    dataType: "html",
+    success: function (response) {
+      $("#respModal").html(response);
+    },
+  });
+}
+function showDetailsIncap(data) {
+  var nss = $("#inputSearchData").val();
+  $.ajax({
+    type: "POST",
+    url: "rest/dashboard/viewIncapDetails.php",
+    data: { data: nss, serieId: data },
+    dataType: "html",
+    success: function (response) {
+      $("#respModal").html(response);
+    },
+  });
+}
+function downloadPDFCons(idSess) {
+  // Cadena Base64 del archivo PDF
+  var base64String = $("#text" + idSess).val();
+
+  // Obtener el tipo MIME del archivo PDF (opcional)
+  var mimeType = "application/pdf";
+
+  // Convertir la cadena Base64 a un arreglo de bytes
+  var byteCharacters = atob(base64String);
+  var byteNumbers = new Array(byteCharacters.length);
+  for (var i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  var byteArray = new Uint8Array(byteNumbers);
+
+  // Crear el objeto Blob a partir del arreglo de bytes
+  var blob = new Blob([byteArray], { type: mimeType });
+
+  // Crear una URL del objeto Blob
+  var url = URL.createObjectURL(blob);
+
+  // Crear un enlace de descarga para el archivo PDF
+  var link = document.createElement("a");
+  link.href = url;
+  link.download = "archivo.pdf";
+
+  // Agregar el enlace al documento y hacer clic en él para descargar el archivo
+  document.body.appendChild(link);
+  link.click();
+
+  // Liberar la URL del objeto Blob
+  var urlDown = URL.revokeObjectURL(url);
+
+  console.log(urlDown);
+}
+
+function incapacidadView() {
+  $.ajax({
+    type: "POST",
+    url: "rest/dashboard/incapacidades.php",
+    data: "data",
+    dataType: "html",
+    success: function (response) {
+      $("#contentDash").html(response);
+    },
+  });
+}
+function changeImcConsult() {
+  // Obtener los valores ingresados por el usuario usando jQuery
+  var peso = parseFloat($("#PesoInput").val());
+  var altura = parseFloat($("#TallaInput").val());
+
+  // Verificar que los valores sean válidos
+  if (isNaN(peso) || isNaN(altura) || peso <= 0 || altura <= 0) {
+    alert("Por favor, ingresa un peso y una altura válidos.");
+    return;
+  }
+
+  // Calcular el IMC
+  var imc = peso / (altura * altura);
+
+  $("#IMCINPUT").val(imc.toFixed(2));
+}
+function salarioxdia() {
+  var salario = parseFloat($("#SalIntegrInp").val());
+  var dia = parseFloat($("#DiasAutInp").val());
+
+  if (isNaN(salario) || isNaN(dia) || salario <= 0 || dia <= 0) {
+    alert("Por favor, ingresa dias y salario válidos.");
+    return;
+  }
+  var costo = salario * dia;
+
+  $("#CostoInp").val(costo.toFixed(2));
+}
+function changeImcExFis() {
+  // Obtener los valores ingresados por el usuario usando jQuery
+  var peso = parseFloat($("#PESOEXFISINP").val());
+  var altura = parseFloat($("#TALLAEXFISINP").val());
+
+  // Verificar que los valores sean válidos
+  if (isNaN(peso) || isNaN(altura) || peso <= 0 || altura <= 0) {
+    alert("Por favor, ingresa un peso y una altura válidos.");
+    return;
+  }
+
+  // Calcular el IMC
+  var imc = peso / (altura * altura);
+
+  $("#IMCEXFISINP").val(imc.toFixed(2));
+}
+function showIcdConsult() {
+  $("#chargeIcdIcon").show();
+  var icd = $("#icdConsult").val();
+  $.ajax({
+    type: "get",
+    url: "rest/icd/showIcd.php",
+    data: { icd: icd },
+    dataType: "html",
+    success: function (response) {
+      $("#chargeIcdIcon").hide();
+      $("#showIcdConsult").html(response);
+    },
+  });
+}
+function addIcdConsMed(data) {
+  $("#filetableICD").hide();
+  var vals = $("#DIAGNOSTICOINPUT").val();
+  $("#DIAGNOSTICOINPUT").val(vals + data);
+}
+function showFirm() {
+  $("#firmaDiv").show();
+}
+function printPdf() {
+  var nss = $("#inputSearchData").val();
+  window.open("pdf/pdfGenerator.php?nss=" + nss, "_blank");
+}
+function openAll() {
+  $("#btnOpenExamp").hide();
+  $(".navarHeredoFam").hide();
+  $(".navarHeredoFam1").hide();
+  $("#moreInfo").hide();
+  $(".exMedModule").hide();
+  $(".loadnav").show();
+  const funciones = [
+    "EXPLAB",
+    "Neurología",
+    "Cardiopatía",
+    "Neumopatía",
+    "Toxicológico",
+    "Nefropatías",
+    "Endocrinas",
+    "Obesidad",
+    "Mentales",
+    "Generales",
+    "Otras",
+    "APNP",
+    "Inmunizaciones",
+    "AGO",
+    "APP",
+    "PA",
+    "IPAYS",
+    "EF",
+    "ERR",
+    "Diagnóstico",
+    "POTE",
+    "RE",
+  ];
+
+  let indice = 0;
+
+  const intervalo = setInterval(function () {
+    if (indice < funciones.length) {
+      viewExpedHeredoFam(funciones[indice]);
+      indice++;
+    } else {
+      clearInterval(intervalo); // Detener el intervalo cuando se hayan ejecutado todas las funciones
+      $(".navarHeredoFam").show();
+      $("#moreInfo").show();
+      $(".exMedModule").show();
+      $(".loadnav").hide();
+      $("#btnSave").show();
+    }
+  }, 3000); // Intervalo de 2 segundos (2000 ms)
+
+  /* autosave(); */
+}
+function irAContenido(contenido) {
+  var elementos = document.getElementsByTagName("h3");
+
+  for (var i = 0; i < elementos.length; i++) {
+    if (elementos[i].textContent.includes(contenido)) {
+      elementos[i].scrollIntoView({ behavior: "smooth", block: "start" });
+      break;
+    }
+  }
+}
+
+function checkinput() {
+  const inputElement = document.querySelector("#resExamIn1");
+  if (inputElement) {
+    saveDatsFormHe();
+  }
+}
+function autosave() {
+  setInterval(checkinput, 300000);
+}
+function erasedocksHEM(nss, idDock) {
+  Swal.fire({
+    title: "¿Realmente quiere borrar éste archivo?",
+    showDenyButton: true,
+    confirmButtonText: "Borrar",
+    denyButtonText: `No borrar`,
+  }).then((result) => {
+    /* Read more about isConfirmed, isDenied below */
+    if (result.isConfirmed) {
+      $.ajax({
+        type: "get",
+        url: "rest/eraseDock.php",
+        data: { iddock: idDock },
+        dataType: "html",
+        success: function (response) {
+          console.log(response);
+          viewFilesExpMedPdf(nss);
+          Swal.fire("Archivo borrado exitosamente!", "", "success");
+        },
+      });
+    } else if (result.isDenied) {
+      Swal.fire("Archivo no borrado", "", "info");
+    }
+  });
+}
+function erasedocksNotaInc(nss, idDock) {
+  Swal.fire({
+    title: "¿Realmente quiere borrar éste archivo?",
+    showDenyButton: true,
+    confirmButtonText: "Borrar",
+    denyButtonText: `No borrar`,
+  }).then((result) => {
+    /* Read more about isConfirmed, isDenied below */
+    if (result.isConfirmed) {
+      $.ajax({
+        type: "get",
+        url: "rest/eraseDock.php",
+        data: { iddock: idDock },
+        dataType: "html",
+        success: function (response) {
+          console.log(response);
+          viewFilesNotaIncPdf(nss);
+          Swal.fire("Archivo borrado exitosamente!", "", "success");
+        },
+      });
+    } else if (result.isDenied) {
+      Swal.fire("Archivo no borrado", "", "info");
+    }
+  });
+}
+function erasedocksNotaMed(nss, idDock) {
+  Swal.fire({
+    title: "¿Realmente quiere borrar éste archivo?",
+    showDenyButton: true,
+    confirmButtonText: "Borrar",
+    denyButtonText: `No borrar`,
+  }).then((result) => {
+    /* Read more about isConfirmed, isDenied below */
+    if (result.isConfirmed) {
+      $.ajax({
+        type: "get",
+        url: "rest/eraseDock.php",
+        data: { iddock: idDock },
+        dataType: "html",
+        success: function (response) {
+          console.log(response);
+          viewFilesNotaMedPdf(nss);
+          Swal.fire("Archivo borrado exitosamente!", "", "success");
+        },
+      });
+    } else if (result.isDenied) {
+      Swal.fire("Archivo no borrado", "", "info");
+    }
+  });
+}
+function erasedocksLAB(nss, idDock) {
+  Swal.fire({
+    title: "¿Realmente quiere borrar éste archivo?",
+    showDenyButton: true,
+    confirmButtonText: "Borrar",
+    denyButtonText: `No borrar`,
+  }).then((result) => {
+    /* Read more about isConfirmed, isDenied below */
+    if (result.isConfirmed) {
+      $.ajax({
+        type: "get",
+        url: "rest/eraseDock.php",
+        data: { iddock: idDock },
+        dataType: "html",
+        success: function (response) {
+          console.log(response);
+          viewFilesLab(nss);
+          Swal.fire("Archivo borrado exitosamente!", "", "success");
+        },
+      });
+    } else if (result.isDenied) {
+      Swal.fire("Archivo no borrado", "", "info");
+    }
+  });
+}
+function checkAvPriv() {
+  var checkBox1 = document.getElementById("exampleCheck1");
+  var checkBox2 = document.getElementById("exampleCheck2");
+  var checkBox3 = document.getElementById("exampleCheck3");
+  var checkBox4 = document.getElementById("exampleCheck4");
+  if (
+    checkBox1.checked &&
+    checkBox2.checked &&
+    checkBox3.checked &&
+    checkBox4.checked
+  ) {
+    $("#modalPriva").modal("hide");
+    var nss = $("#inputSearchData").val();
+    $.ajax({
+      type: "POST",
+      url: "rest/forms/checarPermisoExamenMed.php",
+      data: { nss: nss },
+      dataType: "html",
+      success: function (response) {},
+    });
+  } else {
+    Swal.fire("Por favor, marque los checkbox antes de enviar.", "", "error");
+  }
+}
+function insertDatsPretest() {
+  var nss = $("#inputSearchData").val();
+
+  var cuenta = $("#cuenta").val();
+  var puesto = $("#puesto").val();
+  var agencia = $("#agencia").val();
+  var ape = $("#ape").val();
+  var apm = $("#apm").val();
+  var nom = $("#nom").val();
+  var fechN = $("#fechN").val();
+  var ecivil = $("#ecivil").val();
+  var num_imss = $("#num_imss").val();
+  var tel_personal = $("#tel_personal").val();
+  var tel_casa = $("#tel_casa").val();
+  var contacto_emergencia = $("#contacto_emergencia").val();
+
+  var LHOP = $("input[name='LHOP']:checked").val();
+  var TALMED = $("input[name='TALMED']:checked").val();
+  var SUAA = $("input[name='SUAA']:checked").val();
+  var SAFOPH = $("input[name='SAFOPH']:checked").val();
+  var ESEMB = $("input[name='ESEMB']:checked").val();
+  var PALENF = $("input[name='PALENF']:checked").val();
+  var CONDROG = $("input[name='CONDROG']:checked").val();
+  var TOSIN = $("input[name='TOSIN']:checked").val();
+  var FIEBREIN = $("input[name='FIEBREIN']:checked").val();
+  var DOLOCABINP = $("input[name='DOLOCABINP']:checked").val();
+  var DIFRESP = $("input[name='DIFRESP']:checked").val();
+  var DOLARDGARG = $("input[name='DOLARDGARG']:checked").val();
+  var ESCURRINAZ = $("input[name='ESCURRINAZ']:checked").val();
+  var OJOSROJOS = $("input[name='OJOSROJOS']:checked").val();
+  var DOLMUSART = $("input[name='DOLMUSART']:checked").val();
+
+  var LHOPOBS = $("#LHOPOBS").val();
+  var TALMEDOBS = $("#TALMEDOBS").val();
+  var SUAAOBS = $("#SUAAOBS").val();
+  var SAFOPHOBS = $("#SAFOPHOBS").val();
+  var ESEMBOBS = $("#ESEMBOBS").val();
+  var PALENFOBS = $("#PALENFOBS").val();
+  var CONDROGOBS = $("#CONDROGOBS").val();
+  var TOSINOBS = $("#TOSINOBS").val();
+  var FIEBREINOBS = $("#FIEBREINOBS").val();
+  var DOLOCABINPOBS = $("#DOLOCABINPOBS").val();
+  var DIFRESPOBS = $("#DIFRESPOBS").val();
+  var DOLARDGARGOBS = $("#DOLARDGARGOBS").val();
+  var ESCURRINAZOBS = $("#ESCURRINAZOBS").val();
+  var OJOSROJOSOBS = $("#OJOSROJOSOBS").val();
+  var DOLMUSARTOBS = $("#DOLMUSARTOBS").val();
+  var caso_covid_quien = $("#caso_covid_quien").val();
+  var caso_covid_cuando = $("#caso_covid_cuando").val();
+  var drawdataUrl = $("#draw-dataUrl").val();
+  var calleIn = $("#calleIn").val();
+  var numeroCin = $("#numeroCin").val();
+  var coloniaInp = $("#coloniaInp").val();
+  var delegOmUn = $("#delegOmUn").val();
+  var comentarios_adicionales = $("#comentarios_adicionales").val();
+  var comentarios = $("#comentarios").val();
+  var contactar_a = $("#contactar_a").val();
+  var contacto_emergencia1 = $("#contacto_emergencia1").val();
+  var contactar_a1 = $("#contactar_a1").val();
+
+  Swal.fire({
+    title: "¿Estas de acuerdo con la información?",
+    showDenyButton: true,
+    confirmButtonText: "Guardar",
+    denyButtonText: `Cancelar`,
+  }).then((result) => {
+    /* Read more about isConfirmed, isDenied below */
+    if (result.isConfirmed) {
+      $.ajax({
+        type: "POST",
+        url: "rest/forms/savePretest.php",
+        data: {
+          nss: nss,
+          cuenta: cuenta,
+          puesto: puesto,
+          agencia: agencia,
+          ape: ape,
+          apm: apm,
+          nom: nom,
+          fechN: fechN,
+          ecivil: ecivil,
+          num_imss: num_imss,
+          tel_personal: tel_personal,
+          tel_casa: tel_casa,
+          contacto_emergencia: contacto_emergencia,
+          LHOP: LHOP,
+          TALMED: TALMED,
+          SUAA: SUAA,
+          SAFOPH: SAFOPH,
+          ESEMB: ESEMB,
+          PALENF: PALENF,
+          CONDROG: CONDROG,
+          TOSIN: TOSIN,
+          FIEBREIN: FIEBREIN,
+          DOLOCABINP: DOLOCABINP,
+          DIFRESP: DIFRESP,
+          DOLARDGARG: DOLARDGARG,
+          ESCURRINAZ: ESCURRINAZ,
+          OJOSROJOS: OJOSROJOS,
+          DOLMUSART: DOLMUSART,
+          LHOPOBS: LHOPOBS,
+          TALMEDOBS: TALMEDOBS,
+          SUAAOBS: SUAAOBS,
+          SAFOPHOBS: SAFOPHOBS,
+          ESEMBOBS: ESEMBOBS,
+          PALENFOBS: PALENFOBS,
+          CONDROGOBS: CONDROGOBS,
+          TOSINOBS: TOSINOBS,
+          FIEBREINOBS: FIEBREINOBS,
+          DOLOCABINPOBS: DOLOCABINPOBS,
+          DIFRESPOBS: DIFRESPOBS,
+          DOLARDGARGOBS: DOLARDGARGOBS,
+          ESCURRINAZOBS: ESCURRINAZOBS,
+          OJOSROJOSOBS: OJOSROJOSOBS,
+          DOLMUSARTOBS: DOLMUSARTOBS,
+          caso_covid_quien: caso_covid_quien,
+          caso_covid_cuando: caso_covid_cuando,
+          drawdataUrl: drawdataUrl,
+          calleIn: calleIn,
+          numeroCin: numeroCin,
+          coloniaInp: coloniaInp,
+          delegOmUn: delegOmUn,
+          comentarios_adicionales: comentarios_adicionales,
+          contactar_a: contactar_a,
+          contacto_emergencia1: contacto_emergencia1,
+          contactar_a1: contactar_a1,
+          comentarios: comentarios,
+        },
+        dataType: "html",
+        success: function (response) {
+          console.log(response);
+          Swal.fire("Información Registrada", "", "success");
+        },
+      });
+    } else if (result.isDenied) {
+      Swal.fire("Cambios no guardados", "", "info");
+    }
+  });
+}
+function calcularSalario() {
+  function calcularPagoIncapacidad(
+    tipoIncapacidad,
+    diasIncapacidad,
+    salarioDiario
+  ) {
+    let pagoTotal = 0;
+
+    if (tipoIncapacidad === "enfermedad general") {
+      cambioFechaInc(diasIncapacidad);
+      const valorOriginal = salarioDiario;
+
+      // Calcular el 60% del valor original
+      const sesentaPorCiento = valorOriginal * 0.6;
+      const salarioMinimoDiario = sesentaPorCiento;
+      const diasPagarAl60PorCiento = 4;
+      const diasPagarAl100PorCiento = 10;
+
+      if (diasIncapacidad >= diasPagarAl60PorCiento) {
+        pagoTotal = Math.max(diasIncapacidad * salarioMinimoDiario);
+      } else {
+        pagoTotal = 0;
+      }
+    } else if (
+      tipoIncapacidad === "accidente trayecto" ||
+      tipoIncapacidad === "accidente laboral" ||
+      tipoIncapacidad === "maternidad"
+    ) {
+      cambioFechaInc(diasIncapacidad);
+      pagoTotal = diasIncapacidad * salarioDiario;
+    } else {
+      console.log("Tipo de incapacidad no válido");
+    }
+
+    return pagoTotal;
+  }
+
+  // Ejemplo de uso:
+  traerDias();
+  setTimeout(function () {
+    const salarioDiario = $("#SalIntegrInp").val();
+    const diasIncapacidad = $("#DiasAutInp").val();
+    const tipo = $("#ramoInp").val();
+    var comSal = $("#rubroInput").val();
+    var salarioAjustado = salarioDiario * diasIncapacidad;
+    var salarioAcomu = parseFloat($("#salarioAcomuIn").val());
+    var diasAcumuladas = parseFloat($("#diasAcumuladosInp").val());
+    var nuevosDias = parseFloat(diasIncapacidad);
+    $("#diasAcumuladosInp").val(nuevosDias + diasAcumuladas);
+    if (tipo == "enfermedad_general") {
+      const pagoEnfermedadGeneral = calcularPagoIncapacidad(
+        "enfermedad general",
+        diasIncapacidad,
+        salarioDiario
+      );
+      var pagonuevo = parseFloat(pagoEnfermedadGeneral);
+      $("#CostoInp").val(pagoEnfermedadGeneral);
+      var nuevoAcomu = pagonuevo + salarioAcomu;
+
+      $("#salarioAcomuIn").val(nuevoAcomu);
+      if (comSal === "Interna") {
+        $("#ComplSalaInp").val(salarioAjustado);
+      }
+    } else {
+      const pagoAccidenteMaternidad = calcularPagoIncapacidad(
+        "maternidad",
+        diasIncapacidad,
+        salarioDiario
+      );
+      var pagonuevo = parseFloat(pagoAccidenteMaternidad);
+      $("#CostoInp").val(pagoAccidenteMaternidad);
+      var nuevoAcomu = pagonuevo + salarioAcomu;
+      $("#salarioAcomuIn").val(nuevoAcomu);
+      if (comSal === "Interna") {
+        $("#ComplSalaInp").val(salarioAjustado);
+      }
+    }
+  }, 1000);
+}
+
+function cambioFechaInc(dias) {
+  // Obtener la fecha inicial
+  var fechaInicial;
+  if ($("#fechainiInp").val()) {
+    fechaInicial = new Date($("#fechainiInp").val());
+  } else {
+    fechaInicial = new Date($("#fechainiInpINI").val());
+  }
+
+  // Sumar días
+  fechaInicial.setDate(fechaInicial.getDate() + (dias - 1));
+
+  // Formatear la fecha en el formato YYYY-MM-DD
+  const fechaFinal = fechaInicial.toISOString().split("T")[0];
+
+  // Establecer la fecha final en el campo de fecha final
+  $("#fechaTermInp").val(fechaFinal);
+
+  console.log(fechaFinal);
+}
+function showIncapa() {
+  $("#labelInca").show();
+}
+function tipoInca() {
+  $("#fechainiInpINI").val("");
+  $("#fechainiInp").val("");
+  var selectTipoInca = $("#tipoIncInput").val();
+  if (selectTipoInca == "subsecuente") {
+    $("#labelFechaIn").show();
+    $("#labelFechaInINI").show();
+  } else {
+    $("#labelFechaInINI").show();
+    $("#labelFechaIn").hide();
+  }
+
+  $("#labelSalDiario").show();
+  $("#labelDiasAuth").show();
+  $("#labelFechaTerm").show();
+  $("#labelCosco").show();
+  $("#labelAtribui").show();
+  $("#labelEstadoDic").show();
+  $("#labelGoceSueldo").show();
+  $("#labelCompleSala").show();
+  $("#labelST2").show();
+  $("#labelRubro").show();
+  $("#labelAltat").show();
+  $("#labelFechaAlta").show();
+}
+function salvarContactosEmergencia() {
+  var nss = $("#inputSearchData").val();
+  var nombre1 = $("#ContactEmergenombre1").val();
+  var apellido_paterno1 = $("#ContactEmergeapellido_paterno1").val();
+  var apellido_materno1 = $("#ContactEmergeapellido_materno1").val();
+  var parentesco1 = $("#ContactEmergeparentesco1").val();
+  var telefono1 = $("#ContactEmergetelefono1").val();
+
+  var nombre2 = $("#ContactEmergenombre2").val();
+  var apellido_paterno2 = $("#ContactEmergeapellido_paterno2").val();
+  var apellido_materno2 = $("#ContactEmergeapellido_materno2").val();
+  var parentesco2 = $("#ContactEmergeparentesco2").val();
+  var telefono2 = $("#ContactEmergetelefono2").val();
+
+  var nombre3 = $("#ContactEmergenombre3").val();
+  var apellido_paterno3 = $("#ContactEmergeapellido_paterno3").val();
+  var apellido_materno3 = $("#ContactEmergeapellido_materno3").val();
+  var parentesco3 = $("#ContactEmergeparentesco3").val();
+  var telefono3 = $("#ContactEmergetelefono3").val();
+  var cadaCuandoDep = $("#cadaCuandoDep").val();
+  var cadaCuandoPasa = $("#cadaCuandoPasa").val();
+  var fechaINFLUEN = $("#fechaINFLUEN").val();
+
+  var ODEXFISINPCERC = $("#ODEXFISINPCERC").val();
+  var ODEXFISINPCERCIZQ = $("#ODEXFISINPCERCIZQ").val();
+
+  $.ajax({
+    type: "POST",
+    url: "rest/forms/saveContactosEmergencia.php",
+    data: {
+      nss: nss,
+      nombre1: nombre1,
+      apellido_paterno1: apellido_paterno1,
+      apellido_materno1: apellido_materno1,
+      parentesco1: parentesco1,
+      telefono1: telefono1,
+      nombre2: nombre2,
+      apellido_paterno2: apellido_paterno2,
+      apellido_materno2: apellido_materno2,
+      parentesco2: parentesco2,
+      telefono2: telefono2,
+      nombre3: nombre3,
+      apellido_paterno3: apellido_paterno3,
+      apellido_materno3: apellido_materno3,
+      parentesco3: parentesco3,
+      telefono3: telefono3,
+      cadaCuandoDep: cadaCuandoDep,
+      cadaCuandoPasa: cadaCuandoPasa,
+      fechaINFLUEN: fechaINFLUEN,
+      ODEXFISINPCERC: ODEXFISINPCERC,
+      ODEXFISINPCERCIZQ: ODEXFISINPCERCIZQ,
+    },
+    dataType: "html",
+    success: function (response) {
+      Swal.fire(response);
+    },
+  });
+}
+function generarExcelIncapa() {
+  var ini = $("#fechaInINI").val();
+  var fini = $("#fechaInFINI").val();
+  if (ini && fini) {
+    $.ajax({
+      type: "POST",
+      url: "rest/dashboard/generarExcelIncapa.php",
+      data: { ini: ini, fini: fini },
+      dataType: "json",
+      success: function (response) {
+        if (response) {
+          console.log(response);
+          const ws = XLSX.utils.json_to_sheet(response.Datos);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Datos");
+          XLSX.writeFile(wb, "Datos.xlsx");
+        } else {
+          Swal.fire({
+            title: "Información",
+            text: "No se encontraron datos disponibles.",
+            icon: "question",
+          });
+        }
+      },
+    });
+  } else {
+    Swal.fire({
+      title: "Error",
+      text: "Debe indicar un rango de fechas válidas.",
+      icon: "error",
+    });
+  }
+}

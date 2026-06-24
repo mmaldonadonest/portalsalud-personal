@@ -1,0 +1,61 @@
+<section class="content container-fluid card animate__animated animate__fadeIn">
+  <div class="jumbotron jumbotron-fluid bg-dark" style="border-radius: 12px">
+    <div class="container-fluid">
+      <center>
+        <h3 class="text-white">
+          Resultado de búsqueda <i class="fas fa-search"></i>
+        </h3>
+      </center>
+    </div>
+  </div>
+  <style>
+    .custom-card-img {
+        width: 100%;
+        height: auto;
+        max-height: 180px;
+        object-fit: cover;
+    }
+</style>
+  <div class="container-fluid">
+    <div class="card mb-3">
+      <img class="card-img-top custom-card-img" src="https://images.pexels.com/photos/4058112/pexels-photo-4058112.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Card image cap">
+      <div class="card-body">
+        <div class="row">
+          <div class="col-12">
+            <div class="mb-3" >
+              <h4>Ficha de identificación</h4>
+              <hr>
+          </div>
+          </div>
+          <div class="col-6">
+              <div>
+                 
+                  <div >
+                      <p><strong>Cuenta:</strong> <?=$cuenta?></p>
+                      <p><strong>Nombre:</strong> <?=$nombre?></p>
+                      <p><strong>Apellido Paterno:</strong> <?=$aPaterno?></p>
+                      <p><strong>Apellido Materno:</strong> <?=$aMaterno?></p>
+                      <p><strong>Fecha de Nacimiento:</strong> <?=$fechaNacimiento?></p>
+                      <p><strong>Edad:</strong> <?=$edad?></p>
+                      <p><strong>Sexo:</strong> <?=$direccion?></p>
+                      <p><strong>Estado Civil:</strong> <?=$edoCivil?></p>
+                  </div>
+              </div>
+          </div>
+          <div class="col-6">
+              <div >
+                  <div >
+                      <p><strong>Puesto:</strong> <?=$puesto?></p>
+                      <p><strong>Empresa:</strong> <?=$empresa?></p>
+                      <p><strong>Turno:</strong> <?=$turno?></p>
+                      <p><strong>RFC:</strong> <?=$rfc?></p>
+                      <p><strong>Dirección:</strong> <?=$sexo?></p>
+                      <p><strong>Teléfono:</strong> <?=$telefono?></p>
+                      <p><strong>Teléfono Fijo:</strong> <?=$telefonoF?></p>
+                  </div>
+              </div>
+          </div>
+      </div>
+      </div>
+  </div>
+</section>

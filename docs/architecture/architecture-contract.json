@@ -1,0 +1,187 @@
+{
+  "schemaVersion": "2.0.0",
+  "templateId": "portal-salud-architecture-contract-v2",
+  "repository": "Onest-Development/PORTAL-SALUD",
+  "strictMode": true,
+  "principles": [
+    "separation-of-concerns",
+    "single-responsibility",
+    "secure-by-default",
+    "observability-first",
+    "idempotent-operations",
+    "fail-fast-on-contract-violations"
+  ],
+  "technology": {
+    "java": { "version": 21, "required": true },
+    "springBoot": { "range": ">=3.2 <4.0", "required": true },
+    "database": { "engine": "oracle", "version": "21c", "required": true },
+    "orm": {
+      "provider": "hibernate",
+      "dialect": "org.hibernate.dialect.OracleDialect",
+      "ddlAuto": "none",
+      "openInView": false
+    },
+    "view": { "engine": "thymeleaf", "layout": "fragments", "required": true },
+    "build": { "tool": "maven", "required": true }
+  },
+  "forbiddenTools": {
+    "migrations": ["flyway", "liquibase"]
+  },
+  "requiredDependencies": [
+    "org.springframework.boot:spring-boot-starter-web",
+    "org.springframework.boot:spring-boot-starter-thymeleaf",
+    "org.springframework.boot:spring-boot-starter-data-jpa",
+    "org.springframework.boot:spring-boot-starter-validation",
+    "org.springframework.boot:spring-boot-starter-security",
+    "org.springframework.boot:spring-boot-starter-actuator",
+    "org.springframework.boot:spring-boot-starter-mail",
+    "org.springframework.boot:spring-boot-starter-quartz",
+    "com.oracle.database.jdbc:ojdbc11"
+  ],
+  "architectureStyle": {
+    "type": "modular-monolith",
+    "layers": ["controller", "application", "domain", "infrastructure"],
+    "patterns": [
+      "repository-pattern",
+      "service-layer",
+      "facade-pattern",
+      "strategy-pattern",
+      "factory-pattern",
+      "observer-pattern",
+      "outbox-pattern-for-notifications",
+      "template-method-for-jobs"
+    ]
+  },
+  "mandatoryModules": [
+    "auth",
+    "authorization",
+    "roles-permissions",
+    "audit",
+    "menu",
+    "catalog",
+    "job-scheduler",
+    "mail",
+    "push-notification",
+    "file-management"
+  ],
+  "fileManagementContract": {
+    "storageModel": "metadata-in-db-and-binary-in-filesystem",
+    "requiredPatterns": [
+      "ports-and-adapters",
+      "strategy-for-storage-provider",
+      "factory-for-storage-provider-selection",
+      "transactional-outbox-for-post-upload-events"
+    ],
+    "domainObjects": [
+      "StoredFile",
+      "FileVersion",
+      "FileChecksum",
+      "FileOwnership",
+      "FileAccessPolicy"
+    ],
+    "metadataRequiredFields": [
+      "id",
+      "businessKey",
+      "originalName",
+      "extension",
+      "mimeType",
+      "sizeBytes",
+      "checksumSha256",
+      "storagePath",
+      "storageProvider",
+      "status",
+      "version",
+      "createdAt",
+      "createdBy",
+      "updatedAt",
+      "updatedBy"
+    ],
+    "filesystemRules": {
+      "rootPathByEnv": true,
+      "directorySharding": "yyyy/MM/dd/{first2OfHash}",
+      "filenamePolicy": "uuid-without-original-name",
+      "maxFileSizeMb": 25,
+      "allowedMimeTypes": [
+        "application/pdf",
+        "image/png",
+        "image/jpeg",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      ],
+      "virusScanHook": true,
+      "atomicWrite": true,
+      "tempAndMove": true
+    },
+    "consistencyRules": {
+      "dbRecordCreatedBeforePhysicalMove": false,
+      "recommendedFlow": [
+        "validate",
+        "write-temp-file",
+        "compute-checksum",
+        "move-atomic-to-final-path",
+        "persist-metadata",
+        "emit-domain-event"
+      ],
+      "orphanReconciliationJobRequired": true,
+      "checksumVerificationJobRequired": true
+    },
+    "securityRules": {
+      "downloadAuthorizationRequired": true,
+      "signedUrlOptional": false,
+      "pathTraversalProtection": true,
+      "encryptionAtRestOptional": true,
+      "auditDownloadAndDelete": true
+    },
+    "apiCapabilities": [
+      "upload",
+      "download",
+      "logical-delete",
+      "hard-delete-by-policy",
+      "new-version-upload",
+      "metadata-query"
+    ]
+  },
+  "uiContract": {
+    "templatesRequired": [
+      "templates/layout/base.html",
+      "templates/fragments/head.html",
+      "templates/fragments/header.html",
+      "templates/fragments/sidebar-menu.html",
+      "templates/fragments/footer.html",
+      "templates/fragments/scripts.html",
+      "templates/pages/home/index.html",
+      "templates/pages/auth/login.html",
+      "templates/pages/error/403.html",
+      "templates/pages/error/404.html",
+      "templates/pages/error/500.html"
+    ],
+    "styleSystem": {
+      "scssPattern": "7-1",
+      "tokensRequired": true
+    }
+  },
+  "operationalServices": {
+    "audit": { "required": true, "retentionDays": 365 },
+    "jobs": { "engine": "quartz", "required": true },
+    "mail": { "required": true, "async": true, "retry": true },
+    "push": {
+      "required": true,
+      "desktop": "web-push",
+      "mobile": ["fcm-android", "apns-ios"]
+    }
+  },
+  "qualityGates": {
+    "build": "must-pass",
+    "tests": "must-pass",
+    "minimumCoverage": 70,
+    "securityChecks": [
+      "csrf-enabled",
+      "secure-headers-enabled",
+      "rbac-enforced"
+    ]
+  },
+  "exclusions": {
+    "businessEpics": true,
+    "domainSpecificWorkflows": true,
+    "proprietaryIntegrations": true
+  }
+}

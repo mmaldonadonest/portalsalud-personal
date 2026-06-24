@@ -1,0 +1,130 @@
+%PDF-1.4
+1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 1008] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj
+4 0 obj << /Length 3270 >> stream
+BT
+/F1 14 Tf
+72 970 Td
+(Plan de migracion a marco de trabajo en Java - PORTAL-SALUD) Tj
+0 -24 Td
+/F1 10 Tf
+(Recomendacion: Migrar a Spring Boot 3 con Java 21, arquitectura por capas y API REST.) Tj
+0 -20 Td
+(Fase 0 - Descubrimiento \(1-2 semanas\)) Tj
+0 -14 Td
+(1. Inventario funcional del sistema actual: app/, gestion/, rest/, view/, pdf/, files/.) Tj
+0 -14 Td
+(2. Inventario tecnico: autenticacion, endpoints, base de datos, generacion de PDF.) Tj
+0 -14 Td
+(3. Linea base de metricas: rendimiento, errores y casos criticos de negocio.) Tj
+0 -14 Td
+(Entregable: Documento AS-IS con casos de uso priorizados.) Tj
+0 -20 Td
+(Fase 1 - Arquitectura objetivo \(1 semana\)) Tj
+0 -14 Td
+(1. Stack Java: Spring Boot, Spring Web, Spring Security, Spring Data JPA.) Tj
+0 -14 Td
+(2. Base de datos actual con Flyway para migraciones versionadas.) Tj
+0 -14 Td
+(3. PDF con OpenPDF o iText; documentacion API con OpenAPI/Swagger.) Tj
+0 -14 Td
+(4. Estructura: domain, application, infrastructure, web.) Tj
+0 -14 Td
+(5. Despliegue con Docker y CI/CD en GitHub Actions.) Tj
+0 -14 Td
+(Entregable: Documento TO-BE y decisiones de arquitectura \(ADR\).) Tj
+0 -20 Td
+(Fase 2 - Preparacion del repositorio \(3-5 dias\)) Tj
+0 -14 Td
+(1. Crear backend-java y, si aplica, frontend desacoplado.) Tj
+0 -14 Td
+(2. Inicializar proyecto Spring Boot y perfiles dev/qa/prod.) Tj
+0 -14 Td
+(3. Configurar logging, errores globales y validaciones.) Tj
+0 -14 Td
+(4. Pruebas base con JUnit y Testcontainers.) Tj
+0 -14 Td
+(Entregable: Esqueleto compilable y desplegable.) Tj
+0 -20 Td
+(Fase 3 - Migracion incremental por dominios \(4-10 semanas\)) Tj
+0 -14 Td
+(Estrategia Strangler Fig para convivencia del sistema actual y el nuevo.) Tj
+0 -14 Td
+(Orden sugerido: Autenticacion -> Gestion administrativa -> REST -> PDF -> Vistas.) Tj
+0 -14 Td
+(Por modulo: contratos API, entidades/servicios/repositorios, pruebas y feature flags.) Tj
+0 -14 Td
+(Entregable: Modulos funcionales en Java sin big bang.) Tj
+0 -20 Td
+(Fase 4 - Datos y compatibilidad \(en paralelo\)) Tj
+0 -14 Td
+(1. Mapeo del esquema existente y scripts Flyway.) Tj
+0 -14 Td
+(2. Lectura compartida inicial, escritura controlada y corte progresivo.) Tj
+0 -14 Td
+(3. Validacion de consistencia: conteos y reglas de negocio.) Tj
+0 -14 Td
+(Entregable: Migraciones repetibles y datos consistentes.) Tj
+0 -20 Td
+(Fase 5 - Calidad, seguridad y rendimiento \(2-3 semanas\)) Tj
+0 -14 Td
+(1. Cobertura en servicios criticos y pruebas de contrato/regresion.) Tj
+0 -14 Td
+(2. Pruebas de carga \(k6/JMeter\) y seguridad \(OWASP Top 10\).) Tj
+0 -14 Td
+(3. Observabilidad con Spring Actuator y metricas.) Tj
+0 -14 Td
+(Entregable: Checklist de salida a produccion.) Tj
+0 -20 Td
+(Fase 6 - Cutover y retiro legado \(1-2 semanas\)) Tj
+0 -14 Td
+(1. Despliegue canario o blue-green.) Tj
+0 -14 Td
+(2. Monitoreo intensivo 7-14 dias y plan de rollback probado.) Tj
+0 -14 Td
+(3. Apagado gradual de PHP/JS legado.) Tj
+0 -14 Td
+(Entregable: Sistema productivo operando en Java.) Tj
+0 -20 Td
+(Cronograma estimado: 10-16 semanas en escenario medio; 4-6 meses si hay alta complejidad.) Tj
+0 -20 Td
+(Riesgos y mitigaciones:) Tj
+0 -14 Td
+(- Reglas implicitas en legado: usar pruebas de regresion antes de migrar.) Tj
+0 -14 Td
+(- Contratos REST no documentados: capturar trafico real y formalizar OpenAPI.) Tj
+0 -14 Td
+(- Dependencias ocultas en archivos/PDF: inventario y pruebas E2E.) Tj
+0 -14 Td
+(- Riesgo de big bang: mantener migracion incremental con feature flags.) Tj
+0 -20 Td
+(Equipo minimo sugerido: 1 Tech Lead, 2-3 Backend Java, 1 Frontend, 1 QA, 1 DevOps part-time.) Tj
+0 -20 Td
+(Primeros 5 pasos:) Tj
+0 -14 Td
+(1. Taller de levantamiento funcional.) Tj
+0 -14 Td
+(2. Congelar cambios mayores en legado.) Tj
+0 -14 Td
+(3. Crear backend-java con Spring Boot 3 y Java 21.) Tj
+0 -14 Td
+(4. Documentar endpoints mas usados.) Tj
+0 -14 Td
+(5. Migrar autenticacion como primer vertical.) Tj
+ET
+endstream
+endobj
+5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
+xref
+0 6
+0000000000 65535 f 
+0000000010 00000 n 
+0000000060 00000 n 
+0000000117 00000 n 
+0000000244 00000 n 
+0000003565 00000 n 
+trailer << /Size 6 /Root 1 0 R >>
+startxref
+3635
+%%EOF

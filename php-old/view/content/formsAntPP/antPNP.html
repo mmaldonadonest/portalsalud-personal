@@ -1,0 +1,308 @@
+<form>
+  <div
+    class="container d-flex justify-content-center animate__animated animate__fadeIn"
+  >
+    <div class="row col-8">
+      <fieldset class="row mb-3 col-12 col-md-12">
+        <div class="form-group col-md-6">
+          <label for="habitaInp">Habitación</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$HABITACION?>"
+            name="habitaInp"
+            id="habitaInp"
+            aria-describedby="helpId"
+            placeholder="Habitación"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="NoDorm">No. Dormitorios</label>
+          <input
+            type="number"
+            class="form-control"
+            value="<?=$NO_DORMITORIOS?>"
+            name="NoDorm"
+            id="NoDorm"
+            aria-describedby="helpId"
+            placeholder="No. Dormitorios"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="NoHabita">No. Habitantes</label>
+          <input
+            type="number"
+            class="form-control"
+            value="<?=$NO_HABITANTES?>"
+            name="NoHabita"
+            id="NoHabita"
+            aria-describedby="helpId"
+            placeholder="No. Habitantes"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="pisoInp">Piso</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$PISO?>"
+            name="pisoInp"
+            id="pisoInp"
+            aria-describedby="helpId"
+            placeholder="Piso"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="techoInp">Techo</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$TECHO?>"
+            name="techoInp"
+            id="techoInp"
+            aria-describedby="helpId"
+            placeholder="Techo"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="AguaPotable">Agua potable</label>
+          <select class="form-control" name="AguaPotable" id="AguaPotable">
+            <option
+              value="<?=(is_string($AGUA_POTABLE) && $AGUA_POTABLE === '1') ? '1' : '0';?>"
+            >
+              <?php echo (is_string($AGUA_POTABLE) && $AGUA_POTABLE === '1') ? 'Sí' : 'No'; ?>
+            </option>
+            <option value="<?php echo ($AGUA_POTABLE == 0) ? '1' : '0'; ?>">
+              <?php echo ($AGUA_POTABLE == 0) ? 'Sí' : 'No'; ?>
+            </option>
+          </select>
+        </div>
+        <div class="form-group col-md-6">
+          <label for="LuzInput">Luz</label>
+          <select class="form-control" name="LuzInput" id="LuzInput">
+            <option value="<?=(is_string($LUZ) && $LUZ === '1') ? '1' : '0';?>">
+              <?php echo (is_string($LUZ) && $LUZ === '1') ? 'Sí' : 'No'; ?>
+            </option>
+            <option value="<?php echo ($LUZ == 0) ? '1' : '0'; ?>">
+              <?php echo ($LUZ == 0) ? 'Sí' : 'No'; ?>
+            </option>
+          </select>
+        </div>
+        <div class="form-group col-md-6">
+          <label for="Drenajein">Drenaje</label>
+          <select class="form-control" name="Drenajein" id="Drenajein">
+            <option
+              value="<?=(is_string($DRENAJE) && $DRENAJE === '1') ? '1' : '0';?>"
+            >
+              <?php echo (is_string($DRENAJE) && $DRENAJE === '1') ? 'Sí' : 'No'; ?>
+            </option>
+            <option value="<?php echo ($DRENAJE == 0) ? '1' : '0'; ?>">
+              <?php echo ($DRENAJE == 0) ? 'Sí' : 'No'; ?>
+            </option>
+          </select>
+        </div>
+        <div class="form-group col-md-6">
+          <label for="CCAIn">Convivencia con animales</label>
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$CONVIVENCIA_CON_ANIMALES?>"
+            name="CCAIn"
+            id="CCAIn"
+            aria-describedby="helpId"
+            placeholder="Convivencia con animales"
+          />
+          <small>De ser así, indique cuantos son.</small>
+        </div>
+        <div class="form-group col-md-6">
+          <label for="AAconIn">Aire acondicionado</label>
+          <select class="form-control" name="AAconIn" id="AAconIn">
+            <option
+              value="<?=(is_string($AIRE_ACONDICIONADO) && $AIRE_ACONDICIONADO === '1') ? '1' : '0';?>"
+            >
+              <?php echo (is_string($AIRE_ACONDICIONADO) && $AIRE_ACONDICIONADO === '1') ? 'Sí' : 'No'; ?>
+            </option>
+            <option
+              value="<?php echo ($AIRE_ACONDICIONADO == 0) ? '1' : '0'; ?>"
+            >
+              <?php echo ($AIRE_ACONDICIONADO == 0) ? 'Sí' : 'No'; ?>
+            </option>
+          </select>
+        </div>
+        <div class="form-group col-md-6">
+          <label for="ReligionIn">Religión</label>
+          <input
+            type="text"
+            class="form-control"
+            name="ReligionIn"
+            id="ReligionIn"
+            value="<?=$RELIGION?>"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="HPIn">Higiene personal</label>
+          <select class="form-control" name="HPIn" id="HPIn">
+            <option
+              value="<?=(is_string($HIGIENE_PERSONAL) && $HIGIENE_PERSONAL === '1') ? '1' : '0';?>"
+            >
+              <?php echo (is_string($HIGIENE_PERSONAL) && $HIGIENE_PERSONAL === '1') ? 'Sí' : 'No'; ?>
+            </option>
+            <option value="<?php echo ($HIGIENE_PERSONAL == 0) ? '1' : '0'; ?>">
+              <?php echo ($HIGIENE_PERSONAL == 0) ? 'Sí' : 'No'; ?>
+            </option>
+          </select>
+        </div>
+        <div class="form-group col-md-6">
+          <label for="BañoIn">Baño</label>
+
+          <input
+            type="number"
+            class="form-control"
+            name="BañoIn"
+            id="BañoIn"
+            value="<?=$BAÑO?>"
+          />
+          <small
+            >De ser así, indique con que frecuencia lo hace por semana.</small
+          >
+        </div>
+        <div class="form-group col-md-6">
+          <label for="CrInp">Cambio de ropa</label>
+          <input
+            type="number"
+            class="form-control"
+            name="CrInp"
+            id="CrInp"
+            value="<?=$CAMBIO_DE_ROPA?>"
+          />
+          <small>De ser así, indique con que frecuencia lo hace por dia.</small>
+        </div>
+        <div class="form-group col-md-6">
+          <label for="ABInp">Aseo bucal</label>
+          <input
+            type="number"
+            class="form-control"
+            name="ABInp"
+            id="ABInp"
+            value="<?=$ASEO_BUCAL?>"
+          />
+          <small>De ser así, indique con que frecuencia lo hace por dia.</small>
+        </div>
+        <div class="form-group col-md-6">
+          <label for="AlimInp">Alimentación</label>
+          <select class="form-control" name="AlimInp" id="AlimInp">
+            <option
+              value="<?=(is_string($ALIMENTACION) && $ALIMENTACION === '1') ? '1' : '0';?>"
+            >
+              <?php echo (is_string($ALIMENTACION) && $ALIMENTACION === '1') ? 'Sí' : 'No'; ?>
+            </option>
+            <option value="<?php echo ($ALIMENTACION == 0) ? '1' : '0'; ?>">
+              <?php echo ($ALIMENTACION == 0) ? 'Sí' : 'No'; ?>
+            </option>
+          </select>
+        </div>
+        <div class="form-group col-md-6">
+          <label for="NCDInp">No. de comidas al día</label>
+          <input
+            type="number"
+            class="form-control"
+            value="<?=$NO_COMIDAS_AL_DIA?>"
+            name="NCDInp"
+            id="NCDInp"
+            aria-describedby="helpId"
+            placeholder="No. de comidas al día"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="BalIn">Balanceada</label>
+          <select class="form-control" name="BalIn" id="BalIn">
+            <option
+              value="<?=(is_string($BALANCEADA) && $BALANCEADA === '1') ? '1' : '0';?>"
+            >
+              <?php echo (is_string($BALANCEADA) && $BALANCEADA === '1') ? 'Sí' : 'No'; ?>
+            </option>
+            <option value="<?php echo ($BALANCEADA == 0) ? '1' : '0'; ?>">
+              <?php echo ($BALANCEADA == 0) ? 'Sí' : 'No'; ?>
+            </option>
+          </select>
+        </div>
+        <div class="form-group col-md-6">
+          <label for="SufIn">Suficiente</label>
+          <select class="form-control" name="SufIn" id="SufIn">
+            <option
+              value="<?=(is_string($SUFICIENTE) && $SUFICIENTE === '1') ? '1' : '0';?>"
+            >
+              <?php echo (is_string($SUFICIENTE) && $SUFICIENTE === '1') ?
+               'Sí' : 'No'; ?>
+            </option>
+            <option value="<?php echo ($SUFICIENTE == 0) ? '1' : '0'; ?>">
+              <?php echo ($SUFICIENTE == 0) ? 'Sí' : 'No'; ?>
+            </option>
+          </select>
+        </div>
+        <div class="form-group col-md-6">
+          <label for="DepIn">Deporte</label>
+
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$DEPORTE?>"
+            name="DepIn"
+            id="DepIn"
+            aria-describedby="helpId"
+            placeholder="Deporte"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="FCInp1">Frecuencia</label>
+
+          <input
+            type="number"
+            class="form-control"
+            value="<?=$FC1?>"
+            name="FCInp1"
+            id="FCInp1"
+            aria-describedby="helpId"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Cada cuando</label>
+          <select class="form-control" name="cadaCuandoDep" id="cadaCuandoDep">
+            <?php echo generarOpciones($cadaCuandoDep); ?>
+          </select>
+        </div>
+
+        <div class="form-group col-md-6">
+          <label for="HOPInp">Hobbies o pasatiempos</label>
+
+          <input
+            type="text"
+            class="form-control"
+            value="<?=$HOBBIES_PASATIEMPOS?>"
+            name="HOPInp"
+            id="HOPInp"
+            aria-describedby="helpId"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="FCInp2">Frecuencia</label>
+
+          <input
+            type="number"
+            class="form-control"
+            value="<?=$FC2?>"
+            name="FCInp2"
+            id="FCInp2"
+            aria-describedby="helpId"
+          />
+        </div>
+        <div class="form-group col-md-6">
+          <label for="">Cada cuando</label>
+          <select class="form-control" name="cadaCuandoPasa" id="cadaCuandoPasa">
+            <?php echo generarOpciones($cadaCuandoPasa); ?>
+          </select>
+        </div>
+      </fieldset>
+    </div>
+  </div>
+</form>
