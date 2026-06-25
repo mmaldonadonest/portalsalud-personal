@@ -1,10 +1,17 @@
 <!DOCTYPE html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/auth :: layout(~{::title}, ~{::section}, ~{::th:block[@id='pageScripts']})}">
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="Portal Salud Personal login">
+    <meta name="author" content="Portal Salud Personal">
+    <link rel="shortcut icon" type="image/x-icon" th:href="@{/theme/assets/img/favicon.png}" href="/theme/assets/img/favicon.png">
     <title>Login | Portal Salud Personal</title>
+    <link rel="stylesheet" th:href="@{/theme/lib/remixicon/fonts/remixicon.css}" href="/theme/lib/remixicon/fonts/remixicon.css">
+    <link rel="stylesheet" th:href="@{/theme/assets/css/style.min.css}" href="/theme/assets/css/style.min.css">
 </head>
-<body>
-<section>
+<body class="page-sign d-block py-0">
+
     <div class="row g-0">
         <div class="col-md-7 col-lg-5 col-xl-4 col-wrapper">
             <div class="card card-sign">
@@ -36,16 +43,22 @@
                         <div class="col"><button class="btn btn-google" type="button"><i class="ri-google-fill"></i> Google</button></div>
                     </div>
                 </div>
-                <div class="card-footer">
-                    ¿Necesitas acceso? <a href="javascript:void(0)">Contacta al administrador</a>
-                </div>
             </div>
         </div>
         <div class="col d-none d-lg-block">
             <img th:src="@{/theme/assets/img/bg1.jpg}" src="/theme/assets/img/bg1.jpg" class="auth-img" alt="Portal Salud Personal">
         </div>
     </div>
-</section>
-<th:block id="pageScripts"></th:block>
+
+    <script th:src="@{/theme/lib/jquery/jquery.min.js}" src="/theme/lib/jquery/jquery.min.js"></script>
+    <script th:src="@{/theme/lib/bootstrap/js/bootstrap.bundle.min.js}" src="/theme/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script>
+        'use strict';
+
+        var skinMode = localStorage.getItem('skin-mode');
+        if (skinMode) {
+            $('html').attr('data-skin', 'dark');
+        }
+    </script>
 </body>
 </html>
