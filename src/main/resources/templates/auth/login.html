@@ -9,6 +9,81 @@
     <title>Login | Portal Salud Personal</title>
     <link rel="stylesheet" th:href="@{/theme/lib/remixicon/fonts/remixicon.css}" href="/theme/lib/remixicon/fonts/remixicon.css">
     <link rel="stylesheet" th:href="@{/theme/assets/css/style.min.css}" href="/theme/assets/css/style.min.css">
+    <style>
+        /* ── Fake-slider carousel ─────────────────────────────────── */
+        .auth-carousel {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .auth-slide {
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: center;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+
+        .auth-slide.active {
+            opacity: 1;
+        }
+
+        .auth-slide-overlay {
+            position: absolute;
+            inset: 0;
+        }
+
+        .auth-slide-content {
+            position: absolute;
+            bottom: 80px;
+            left: 0;
+            right: 0;
+            padding: 0 48px;
+            color: #fff;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, .45);
+        }
+
+        .auth-slide-content h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: .5rem;
+        }
+
+        .auth-slide-content p {
+            font-size: 1rem;
+            opacity: .9;
+            margin-bottom: 0;
+        }
+
+        /* Dot indicators */
+        .carousel-dots {
+            position: absolute;
+            bottom: 32px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .carousel-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .5);
+            cursor: pointer;
+            transition: background .3s;
+            border: none;
+            padding: 0;
+        }
+
+        .carousel-dot.active {
+            background: #fff;
+        }
+    </style>
 </head>
 <body class="page-sign d-block py-0">
 
@@ -21,16 +96,19 @@
                     <p class="card-text">Bienvenido nuevamente. Ingresa tu usuario o correo y contraseña para continuar.</p>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-danger" th:if="${param.error}">Credenciales inválidas. Verifica tus datos.</div>
-                    <div class="alert alert-success" th:if="${param.logout}">Tu sesión ha finalizado correctamente.</div>
-                    <form th:action="@{/login}" action="/login" method="post">
+                    <div class="alert alert-danger" th:if="${param.error}" role="alert">Credenciales inválidas. Verifica tus datos.</div>
+                    <div class="alert alert-success" th:if="${param.logout}" role="alert">Tu sesión ha finalizado correctamente.</div>
+                    <form th:action="@{/login}" action="/login" method="post" novalidate>
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                         <div class="mb-4">
                             <label class="form-label" for="username">Usuario o correo</label>
                             <input id="username" name="username" type="text" class="form-control" placeholder="Ingresa tu usuario o correo" required autocomplete="username">
                         </div>
                         <div class="mb-4">
-                            <label class="form-label d-flex justify-content-between" for="password">Contraseña <a href="javascript:void(0)">¿Olvidaste tu contraseña?</a></label>
+                            <label class="form-label d-flex justify-content-between" for="password">
+                                Contraseña
+                                <a href="javascript:void(0)">¿Olvidaste tu contraseña?</a>
+                            </label>
                             <input id="password" name="password" type="password" class="form-control" placeholder="Ingresa tu contraseña" required autocomplete="current-password">
                         </div>
                         <button class="btn btn-primary btn-sign" type="submit">Entrar</button>
@@ -45,8 +123,57 @@
                 </div>
             </div>
         </div>
+
+        <!-- ── Fake-slider cover panel (desktop only) ────────────── -->
         <div class="col d-none d-lg-block">
-            <img th:src="@{/theme/assets/img/bg1.jpg}" src="/theme/assets/img/bg1.jpg" class="auth-img" alt="Portal Salud Personal">
+            <div class="auth-carousel" id="authCarousel"
+                 aria-live="polite" aria-label="Carrusel informativo del portal">
+
+                <div class="auth-slide active" id="authSlide0"
+                     th:style="'background-image: url(' + @{/theme/assets/img/bg1.jpg} + ')'"
+                     style="background-image: url('/theme/assets/img/bg1.jpg')"
+                     role="group" aria-roledescription="diapositiva" aria-label="Diapositiva 1 de 3">
+                    <div class="auth-slide-overlay" style="background: linear-gradient(135deg, rgba(13,110,253,.6) 0%, rgba(0,0,0,.3) 100%);"></div>
+                    <div class="auth-slide-content">
+                        <h2>Tu salud, en tus manos</h2>
+                        <p>Accede a tu historial clínico y citas médicas desde cualquier lugar.</p>
+                    </div>
+                </div>
+
+                <div class="auth-slide" id="authSlide1"
+                     th:style="'background-image: url(' + @{/theme/assets/img/bg2.jpg} + ')'"
+                     style="background-image: url('/theme/assets/img/bg2.jpg')"
+                     role="group" aria-roledescription="diapositiva" aria-label="Diapositiva 2 de 3">
+                    <div class="auth-slide-overlay" style="background: linear-gradient(135deg, rgba(25,135,84,.6) 0%, rgba(0,0,0,.3) 100%);"></div>
+                    <div class="auth-slide-content">
+                        <h2>Seguimiento continuo</h2>
+                        <p>Monitorea tus indicadores de salud y recibe alertas personalizadas.</p>
+                    </div>
+                </div>
+
+                <div class="auth-slide" id="authSlide2"
+                     th:style="'background-image: url(' + @{/theme/assets/img/bg3.jpg} + ')'"
+                     style="background-image: url('/theme/assets/img/bg3.jpg')"
+                     role="group" aria-roledescription="diapositiva" aria-label="Diapositiva 3 de 3">
+                    <div class="auth-slide-overlay" style="background: linear-gradient(135deg, rgba(108,117,125,.6) 0%, rgba(0,0,0,.3) 100%);"></div>
+                    <div class="auth-slide-content">
+                        <h2>Privacidad garantizada</h2>
+                        <p>Tu información médica protegida con los más altos estándares de seguridad.</p>
+                    </div>
+                </div>
+
+                <div class="carousel-dots" role="tablist" aria-label="Diapositivas del carrusel">
+                    <button class="carousel-dot active" type="button" role="tab"
+                            aria-selected="true" aria-label="Diapositiva 1"
+                            aria-controls="authSlide0" data-index="0"></button>
+                    <button class="carousel-dot" type="button" role="tab"
+                            aria-selected="false" aria-label="Diapositiva 2"
+                            aria-controls="authSlide1" data-index="1"></button>
+                    <button class="carousel-dot" type="button" role="tab"
+                            aria-selected="false" aria-label="Diapositiva 3"
+                            aria-controls="authSlide2" data-index="2"></button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -55,10 +182,65 @@
     <script>
         'use strict';
 
+        /* ── Skin mode ─────────────────────────────────────────────── */
         var skinMode = localStorage.getItem('skin-mode');
         if (skinMode) {
-            $('html').attr('data-skin', 'dark');
+            document.documentElement.setAttribute('data-skin', 'dark');
         }
+
+        /* ── Fake-slider carousel ──────────────────────────────────── */
+        (function () {
+            var CAROUSEL_INTERVAL_MS = 5000;
+
+            var carousel  = document.getElementById('authCarousel');
+            var slides    = document.querySelectorAll('#authCarousel .auth-slide');
+            var dots      = document.querySelectorAll('#authCarousel .carousel-dot');
+            if (!slides.length) { return; }
+
+            var current   = 0;
+            var total     = slides.length;
+            var paused    = false;
+            var timer;
+
+            function goTo(index) {
+                slides[current].classList.remove('active');
+                dots[current].classList.remove('active');
+                dots[current].setAttribute('aria-selected', 'false');
+
+                current = (index + total) % total;
+
+                slides[current].classList.add('active');
+                dots[current].classList.add('active');
+                dots[current].setAttribute('aria-selected', 'true');
+            }
+
+            function next() { goTo(current + 1); }
+
+            function startTimer() {
+                timer = setInterval(function () {
+                    if (!paused) { next(); }
+                }, CAROUSEL_INTERVAL_MS);
+            }
+
+            function resetTimer() {
+                clearInterval(timer);
+                startTimer();
+            }
+
+            /* Allow manual navigation via dots */
+            dots.forEach(function (dot) {
+                dot.addEventListener('click', function () {
+                    goTo(parseInt(this.getAttribute('data-index'), 10));
+                    resetTimer();
+                });
+            });
+
+            /* Pause auto-advance when keyboard focus is inside the carousel */
+            carousel.addEventListener('focusin', function () { paused = true; });
+            carousel.addEventListener('focusout', function () { paused = false; });
+
+            startTimer();
+        }());
     </script>
 </body>
 </html>
