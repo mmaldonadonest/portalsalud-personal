@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.time.Year;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -58,9 +59,9 @@ public class ViewModelAdvice {
     }
 
     private String extractRoleName(Authentication authentication) {
-        return authentication.getAuthorities().stream()
-                .findFirst()
+        String roles = authentication.getAuthorities().stream()
                 .map(authority -> authority.getAuthority().replace("ROLE_", ""))
-                .orElse("Usuario");
+                .collect(Collectors.joining(", "));
+        return roles.isBlank() ? "Usuario" : roles;
     }
 }
