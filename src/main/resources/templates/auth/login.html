@@ -19,13 +19,15 @@
         <div class="col-md-7 col-lg-5 col-xl-4 col-wrapper">
             <div class="card card-sign">
                 <div class="card-header">
-                    <a th:href="@{/login}" href="/login" class="header-logo mb-5" th:text="${appName}">Portal Salud Personal</a>
-                    <h3 class="card-title">Iniciar sesión</h3>
-                    <p class="card-text">Bienvenido nuevamente. Ingresa tu usuario o correo y contraseña para continuar.</p>
+                    <a th:href="@{/login}" href="/login" class="header-logo mb-5">
+                        <img th:src="@{/theme/assets/img/logo-onest-smartlogistics.png}" src="/theme/assets/img/logo-onest-smartlogistics.png" alt="Onest Smart Logistics" style="max-height: 48px; width: auto;">
+                    </a>
+                    <h3 class="card-title">Iniciar sesi&oacute;n</h3>
+                    <p class="card-text">Bienvenido nuevamente. Ingresa tu usuario o correo y contrase&ntilde;a para continuar.</p>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-danger" th:if="${param.error}" role="alert">Credenciales inválidas. Verifica tus datos.</div>
-                    <div class="alert alert-success" th:if="${param.logout}" role="alert">Tu sesión ha finalizado correctamente.</div>
+                    <div class="alert alert-danger" th:if="${param.error}" role="alert">Credenciales inv&aacute;lidas. Verifica tus datos.</div>
+                    <div class="alert alert-success" th:if="${param.logout}" role="alert">Tu sesi&oacute;n ha finalizado correctamente.</div>
                     <form th:action="@{/login}" action="/login" method="post" novalidate>
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                         <div class="mb-4">
@@ -34,15 +36,15 @@
                         </div>
                         <div class="mb-4">
                             <label class="form-label d-flex justify-content-between" for="password">
-                                Contraseña
-                                <a href="javascript:void(0)">¿Olvidaste tu contraseña?</a>
+                                Contrase&ntilde;a
+                                <a href="javascript:void(0)">&iquest;Olvidaste tu contrase&ntilde;a?</a>
                             </label>
-                            <input id="password" name="password" type="password" class="form-control" placeholder="Ingresa tu contraseña" required autocomplete="current-password">
+                            <input id="password" name="password" type="password" class="form-control" placeholder="Ingresa tu contrase&ntilde;a" required autocomplete="current-password">
                         </div>
                         <button class="btn btn-primary btn-sign" type="submit">Entrar</button>
                     </form>
 
-                    <div class="divider"><span>o continúa con</span></div>
+                    <div class="divider"><span>o contin&uacute;a con</span></div>
 
                     <div class="row gx-2">
                         <div class="col"><button class="btn btn-facebook" type="button"><i class="ri-facebook-fill"></i> Facebook</button></div>
@@ -52,7 +54,7 @@
             </div>
         </div>
 
-        <!-- ── Fake-slider cover panel (desktop only) ────────────── -->
+        <!-- ── Fake-slider cover panel (desktop only) ──────────────────── -->
         <div class="col d-none d-lg-block">
             <div class="auth-carousel" id="authCarousel"
                  aria-live="polite" aria-label="Carrusel informativo del portal">
@@ -64,7 +66,7 @@
                     <div class="auth-slide-overlay"></div>
                     <div class="auth-slide-content">
                         <h2>Tu salud, en tus manos</h2>
-                        <p>Accede a tu historial clínico y citas médicas desde cualquier lugar.</p>
+                        <p>Accede a tu historial cl&iacute;nico y citas m&eacute;dicas desde cualquier lugar.</p>
                     </div>
                 </div>
 
@@ -86,7 +88,7 @@
                     <div class="auth-slide-overlay"></div>
                     <div class="auth-slide-content">
                         <h2>Privacidad garantizada</h2>
-                        <p>Tu información médica protegida con los más altos estándares de seguridad.</p>
+                        <p>Tu informaci&oacute;n m&eacute;dica protegida con los m&aacute;s altos est&aacute;ndares de seguridad.</p>
                     </div>
                 </div>
 
@@ -110,13 +112,13 @@
     <script>
         'use strict';
 
-        /* ── Skin mode ─────────────────────────────────────────────── */
+        /* ── Skin mode ───────────────────────────────────────────────── */
         var skinMode = localStorage.getItem('skin-mode');
         if (skinMode) {
             document.documentElement.setAttribute('data-skin', 'dark');
         }
 
-        /* ── Fake-slider carousel ──────────────────────────────────── */
+        /* ── Fake-slider carousel ────────────────────────────────────── */
         (function () {
             var CAROUSEL_INTERVAL_MS = 5000;
 

@@ -1,6 +1,8 @@
 <div class="sidebar" xmlns:th="http://www.thymeleaf.org" th:fragment="menu(currentPath)">
     <div class="sidebar-header">
-        <a th:href="@{/home}" href="/home" class="sidebar-logo">portal salud</a>
+        <a th:href="@{/home}" href="/home" class="sidebar-logo">
+            <img th:src="@{/theme/assets/img/logo-onest-smartlogistics.png}" src="/theme/assets/img/logo-onest-smartlogistics.png" alt="Onest Smart Logistics" style="max-height: 40px; width: auto;">
+        </a>
     </div>
     <div id="sidebarMenu" class="sidebar-body">
         <div class="nav-group show">
