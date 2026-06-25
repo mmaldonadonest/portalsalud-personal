@@ -34,9 +34,9 @@ public class SecurityConfiguration {
                         .deleteCookies("JSESSIONID")
                         .permitAll())
                 .headers(headers -> headers
-                        // X-XSS-Protection deshabilitado (header obsoleto; valor 0 es el correcto moderno)
+                        // X-XSS-Protection desactivado (header obsoleto; valor 0 es el correcto moderno)
                         .xssProtection(xss -> xss.disable())
-                        // X-Frame-Options: SAMEORIGIN (permite embeder en mismo origen si fuera necesario)
+                        // X-Frame-Options: SAMEORIGIN (permite embeber en mismo origen si fuera necesario)
                         .frameOptions(frame -> frame.sameOrigin())
                         // CSP: frame-ancestors complementa y reemplaza progresivamente X-Frame-Options
                         .contentSecurityPolicy(csp -> csp
