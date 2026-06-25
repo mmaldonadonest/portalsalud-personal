@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:fragment="layout(pageTitle, content, pageScripts)">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="Portal Salud Personal dashboard">
+    <meta name="author" content="Portal Salud Personal">
+    <link rel="shortcut icon" type="image/x-icon" th:href="@{/theme/assets/img/favicon.png}" href="/theme/assets/img/favicon.png">
+    <title th:replace="${pageTitle}">Portal Salud Personal</title>
+    <link rel="stylesheet" th:href="@{/theme/lib/remixicon/fonts/remixicon.css}" href="/theme/lib/remixicon/fonts/remixicon.css">
+    <link rel="stylesheet" th:href="@{/theme/lib/jqvmap/jqvmap.min.css}" href="/theme/lib/jqvmap/jqvmap.min.css">
+    <link rel="stylesheet" th:href="@{/theme/lib/apexcharts/apexcharts.css}" href="/theme/lib/apexcharts/apexcharts.css">
+    <link rel="stylesheet" th:href="@{/theme/assets/css/style.min.css}" href="/theme/assets/css/style.min.css">
+</head>
+<body>
+<th:block th:replace="~{fragments/menu :: menu(${currentPath})}"></th:block>
+<div class="header-main px-3 px-lg-4">
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+</div>
+<div class="main main-app p-3 p-lg-4">
+    <th:block th:replace="${content}"></th:block>
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+</div>
+<th:block th:replace="~{fragments/scripts :: appScripts(${pageScripts})}"></th:block>
+</body>
+</html>

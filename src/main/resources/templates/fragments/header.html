@@ -1,0 +1,82 @@
+<div xmlns:th="http://www.thymeleaf.org" th:fragment="header">
+    <a id="menuSidebar" href="javascript:void(0)" class="menu-link me-3 me-lg-4"><i class="ri-menu-2-fill"></i></a>
+    <div class="form-search me-auto">
+        <input type="text" class="form-control" placeholder="Search">
+        <i class="ri-search-line"></i>
+    </div>
+
+    <div class="dropdown dropdown-skin">
+        <a href="javascript:void(0)" class="dropdown-link" data-bs-toggle="dropdown" data-bs-auto-close="outside"><i class="ri-settings-3-line"></i></a>
+        <div class="dropdown-menu dropdown-menu-end mt-10-f">
+            <label>Skin Mode</label>
+            <nav id="skinMode" class="nav nav-skin">
+                <a href="javascript:void(0)" class="nav-link active">Light</a>
+                <a href="javascript:void(0)" class="nav-link">Dark</a>
+            </nav>
+            <hr>
+            <label>Sidebar Skin</label>
+            <nav id="sidebarSkin" class="nav nav-skin">
+                <a href="javascript:void(0)" class="nav-link active">Default</a>
+                <a href="javascript:void(0)" class="nav-link">Prime</a>
+                <a href="javascript:void(0)" class="nav-link">Dark</a>
+            </nav>
+            <hr>
+            <label>Direction</label>
+            <nav id="layoutDirection" class="nav nav-skin">
+                <a href="javascript:void(0)" class="nav-link active">LTR</a>
+                <a href="javascript:void(0)" class="nav-link">RTL</a>
+            </nav>
+        </div>
+    </div>
+
+    <div class="dropdown dropdown-notification ms-3 ms-xl-4">
+        <a href="javascript:void(0)" class="dropdown-link" data-bs-toggle="dropdown" data-bs-auto-close="outside"><small th:text="${notificationCount}">0</small><i class="ri-notification-3-line"></i></a>
+        <div class="dropdown-menu dropdown-menu-end mt-10-f me--10-f">
+            <div class="dropdown-menu-header">
+                <h6 class="dropdown-menu-title">Notifications</h6>
+            </div>
+            <ul class="list-group" th:if="${!#lists.isEmpty(notifications)}">
+                <li class="list-group-item" th:each="notification : ${notifications}">
+                    <div class="avatar"><span class="avatar-initial bg-primary" th:text="${notification['initial']} ?: 'N'">N</span></div>
+                    <div class="list-group-body">
+                        <p th:text="${notification['message']} ?: 'Nueva notificación disponible.'">Nueva notificación disponible.</p>
+                        <span th:text="${notification['timestamp']} ?: 'Ahora mismo'">Ahora mismo</span>
+                    </div>
+                </li>
+            </ul>
+            <div class="list-group-item text-center py-4" th:if="${#lists.isEmpty(notifications)}">
+                <span class="text-muted">Sin notificaciones por mostrar.</span>
+            </div>
+            <div class="dropdown-menu-footer"><a href="javascript:void(0)">Show all Notifications</a></div>
+        </div>
+    </div>
+
+    <div class="dropdown dropdown-profile ms-3 ms-xl-4">
+        <a href="javascript:void(0)" class="dropdown-link" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+            <div class="avatar online">
+                <img th:src="${currentUserAvatar}" src="/theme/assets/img/img1.jpg" alt="avatar usuario">
+            </div>
+        </a>
+        <div class="dropdown-menu dropdown-menu-end mt-10-f">
+            <div class="dropdown-menu-body">
+                <div class="avatar avatar-xl online mb-3">
+                    <img th:src="${currentUserAvatar}" src="/theme/assets/img/img1.jpg" alt="avatar usuario">
+                </div>
+                <h5 class="mb-1 text-dark fw-semibold" th:text="${currentUserName}">Usuario del portal</h5>
+                <p class="fs-sm text-secondary" th:text="${currentUserRole}">Perfil pendiente</p>
+
+                <nav class="nav">
+                    <a href="javascript:void(0)"><i class="ri-edit-2-line"></i> Edit Profile</a>
+                    <a href="javascript:void(0)"><i class="ri-profile-line"></i> View Profile</a>
+                </nav>
+                <hr>
+                <nav class="nav">
+                    <a href="javascript:void(0)"><i class="ri-question-line"></i> Help Center</a>
+                    <a href="javascript:void(0)"><i class="ri-lock-line"></i> Privacy Settings</a>
+                    <a href="javascript:void(0)"><i class="ri-user-settings-line"></i> Account Settings</a>
+                    <a th:href="@{/login}" href="/login"><i class="ri-logout-box-r-line"></i> Log Out</a>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>

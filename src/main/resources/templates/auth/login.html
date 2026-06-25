@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/auth :: layout(~{::title}, ~{::section}, ~{::th:block[@id='pageScripts']})}">
+<head>
+    <title>Login | Portal Salud Personal</title>
+</head>
+<body>
+<section>
+    <div class="card card-sign">
+        <div class="card-header">
+            <a th:href="@{/login}" href="/login" class="header-logo mb-4" th:text="${appName}">Portal Salud Personal</a>
+            <h3 class="card-title">Iniciar sesión</h3>
+            <p class="card-text">Bienvenido nuevamente. Ingresa tus credenciales para continuar.</p>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-danger" th:if="${param.error}">Credenciales inválidas. Intenta nuevamente.</div>
+            <div class="alert alert-success" th:if="${param.logout}">Tu sesión ha finalizado correctamente.</div>
+            <form th:action="@{/login}" action="/login" method="post">
+                <div class="mb-4">
+                    <label class="form-label" for="username">Usuario</label>
+                    <input id="username" name="username" type="text" class="form-control" placeholder="Ingresa tu usuario">
+                </div>
+                <div class="mb-4">
+                    <label class="form-label d-flex justify-content-between" for="password">Contraseña <a href="javascript:void(0)">¿Olvidaste tu contraseña?</a></label>
+                    <input id="password" name="password" type="password" class="form-control" placeholder="Ingresa tu contraseña">
+                </div>
+                <button class="btn btn-primary btn-sign" type="submit">Entrar</button>
+            </form>
+
+            <div class="divider"><span>o continúa con</span></div>
+
+            <div class="row gx-2">
+                <div class="col"><button class="btn btn-facebook" type="button"><i class="ri-facebook-fill"></i> Facebook</button></div>
+                <div class="col"><button class="btn btn-google" type="button"><i class="ri-google-fill"></i> Google</button></div>
+            </div>
+        </div>
+        <div class="card-footer">
+            ¿Necesitas acceso? <a href="javascript:void(0)">Contacta al administrador</a>
+        </div>
+    </div>
+</section>
+<th:block id="pageScripts"></th:block>
+</body>
+</html>
