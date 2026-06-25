@@ -1,0 +1,171 @@
+/*
+ * login.css — Estilos específicos de la pantalla de login
+ *
+ * CAUSA RAÍZ DEL BUG VISUAL EN IE11 / EDGE LEGACY
+ * ─────────────────────────────────────────────────
+ * 1. `inset: 0` (shorthand CSS no soportado en IE11) → reemplazado con
+ *    top/right/bottom/left explícitos en .auth-slide y .auth-slide-overlay.
+ * 2. `gap: 8px` en flexbox (.carousel-dots) → no soportado en IE11;
+ *    reemplazado con margin en cada .carousel-dot.
+ * 3. `display: flex` sin prefijos -ms- en .carousel-dots → agregados
+ *    -webkit-box y -ms-flexbox.
+ * 4. `min-height: 100vh` en contenedores flex anidados (IE11 bug) →
+ *    fallback height: 100vh agregado donde corresponde.
+ * 5. Gradientes inline en .auth-slide-overlay → movidos a clases CSS
+ *    para mejor mantenibilidad (IE10+ soporta linear-gradient sin prefijo,
+ *    pero se agrega -webkit- como buena práctica).
+ *
+ * ESTRATEGIA DE DEGRADACIÓN EN IE11 / EDGE LEGACY
+ * ─────────────────────────────────────────────────
+ * El carrusel muestra la primera slide de forma estática (opacity:1 por
+ * clase .active en el HTML). Si el JS de animación falla, el formulario
+ * de login sigue completamente usable y la imagen de fondo decorativa
+ * permanece visible. Las transiciones de opacidad son mejora progresiva.
+ */
+
+/* ═══════════════════════════════════════════════════════════════════
+   Compatibilidad global — complementa style.min.css del tema
+   ═══════════════════════════════════════════════════════════════════ */
+
+body {
+    /* Complementa -webkit-text-size-adjust del tema */
+    text-size-adjust: 100%;
+    /* Complementa print-color-adjust del tema */
+    -webkit-print-color-adjust: exact;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Corrección IE11: min-height en contenedores flex anidados
+   El tema define .page-sign { min-height: 100vh } pero IE11 ignora
+   min-height en ítems de contenedores flex. Se agrega height como
+   fallback; en navegadores modernos min-height sigue prevaleciendo
+   cuando el contenido supera el viewport.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.page-sign {
+    height: 100vh;
+}
+
+.page-sign.d-block .row {
+    height: 100%;
+}
+
+.page-sign.d-block .col-wrapper {
+    height: 100%;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Fake-slider carousel
+   ═══════════════════════════════════════════════════════════════════ */
+
+.auth-carousel {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* IE11: inset:0 reemplazado con propiedades explícitas */
+.auth-slide {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    -webkit-transition: opacity 1s ease-in-out;
+    transition: opacity 1s ease-in-out;
+}
+
+.auth-slide.active {
+    opacity: 1;
+}
+
+/* IE11: inset:0 reemplazado con propiedades explícitas */
+.auth-slide-overlay {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+/* Gradientes de overlay por slide — reemplazan estilos inline */
+#authSlide0 .auth-slide-overlay {
+    background: -webkit-linear-gradient(315deg, rgba(13, 110, 253, .6) 0%, rgba(0, 0, 0, .3) 100%);
+    background: linear-gradient(135deg, rgba(13, 110, 253, .6) 0%, rgba(0, 0, 0, .3) 100%);
+}
+
+#authSlide1 .auth-slide-overlay {
+    background: -webkit-linear-gradient(315deg, rgba(25, 135, 84, .6) 0%, rgba(0, 0, 0, .3) 100%);
+    background: linear-gradient(135deg, rgba(25, 135, 84, .6) 0%, rgba(0, 0, 0, .3) 100%);
+}
+
+#authSlide2 .auth-slide-overlay {
+    background: -webkit-linear-gradient(315deg, rgba(108, 117, 125, .6) 0%, rgba(0, 0, 0, .3) 100%);
+    background: linear-gradient(135deg, rgba(108, 117, 125, .6) 0%, rgba(0, 0, 0, .3) 100%);
+}
+
+.auth-slide-content {
+    position: absolute;
+    bottom: 80px;
+    left: 0;
+    right: 0;
+    padding: 0 48px;
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, .45);
+}
+
+.auth-slide-content h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: .5rem;
+}
+
+.auth-slide-content p {
+    font-size: 1rem;
+    opacity: .9;
+    margin-bottom: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Dot indicators
+   IE11: gap no soportado en flexbox → se usa margin en cada punto.
+   IE11: prefijos flexbox -webkit- y -ms- agregados.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.carousel-dots {
+    position: absolute;
+    bottom: 32px;
+    left: 0;
+    right: 0;
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-pack: center;
+    -ms-flex-pack: center;
+    justify-content: center;
+    /* No se usa gap: usar margin en .carousel-dot para IE11 */
+}
+
+.carousel-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .5);
+    cursor: pointer;
+    -webkit-transition: background .3s;
+    transition: background .3s;
+    border: none;
+    padding: 0;
+    margin: 0 4px;    /* reemplaza gap: 8px del contenedor padre */
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.carousel-dot.active {
+    background: #fff;
+}

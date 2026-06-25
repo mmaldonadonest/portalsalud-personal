@@ -9,6 +9,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 
 @Configuration
 public class SecurityConfiguration {
@@ -31,7 +32,18 @@ public class SecurityConfiguration {
                         .logoutSuccessUrl("/login?logout")
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID")
-                        .permitAll());
+                        .permitAll())
+                .headers(headers -> headers
+                        // X-XSS-Protection desactivado (header obsoleto; valor 0 es el correcto moderno)
+                        .xssProtection(xss -> xss.disable())
+                        // X-Frame-Options: SAMEORIGIN (permite embeber en mismo origen si fuera necesario)
+                        .frameOptions(frame -> frame.sameOrigin())
+                        // CSP: frame-ancestors complementa y reemplaza progresivamente X-Frame-Options
+                        .contentSecurityPolicy(csp -> csp
+                                .policyDirectives("frame-ancestors 'self'"))
+                        // Referrer-Policy: no enviar información del referrer a terceros
+                        .referrerPolicy(referrer -> referrer
+                                .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)));
 
         return http.build();
     }

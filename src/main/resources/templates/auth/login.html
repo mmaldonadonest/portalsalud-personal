@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
+    <!-- IE compatibility: force highest rendering engine -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="Portal Salud Personal login">
@@ -9,81 +11,7 @@
     <title>Login | Portal Salud Personal</title>
     <link rel="stylesheet" th:href="@{/theme/lib/remixicon/fonts/remixicon.css}" href="/theme/lib/remixicon/fonts/remixicon.css">
     <link rel="stylesheet" th:href="@{/theme/assets/css/style.min.css}" href="/theme/assets/css/style.min.css">
-    <style>
-        /* ── Fake-slider carousel ─────────────────────────────────── */
-        .auth-carousel {
-            position: relative;
-            width: 100%;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        .auth-slide {
-            position: absolute;
-            inset: 0;
-            background-size: cover;
-            background-position: center;
-            opacity: 0;
-            transition: opacity 1s ease-in-out;
-        }
-
-        .auth-slide.active {
-            opacity: 1;
-        }
-
-        .auth-slide-overlay {
-            position: absolute;
-            inset: 0;
-        }
-
-        .auth-slide-content {
-            position: absolute;
-            bottom: 80px;
-            left: 0;
-            right: 0;
-            padding: 0 48px;
-            color: #fff;
-            text-shadow: 0 1px 4px rgba(0, 0, 0, .45);
-        }
-
-        .auth-slide-content h2 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            margin-bottom: .5rem;
-        }
-
-        .auth-slide-content p {
-            font-size: 1rem;
-            opacity: .9;
-            margin-bottom: 0;
-        }
-
-        /* Dot indicators */
-        .carousel-dots {
-            position: absolute;
-            bottom: 32px;
-            left: 0;
-            right: 0;
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .carousel-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, .5);
-            cursor: pointer;
-            transition: background .3s;
-            border: none;
-            padding: 0;
-        }
-
-        .carousel-dot.active {
-            background: #fff;
-        }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/login.css}" href="/css/login.css">
 </head>
 <body class="page-sign d-block py-0">
 
@@ -133,7 +61,7 @@
                      th:style="'background-image: url(' + @{/theme/assets/img/bg1.jpg} + ')'"
                      style="background-image: url('/theme/assets/img/bg1.jpg')"
                      role="group" aria-roledescription="diapositiva" aria-label="Diapositiva 1 de 3">
-                    <div class="auth-slide-overlay" style="background: linear-gradient(135deg, rgba(13,110,253,.6) 0%, rgba(0,0,0,.3) 100%);"></div>
+                    <div class="auth-slide-overlay"></div>
                     <div class="auth-slide-content">
                         <h2>Tu salud, en tus manos</h2>
                         <p>Accede a tu historial clínico y citas médicas desde cualquier lugar.</p>
@@ -144,7 +72,7 @@
                      th:style="'background-image: url(' + @{/theme/assets/img/bg2.jpg} + ')'"
                      style="background-image: url('/theme/assets/img/bg2.jpg')"
                      role="group" aria-roledescription="diapositiva" aria-label="Diapositiva 2 de 3">
-                    <div class="auth-slide-overlay" style="background: linear-gradient(135deg, rgba(25,135,84,.6) 0%, rgba(0,0,0,.3) 100%);"></div>
+                    <div class="auth-slide-overlay"></div>
                     <div class="auth-slide-content">
                         <h2>Seguimiento continuo</h2>
                         <p>Monitorea tus indicadores de salud y recibe alertas personalizadas.</p>
@@ -155,7 +83,7 @@
                      th:style="'background-image: url(' + @{/theme/assets/img/bg3.jpg} + ')'"
                      style="background-image: url('/theme/assets/img/bg3.jpg')"
                      role="group" aria-roledescription="diapositiva" aria-label="Diapositiva 3 de 3">
-                    <div class="auth-slide-overlay" style="background: linear-gradient(135deg, rgba(108,117,125,.6) 0%, rgba(0,0,0,.3) 100%);"></div>
+                    <div class="auth-slide-overlay"></div>
                     <div class="auth-slide-content">
                         <h2>Privacidad garantizada</h2>
                         <p>Tu información médica protegida con los más altos estándares de seguridad.</p>
@@ -228,12 +156,14 @@
             }
 
             /* Allow manual navigation via dots */
-            dots.forEach(function (dot) {
-                dot.addEventListener('click', function () {
-                    goTo(parseInt(this.getAttribute('data-index'), 10));
-                    resetTimer();
-                });
-            });
+            for (var i = 0; i < dots.length; i++) {
+                (function (dot) {
+                    dot.addEventListener('click', function () {
+                        goTo(parseInt(this.getAttribute('data-index'), 10));
+                        resetTimer();
+                    });
+                }(dots[i]));
+            }
 
             /* Pause auto-advance when keyboard focus is inside the carousel */
             carousel.addEventListener('focusin', function () { paused = true; });
