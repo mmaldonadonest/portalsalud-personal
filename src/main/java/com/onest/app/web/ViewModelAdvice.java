@@ -29,35 +29,38 @@ public class ViewModelAdvice {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken) {
-            attributes.put("currentUserName", "Usuario del portal");
-            attributes.put("currentUserRole", "Perfil pendiente");
-            attributes.put("currentUserAvatar", DEFAULT_AVATAR);
+            setDefaultUserAttributes(attributes);
             return;
         }
 
         Object principal = authentication.getPrincipal();
         if (principal instanceof PortalUserPrincipal userPrincipal) {
             attributes.put("currentUserName", userPrincipal.getDisplayName());
-            attributes.put("currentUserRole", authentication.getAuthorities().stream()
-                    .findFirst()
-                    .map(authority -> authority.getAuthority().replace("ROLE_", ""))
-                    .orElse("Usuario"));
+            attributes.put("currentUserRole", extractRoleName(authentication));
             attributes.put("currentUserAvatar", userPrincipal.getAvatar());
             return;
         }
 
         if (principal instanceof UserDetails userDetails) {
             attributes.put("currentUserName", userDetails.getUsername());
-            attributes.put("currentUserRole", authentication.getAuthorities().stream()
-                    .findFirst()
-                    .map(authority -> authority.getAuthority().replace("ROLE_", ""))
-                    .orElse("Usuario"));
+            attributes.put("currentUserRole", extractRoleName(authentication));
             attributes.put("currentUserAvatar", DEFAULT_AVATAR);
             return;
         }
 
+        setDefaultUserAttributes(attributes);
+    }
+
+    private void setDefaultUserAttributes(Map<String, Object> attributes) {
         attributes.put("currentUserName", "Usuario del portal");
         attributes.put("currentUserRole", "Perfil pendiente");
         attributes.put("currentUserAvatar", DEFAULT_AVATAR);
+    }
+
+    private String extractRoleName(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+                .findFirst()
+                .map(authority -> authority.getAuthority().replace("ROLE_", ""))
+                .orElse("Usuario");
     }
 }
