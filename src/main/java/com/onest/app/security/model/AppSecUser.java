@@ -40,7 +40,7 @@ public class AppSecUser {
     @Column(name = "ACTIVE", nullable = false)
     private String active;
 
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "APP_SEC_USER_ROLE",
             joinColumns = @JoinColumn(name = "USER_ID"),

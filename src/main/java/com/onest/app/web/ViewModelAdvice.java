@@ -24,14 +24,14 @@ public class ViewModelAdvice {
         attributes.put("appName", "Portal Salud Personal");
         attributes.put("currentPath", request.getRequestURI());
         attributes.put("currentYear", Year.now().getValue());
-        attributes.put("currentUserName", "Usuario del portal");
-        attributes.put("currentUserRole", "Perfil pendiente");
-        attributes.put("currentUserAvatar", DEFAULT_AVATAR);
         attributes.putIfAbsent("notificationCount", 0);
         attributes.putIfAbsent("notifications", List.of());
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken) {
+            attributes.put("currentUserName", "Usuario del portal");
+            attributes.put("currentUserRole", "Perfil pendiente");
+            attributes.put("currentUserAvatar", DEFAULT_AVATAR);
             return;
         }
 
@@ -52,6 +52,12 @@ public class ViewModelAdvice {
                     .findFirst()
                     .map(authority -> authority.getAuthority().replace("ROLE_", ""))
                     .orElse("Usuario"));
+            attributes.put("currentUserAvatar", DEFAULT_AVATAR);
+            return;
         }
+
+        attributes.put("currentUserName", "Usuario del portal");
+        attributes.put("currentUserRole", "Perfil pendiente");
+        attributes.put("currentUserAvatar", DEFAULT_AVATAR);
     }
 }

@@ -3,7 +3,6 @@ package com.onest.app.security.service;
 import com.onest.app.security.model.AppSecUser;
 import com.onest.app.security.repository.AppSecUserRepository;
 import java.util.List;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -26,9 +25,8 @@ public class PortalUserDetailsService implements UserDetailsService {
         AppSecUser user = userRepository.findActiveByIdentifier(identifier)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
 
-        List<GrantedAuthority> authorities = user.getRoles().stream()
+        List<SimpleGrantedAuthority> authorities = user.getRoles().stream()
                 .map(role -> new SimpleGrantedAuthority(role.getCode()))
-                .map(GrantedAuthority.class::cast)
                 .toList();
 
         String displayName = user.getDisplayName();
