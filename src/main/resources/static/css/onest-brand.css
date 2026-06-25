@@ -1,0 +1,99 @@
+/* Variables corporativas Onest Smart Logistics */
+:root {
+    --onest-blue: #0057A8;
+    --onest-blue-dark: #004080;
+    --onest-blue-light: #1a72c4;
+    --onest-blue-hover: #004494;
+    --onest-blue-focus-shadow: rgba(0, 87, 168, 0.25);
+}
+
+/* Override btn-primary con azul corporativo */
+.btn-primary {
+    background-color: var(--onest-blue);
+    border-color: var(--onest-blue);
+    color: #fff;
+}
+
+.btn-primary:hover,
+.btn-primary:active,
+.btn-primary.active {
+    background-color: var(--onest-blue-dark);
+    border-color: var(--onest-blue-dark);
+}
+
+.btn-primary:focus,
+.btn-primary:focus-visible {
+    background-color: var(--onest-blue-hover);
+    border-color: var(--onest-blue-hover);
+    box-shadow: 0 0 0 0.25rem var(--onest-blue-focus-shadow);
+}
+
+/* Sidebar header background */
+.sidebar-header {
+    background-color: var(--onest-blue);
+}
+
+/* Active nav links */
+.nav-sidebar .nav-link.active,
+.nav-sidebar .nav-link:hover {
+    color: var(--onest-blue);
+}
+
+/* Header-main top bar */
+.header-main {
+    border-bottom: 2px solid var(--onest-blue);
+}
+
+/* Footer */
+.main-footer {
+    background-color: var(--onest-blue);
+    color: #fff;
+}
+
+.main-footer a {
+    color: #cce0f5;
+}
+
+/* Form focus rings */
+.form-control:focus {
+    border-color: var(--onest-blue);
+    box-shadow: 0 0 0 0.25rem var(--onest-blue-focus-shadow);
+}
+
+/* Links */
+a {
+    color: var(--onest-blue);
+}
+
+a:hover {
+    color: var(--onest-blue-dark);
+}
+
+/* btn-sign override (login page) */
+.btn-sign {
+    background-color: var(--onest-blue);
+    border-color: var(--onest-blue);
+    color: #fff;
+}
+
+.btn-sign:hover {
+    background-color: var(--onest-blue-dark);
+    border-color: var(--onest-blue-dark);
+}
+
+.btn-sign:focus {
+    box-shadow: 0 0 0 0.25rem var(--onest-blue-focus-shadow);
+}
+
+/* Carousel overlay slide 0 con azul corporativo */
+#authSlide0 .auth-slide-overlay {
+    background: linear-gradient(135deg, rgba(0, 87, 168, 0.65) 0%, rgba(0, 0, 0, 0.3) 100%);
+}
+
+#authSlide1 .auth-slide-overlay {
+    background: linear-gradient(135deg, rgba(0, 64, 128, 0.65) 0%, rgba(0, 0, 0, 0.3) 100%);
+}
+
+#authSlide2 .auth-slide-overlay {
+    background: linear-gradient(135deg, rgba(26, 114, 196, 0.65) 0%, rgba(0, 0, 0, 0.3) 100%);
+}
