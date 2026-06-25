@@ -37,7 +37,7 @@ public class AppSecUser {
     @Column(name = "ACCOUNT_STATUS", nullable = false)
     private String accountStatus;
 
-    @Column(name = "ACTIVE", nullable = false)
+    @Column(name = "ACTIVE", nullable = false, columnDefinition = "CHAR(1)", length = 1)
     private String active;
 
     @ManyToMany(fetch = FetchType.LAZY)
