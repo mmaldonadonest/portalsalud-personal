@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org" th:fragment="layout(pageTitle, content, pageScripts)">
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:fragment="layout(pageTitle, content, pageScripts, pageStyles)">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -8,9 +8,8 @@
     <link rel="shortcut icon" type="image/x-icon" th:href="@{/theme/assets/img/favicon.png}" href="/theme/assets/img/favicon.png">
     <title th:replace="${pageTitle}">Portal Salud Personal</title>
     <link rel="stylesheet" th:href="@{/theme/lib/remixicon/fonts/remixicon.css}" href="/theme/lib/remixicon/fonts/remixicon.css">
-    <link rel="stylesheet" th:href="@{/theme/lib/jqvmap/jqvmap.min.css}" href="/theme/lib/jqvmap/jqvmap.min.css">
-    <link rel="stylesheet" th:href="@{/theme/lib/apexcharts/apexcharts.css}" href="/theme/lib/apexcharts/apexcharts.css">
     <link rel="stylesheet" th:href="@{/theme/assets/css/style.min.css}" href="/theme/assets/css/style.min.css">
+    <th:block th:replace="${pageStyles}"></th:block>
 </head>
 <body>
 <th:block th:replace="~{fragments/menu :: menu(${currentPath})}"></th:block>

@@ -7,10 +7,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 import com.onest.app.config.SecurityConfiguration;
+import com.onest.app.security.service.PortalUserDetailsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(controllers = PortalViewController.class)
@@ -19,6 +22,9 @@ class PortalViewControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockBean
+    private PortalUserDetailsService portalUserDetailsService;
 
     @Test
     void shouldRenderLoginPage() throws Exception {
@@ -29,6 +35,7 @@ class PortalViewControllerTest {
     }
 
     @Test
+    @WithMockUser
     void shouldRenderHomePage() throws Exception {
         mockMvc.perform(get("/home"))
                 .andExpect(status().isOk())
