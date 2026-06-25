@@ -80,7 +80,7 @@
     <div class="sidebar-footer">
         <div class="sidebar-footer-top">
             <div class="sidebar-footer-thumb">
-                <img th:src="${currentUserAvatar}" src="/theme/assets/img/img1.jpg" alt="avatar usuario">
+                <img th:src="${currentUserAvatar}" src="/theme/assets/img/img1.jpg" alt="avatar usuario" onerror="this.onerror=null;this.src='/theme/assets/img/img1.jpg';">
             </div>
             <div class="sidebar-footer-body">
                 <h6><a href="javascript:void(0)" th:text="${currentUserName}">Usuario del portal</a></h6>
@@ -98,7 +98,10 @@
                 <a href="javascript:void(0)"><i class="ri-question-line"></i> Help Center</a>
                 <a href="javascript:void(0)"><i class="ri-lock-line"></i> Privacy Settings</a>
                 <a href="javascript:void(0)"><i class="ri-user-settings-line"></i> Account Settings</a>
-                <a th:href="@{/login}" href="/login"><i class="ri-logout-box-r-line"></i> Log Out</a>
+                <form th:action="@{/logout}" action="/logout" method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <a href="javascript:void(0)" onclick="this.closest('form').submit(); return false;"><i class="ri-logout-box-r-line"></i> Log Out</a>
+                </form>
             </nav>
         </div>
     </div>

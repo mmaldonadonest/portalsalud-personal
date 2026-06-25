@@ -1,4 +1,4 @@
-<div xmlns:th="http://www.thymeleaf.org" th:fragment="header">
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="header">
     <a id="menuSidebar" href="javascript:void(0)" class="menu-link me-3 me-lg-4"><i class="ri-menu-2-fill"></i></a>
     <div class="form-search me-auto">
         <input type="text" class="form-control" placeholder="Search">
@@ -54,13 +54,13 @@
     <div class="dropdown dropdown-profile ms-3 ms-xl-4">
         <a href="javascript:void(0)" class="dropdown-link" data-bs-toggle="dropdown" data-bs-auto-close="outside">
             <div class="avatar online">
-                <img th:src="${currentUserAvatar}" src="/theme/assets/img/img1.jpg" alt="avatar usuario">
+                <img th:src="${currentUserAvatar}" src="/theme/assets/img/img1.jpg" alt="avatar usuario" onerror="this.onerror=null;this.src='/theme/assets/img/img1.jpg';">
             </div>
         </a>
         <div class="dropdown-menu dropdown-menu-end mt-10-f">
             <div class="dropdown-menu-body">
                 <div class="avatar avatar-xl online mb-3">
-                    <img th:src="${currentUserAvatar}" src="/theme/assets/img/img1.jpg" alt="avatar usuario">
+                    <img th:src="${currentUserAvatar}" src="/theme/assets/img/img1.jpg" alt="avatar usuario" onerror="this.onerror=null;this.src='/theme/assets/img/img1.jpg';">
                 </div>
                 <h5 class="mb-1 text-dark fw-semibold" th:text="${currentUserName}">Usuario del portal</h5>
                 <p class="fs-sm text-secondary" th:text="${currentUserRole}">Perfil pendiente</p>
@@ -74,9 +74,12 @@
                     <a href="javascript:void(0)"><i class="ri-question-line"></i> Help Center</a>
                     <a href="javascript:void(0)"><i class="ri-lock-line"></i> Privacy Settings</a>
                     <a href="javascript:void(0)"><i class="ri-user-settings-line"></i> Account Settings</a>
-                    <a th:href="@{/login}" href="/login"><i class="ri-logout-box-r-line"></i> Log Out</a>
+                    <form th:action="@{/logout}" action="/logout" method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <a href="javascript:void(0)" onclick="this.closest('form').submit(); return false;"><i class="ri-logout-box-r-line"></i> Log Out</a>
+                    </form>
                 </nav>
             </div>
         </div>
     </div>
-</div>
+</th:block>

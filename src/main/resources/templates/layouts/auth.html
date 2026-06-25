@@ -10,7 +10,7 @@
     <link rel="stylesheet" th:href="@{/theme/lib/remixicon/fonts/remixicon.css}" href="/theme/lib/remixicon/fonts/remixicon.css">
     <link rel="stylesheet" th:href="@{/theme/assets/css/style.min.css}" href="/theme/assets/css/style.min.css">
 </head>
-<body class="page-sign">
+<body class="page-sign d-block py-0">
 <th:block th:replace="${content}"></th:block>
 <th:block th:replace="~{fragments/scripts :: authScripts(${pageScripts})}"></th:block>
 </body>
