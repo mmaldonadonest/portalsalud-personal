@@ -50,39 +50,12 @@
                     </nav>
                 </li>
             </ul>
-        </div>
-        <div class="nav-group show">
-            <a href="javascript:void(0)" class="nav-label">Pages</a>
-            <ul class="nav nav-sidebar">
-                <li class="nav-item">
-                    <a href="javascript:void(0)" class="nav-link has-sub"><i class="ri-account-circle-line"></i> <span>User Pages</span></a>
-                    <nav class="nav nav-sub">
-                        <a th:href="@{/theme/pages/profile.html}" href="/theme/pages/profile.html" class="nav-sub-link">User Profile</a>
-                        <a th:href="@{/theme/pages/people.html}" href="/theme/pages/people.html" class="nav-sub-link">People &amp; Groups</a>
-                        <a th:href="@{/theme/pages/activity.html}" href="/theme/pages/activity.html" class="nav-sub-link">Activity Log</a>
-                        <a th:href="@{/theme/pages/events.html}" href="/theme/pages/events.html" class="nav-sub-link">Events</a>
-                        <a th:href="@{/theme/pages/settings.html}" href="/theme/pages/settings.html" class="nav-sub-link">Settings</a>
-                    </nav>
-                </li>
-                <li class="nav-item">
-                    <a href="javascript:void(0)" class="nav-link has-sub"><i class="ri-lock-2-line"></i> <span>Authentication</span></a>
-                    <nav class="nav nav-sub">
-                        <a th:href="@{/login}" href="/login" class="nav-sub-link">Sign In Basic</a>
-                        <a th:href="@{/theme/pages/sign-in-2.html}" href="/theme/pages/sign-in-2.html" class="nav-sub-link">Sign In Cover</a>
-                        <a th:href="@{/theme/pages/sign-up.html}" href="/theme/pages/sign-up.html" class="nav-sub-link">Sign Up Basic</a>
-                        <a th:href="@{/theme/pages/sign-up-2.html}" href="/theme/pages/sign-up-2.html" class="nav-sub-link">Sign Up Cover</a>
-                        <a th:href="@{/theme/pages/verify-account.html}" href="/theme/pages/verify-account.html" class="nav-sub-link">Verify Account</a>
-                        <a th:href="@{/theme/pages/forgot-password.html}" href="/theme/pages/forgot-password.html" class="nav-sub-link">Forgot Password</a>
-                        <a th:href="@{/theme/pages/lock-screen.html}" href="/theme/pages/lock-screen.html" class="nav-sub-link">Lock Screen</a>
-                    </nav>
-                </li>
-            </ul>
-        </div>
+        </div>       
     </div>
     <div class="sidebar-footer">
         <div class="sidebar-footer-top">
             <div class="sidebar-footer-thumb">
-                <img th:src="${currentUserAvatar}" src="/theme/assets/img/img1.jpg" alt="avatar usuario" onerror="this.onerror=null;this.src='/theme/assets/img/img1.jpg';">
+                <img th:src="@{${currentUserAvatar}}"   alt="avatar usuario" onerror="this.onerror=null;this.src='/theme/assets/img/img1.jpg';">
             </div>
             <div class="sidebar-footer-body">
                 <h6><a href="javascript:void(0)" th:text="${currentUserName}">Usuario del portal</a></h6>
