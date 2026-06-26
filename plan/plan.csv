@@ -1,0 +1,36 @@
+Modulo,Tarea,Descripcion,Dependencias,Complejidad,Estimado_horas,Responsable_sugerido,Entregable,Criterio_aceptacion
+Arquitectura,Definir arquitectura objetivo Java,"Definir capas Controller-Service-Repository, DTOs, manejo errores, seguridad y convenciones",Ninguna,Media,6,Tech Lead,"Documento de arquitectura + diagrama",Aprobacion tecnica del equipo
+Arquitectura,Plan de compatibilidad login legacy,"Definir estrategia JAVA/LEGACY_PHP/HYBRID con feature flag",Arquitectura objetivo Java,Media,4,Backend,"ADR de autenticacion",Estrategia aprobada sin romper login actual
+Infraestructura,Configurar perfiles de entorno,"Crear profiles dev/qa/prod con variables para Oracle y endpoint legacy",Arquitectura objetivo Java,Baja,4,Backend/DevOps,"application-*.yml",Aplicacion levanta por perfil sin cambios de codigo
+Infraestructura,Observabilidad base,"Agregar logging estructurado y trazas para endpoints de migracion",Configurar perfiles,Media,5,Backend,"Logs con correlation-id",Trazabilidad end-to-end en requests
+BaseDatos,Diseño fisico Oracle 21c,"Crear DDL para tablas files/tags, tipos CLOB, indices y constraints",Arquitectura objetivo Java,Media,6,DBA/Backend,"Scripts V1__oracle_schema.sql",DDL ejecuta sin errores en Oracle 21c
+BaseDatos,Estrategia de migracion de datos,"Definir corte, respaldo, reconciliacion y rollback",Diseño fisico Oracle,Alta,8,DBA/Tech Lead,"Plan de migracion de datos",Plan validado por negocio y TI
+BaseDatos,Migrar datos files/tags MariaDB->Oracle,"ETL inicial con validaciones de conteo y checksum por lotes",Estrategia de migracion de datos,Alta,10,DBA,"Datos cargados en Oracle",Diferencia de registros <= tolerancia acordada
+BaseDatos,Validar calidad de datos,"Validar nulls, largos, codificacion y consistencia nss/type",Migrar datos a Oracle,Media,6,DBA/QA,"Reporte de calidad de datos",0 errores criticos pendientes
+Backend-Core,Crear entidades JPA files/tags,"Mapeo JPA con tipos Oracle (CLOB/TIMESTAMP) y constraints",Diseño fisico Oracle,Baja,5,Backend,"Entities + repositorios base",Compila y persiste correctamente
+Backend-Core,Crear DTOs y mappers,"Separar contrato API de entidades internas",Entidades JPA,Media,6,Backend,"DTOs request/response + mapper",Sin exposicion directa de entidades
+Backend-Core,Implementar repositorios y queries,"Consultas por nss/type/id con paginacion basica",Entidades JPA,Media,6,Backend,"Repository interfaces + tests",Consultas responden dentro de SLA base
+Backend-Core,Manejo global de errores,"ControllerAdvice + catalogo de errores + codigos HTTP",DTOs y repositorios,Media,5,Backend,"Error handler unificado",Errores consistentes en toda API
+Backend-Seguridad,Integrar autenticacion existente Java,"Asegurar compatibilidad con endpoints nuevos",Manejo global de errores,Media,6,Backend,"Configuracion security actualizada",No regresiones en login Java actual
+Backend-Seguridad,Adapter de login PHP legacy,"Cliente REST para endpoint PHP + timeout/retry controlado",Plan compatibilidad login legacy,Media,8,Backend,"LegacyPhpAuthAdapter",Autenticacion legacy funcional bajo flag
+Backend-Seguridad,Selector de estrategia auth,"Implementar JAVA/LEGACY_PHP/HYBRID por configuracion",Adapter login legacy + login Java,Media,5,Backend,"AuthStrategySelector",Conmutacion por propiedad sin redeploy
+Backend-API,API Files (GET/POST/DELETE),"Exponer /api/v1/files y validaciones de negocio",Backend-Core listo,Media,10,Backend,"Controladores y servicios Files",Pruebas de contrato exitosas
+Backend-API,API Tags (GET/POST/PUT/DELETE),"Exponer /api/v1/tags y reglas de contenido",Backend-Core listo,Media,10,Backend,"Controladores y servicios Tags",Pruebas de contrato exitosas
+Backend-API,Endpoints reportes PDF (fase 1 wrapper),"Replicar endpoints clave de pdf con compatibilidad funcional",API Files + Tags,Alta,12,Backend,"Endpoints /reports iniciales",Generacion/descarga valida para casos base
+Backend-API,Refactor endpoint ICD a JSON,"Eliminar render HTML server-side y devolver JSON limpio",API base lista,Media,6,Backend,"Endpoint catalogo ICD",Frontend consume JSON sin parser HTML
+Backend-API,Eliminar semantica insegura (DELETE en GET),"Cambiar eraseDock a DELETE y mantener compat temporal",API Files,Media,4,Backend,"Endpoint DELETE + deprecacion",No operaciones destructivas via GET
+Frontend-Integracion,Inventario formularios php-old,"Catalogar formularios reales vs demos AdminLTE",Acceso repo php-old,Media,8,Frontend/Backend,"Matriz formulario->endpoint",100% formularios relevantes identificados
+Frontend-Integracion,Migrar menu/navegacion,"Mapear menus legacy a rutas del frontend actual",Inventario formularios,Media,8,Frontend,"Estructura de menu migrada",Navegacion equivalente validada
+Frontend-Integracion,Adaptar formularios prioritarios,"Incapacidad, consulta medica, pretest",API disponibles,Alta,20,Frontend,"Formularios funcionales en src",Flujos E2E pasan UAT
+Integracion,Contratos OpenAPI,"Documentar endpoints y ejemplos de request/response",API implementadas,Media,6,Backend,"openapi.yaml publicado",Contrato versionado y consumible
+Integracion,Versionado y deprecaciones,"Definir /api/v1 y plan de retiro endpoints PHP",Contratos OpenAPI,Baja,3,Tech Lead,"Politica de versionado",Roadmap de retiro aprobado
+Calidad,Pruebas unitarias backend,"Cobertura services/repos/auth strategy",Backend por modulo,Media,12,Backend,"Suite unitaria",Cobertura objetivo >= 70% (ajustable)
+Calidad,Pruebas integracion API+Oracle,"Probar CRUD y queries reales contra Oracle",APIs listas + Oracle,Alta,14,QA/Backend,"Suite integracion",0 fallas criticas
+Calidad,Pruebas E2E formularios,"Flujos completos con frontend y backend",Formularios migrados,Alta,16,QA,"Casos E2E automatizados/manuales",Casos criticos en verde
+Calidad,Pruebas rendimiento basico,"Smoke de concurrencia para files/tags/login",Integracion estable,Media,8,QA/DevOps,"Reporte rendimiento",Cumple umbral de respuesta acordado
+Seguridad,Endurecimiento seguridad API,"Validaciones, sanitizacion, CORS, headers, secretos",APIs listas,Media,8,Backend/SecOps,"Checklist OWASP basico",Sin hallazgos criticos
+Despliegue,Pipeline CI/CD,"Build, test, quality gate, deploy a ambiente",Pruebas listas,Media,10,DevOps,"Pipeline configurado",Deploy automatizado exitoso
+Despliegue,Estrategia de cutover,"Blue/green o canary para migracion gradual",Pipeline + datos migrados,Alta,8,DevOps/Tech Lead,"Plan de salida a produccion",Cutover sin downtime critico
+Despliegue,Monitoreo post-produccion,"Alertas de errores, latencia y autenticacion",Salida a produccion,Media,6,DevOps,"Dashboard y alertas",Monitoreo activo 24-48h sin incidentes graves
+Gestion,UAT con usuarios clave,"Validar funcionalidad medica/operativa real",E2E completado,Media,10,PO/QA,"Acta UAT",Aprobacion de negocio
+Gestion,Buffer de riesgos y ajustes,"Tiempo para defectos, ajustes de mapeo y datos",Todas las fases,Alta,20,Equipo completo,"Lista de pendientes resueltos",Pendientes criticos en 0
