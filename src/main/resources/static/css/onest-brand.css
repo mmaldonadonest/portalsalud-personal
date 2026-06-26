@@ -30,7 +30,7 @@
 
 /* Sidebar header background */
 .sidebar-header {
-    background-color: var(--onest-blue);
+   /* background-color: var(--onest-blue);*/
 }
 
 /* Active nav links */
@@ -41,13 +41,12 @@
 
 /* Header-main top bar */
 .header-main {
-    border-bottom: 2px solid var(--onest-blue);
+    
 }
 
 /* Footer */
 .main-footer {
-    background-color: var(--onest-blue);
-    color: #fff;
+   
 }
 
 .main-footer a {
