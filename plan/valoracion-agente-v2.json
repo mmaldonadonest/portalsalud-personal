@@ -1,0 +1,388 @@
+{
+  "meta": {
+    "generated_at": "2026-06-29",
+    "author": "copilot",
+    "purpose": "Valoración v2 de migración asistida por agente con semáforo, scoring y orden de ejecución",
+    "version": "2.0.0",
+    "language": "es-MX",
+    "inherits_from": [
+      "plan/valoracion.json",
+      "plan/valoracion-agente.json"
+    ]
+  },
+  "repository": {
+    "owner": "mmaldonadonest",
+    "name": "portalsalud-personal",
+    "plan_path": "plan/valoracion-agente-v2.json",
+    "plan_folder_url": "https://github.com/mmaldonadonest/portalsalud-personal/tree/main/plan"
+  },
+  "estimation_summary": {
+    "agent_effective_weeks": "2-4",
+    "calendar_weeks_with_validation": "3-6",
+    "recommended_target_weeks": 4,
+    "recommended_commitment_weeks": 6,
+    "program_level_estimate_weeks_realistic": "9-12",
+    "notes": [
+      "Con agente se acelera la codificación, pero la ruta crítica sigue siendo paridad funcional + datos + E2E/UAT.",
+      "Para compromiso externo de programa completo, mantener colchón por estabilización y cutover."
+    ]
+  },
+  "scoring_model": {
+    "scale": {
+      "min": 1,
+      "max": 5,
+      "interpretation": "1=bajo, 5=alto"
+    },
+    "weights": {
+      "impact": 0.35,
+      "risk": 0.25,
+      "effort": 0.15,
+      "dependency_criticality": 0.25
+    },
+    "priority_score_formula": "(impact*0.35 + risk*0.25 + effort*0.15 + dependency_criticality*0.25) * 20",
+    "semaforo_rules": {
+      "rojo": "priority_score >= 75",
+      "amarillo": "priority_score >= 50 and < 75",
+      "verde": "priority_score < 50"
+    }
+  },
+  "execution_units": [
+    {
+      "id": "U01",
+      "name": "Flujo de entrada NSS (searchEmploye + validateModules)",
+      "type": "backend+frontend",
+      "scope": [
+        "/rest/dashboard/searchEmploye.php",
+        "/rest/validateModules.php"
+      ],
+      "impact": 5,
+      "risk": 4,
+      "effort": 3,
+      "dependency_criticality": 5,
+      "priority_score": 89,
+      "semaforo": "rojo",
+      "estimated_weeks": "0.5-1.0",
+      "owner_suggested": "Backend + Frontend",
+      "status": "todo",
+      "acceptance": [
+        "Búsqueda NSS funcional",
+        "Habilitación de módulos por permisos",
+        "Sin regresión en flujo inicial"
+      ]
+    },
+    {
+      "id": "U02",
+      "name": "Menú dinámico por módulos (2..11) y visibilidad",
+      "type": "frontend+authz",
+      "scope": [
+        "render menu admin",
+        "module classes/flags",
+        "verificarPermisoExa"
+      ],
+      "impact": 5,
+      "risk": 4,
+      "effort": 4,
+      "dependency_criticality": 5,
+      "priority_score": 92,
+      "semaforo": "rojo",
+      "estimated_weeks": "0.5-1.0",
+      "owner_suggested": "Frontend + Backend",
+      "status": "todo",
+      "acceptance": [
+        "Paridad visual/funcional del menú",
+        "Módulos habilitados/ocultos según permisos"
+      ]
+    },
+    {
+      "id": "U03",
+      "name": "Pre-Test y Checklist",
+      "type": "backend+frontend",
+      "scope": [
+        "/rest/dashboard/pretest.php",
+        "/rest/dashboard/checklist.php"
+      ],
+      "impact": 4,
+      "risk": 3,
+      "effort": 3,
+      "dependency_criticality": 4,
+      "priority_score": 73,
+      "semaforo": "amarillo",
+      "estimated_weeks": "0.5-1.0",
+      "owner_suggested": "Backend + Frontend",
+      "status": "todo"
+    },
+    {
+      "id": "U04",
+      "name": "Expediente general y archivo de consultas",
+      "type": "backend+frontend+data",
+      "scope": [
+        "/rest/dashboard/expediente.php",
+        "/rest/dashboard/expedienteShowConsults.php?type=expedienteConsulta",
+        "/rest/dashboard/expedienteArch.php",
+        "/rest/dashboard/consultaMedica.php"
+      ],
+      "impact": 5,
+      "risk": 4,
+      "effort": 4,
+      "dependency_criticality": 5,
+      "priority_score": 92,
+      "semaforo": "rojo",
+      "estimated_weeks": "1.0-1.5",
+      "owner_suggested": "Backend + Frontend + QA",
+      "status": "todo"
+    },
+    {
+      "id": "U05",
+      "name": "Incapacidades y archivo incapacidades",
+      "type": "backend+frontend+data",
+      "scope": [
+        "/rest/dashboard/incapacidades.php",
+        "/rest/dashboard/expedienteShowConsults.php?type=expedienteIncapacidad",
+        "/rest/dashboard/viewNotaIncap.php",
+        "/rest/dashboard/expFileNotaIncp.php"
+      ],
+      "impact": 5,
+      "risk": 4,
+      "effort": 4,
+      "dependency_criticality": 4,
+      "priority_score": 87,
+      "semaforo": "rojo",
+      "estimated_weeks": "1.0-1.5",
+      "owner_suggested": "Backend + Frontend",
+      "status": "todo"
+    },
+    {
+      "id": "U06",
+      "name": "Notas e históricos PDF",
+      "type": "backend+reporting",
+      "scope": [
+        "/rest/dashboard/viexExpExMedPdf.php",
+        "/rest/dashboard/expedienteFilePrintExMedPdf.php",
+        "/rest/dashboard/vieNotaMedPdf.php",
+        "/rest/dashboard/expeFileNotaMedPdf.php",
+        "/rest/dashboard/expedienteFilePrint.php"
+      ],
+      "impact": 4,
+      "risk": 4,
+      "effort": 4,
+      "dependency_criticality": 4,
+      "priority_score": 80,
+      "semaforo": "rojo",
+      "estimated_weeks": "1.0-1.5",
+      "owner_suggested": "Backend",
+      "status": "todo",
+      "performance_note": "En legacy se observan latencias ~6.9s-7.4s; incluir tuning como parte del alcance"
+    },
+    {
+      "id": "U07",
+      "name": "Examen médico + navegación in-page (irAContenido)",
+      "type": "frontend-state+backend",
+      "scope": [
+        "/rest/dashboard/viewExpHeroFam.php",
+        "/rest/dashboard/viewTypeExped.php",
+        "secciones heredofamiliares y subsecciones"
+      ],
+      "impact": 5,
+      "risk": 5,
+      "effort": 5,
+      "dependency_criticality": 5,
+      "priority_score": 100,
+      "semaforo": "rojo",
+      "estimated_weeks": "1.5-2.5",
+      "owner_suggested": "Frontend + Backend Senior",
+      "status": "todo",
+      "critical_note": "Bloque más complejo por estado local, carga inicial y múltiples recorridos sin request"
+    },
+    {
+      "id": "U08",
+      "name": "Compatibilidad de autenticación (JAVA/LEGACY_PHP/HYBRID)",
+      "type": "security+integration",
+      "scope": [
+        "auth strategy",
+        "legacy adapter",
+        "feature flags"
+      ],
+      "impact": 5,
+      "risk": 4,
+      "effort": 3,
+      "dependency_criticality": 4,
+      "priority_score": 83,
+      "semaforo": "rojo",
+      "estimated_weeks": "0.5-1.0",
+      "owner_suggested": "Backend",
+      "status": "todo"
+    },
+    {
+      "id": "U09",
+      "name": "Migración de datos files/tags a Oracle 21c",
+      "type": "data+db",
+      "scope": [
+        "DDL Oracle",
+        "ETL/reconciliación",
+        "índices y validaciones"
+      ],
+      "impact": 5,
+      "risk": 4,
+      "effort": 3,
+      "dependency_criticality": 5,
+      "priority_score": 89,
+      "semaforo": "rojo",
+      "estimated_weeks": "0.5-1.0",
+      "owner_suggested": "DBA + Backend",
+      "status": "todo"
+    },
+    {
+      "id": "U10",
+      "name": "Calidad integral (contract tests, E2E, UAT)",
+      "type": "qa",
+      "scope": [
+        "pruebas por flujo NSS",
+        "paridad por menú admin",
+        "regresión auth/datos"
+      ],
+      "impact": 5,
+      "risk": 5,
+      "effort": 4,
+      "dependency_criticality": 5,
+      "priority_score": 97,
+      "semaforo": "rojo",
+      "estimated_weeks": "1.0-1.5",
+      "owner_suggested": "QA + Backend + Frontend",
+      "status": "todo"
+    },
+    {
+      "id": "U11",
+      "name": "Hardening técnico (cabeceras/CSS/performance observability)",
+      "type": "cross-cutting",
+      "scope": [
+        "eliminar uso de cabecera prohibida Connection",
+        "resolver warnings CSS display",
+        "telemetría y alertas"
+      ],
+      "impact": 3,
+      "risk": 3,
+      "effort": 2,
+      "dependency_criticality": 3,
+      "priority_score": 59,
+      "semaforo": "amarillo",
+      "estimated_weeks": "0.5-1.0",
+      "owner_suggested": "Frontend + DevOps",
+      "status": "todo"
+    }
+  ],
+  "execution_order": [
+    {
+      "order": 1,
+      "unit_id": "U01",
+      "reason": "Desbloquea todo el flujo inicial por NSS"
+    },
+    {
+      "order": 2,
+      "unit_id": "U02",
+      "reason": "Controla visibilidad/permiso del resto de módulos"
+    },
+    {
+      "order": 3,
+      "unit_id": "U09",
+      "reason": "Base de datos y persistencia objetivo para continuidad"
+    },
+    {
+      "order": 4,
+      "unit_id": "U04",
+      "reason": "Núcleo de expediente y consultas"
+    },
+    {
+      "order": 5,
+      "unit_id": "U05",
+      "reason": "Flujos clínicos críticos de incapacidad"
+    },
+    {
+      "order": 6,
+      "unit_id": "U06",
+      "reason": "Históricos y PDF con alto uso y latencia actual"
+    },
+    {
+      "order": 7,
+      "unit_id": "U07",
+      "reason": "Mayor complejidad funcional; atacar tras base estable"
+    },
+    {
+      "order": 8,
+      "unit_id": "U03",
+      "reason": "Cierre de módulos complementarios"
+    },
+    {
+      "order": 9,
+      "unit_id": "U08",
+      "reason": "Ajuste controlado de compatibilidad auth antes de salida"
+    },
+    {
+      "order": 10,
+      "unit_id": "U11",
+      "reason": "Hardening transversal previo a salida"
+    },
+    {
+      "order": 11,
+      "unit_id": "U10",
+      "reason": "Puerta de calidad final para cutover"
+    }
+  ],
+  "roadmap_weeks": [
+    {
+      "week": 1,
+      "focus": ["U01", "U02", "U09"]
+    },
+    {
+      "week": 2,
+      "focus": ["U04"]
+    },
+    {
+      "week": 3,
+      "focus": ["U05", "U06"]
+    },
+    {
+      "week": 4,
+      "focus": ["U07", "U03", "U08"]
+    },
+    {
+      "week": 5,
+      "focus": ["U11", "U10"]
+    },
+    {
+      "week": 6,
+      "focus": ["Stabilization", "Go-Live readiness"]
+    }
+  ],
+  "program_semaforo_global": {
+    "current": "rojo",
+    "reason": "Alta complejidad por paridad funcional + navegación in-page + latencias + migración de datos + QA",
+    "exit_to_amarillo_conditions": [
+      "U01,U02,U04,U05 en estado done",
+      "U09 validado en Oracle",
+      "Errores críticos de auth/permisos en 0"
+    ],
+    "exit_to_verde_conditions": [
+      "U10 aprobado (E2E/UAT)",
+      "Sin defectos críticos abiertos",
+      "SLO de latencia acordado cumplido"
+    ]
+  },
+  "kpis": {
+    "functional_parity": ">= 95% módulos admin",
+    "critical_defects_open": 0,
+    "p95_latency_targets_ms": {
+      "search_nss": 500,
+      "validate_modules": 300,
+      "pdf_and_historic": 2500,
+      "view_type_exped": 2000
+    },
+    "test_coverage_min_percent": 70,
+    "uat_pass_rate_percent": 95
+  },
+  "next_actions": [
+    "Crear tablero Kanban con U01-U11",
+    "Asignar owners y fechas objetivo por unidad",
+    "Iniciar por U01/U02/U09 en paralelo",
+    "Definir baseline de latencia para comparar mejoras"
+  ]
+}
