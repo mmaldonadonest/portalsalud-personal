@@ -1,0 +1,126 @@
+{
+  "meta": {
+    "generated_at": "2026-06-29",
+    "author": "copilot",
+    "purpose": "Valoración de tiempos y consideraciones al ejecutar la migración con agente (Claude)",
+    "version": "1.0.0",
+    "language": "es-MX"
+  },
+  "repository": {
+    "owner": "mmaldonadonest",
+    "name": "portalsalud-personal",
+    "plan_path": "plan/valoracion-agente.json",
+    "reference_plan_folder": "https://github.com/mmaldonadonest/portalsalud-personal/tree/main/plan"
+  },
+  "agent_execution_context": {
+    "agent_name": "Claude",
+    "scope_reference": "Migración PHP legacy -> Java para flujos NSS, menú admin, formularios, endpoints dashboard/forms, integración Oracle 21c y compatibilidad login legacy opcional",
+    "assumptions": [
+      "Existe supervisión técnica humana durante el ciclo",
+      "Se permiten iteraciones de prompt y corrección sobre PRs",
+      "Ambiente de pruebas y datos de validación disponibles",
+      "No hay cambios mayores de alcance durante la ejecución"
+    ]
+  },
+  "time_estimation": {
+    "effective_agent_work_weeks": {
+      "min": 2,
+      "max": 4,
+      "unit": "semanas"
+    },
+    "calendar_weeks_with_validation": {
+      "min": 3,
+      "max": 6,
+      "unit": "semanas"
+    },
+    "recommended_for_this_case": {
+      "target_weeks": 4,
+      "commitment_weeks": 6,
+      "reason": "La complejidad principal está en paridad funcional, migración de datos, optimización y pruebas E2E; no en la generación de código aislada."
+    }
+  },
+  "workload_breakdown": [
+    {
+      "phase": "Descubrimiento y contratos",
+      "estimated_weeks": "0.5-1.0",
+      "notes": "Mapeo endpoint legacy->Java, definición de DTOs y respuestas, criterios de paridad"
+    },
+    {
+      "phase": "Implementación backend con agente",
+      "estimated_weeks": "1.0-2.0",
+      "notes": "Controllers/Services/Repositories, auth strategy JAVA/LEGACY/HYBRID, endpoints críticos"
+    },
+    {
+      "phase": "Integración frontend/estado",
+      "estimated_weeks": "0.5-1.5",
+      "notes": "Navegación de secciones in-page, menú por módulos/permisos, compatibilidad con flujos existentes"
+    },
+    {
+      "phase": "Datos y Oracle 21c",
+      "estimated_weeks": "0.5-1.0",
+      "notes": "DDL, migración files/tags, validación de integridad"
+    },
+    {
+      "phase": "QA, UAT y estabilización",
+      "estimated_weeks": "0.5-1.5",
+      "notes": "E2E por flujo NSS, correcciones de regresión, tuning de rendimiento"
+    }
+  ],
+  "critical_bottlenecks": [
+    "Paridad funcional exacta de flujos legacy (no solo endpoints aislados)",
+    "Navegación in-page con estado frontend y carga inicial por expediente",
+    "Rendimiento de endpoints lentos (~6-7s observados en legacy)",
+    "Validación de datos y diferencias de motor MySQL/MariaDB -> Oracle 21c",
+    "Pruebas E2E/UAT con usuarios clave"
+  ],
+  "risk_register": [
+    {
+      "risk": "Subestimar alcance por número de endpoints y comportamiento de menú dinámico",
+      "impact": "alto",
+      "probability": "media",
+      "mitigation": "Ruta crítica por flujo NSS y pruebas de paridad por módulo"
+    },
+    {
+      "risk": "Código generado correcto pero integración incompleta",
+      "impact": "alto",
+      "probability": "alta",
+      "mitigation": "Revisiones por PR + checklist de integración + contract tests"
+    },
+    {
+      "risk": "Retrasos por validación de datos Oracle",
+      "impact": "medio-alto",
+      "probability": "media",
+      "mitigation": "Ensayo de migración temprano y reconciliación por lotes"
+    },
+    {
+      "risk": "Regresiones en auth al activar compatibilidad legacy",
+      "impact": "alto",
+      "probability": "media",
+      "mitigation": "Feature flags y fallback controlado con observabilidad"
+    }
+  ],
+  "recommended_execution_mode": {
+    "mode": "agent-accelerated with human-in-the-loop",
+    "practices": [
+      "Entregar por lotes pequeños (PRs por módulo)",
+      "Validar cada PR con pruebas automáticas y smoke manual",
+      "Evitar refactors masivos sin baseline",
+      "Mantener bitácora de decisiones técnicas (ADR)",
+      "Monitoreo de latencia por endpoint crítico desde la semana 2"
+    ]
+  },
+  "success_criteria": [
+    "Flujo NSS operativo de punta a punta",
+    "Menú admin y módulos con permisos equivalentes",
+    "Login Java intacto y opción legacy configurable",
+    "Persistencia estable en Oracle 21c para files/tags",
+    "Tiempos de respuesta aceptables en endpoints críticos",
+    "Aprobación UAT sin defectos críticos abiertos"
+  ],
+  "next_actions": [
+    "Priorizar endpoints críticos de entrada: searchEmploye + validateModules",
+    "Definir contrato unificado para viewTypeExped y secciones irAContenido",
+    "Crear tablero de seguimiento con estado por módulo (todo/in-progress/done)",
+    "Planear sprint de estabilización final antes de cutover"
+  ]
+}
