@@ -1,0 +1,353 @@
+{
+  "meta": {
+    "generated_at": "2026-06-29",
+    "author": "copilot",
+    "purpose": "Contexto integral para planeación y evaluación de migración PHP legacy -> Java",
+    "version": "1.0.0",
+    "language": "es-MX"
+  },
+  "repository": {
+    "owner": "mmaldonadonest",
+    "name": "portalsalud-personal",
+    "id": 1278596099,
+    "paths": {
+      "legacy_php": "php-old",
+      "java_target": "src",
+      "plan_csv": "plan/plan.csv"
+    },
+    "references": {
+      "php_old_folder_url": "https://github.com/mmaldonadonest/portalsalud-personal/tree/f7fa09660f3564797ae74baf132dd66cb23c30a9/php-old",
+      "src_folder_url": "https://github.com/mmaldonadonest/portalsalud-personal/tree/f7fa09660f3564797ae74baf132dd66cb23c30a9/src",
+      "plan_csv_url": "https://github.com/mmaldonadonest/portalsalud-personal/blob/main/plan/plan.csv"
+    },
+    "language_composition": [
+      { "name": "JavaScript", "percent": 63.3 },
+      { "name": "HTML", "percent": 19.1 },
+      { "name": "CSS", "percent": 15.2 },
+      { "name": "PHP", "percent": 1.2 },
+      { "name": "SCSS", "percent": 0.6 },
+      { "name": "Less", "percent": 0.5 },
+      { "name": "Other", "percent": 0.1 }
+    ]
+  },
+  "business_and_scope": {
+    "goal": "Migrar formularios, menús y endpoints del módulo médico legacy PHP al proyecto Java en /src.",
+    "constraints": [
+      "El login en Java ya existe y es funcional.",
+      "Debe mantenerse opción de integración con login legacy PHP vía endpoint REST.",
+      "La BD actual en MariaDB tiene 2 tablas (files, tags) y debe migrarse a Java + Oracle 21c.",
+      "Debe conservarse el flujo principal por búsqueda de NSS y habilitación dinámica de módulos."
+    ],
+    "out_of_scope_initial": [
+      "Reescritura completa de UI sin preservar flujos actuales",
+      "Cambios funcionales de negocio no requeridos por la migración"
+    ]
+  },
+  "current_runtime_observations": {
+    "base_url": "http://salud.onestcloud.mx:70",
+    "critical_entry_flow": {
+      "description": "Al iniciar, se busca empleado por NSS y se validan módulos; luego navegación por menú.",
+      "requests": [
+        { "method": "POST", "path": "/rest/dashboard/searchEmploye.php", "status": 200, "latency_ms": 227 },
+        { "method": "POST", "path": "/rest/validateModules.php", "status": 200, "latency_ms": 47 }
+      ],
+      "frontend_logs": [
+        "validateModules.js imprime módulos 1..11",
+        "Algunas secciones se cargan una vez y después navegan sin request (estado en frontend)"
+      ]
+    },
+    "admin_menu_navigation_requests": [
+      { "method": "POST", "path": "/rest/dashboard/pretest.php", "status": 200, "latency_ms": 1485 },
+      { "method": "POST", "path": "/rest/dashboard/checklist.php", "status": 200, "latency_ms": 29 },
+      { "method": "GET", "path": "/rest/dashboard/expedienteFilePrint.php?data=30048315698", "status": 200, "latency_ms": 7406 },
+      { "method": "POST", "path": "/rest/dashboard/viexExpExMedPdf.php", "status": 200, "latency_ms": 76 },
+      { "method": "GET", "path": "/rest/dashboard/expedienteFilePrintExMedPdf.php?data=30048315698", "status": 200, "latency_ms": 17 },
+      { "method": "POST", "path": "/rest/dashboard/vieNotaMedPdf.php", "status": 200, "latency_ms": 12 },
+      { "method": "GET", "path": "/rest/dashboard/expeFileNotaMedPdf.php?data=30048315698", "status": 200, "latency_ms": 7300 },
+      { "method": "POST", "path": "/rest/dashboard/viewNotaIncap.php", "status": 200, "latency_ms": 54 },
+      { "method": "GET", "path": "/rest/dashboard/expFileNotaIncp.php?data=30048315698", "status": 200, "latency_ms": 6906 },
+      { "method": "POST", "path": "/rest/dashboard/expediente.php", "status": 200, "latency_ms": 14 },
+      { "method": "GET", "path": "/rest/dashboard/expedienteShowConsults.php?data=30048315698&type=expedienteConsulta", "status": 200, "latency_ms": 43 },
+      { "method": "POST", "path": "/rest/dashboard/consultaMedica.php", "status": 200, "latency_ms": 57 },
+      { "method": "POST", "path": "/rest/dashboard/incapacidades.php", "status": 200, "latency_ms": 43 },
+      { "method": "POST", "path": "/rest/dashboard/expedienteArch.php", "status": 200, "latency_ms": 21 },
+      { "method": "POST", "path": "/rest/dashboard/viewExpHeroFam.php", "status": 200, "latency_ms": 35 },
+      { "method": "POST", "path": "/rest/forms/verificarPermisoExa.php", "status": 200, "latency_ms": 113 },
+      { "method": "GET", "path": "/rest/dashboard/expedienteShowConsults.php?data=30048315698&type=expedienteIncapacidad", "status": 200, "latency_ms": 77 },
+      { "method": "POST", "path": "/rest/dashboard/viewTypeExped.php", "status": 200, "latency_ms_range": [6440, 7236], "repeated_calls": true }
+    ],
+    "static_resources": [
+      { "method": "GET", "path": "/scontent/Spanish.json", "status": 200, "latency_ms": 0 },
+      { "method": "GET", "url": "https://images.pexels.com/photos/4058112/pexels-photo-4058112.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1", "status": 200 }
+    ],
+    "console_warnings_detected": [
+      "Se ha denegado el intento de establecer una cabecera prohibida: Connection (jquery.min.js)",
+      "Error al interpretar el valor para 'display'. Declaración rechazada."
+    ]
+  },
+  "legacy_menu_model": {
+    "principal_sections": [
+      {
+        "title": "Expediente General",
+        "items": [
+          { "module_id": 11, "label": "Pre-Test", "onclick": "viewPretest()" },
+          { "module_id": 2, "label": "E.Laboratorio", "onclick": "viewchecklist()" },
+          { "module_id": 3, "label": "Historico E.M", "onclick": "viewExMedPDF()" },
+          { "module_id": 4, "label": "Nota médica", "onclick": "viewNotaMPDF()" },
+          { "module_id": 5, "label": "Nota incapacidad", "onclick": "viewNotaIncap()" },
+          { "module_id": 6, "label": "Archivo de consultas", "onclick": "viewExpediente()" },
+          { "module_id": 7, "label": "Consulta médica", "onclick": "viewConsulMedic()" },
+          { "module_id": 8, "label": "Incapacidades", "onclick": "ViewIncap()" },
+          { "module_id": 9, "label": "Archivo incapacidades", "onclick": "viewArchivoInc()" }
+        ]
+      },
+      {
+        "title": "Examen médico",
+        "items": [
+          { "module_id": 10, "label": "Examen médico", "onclick": "viewExpHeroFam()" },
+          { "label": "Abrir", "onclick": "openAll()" },
+          { "label": "Imprimir expediente", "onclick": "printPdf()" }
+        ]
+      },
+      {
+        "title": "Expediente > E.Heredofamiliar",
+        "items": [
+          "Neurología",
+          "Cardiopatía",
+          "Neumopatía",
+          "Toxicológico",
+          "Nefropatías",
+          "Endocrinas",
+          "Obesidad",
+          "Mentales",
+          "Generales",
+          "Otras",
+          "APNP",
+          "Inmunizaciones",
+          "AGO",
+          "APP",
+          "PA",
+          "IPAYS",
+          "EF",
+          "ERR",
+          "Diagnóstico",
+          "POTE",
+          "RE",
+          "Imprimir expediente",
+          "Firma del paciente"
+        ],
+        "navigation_mode": "in-page via irAContenido(...)"
+      },
+      {
+        "title": "Opciones",
+        "items": [
+          { "label": "Cerrar sesión", "onclick": "closeApp()" }
+        ]
+      }
+    ]
+  },
+  "legacy_code_inventory_detected": {
+    "core": [
+      "php-old/index.php",
+      "php-old/app/routes.php",
+      "php-old/app/app.php",
+      "php-old/app/templates.php"
+    ],
+    "rest_forms_and_auth": [
+      "php-old/rest/login/checklog.php",
+      "php-old/rest/forms/incap.php",
+      "php-old/rest/forms/consultMedic.php",
+      "php-old/rest/forms/savePretest.php",
+      "php-old/rest/forms/verificarPermisoExa.php"
+    ],
+    "rest_dashboard_related_observed_runtime": [
+      "/rest/dashboard/searchEmploye.php",
+      "/rest/dashboard/pretest.php",
+      "/rest/dashboard/checklist.php",
+      "/rest/dashboard/expediente.php",
+      "/rest/dashboard/consultaMedica.php",
+      "/rest/dashboard/incapacidades.php",
+      "/rest/dashboard/expedienteArch.php",
+      "/rest/dashboard/viewExpHeroFam.php",
+      "/rest/dashboard/viewTypeExped.php",
+      "/rest/dashboard/vieNotaMedPdf.php",
+      "/rest/dashboard/viewNotaIncap.php",
+      "/rest/dashboard/viexExpExMedPdf.php",
+      "/rest/dashboard/expedienteShowConsults.php",
+      "/rest/dashboard/expedienteFilePrint.php",
+      "/rest/dashboard/expedienteFilePrintExMedPdf.php",
+      "/rest/dashboard/expeFileNotaMedPdf.php",
+      "/rest/dashboard/expFileNotaIncp.php"
+    ],
+    "pdf": [
+      "php-old/pdf/pdfGenerator.php",
+      "php-old/pdf/generatePDFEX.php"
+    ],
+    "views_examples": [
+      "php-old/view/content/incapacidadForm.html",
+      "php-old/view/content/formsPaAc/PA.html",
+      "php-old/view/content/formsPaAc/POTE.html"
+    ]
+  },
+  "database": {
+    "source": {
+      "engine": "MariaDB/MySQL",
+      "database": "servicioMedico",
+      "tables": {
+        "files": {
+          "columns": [
+            { "name": "id", "type": "int(10)", "nullable": false, "pk": true, "auto_increment": true },
+            { "name": "nss", "type": "varchar(50)", "nullable": false },
+            { "name": "name", "type": "varchar(50)", "nullable": false },
+            { "name": "date_upload", "type": "datetime", "nullable": false },
+            { "name": "url", "type": "longtext", "nullable": false },
+            { "name": "type", "type": "varchar(50)", "nullable": false }
+          ]
+        },
+        "tags": {
+          "columns": [
+            { "name": "id", "type": "int(255)", "nullable": false, "pk": true, "auto_increment": true },
+            { "name": "nss", "type": "varchar(255)", "nullable": true },
+            { "name": "type", "type": "varchar(50)", "nullable": true },
+            { "name": "content", "type": "longtext", "nullable": true }
+          ]
+        }
+      }
+    },
+    "target": {
+      "engine": "Oracle 21c",
+      "migration_requirements": [
+        "Mapeo longtext -> CLOB",
+        "Mapeo datetime -> TIMESTAMP",
+        "PKs autoincrement -> IDENTITY",
+        "Índices por nss/type"
+      ]
+    }
+  },
+  "target_architecture_java": {
+    "stack_suggested": "Spring Boot",
+    "layers": [
+      "Controller",
+      "Service",
+      "Repository",
+      "DTO/Mapper",
+      "Validation",
+      "GlobalExceptionHandler"
+    ],
+    "authentication_strategy": {
+      "modes": ["JAVA", "LEGACY_PHP", "HYBRID"],
+      "default_recommended": "JAVA",
+      "legacy_integration": "Feature flag/configurable adapter para endpoint PHP",
+      "notes": "No romper login Java existente"
+    },
+    "api_design_principles": [
+      "Versionado /api/v1",
+      "Respuestas JSON consistentes",
+      "Eliminar operaciones destructivas por GET",
+      "Contratos OpenAPI",
+      "Seguridad y validación estricta"
+    ]
+  },
+  "risks_and_findings": {
+    "technical_risks": [
+      "Posible SQL inseguro por concatenación en PHP legacy",
+      "Acoplamiento vista/lógica en endpoints legacy",
+      "Endpoints lentos (>=6s) en flujo crítico",
+      "Navegación in-page dependiente de estado frontend",
+      "Warnings de cabeceras prohibidas y CSS inválido"
+    ],
+    "migration_risks": [
+      "Subestimar alcance por menú dinámico y permisos",
+      "No cubrir paridad funcional de secciones sin request",
+      "Diferencias de tipos y rendimiento al pasar a Oracle"
+    ],
+    "mitigations": [
+      "Contratos endpoint por endpoint con pruebas de paridad",
+      "Feature flags para transición segura",
+      "Pruebas E2E por flujo NSS",
+      "Tuning de consultas críticas y caché selectivo"
+    ]
+  },
+  "effort_estimation": {
+    "baseline_hours_previous": 301,
+    "updated_recommendation_weeks": {
+      "best_case": 9,
+      "recommended": 10,
+      "conservative": 12
+    },
+    "rationale": [
+      "Amplio set de endpoints dashboard/forms/pdf",
+      "Menú con secciones in-page que requieren estado frontend",
+      "Compatibilidad temporal login legacy",
+      "Migración MySQL/MariaDB -> Oracle 21c con validación de datos"
+    ],
+    "sample_schedule_if_start_2026_06_30": {
+      "start_date": "2026-06-30",
+      "target_date_recommended": "2026-09-04",
+      "target_date_conservative": "2026-09-18"
+    }
+  },
+  "migration_workstreams": [
+    {
+      "name": "Descubrimiento y contratos",
+      "deliverables": [
+        "Mapa endpoint legacy -> endpoint Java",
+        "Matriz menú -> acciones -> backend/frontend",
+        "Definición de DTOs y errores"
+      ]
+    },
+    {
+      "name": "Core NSS + módulos",
+      "deliverables": [
+        "searchEmploye y validateModules en Java",
+        "Control de permisos/módulos",
+        "Carga inicial de expediente optimizada"
+      ]
+    },
+    {
+      "name": "Formularios y expedientes",
+      "deliverables": [
+        "PreTest, Checklist, Consulta médica, Incapacidades",
+        "Archivo consultas/incapacidades",
+        "Notas y vistas históricas"
+      ]
+    },
+    {
+      "name": "Reportes/PDF",
+      "deliverables": [
+        "Generación/consulta PDF equivalente",
+        "Endpoints de impresión con tiempos aceptables"
+      ]
+    },
+    {
+      "name": "Datos y Oracle",
+      "deliverables": [
+        "DDL Oracle 21c",
+        "Migración de datos files/tags",
+        "Validación de integridad y rendimiento"
+      ]
+    },
+    {
+      "name": "Calidad y salida",
+      "deliverables": [
+        "Pruebas unitarias/integración/E2E",
+        "UAT",
+        "Cutover y estabilización"
+      ]
+    }
+  ],
+  "acceptance_criteria_high_level": [
+    "Paridad funcional de flujos principales por NSS",
+    "Menú y permisos equivalentes para usuario admin",
+    "Endpoints críticos con tiempos dentro de umbral acordado",
+    "Persistencia estable en Oracle 21c",
+    "Login Java intacto + opción configurable de login legacy"
+  ],
+  "open_questions_for_next_iteration": [
+    "¿Qué endpoints legacy deben mantenerse 100% compatibles vs rediseñados?",
+    "¿Qué SLA objetivo de latencia se exige por endpoint?",
+    "¿Qué framework/frontend exacto usa /src para mapear navegación in-page?",
+    "¿Se requiere migración histórica completa de archivos/PDF o solo activa?",
+    "¿Qué estrategia de corte se prefiere: big-bang, canary o paralelo?"
+  ]
+}
