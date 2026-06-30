@@ -1,0 +1,229 @@
+# Contexto de Sesión — Migración Portal Salud
+**Generado:** 2026-06-30  
+**Propósito:** Transferencia de contexto a nueva sesión de Claude / Claude Code
+
+---
+
+## 1. Descripción del proyecto
+
+Migración de sistema médico legacy **PHP → Java Spring Boot** con base de datos **MariaDB → Oracle 21c**.
+
+- **Repo:** `mmaldonadonest/portalsalud-personal` (GitHub, privado)
+- **Carpeta PHP legacy:** `php-old/`
+- **Carpeta Java destino:** `src/`
+- **Stack Java:** Spring Boot 3.x, Java 21, Oracle 21c, Spring Security, Thymeleaf
+- **URL legacy en producción:** `http://salud.onestcloud.mx:70`
+
+La infraestructura Java ya existe (login funcional). Lo que falta es toda la lógica de negocio.
+
+---
+
+## 2. Alcance de la migración
+
+### Endpoints PHP a migrar (17 REST)
+```
+POST /rest/dashboard/searchEmploye.php       → búsqueda por NSS (227ms)
+POST /rest/validateModules.php               → habilita módulos 1..11 (47ms)
+POST /rest/dashboard/pretest.php             (1485ms)
+POST /rest/dashboard/checklist.php           (29ms)
+POST /rest/dashboard/expediente.php          (14ms)
+GET  /rest/dashboard/expedienteShowConsults.php?type=expedienteConsulta (43ms)
+GET  /rest/dashboard/expedienteShowConsults.php?type=expedienteIncapacidad (77ms)
+POST /rest/dashboard/consultaMedica.php      (57ms)
+POST /rest/dashboard/incapacidades.php       (43ms)
+POST /rest/dashboard/expedienteArch.php      (21ms)
+POST /rest/dashboard/viewExpHeroFam.php      (35ms)
+POST /rest/dashboard/viewTypeExped.php       ⚠️ 6440-7236ms (lento crítico)
+POST /rest/forms/verificarPermisoExa.php     (113ms)
+POST /rest/dashboard/viewNotaIncap.php       (54ms)
+GET  /rest/dashboard/expFileNotaIncp.php     ⚠️ 6906ms (lento crítico)
+GET  /rest/dashboard/expedienteFilePrint.php ⚠️ 7406ms (lento crítico)
+GET  /rest/dashboard/expeFileNotaMedPdf.php  ⚠️ 7300ms (lento crítico)
+POST /rest/dashboard/viexExpExMedPdf.php     (76ms)
+GET  /rest/dashboard/expedienteFilePrintExMedPdf.php (17ms)
+POST /rest/dashboard/vieNotaMedPdf.php       (12ms)
+```
+
+### Archivos PHP core
+```
+php-old/index.php
+php-old/app/routes.php / app.php / templates.php
+php-old/rest/login/checklog.php
+php-old/rest/forms/incap.php
+php-old/rest/forms/consultMedic.php
+php-old/rest/forms/savePretest.php       ← PENDIENTE revisar (bug INSERT tags)
+php-old/rest/forms/verificarPermisoExa.php
+php-old/pdf/pdfGenerator.php / generatePDFEX.php
+```
+
+---
+
+## 3. Base de datos
+
+### Tablas en MariaDB (fuente)
+
+#### `files`
+```sql
+id            INT(10) PK AUTO_INCREMENT
+nss           VARCHAR(50)
+name          VARCHAR(50)    -- ⚠️ encoding corrupto ~0.4% filas (latin1/utf8)
+date_upload   DATETIME
+url           LONGTEXT       -- ‼️ NO es URL: almacena el PDF completo en base64
+type          VARCHAR(50)    -- valores: examen_medico|nota_medica|laboratorio|
+                             --          nota_incapacidad|''|[hash_MD5_32chars]
+```
+
+**Estadísticas reales (muestra 500 filas, 161 NSS):**
+- `url` en base64: promedio 539 KB, mediana 514 KB, p90 932 KB, máx ~2 MB por fila
+- 11 filas con `url` vacío (huérfanas)
+- `type` distribución: examen_medico 68%, nota_medica 11%, laboratorio 10%, nota_incapacidad <1%, vacío <1%, hashes MD5 9.4% (origen a confirmar en PHP)
+- **17 GB del backup completo** es consistente: binarios base64 × miles de registros
+
+**Decisión de diseño recomendada:** migrar `url` a `BLOB` en Oracle, decodificando base64 en el ETL → ahorra ~33% de espacio vs mantener CLOB+base64.
+
+#### `tags`
+```sql
+id       INT(255) PK AUTO_INCREMENT
+nss      VARCHAR(255)
+type     VARCHAR(50)    -- nombre del campo (Drenaje, CCA, nombre1, giro1...)
+content  LONGTEXT       -- valor del campo
+```
+
+**Estructura EAV — 47 campos fijos por NSS:**
+```
+Clínicos (7):   Drenaje, CCA, VOZCLARAYFUERTE, STPO2,
+                edad_inicio_laborar, cantidad_trabajos, pension
+
+Historial laboral x4 trabajos (40):
+                nombre1..4, giro1..4, puesto1..4, turno1..4,
+                antiguedad1..4, salida1..4, descripcion1..4,
+                riesgos1..4, epp1..4, observaciones1..4
+```
+
+**⚠️ BUG CRÍTICO detectado en PHP:**
+El código hace INSERT sin verificar existencia (nunca hace UPDATE), generando bloques duplicados idénticos. Un solo NSS puede tener 7 copias exactas del mismo bloque de 47 filas. La tabla en producción tiene registros masivamente inflados.
+
+**Regla ETL para deduplicar:**
+```sql
+-- Solo conservar el bloque con ID más alto por NSS
+SELECT * FROM tags t1
+WHERE t1.id IN (
+  SELECT MAX(t2.id) FROM tags t2
+  WHERE t2.nss = t1.nss AND t2.type = t1.type
+)
+```
+
+**⚠️ Encoding corrupto en `content`:** campos `antiguedad1` y `observaciones1` tienen tildes corruptas (`aÃ±os` → `años`, `presiÃ³n` → `presión`). Corrección ETL:
+```python
+content.encode('latin1').decode('utf-8')
+```
+
+**⚠️ Caso edge:** un NSS con 46 campos (falta `Drenaje`) — el ETL debe manejar campos faltantes con defaults.
+
+---
+
+## 4. Unidades de ejecución (U01–U11) con semáforo
+
+| ID  | Nombre | Score | Semáforo | Semanas est. |
+|-----|--------|-------|----------|--------------|
+| U01 | Flujo NSS (searchEmploye + validateModules) | 89 | 🔴 | 0.5-1.0 |
+| U02 | Menú dinámico módulos 2..11 + permisos | 92 | 🔴 | 0.5-1.0 |
+| U03 | Pre-Test y Checklist | 73 | 🟡 | 0.5-1.0 |
+| U04 | Expediente general + consultas | 92 | 🔴 | 1.0-1.5 |
+| U05 | Incapacidades + archivo | 87 | 🔴 | 1.0-1.5 |
+| U06 | Notas e históricos PDF | 80 | 🔴 | 1.0-1.5 |
+| U07 | Examen médico + navegación in-page (irAContenido) | 100 | 🔴 | 1.5-2.5 |
+| U08 | Compatibilidad auth JAVA/LEGACY_PHP/HYBRID | 83 | 🔴 | 0.5-1.0 |
+| U09 | Migración datos files/tags → Oracle 21c | 89 | 🔴 | 0.5-1.0 |
+| U10 | QA integral (contract tests, E2E, UAT) | 97 | 🔴 | 1.0-1.5 |
+| U11 | Hardening (headers, CSS, observabilidad) | 59 | 🟡 | 0.5-1.0 |
+
+**Orden de ejecución:** U01 → U02 → U09 → U04 → U05 → U06 → U07 → U03 → U08 → U11 → U10
+
+---
+
+## 5. Estimaciones de tiempo
+
+| Escenario | Semanas humano | Notas |
+|-----------|---------------|-------|
+| Agente + humano (recomendado) | 5–7 semanas calendario | ~100h humano, agente absorbe la codificación |
+| Solo humano (baseline) | 9–12 semanas | 301h base en plan.csv |
+| Compromiso externo conservador | 9–12 semanas | Con buffer para estabilización/cutover |
+
+Dedicación humana estimada: 2–4 horas/día.
+
+---
+
+## 6. Riesgos críticos identificados
+
+1. **API externa no documentada** en red local para NSS/autenticación — **Step 0 bloqueante** antes de iniciar desarrollo Java.
+2. **SQL injection** en PHP legacy por concatenación de strings.
+3. **Bug activo en `pretest.php`** (comportamiento anómalo documentado).
+4. **Archivo JS dashboard vacío** — lógica de estado frontend a descubrir.
+5. **Latencias 6–7s** en endpoints PDF (`viewTypeExped`, `expedienteFilePrint`, `expeFileNotaMedPdf`, `expFileNotaIncp`) — necesitan tuning específico en Java+Oracle.
+6. **BUG en tabla `tags`**: INSERT sin UPDATE → duplicación masiva. ETL debe deduplicar.
+7. **Encoding mixto** en `files.name` y `tags.content` (latin1/utf8).
+8. **`files.url` es base64 de PDF binario**, no una ruta — implica decisión de diseño BLOB vs CLOB en Oracle.
+
+---
+
+## 7. KPIs acordados
+
+| Métrica | Target |
+|---------|--------|
+| Paridad funcional módulos admin | ≥ 95% |
+| Defectos críticos abiertos al cutover | 0 |
+| Latencia p95 searchNSS | ≤ 500ms |
+| Latencia p95 validateModules | ≤ 300ms |
+| Latencia p95 PDF/históricos | ≤ 2500ms |
+| Latencia p95 viewTypeExped | ≤ 2000ms |
+| Cobertura de tests | ≥ 70% |
+| UAT pass rate | ≥ 95% |
+
+---
+
+## 8. Roadmap semanal
+
+| Semana | Unidades | Foco |
+|--------|----------|------|
+| 1 | U01, U02, U09 | NSS flow + menú + DDL Oracle + ETL |
+| 2 | U04 | Expediente core |
+| 3 | U05, U06 | Incapacidades + PDFs |
+| 4 | U07, U03, U08 | Examen médico (más complejo) + auth |
+| 5 | U11, U10 | Hardening + QA/UAT |
+| 6 | — | Estabilización + Go-Live |
+
+---
+
+## 9. Preguntas abiertas — prioridad alta
+
+1. ¿Qué genera `type = MD5hash` en tabla `files`? → buscar en PHP: `grep -rn "md5\|INSERT INTO.*files" php-old/rest/`
+2. ¿El PHP en `savePretest.php` confirma el bug de INSERT sin UPDATE en `tags`?
+3. ¿Cuál es el contrato de la API externa de NSS/autenticación (host, endpoint, payload)?
+4. ¿Estrategia de deduplicación en `tags`: solo ID más alto, o conservar historial para auditoría?
+5. ¿Migración histórica completa de `files` (todos los PDFs) o solo activos recientes?
+
+---
+
+## 10. Próximos pasos concretos
+
+```
+[ ] Confirmar API externa NSS (Step 0)
+[ ] Revisar savePretest.php y flujo INSERT en tags
+[ ] Buscar origen de type=MD5 en files
+[ ] Diseñar DDL Oracle (files→BLOB, tags→tabla normalizada o EAV deduplicado)
+[ ] Escribir script ETL Python: deduplicar tags + decodificar base64 + fix encoding
+[ ] Iniciar U01: Java Controller para searchEmploye + validateModules
+```
+
+---
+
+## 11. Artefactos del proyecto (en repo)
+
+```
+plan/plan.csv                  — 35 tareas, 301h base, 12 módulos
+plan/valoracion.json           — análisis técnico completo, riesgos, endpoints
+plan/valoracion-agente.json    — estimación con modelo agente+humano
+plan/valoracion-agente-v2.json — scoring U01-U11, semáforo, roadmap semanal
+analisismigracionportalsalud.pdf — reporte PDF ejecutivo (generado con ReportLab)
+```
