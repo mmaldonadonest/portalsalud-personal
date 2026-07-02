@@ -6,51 +6,19 @@
     </div>
     <div id="sidebarMenu" class="sidebar-body">
         <div class="nav-group show">
-            <a href="javascript:void(0)" class="nav-label">Dashboard</a>
+            <a href="javascript:void(0)" class="nav-label">Portal Salud</a>
             <ul class="nav nav-sidebar">
                 <li class="nav-item">
-                    <a th:href="@{/theme/dashboard/finance.html}" href="/theme/dashboard/finance.html" class="nav-link"><i class="ri-pie-chart-2-line"></i> <span>Finance Monitoring</span></a>
+                    <a th:href="@{/nss}" href="/nss" class="nav-link" th:classappend="${currentPath == '/nss'} ? ' active' : ''"><i class="ri-user-search-line"></i> <span>Busqueda NSS</span></a>
                 </li>
-                <li class="nav-item">
-                    <a th:href="@{/theme/dashboard/events.html}" href="/theme/dashboard/events.html" class="nav-link"><i class="ri-calendar-todo-line"></i> <span>Events Management</span></a>
-                </li>
-                <li class="nav-item">
-                    <a th:href="@{/theme/dashboard/sales.html}" href="/theme/dashboard/sales.html" class="nav-link"><i class="ri-shopping-bag-3-line"></i> <span>Sales Monitoring</span></a>
-                </li>
-                <li class="nav-item">
-                    <a th:href="@{/home}" href="/home" class="nav-link" th:classappend="${currentPath == '/home'} ? ' active' : ''"><i class="ri-bar-chart-2-fill"></i> <span>Website Analytics</span></a>
-                </li>
-                <li class="nav-item">
-                    <a th:href="@{/theme/dashboard/crypto.html}" href="/theme/dashboard/crypto.html" class="nav-link"><i class="ri-coin-line"></i> <span>Cryptocurrency</span></a>
-                </li>
-                <li class="nav-item">
-                    <a th:href="@{/theme/dashboard/helpdesk.html}" href="/theme/dashboard/helpdesk.html" class="nav-link"><i class="ri-service-line"></i> <span>Helpdesk Service</span></a>
-                </li>
-                <li class="nav-item">
-                    <a th:href="@{/theme/dashboard/storage.html}" href="/theme/dashboard/storage.html" class="nav-link"><i class="ri-hard-drive-2-line"></i> <span>Storage Management</span></a>
-                </li>
-                <li class="nav-item">
-                    <a th:href="@{/theme/dashboard/product.html}" href="/theme/dashboard/product.html" class="nav-link"><i class="ri-suitcase-2-line"></i> <span>Product Management</span></a>
+                <!-- Modulos del expediente (U02). Oculto hasta que una busqueda NSS
+                     encuentre empleado; el submenu se inyecta via /api/nss/modules. -->
+                <li class="nav-item" id="nssModulesGroup" style="display: none;">
+                    <a href="javascript:void(0)" class="nav-link has-sub"><i class="ri-booklet-line"></i> <span>Expediente General</span></a>
+                    <nav class="nav nav-sub" id="nssModulesSub"></nav>
                 </li>
             </ul>
-        </div>
-        <div class="nav-group show">
-            <a href="javascript:void(0)" class="nav-label">Applications</a>
-            <ul class="nav nav-sidebar">
-                <li class="nav-item"><a th:href="@{/theme/apps/file-manager.html}" href="/theme/apps/file-manager.html" class="nav-link"><i class="ri-folder-2-line"></i> <span>File Manager</span></a></li>
-                <li class="nav-item"><a th:href="@{/theme/apps/email.html}" href="/theme/apps/email.html" class="nav-link"><i class="ri-mail-send-line"></i> <span>Email</span></a></li>
-                <li class="nav-item"><a th:href="@{/theme/apps/calendar.html}" href="/theme/apps/calendar.html" class="nav-link"><i class="ri-calendar-line"></i> <span>Calendar</span></a></li>
-                <li class="nav-item"><a th:href="@{/theme/apps/contact.html}" href="/theme/apps/contact.html" class="nav-link"><i class="ri-contacts-book-line"></i> <span>Contacts</span></a></li>
-                <li class="nav-item"><a th:href="@{/theme/apps/tasks.html}" href="/theme/apps/tasks.html" class="nav-link"><i class="ri-checkbox-multiple-line"></i> <span>Task Manager</span></a></li>
-                <li class="nav-item">
-                    <a href="javascript:void(0)" class="nav-link has-sub"><i class="ri-gallery-line"></i> <span>Media Gallery</span></a>
-                    <nav class="nav nav-sub">
-                        <a th:href="@{/theme/apps/gallery-music.html}" href="/theme/apps/gallery-music.html" class="nav-sub-link">Music Stream</a>
-                        <a th:href="@{/theme/apps/gallery-video.html}" href="/theme/apps/gallery-video.html" class="nav-sub-link">Video Stream</a>
-                    </nav>
-                </li>
-            </ul>
-        </div>       
+        </div>      
     </div>
     <div class="sidebar-footer">
         <div class="sidebar-footer-top">

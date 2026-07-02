@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: nssContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Busqueda NSS | Portal Salud Personal</title>
+</head>
+<body>
+
+<th:block id="pageStyles"></th:block>
+
+<th:block th:fragment="nssContent">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/home}" href="/home">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Busqueda NSS</li>
+            </ol>
+            <h4 class="main-title mb-0">Busqueda por NSS</h4>
+        </div>
+    </div>
+
+    <div class="card card-one">
+        <div class="card-header">
+            <h6 class="card-title mb-0">Consulta de derechohabiente</h6>
+        </div>
+        <div class="card-body">
+            <form id="nssSearchForm" class="row g-2 align-items-end" novalidate>
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="col-md-8">
+                    <label class="form-label" for="nssInput">NSS</label>
+                    <input id="nssInput" name="nss" type="text" class="form-control"
+                           placeholder="Ej. 30048315698" th:value="${nssQuery}" required>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-primary" type="submit">Buscar</button>
+                </div>
+            </form>
+
+            <div id="nssSearchStatus" class="mt-3 text-muted fs-sm">Ingresa un NSS para consultar.</div>
+
+            <div id="nssSearchResult" class="mt-3" style="display: none;"></div>
+        </div>
+    </div>
+</th:block>
+
+<th:block id="pageScripts">
+    <script>
+        (function () {
+            var form = document.getElementById('nssSearchForm');
+            var status = document.getElementById('nssSearchStatus');
+            var result = document.getElementById('nssSearchResult');
+            var input = document.getElementById('nssInput');
+
+            if (!form || !status || !result || !input) {
+                return;
+            }
+
+            async function doSearch() {
+                var nss = (input.value || '').trim();
+
+                if (!nss) {
+                    status.textContent = 'El NSS es obligatorio.';
+                    result.style.display = 'none';
+                    return;
+                }
+
+                status.textContent = 'Consultando...';
+                result.style.display = 'none';
+
+                try {
+                    // Contrato equivalente a rest/dashboard/searchEmploye.php:
+                    // XHR POST form-urlencoded con el parametro 'data' (el NSS), respuesta HTML.
+                    var body = new URLSearchParams();
+                    body.append('data', nss);
+                    var csrf = form.querySelector('input[type="hidden"][name]');
+                    if (csrf && csrf.name) {
+                        body.append(csrf.name, csrf.value);
+                    }
+
+                    var response = await fetch(contextPath + 'api/nss/search', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'Accept': 'text/html'
+                        },
+                        body: body.toString()
+                    });
+
+                    if (!response.ok) {
+                        status.textContent = 'Error al consultar. Codigo HTTP: ' + response.status;
+                        result.style.display = 'none';
+                        return;
+                    }
+
+                    var html = await response.text();
+                    status.textContent = 'Consulta realizada.';
+                    result.innerHTML = html;
+                    result.style.display = 'block';
+
+                    // Reiniciamos el menu lateral de modulos y, si es empleado
+                    // (el fragmento incluye #nssEmpleadoMarker), lo cargamos.
+                    resetSidebarModules();
+                    if (document.getElementById('nssEmpleadoMarker')) {
+                        loadSidebarModules(nss);
+                    }
+                } catch (error) {
+                    status.textContent = 'Error de red al consultar: ' + error;
+                    result.style.display = 'none';
+                }
+            }
+
+            function resetSidebarModules() {
+                var group = document.getElementById('nssModulesGroup');
+                var sub = document.getElementById('nssModulesSub');
+                if (sub) { sub.innerHTML = ''; }
+                if (group) { group.style.display = 'none'; }
+            }
+
+            // Carga los modulos permitidos (validateModules) como submenu lateral.
+            async function loadSidebarModules(nss) {
+                var group = document.getElementById('nssModulesGroup');
+                var sub = document.getElementById('nssModulesSub');
+                if (!group || !sub) {
+                    return;
+                }
+                try {
+                    var body = new URLSearchParams();
+                    body.append('data', nss);
+                    var csrf = form.querySelector('input[type="hidden"][name]');
+                    if (csrf && csrf.name) {
+                        body.append(csrf.name, csrf.value);
+                    }
+
+                    var response = await fetch(contextPath + 'api/nss/modules', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'Accept': 'text/html'
+                        },
+                        body: body.toString()
+                    });
+
+                    if (response.ok) {
+                        sub.innerHTML = await response.text();
+                        // Solo mostramos el grupo si hay al menos un modulo permitido.
+                        if (sub.querySelector('a')) {
+                            group.style.display = '';
+                        }
+                    }
+                } catch (error) {
+                    // Los modulos son complementarios: si fallan, no rompemos la ficha.
+                }
+            }
+
+            // Handler de los botones de modulo. Placeholder hasta implementar U03-U07;
+            // ya recibe id_menu y nss para la futura navegacion a cada modulo.
+            window.abrirModulo = function (btn) {
+                var idMenu = btn.getAttribute('data-id-menu');
+                var nss = btn.getAttribute('data-nss');
+                status.textContent = 'Modulo "' + btn.textContent.trim() + '" (id ' + idMenu +
+                    ', NSS ' + nss + ') disponible en una proxima entrega.';
+            };
+
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                doSearch();
+            });
+
+            // Shortcut: si la pagina se abrio con un NSS pre-cargado (?nss=...), buscar automaticamente.
+            if ((input.value || '').trim()) {
+                doSearch();
+            }
+        }());
+    </script>
+</th:block>
+</body>
+</html>

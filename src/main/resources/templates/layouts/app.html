@@ -11,6 +11,9 @@
     <link rel="stylesheet" th:href="@{/theme/assets/css/style.min.css}" href="/theme/assets/css/style.min.css">
     <link rel="stylesheet" th:href="@{/css/onest-brand.css}" href="/css/onest-brand.css">
     <th:block th:replace="${pageStyles}"></th:block>
+    <script  th:inline="javascript" >
+        var contextPath = /*[[@{/}]]*/ '';
+    </script>
 </head>
 <body>
 <th:block th:replace="~{fragments/menu :: menu(${currentPath})}"></th:block>

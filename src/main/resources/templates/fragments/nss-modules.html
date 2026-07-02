@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Menu dinamico de modulos permitidos (validateModules.php).
+  Se inyecta como enlaces de submenu lateral dentro de #nssModulesSub.
+  La clase 'modulo-<id>' replica el patron legacy ($("."+id_menu).show()).
+  Iconos curados por id_menu (fallback generico); label = nombre_menu del WS.
+-->
+<th:block th:fragment="modules"
+          th:with="icons=${ {1:'ri-booklet-line',2:'ri-flask-line',3:'ri-history-line',4:'ri-file-text-line',5:'ri-file-paper-2-line',6:'ri-book-2-line',7:'ri-health-book-line',8:'ri-first-aid-kit-line',9:'ri-archive-line',10:'ri-heart-pulse-line',11:'ri-survey-line'} }">
+    <a th:each="m : ${modulos}"
+       href="javascript:void(0)"
+       class="nav-sub-link module"
+       th:classappend="'modulo-' + ${m.idMenu}"
+       th:attr="data-id-menu=${m.idMenu}, data-nss=${nss}"
+       onclick="abrirModulo(this);">
+        <i class="me-2" th:classappend="${icons.get(m.idMenu)} ?: 'ri-file-list-2-line'"></i>
+        <span th:text="${m.nombreMenu}">Modulo</span>
+    </a>
+</th:block>
+</body>
+</html>

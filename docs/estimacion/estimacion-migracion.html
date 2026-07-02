@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Migración PHP → Java · Estimación Ejecutiva — Portal Salud</title>
+<style>
+  :root {
+    --navy: #172a45;
+    --blue: #2563af;
+    --light: #eef2f8;
+    --red: #c0392b;
+    --amber: #b7791f;
+    --green: #1e7846;
+    --grey: #5a5a5a;
+    --border: #d9e1ec;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+    color: #1e1e1e;
+    line-height: 1.55;
+    margin: 0;
+    background: #f4f6fa;
+  }
+  .page {
+    max-width: 1080px;
+    margin: 24px auto;
+    background: #fff;
+    padding: 40px 48px 56px;
+    box-shadow: 0 2px 14px rgba(0,0,0,.08);
+    border-radius: 6px;
+  }
+  h1 {
+    color: var(--navy);
+    font-size: 26px;
+    margin: 0 0 6px;
+  }
+  .subtitle { color: var(--grey); font-size: 14px; margin-bottom: 4px; }
+  h2 {
+    color: var(--blue);
+    font-size: 18px;
+    border-bottom: 2px solid var(--blue);
+    padding-bottom: 4px;
+    margin: 34px 0 14px;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 13.5px;
+    margin: 8px 0 4px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 7px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  thead th {
+    background: var(--navy);
+    color: #fff;
+    font-weight: 600;
+  }
+  tbody tr:nth-child(even) { background: #f7f9fc; }
+  td.c, th.c { text-align: center; white-space: nowrap; }
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11.5px; font-weight: 600; color:#fff; }
+  .rojo { background: var(--red); }
+  .amarillo { background: var(--amber); }
+  .callout {
+    background: var(--light);
+    border-left: 4px solid var(--blue);
+    padding: 12px 16px;
+    margin: 14px 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 13.5px;
+    color: var(--navy);
+  }
+  .callout.warn { border-left-color: var(--red); }
+  .pos { color: var(--green); font-weight: 600; margin: 6px 0 2px; }
+  .neg { color: var(--red); font-weight: 600; margin: 12px 0 2px; }
+  ul { margin: 4px 0 10px; padding-left: 22px; }
+  li { margin: 2px 0; }
+  code {
+    background: #eef1f6; padding: 1px 5px; border-radius: 3px;
+    font-family: Consolas, "Courier New", monospace; font-size: 12.5px;
+  }
+  .sum { font-weight: 700; color: var(--navy); margin: 8px 0; }
+  footer {
+    margin-top: 34px; padding-top: 12px; border-top: 1px solid var(--border);
+    color: var(--grey); font-size: 12px; font-style: italic;
+  }
+  @media print {
+    body { background: #fff; }
+    .page { box-shadow: none; margin: 0; max-width: none; border-radius: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Migración PHP → Java &nbsp;|&nbsp; Estimación Ejecutiva</h1>
+  <div class="subtitle"><strong>Proyecto:</strong> Portal Salud — Sistema médico legacy (PHP → Java Spring Boot, MariaDB → Oracle 21c)</div>
+  <div class="subtitle"><strong>Fecha:</strong> 2026-07-01 &nbsp;·&nbsp; <strong>Escenario base:</strong> Tiempo completo (~6–8 h/día útiles), limitado por esperas externas</div>
+  <div class="subtitle"><strong>Fuentes:</strong> <code>docs/Contexto.txt</code>, <code>plan/valoracion-agente-v2.json</code>, <code>plan/plan.csv</code></div>
+
+  <h2>Resumen</h2>
+  <table>
+    <tbody>
+      <tr><td style="width:34%"><strong>Total calendario (tiempo completo)</strong></td><td><strong>~3 semanas</strong> (limitado por esperas externas, no por codificación)</td></tr>
+      <tr><td>Esfuerzo humano acumulado</td><td>~100 h (≈ 14–15 días útiles a 6–8 h/día)</td></tr>
+      <tr><td>Escenario parcial (2–4 h/día)</td><td>4 – 6 semanas · mismas ~100 h</td></tr>
+      <tr><td>Baseline solo humano (sin agente)</td><td>9 – 12 semanas · 301 h</td></tr>
+      <tr><td>Unidades de trabajo</td><td>11 (U01–U11) · 20 endpoints REST</td></tr>
+      <tr><td>Estado actual</td><td><strong>U01 iniciada</strong> (flujo NSS <code>searchEmploye</code> + WS ORDS ya implementado)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout"><strong>Hallazgo que destraba el programa:</strong> el riesgo #1 del proyecto era <em>"API externa NSS no documentada — Step 0 bloqueante"</em>. Ya quedó resuelto: <code>app.php</code> documenta <strong>todos</strong> los WS ORDS (<code>http://10.249.249.3/biows/ords/security/...</code>) y <strong>todos los módulos usan el mismo patrón</strong>. Esto reduce el riesgo de U03–U08.</div>
+
+  <div class="callout"><strong>Por qué ~3 semanas y no menos:</strong> a tiempo completo la codificación deja de ser el cuello de botella. El piso de ~3 semanas lo fija la <strong>ruta crítica externa</strong>: acceso de red al WS ORDS, validación de negocio, y E2E/UAT con usuarios clave. Reducir esas esperas es lo único que baja el calendario por debajo de 3 semanas.</div>
+
+  <h2>Desglose por caso de uso</h2>
+  <div class="subtitle" style="margin-bottom:8px">Orden de la tabla = orden de ejecución recomendado. "Días útiles" = esfuerzo a 6–8 h/día.</div>
+  <table>
+    <thead>
+      <tr>
+        <th class="c">ID</th><th>Caso de uso</th><th>Endpoints PHP</th>
+        <th class="c">Complejidad</th><th class="c">Semáforo</th>
+        <th class="c">Días útiles ~</th><th class="c">~h</th><th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="c"><strong>U01</strong></td><td>Flujo entrada NSS (searchEmploye + validateModules)</td><td><code>searchEmploye</code>, <code>validateModules</code></td><td class="c">Media</td><td class="c"><span class="tag rojo">ROJO</span></td><td class="c">~1 d</td><td class="c">~8</td><td>~40% hecho</td></tr>
+      <tr><td class="c"><strong>U02</strong></td><td>Menú dinámico módulos 2..11 + permisos</td><td>render menú, <code>verificarPermisoExa</code></td><td class="c">Alta</td><td class="c"><span class="tag rojo">ROJO</span></td><td class="c">~1.5 d</td><td class="c">~10</td><td>Pendiente</td></tr>
+      <tr><td class="c"><strong>U09</strong></td><td>Migración datos files/tags → Oracle 21c (ETL)</td><td>DDL + ETL + dedup</td><td class="c">Media</td><td class="c"><span class="tag rojo">ROJO</span></td><td class="c">~1 d</td><td class="c">~8</td><td>Pendiente</td></tr>
+      <tr><td class="c"><strong>U04</strong></td><td>Expediente general + consultas</td><td><code>expediente</code>, <code>expedienteShowConsults</code>, <code>expedienteArch</code>, <code>consultaMedica</code></td><td class="c">Alta</td><td class="c"><span class="tag rojo">ROJO</span></td><td class="c">~1.5 d</td><td class="c">~10</td><td>Pendiente</td></tr>
+      <tr><td class="c"><strong>U05</strong></td><td>Incapacidades + archivo</td><td><code>incapacidades</code>, <code>viewNotaIncap</code>, <code>expFileNotaIncp</code></td><td class="c">Alta</td><td class="c"><span class="tag rojo">ROJO</span></td><td class="c">~1.5 d</td><td class="c">~10</td><td>Pendiente</td></tr>
+      <tr><td class="c"><strong>U06</strong></td><td>Notas e históricos PDF</td><td><code>viexExpExMedPdf</code>, <code>vieNotaMedPdf</code>, <code>expeFileNotaMedPdf</code>, <code>expedienteFilePrint</code></td><td class="c">Alta</td><td class="c"><span class="tag rojo">ROJO</span></td><td class="c">~1.5 d</td><td class="c">~10</td><td>Pendiente</td></tr>
+      <tr><td class="c"><strong>U07</strong></td><td>Examen médico + navegación in-page (<code>irAContenido</code>)</td><td><code>viewExpHeroFam</code>, <code>viewTypeExped</code></td><td class="c"><strong>Muy Alta</strong></td><td class="c"><span class="tag rojo">ROJO</span></td><td class="c"><strong>~2 d</strong></td><td class="c">~13</td><td>Pendiente</td></tr>
+      <tr><td class="c"><strong>U03</strong></td><td>Pre-Test y Checklist</td><td><code>pretest</code>, <code>checklist</code></td><td class="c">Media</td><td class="c"><span class="tag amarillo">AMARILLO</span></td><td class="c">~1 d</td><td class="c">~8</td><td>Pendiente (bug)</td></tr>
+      <tr><td class="c"><strong>U08</strong></td><td>Compatibilidad auth JAVA/LEGACY_PHP/HYBRID</td><td>auth strategy + adapter</td><td class="c">Media</td><td class="c"><span class="tag rojo">ROJO</span></td><td class="c">~1 d</td><td class="c">~8</td><td>Pendiente</td></tr>
+      <tr><td class="c"><strong>U11</strong></td><td>Hardening (headers, CSS, observabilidad)</td><td>transversal</td><td class="c">Baja</td><td class="c"><span class="tag amarillo">AMARILLO</span></td><td class="c">~0.5 d</td><td class="c">~5</td><td>Pendiente</td></tr>
+      <tr><td class="c"><strong>U10</strong></td><td>QA integral (contract tests, E2E, UAT)</td><td>transversal</td><td class="c">Alta</td><td class="c"><span class="tag rojo">ROJO</span></td><td class="c">~1.5 d</td><td class="c">~10</td><td>Pendiente</td></tr>
+    </tbody>
+  </table>
+  <p class="sum">Suma de unidades: ~14–15 días útiles (esfuerzo) &nbsp;|&nbsp; Total humano: ~100 h &nbsp;|&nbsp; Calendario tiempo completo: ~3 semanas</p>
+
+  <h2>Cómo se llega a ~3 semanas</h2>
+  <p>Los ~14–15 días útiles de esfuerzo, a tiempo completo, caben en ~3 semanas hábiles. La compresión adicional respecto al escenario parcial (4–6 sem) viene de:</p>
+  <ul>
+    <li><strong>Dedicación completa:</strong> 6–8 h/día útiles en lugar de 2–4 h/día.</li>
+    <li><strong>Aceleración por agente:</strong> la codificación se absorbe; la ruta crítica pasa a <em>paridad funcional + datos + E2E/UAT</em>.</li>
+  </ul>
+  <div class="callout warn">El calendario <strong>no baja de ~3 semanas</strong> solo con más horas de codificación: las esperas externas (red ORDS, validación de negocio, UAT) son el factor limitante.</div>
+  <table>
+    <thead><tr><th class="c">Semana</th><th>Foco</th><th>Entregable</th></tr></thead>
+    <tbody>
+      <tr><td class="c">1</td><td>U01 · U02 · U09 · U04</td><td>Flujo NSS + menú + Oracle/ETL + expediente core</td></tr>
+      <tr><td class="c">2</td><td>U05 · U06 · U07</td><td>Incapacidades + PDFs + examen médico (lo más complejo)</td></tr>
+      <tr><td class="c">3</td><td>U03 · U08 · U11 · U10 + cutover</td><td>Pre-Test + auth + hardening + QA/UAT + estabilización/Go-Live</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Escenarios de total</h2>
+  <table>
+    <thead><tr><th>Escenario</th><th class="c">Calendario</th><th class="c">Esfuerzo humano</th><th>Cuándo aplicarlo</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Tiempo completo (recomendado)</strong></td><td class="c"><strong>~3 sem</strong></td><td class="c">~100 h</td><td>6–8 h/día útiles; piso por esperas externas</td></tr>
+      <tr><td>Parcial (agente + humano)</td><td class="c">4–6 sem</td><td class="c">~100 h</td><td>Dedicación compartida con otras tareas (2–4 h/día)</td></tr>
+      <tr><td>Solo humano (baseline)</td><td class="c">9–12 sem</td><td class="c">301 h</td><td>Sin asistencia de agente</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Supuestos y riesgos que mueven la aguja</h2>
+  <p class="pos">A favor (−tiempo):</p>
+  <ul>
+    <li>Contrato ORDS ya conocido (<code>app.php</code>).</li>
+    <li>U01 iniciada (flujo NSS implementado).</li>
+    <li>Infra Java + login ya operativos.</li>
+  </ul>
+  <p class="neg">En contra (+tiempo — y son el piso del calendario a tiempo completo):</p>
+  <ul>
+    <li><strong>Esperas externas</strong> (ruta crítica): acceso de red al WS ORDS (<code>10.249.249.3</code>), validación de negocio y UAT con usuarios clave.</li>
+    <li><strong>U07</strong> es el bloque crítico (estado local + navegación in-page sin request).</li>
+    <li><strong>Latencias 6–7 s</strong> en 4 endpoints PDF → requieren tuning específico Java+Oracle.</li>
+    <li><strong>ETL <code>tags</code>:</strong> bug de duplicación masiva + encoding mixto (latin1/utf8) + <code>files.url</code> = base64 de PDF (decisión BLOB).</li>
+    <li><strong><code>x-api-key</code> real</strong> del WS ORDS (hoy enmascarado como <code>XXXXXX</code>) — necesario para pruebas E2E.</li>
+  </ul>
+
+  <h2>KPIs acordados</h2>
+  <table>
+    <thead><tr><th>Métrica</th><th class="c">Target</th></tr></thead>
+    <tbody>
+      <tr><td>Paridad funcional módulos admin</td><td class="c">≥ 95%</td></tr>
+      <tr><td>Defectos críticos abiertos al cutover</td><td class="c">0</td></tr>
+      <tr><td>Latencia p95 searchNSS</td><td class="c">≤ 500 ms</td></tr>
+      <tr><td>Latencia p95 validateModules</td><td class="c">≤ 300 ms</td></tr>
+      <tr><td>Latencia p95 PDF/históricos</td><td class="c">≤ 2500 ms</td></tr>
+      <tr><td>Latencia p95 viewTypeExped</td><td class="c">≤ 2000 ms</td></tr>
+      <tr><td>Cobertura de tests</td><td class="c">≥ 70%</td></tr>
+      <tr><td>UAT pass rate</td><td class="c">≥ 95%</td></tr>
+    </tbody>
+  </table>
+
+  <footer>Documento generado a partir de los artefactos de planeación del repositorio. El escenario base asume dedicación de tiempo completo (~6–8 h/día útiles) con asistencia de agente para la codificación; el calendario de ~3 semanas está limitado por la ruta crítica externa.</footer>
+
+</div>
+</body>
+</html>

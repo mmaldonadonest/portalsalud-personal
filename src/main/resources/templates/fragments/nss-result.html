@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Fragmento de resultado de la busqueda por NSS.
+  Equivale a lo que searchEmploye.php renderiza (examenMedico.html / candidato.html / searcherror.html).
+  Se inyecta en el contenedor #nssSearchResult del frontend.
+-->
+<div th:fragment="result">
+
+    <!-- Error de validacion (NSS obligatorio / longitud) -->
+    <div th:if="${error != null}" class="alert alert-danger mb-0" role="alert">
+        <span th:text="${error}">Error</span>
+    </div>
+
+    <!-- Sin resultados (el WS no devolvio Datos para ese NSS) -->
+    <div th:if="${error == null and result == null}" class="alert alert-warning mb-0" role="alert">
+        No se encontro informacion para el NSS <strong th:text="${nss}">-</strong>.
+    </div>
+
+    <!-- EMPLEADO (con registro) -->
+    <div th:if="${result != null and result.tipo == 'EMPLEADO'}" th:with="e=${result.empleado}">
+        <div class="card bg-light mb-0">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Ficha de identificacion</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-2"><strong>Cuenta:</strong> <span th:text="${e.cuenta}">-</span></p>
+                        <p class="mb-2"><strong>Nombre:</strong> <span th:text="${e.nombre}">-</span></p>
+                        <p class="mb-2"><strong>Apellido Paterno:</strong> <span th:text="${e.apellidoPaterno}">-</span></p>
+                        <p class="mb-2"><strong>Apellido Materno:</strong> <span th:text="${e.apellidoMaterno}">-</span></p>
+                        <p class="mb-2"><strong>Fecha de Nacimiento:</strong> <span th:text="${e.fechaNacimiento}">-</span></p>
+                        <p class="mb-2"><strong>Edad:</strong> <span th:text="${e.edad}">-</span></p>
+                        <p class="mb-2"><strong>Sexo:</strong> <span th:text="${e.sexo}">-</span></p>
+                        <p class="mb-2"><strong>Estado Civil:</strong> <span th:text="${e.estadoCivil}">-</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-2"><strong>Puesto:</strong> <span th:text="${e.nombrePuesto}">-</span></p>
+                        <p class="mb-2"><strong>Empresa:</strong> <span th:text="${e.nombreEmpresa}">-</span></p>
+                        <p class="mb-2"><strong>Turno:</strong> <span th:text="${e.turno}">-</span></p>
+                        <p class="mb-2"><strong>RFC:</strong> <span th:text="${e.rfc}">-</span></p>
+                        <p class="mb-2"><strong>Direccion:</strong> <span th:text="${e.direccion}">-</span></p>
+                        <p class="mb-2"><strong>Telefono:</strong> <span th:text="${e.celular}">-</span></p>
+                        <p class="mb-2"><strong>Telefono Fijo:</strong> <span th:text="${e.telFijo}">-</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Marcador: indica al front que es un empleado -> debe cargar el menu
+             dinamico de modulos (U02) en el menu lateral via /api/nss/modules. -->
+        <span id="nssEmpleadoMarker" hidden></span>
+    </div>
+
+    <!-- CANDIDATO (Sin Registro de Usuario) -->
+    <div th:if="${result != null and result.tipo == 'CANDIDATO'}" th:with="c=${result.candidato}">
+        <div class="card bg-light mb-0">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Candidato &mdash; Ficha de identificacion</h5>
+            </div>
+            <div class="card-body" th:if="${c != null}">
+                <div class="row">
+                    <div class="col-md-4">
+                        <p class="mb-2"><strong>CURP:</strong> <span th:text="${c.curp}">-</span></p>
+                    </div>
+                    <div class="col-md-8">
+                        <p class="mb-2"><strong>Nombre:</strong> <span th:text="${c.nombre}">-</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-2"><strong>Fecha de ingreso:</strong> <span th:text="${c.fechaInicioProceso}">-</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-2"><strong>Estado del candidato:</strong> <span th:text="${c.estadoCandidato}">-</span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body" th:unless="${c != null}">
+                <div class="alert alert-info mb-0" role="alert">
+                    Sin registro de usuario y sin datos de candidato.
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
