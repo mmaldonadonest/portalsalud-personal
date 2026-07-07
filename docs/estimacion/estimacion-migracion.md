@@ -1,121 +1,79 @@
-# Migración PHP → Java · Estimación Ejecutiva
+# Migración PHP → Java · Estado del Proyecto
 
 **Proyecto:** Portal Salud — Migración sistema médico legacy (PHP → Java Spring Boot, MariaDB → Oracle 21c)
-**Fecha:** 2026-07-01
-**Escenario base:** Tiempo completo (~6–8 h/día útiles) · **limitado por esperas externas**
-**Fuentes:** `docs/Contexto.txt`, `plan/valoracion-agente-v2.json`, `plan/plan.csv`
+**Corte de estado:** 2026-07-07
+**Fuentes:** desarrollo a la fecha · `plan/valoracion-agente-v2.json`
 
 ---
 
-## Resumen
+## Resumen de estado
 
 | Indicador | Valor |
 |---|---|
-| **Total calendario (tiempo completo)** | **~3 semanas** (limitado por esperas externas, no por codificación) |
-| Esfuerzo humano acumulado | ~100 h (≈ 14–15 días útiles a 6–8 h/día) |
-| Escenario parcial (2–4 h/día) | 4 – 6 semanas · mismas ~100 h |
-| Baseline solo humano (sin agente) | 9 – 12 semanas · 301 h |
-| Unidades de trabajo | 11 (U01–U11) · 20 endpoints REST |
-| Estado actual | **U01 iniciada** (flujo NSS `searchEmploye` + WS ORDS ya implementado) |
+| **Unidades completas** | **8 de 11** (+ 1 parcial, 2 pendientes) |
+| Avance aproximado | ~77% de las unidades del plan |
+| Flujo principal | **Operativo end-to-end**: login → búsqueda NSS → menú por permisos → módulos clínicos |
+| Pendiente mayor | U07 (examen médico, el más complejo) y U10 (QA/UAT) |
 
-> **Hallazgo que destraba el programa:** el riesgo #1 del proyecto era *"API externa NSS no
-> documentada — Step 0 bloqueante"*. Ya quedó resuelto: `app.php` documenta **todos** los WS ORDS
-> (`http://10.249.249.3/biows/ords/security/...`) y **todos los módulos usan el mismo patrón**.
-> Esto reduce el riesgo de U03–U08.
-
-> **Por qué ~3 semanas y no menos:** a tiempo completo la codificación deja de ser el cuello de
-> botella. El piso de ~3 semanas lo fija la **ruta crítica externa**: acceso de red al WS ORDS,
-> validación de negocio, y E2E/UAT con usuarios clave. Reducir esas esperas es lo único que baja
-> el calendario por debajo de 3 semanas.
+> **Funcional hoy:** login, búsqueda por NSS (WS ORDS), menú dinámico de módulos por permisos, y los
+> módulos clínicos — consultas, incapacidades, archivos (laboratorio/históricos/notas) y pre-test —
+> con alta, detalle, firma digital y adjuntos.
 
 ---
 
-## Desglose por caso de uso
+## Estado por caso de uso
 
-*(Orden de la tabla = orden de ejecución recomendado. "Días útiles" = esfuerzo a 6–8 h/día)*
+| ID | Caso de uso | Estado | Notas |
+|----|-------------|:---:|---|
+| **U01** | Búsqueda por NSS (searchEmploye) | Completo | POST→HTML, flujos ORDS encadenados, página `/nss`, shortcut en header |
+| **U02** | Menú dinámico de módulos + permisos | Completo | validateModules (2 llamadas ORDS) → submenú lateral |
+| **U03** | Pre-Test y Checklist | Completo | Laboratorio (MED_FILE) + Pre-Test EAV ~55 campos (MED_TAG) |
+| **U04** | Expediente general + consultas | Completo | Historial + detalle + alta + IMC + ICD + firma + adjuntos |
+| **U05** | Incapacidades + archivo | Completo | Lista + detalle + alta |
+| **U06** | Notas e históricos PDF | Completo | Histórico E.M / Nota médica / Nota incapacidad (módulo genérico por tipo) |
+| **U07** | Examen médico + navegación in-page | Pendiente | **El más complejo** (estado local, heredofamiliares, viewTypeExped) |
+| **U08** | Compatibilidad auth (JAVA/LEGACY_PHP/HYBRID) | Completo | ⚠ regla de éxito del login legacy por verificar vs WS real |
+| **U09** | ETL files/tags → Oracle 21c | Parcial | DDL aplicado (QA+local) + base64→BLOB validado; escritura nueva OK. Falta carga masiva del legacy (requiere MariaDB) |
+| **U10** | QA integral (contract / E2E / UAT) | Pendiente | Los tests `@MockBean` requieren JDK 21 |
+| **U11** | Hardening / observabilidad | Completo | Permissions-Policy, actuator (health/info), correlation-id (X-Trace-Id) |
 
-| ID | Caso de uso | Endpoints PHP | Complejidad | Semáforo | Días útiles ~ | ~h humano | Estado |
-|----|-------------|---------------|:---:|:---:|:---:|:---:|---|
-| **U01** | Flujo entrada NSS (searchEmploye + validateModules) | `searchEmploye`, `validateModules` | Media | ROJO | ~1 d | ~8 h | ~40% hecho |
-| **U02** | Menú dinámico módulos 2..11 + permisos | render menú, `verificarPermisoExa` | Alta | ROJO | ~1.5 d | ~10 h | Pendiente |
-| **U09** | Migración datos files/tags → Oracle 21c (ETL) | DDL + ETL + dedup | Media | ROJO | ~1 d | ~8 h | Pendiente |
-| **U04** | Expediente general + consultas | `expediente`, `expedienteShowConsults`, `expedienteArch`, `consultaMedica` | Alta | ROJO | ~1.5 d | ~10 h | Pendiente |
-| **U05** | Incapacidades + archivo | `incapacidades`, `viewNotaIncap`, `expFileNotaIncp` | Alta | ROJO | ~1.5 d | ~10 h | Pendiente |
-| **U06** | Notas e históricos PDF | `viexExpExMedPdf`, `vieNotaMedPdf`, `expeFileNotaMedPdf`, `expedienteFilePrint` | Alta | ROJO | ~1.5 d | ~10 h | Pendiente |
-| **U07** | Examen médico + navegación in-page (`irAContenido`) | `viewExpHeroFam`, `viewTypeExped` | **Muy Alta** | ROJO | **~2 d** | ~13 h | Pendiente |
-| **U03** | Pre-Test y Checklist | `pretest`, `checklist` | Media | AMARILLO | ~1 d | ~8 h | Pendiente (bug) |
-| **U08** | Compatibilidad auth JAVA/LEGACY_PHP/HYBRID | auth strategy + adapter | Media | ROJO | ~1 d | ~8 h | Pendiente |
-| **U11** | Hardening (headers, CSS, observabilidad) | transversal | Baja | AMARILLO | ~0.5 d | ~5 h | Pendiente |
-| **U10** | QA integral (contract tests, E2E, UAT) | transversal | Alta | ROJO | ~1.5 d | ~10 h | Pendiente |
-| | | | | | **Σ ~14–15 días útiles** | **~100 h** | |
+Leyenda: **Completo** = migrado y compilando · **Parcial** = base lista, falta un paso externo · **Pendiente** = no iniciado.
 
 ---
 
-## Cómo se llega a ~3 semanas
+## Infraestructura transversal lograda
 
-Los ~14–15 días útiles de esfuerzo, a tiempo completo, caben en ~3 semanas hábiles. La compresión
-adicional respecto al escenario parcial (4–6 sem) viene de:
+- Cliente ORDS (`biowsRestClient`) que tolera `text/html` con cuerpo JSON (como el `json_decode` del PHP).
+- Tablas de aterrizaje **`MED_FILE`** (adjuntos BLOB) y **`MED_TAG`** (EAV) aplicadas en **QA y local**.
+- Gestión de archivos: upload / download / delete + módulo genérico por tipo (laboratorio, examen_medico, nota_medica, nota_incapacidad).
+- Componentes reutilizados entre módulos: firma digital (canvas), buscador + Exportar a Excel, modales de detalle, guardado genérico con adjuntos.
+- Usuario de prueba sembrado (`68958027838` / `admin`, rol ROLE_ADMIN).
+- Seguridad: selector de estrategia de auth + cabeceras de hardening + trazabilidad por request.
 
-1. **Dedicación completa** (6–8 h/día útiles en lugar de 2–4 h/día).
-2. **Aceleración por agente:** la codificación se absorbe; la ruta crítica pasa a *paridad
-   funcional + datos + E2E/UAT*.
+---
 
-> El calendario **no baja de ~3 semanas** solo con más horas de codificación: las esperas externas
-> (red ORDS, validación de negocio, UAT) son el factor limitante.
+## Bloqueos / pendientes de confirmar
 
-| Semana | Foco | Entregable |
+1. **`x-api-key` real** del ORDS (hoy `XXXXXX` placeholder) — sin él, las llamadas ORDS fallan (401/timeout).
+2. **Conectividad de red** al WS ORDS `10.249.249.3` desde el entorno de despliegue.
+3. **Origen MariaDB** para la carga masiva de U09 (datos legacy existentes). Los registros **nuevos** ya se guardan directo en Oracle.
+4. **Verificación manual** end-to-end (pendiente de la prueba del equipo).
+5. **Tests**: los `@MockBean` no corren en el entorno actual (JDK 22 + Mockito self-attach); usar **JDK 21** en CI.
+
+---
+
+## Restante y estimación
+
+| Bloque | Estado | Estimación (plan) |
 |---|---|---|
-| 1 | U01 · U02 · U09 · U04 | Flujo NSS + menú + Oracle/ETL + expediente core |
-| 2 | U05 · U06 · U07 | Incapacidades + PDFs + examen médico (lo más complejo) |
-| 3 | U03 · U08 · U11 · U10 + cutover | Pre-Test + auth + hardening + QA/UAT + estabilización/Go-Live |
+| **U07** Examen médico + navegación in-page | Pendiente | 1.5 – 2.5 sem (el más grande) |
+| **U10** QA integral (contract/E2E/UAT) | Pendiente | 1.0 – 1.5 sem |
+| **U09** carga masiva legacy | Parcial (falta MariaDB) | 0.5 sem (una vez con acceso al origen) |
+| Afinamiento post-verificación | — | según hallazgos |
+
+Los 6 módulos funcionales del expediente (U01–U06) y los transversales (U08/U11) ya están cerrados;
+el esfuerzo restante se concentra en el examen médico (U07) y la puerta de calidad (U10).
 
 ---
 
-## Escenarios de total
-
-| Escenario | Calendario | Esfuerzo humano | Cuándo aplicarlo |
-|---|---|---|---|
-| **Tiempo completo (recomendado)** | **~3 sem** | ~100 h | 6–8 h/día útiles; piso por esperas externas |
-| Parcial (agente + humano) | 4–6 sem | ~100 h | Dedicación compartida con otras tareas (2–4 h/día) |
-| Solo humano (baseline) | 9–12 sem | 301 h | Sin asistencia de agente |
-
----
-
-## Supuestos y riesgos que mueven la aguja
-
-**A favor (−tiempo):**
-
-- Contrato ORDS ya conocido (`app.php`).
-- U01 iniciada (flujo NSS implementado).
-- Infra Java + login ya operativos.
-
-**En contra (+tiempo — y son el piso del calendario a tiempo completo):**
-
-- **Esperas externas** (ruta crítica): acceso de red al WS ORDS (`10.249.249.3`), validación de
-  negocio y UAT con usuarios clave.
-- **U07** es el bloque crítico (estado local + navegación in-page sin request).
-- **Latencias 6–7 s** en 4 endpoints PDF → requieren tuning específico Java+Oracle.
-- **ETL `tags`**: bug de duplicación masiva + encoding mixto (latin1/utf8) + `files.url` = base64
-  de PDF (decisión BLOB).
-- **`x-api-key` real** del WS ORDS (hoy enmascarado como `XXXXXX`) — necesario para pruebas E2E.
-
----
-
-## KPIs acordados
-
-| Métrica | Target |
-|---|---|
-| Paridad funcional módulos admin | ≥ 95% |
-| Defectos críticos abiertos al cutover | 0 |
-| Latencia p95 searchNSS | ≤ 500 ms |
-| Latencia p95 validateModules | ≤ 300 ms |
-| Latencia p95 PDF/históricos | ≤ 2500 ms |
-| Latencia p95 viewTypeExped | ≤ 2000 ms |
-| Cobertura de tests | ≥ 70% |
-| UAT pass rate | ≥ 95% |
-
----
-
-*Documento generado a partir de los artefactos de planeación del repositorio. El escenario base
-asume dedicación de tiempo completo (~6–8 h/día útiles) con asistencia de agente para la
-codificación; el calendario de ~3 semanas está limitado por la ruta crítica externa.*
+*Documento de estado generado a partir del desarrollo a la fecha. Reemplaza al documento de estimación previo.*
