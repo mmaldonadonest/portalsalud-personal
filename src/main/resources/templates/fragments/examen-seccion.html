@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Una seccion del examen (U07). type = SINO | TEXT | DATE. Pre-cargada.
+  name = clave punteada (p.ej. NEUROLOGIA.AVC) para el futuro guardado completo.
+-->
+<div th:fragment="seccion" class="card bg-light mb-3 exsec" th:attr="data-seccion=${seccion}">
+    <div class="card-header py-2"><strong th:text="${seccion}">Seccion</strong></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6" th:each="it : ${items}">
+                <label class="form-label mb-1" th:text="${it.label}">Campo</label>
+
+                <div th:if="${it.type == 'SINO'}" class="d-flex gap-2">
+                    <select class="form-select form-select-sm" style="max-width: 110px;" th:name="${it.fieldName}">
+                        <option value="" th:selected="${it.value == null or it.value == ''}">-</option>
+                        <option value="1" th:selected="${it.value == '1'}">Si</option>
+                        <option value="0" th:selected="${it.value != null and it.value != '' and it.value != '1'}">No</option>
+                    </select>
+                    <input th:if="${it.obsName != null}" type="text" class="form-control form-control-sm"
+                           placeholder="Observaciones" th:name="${it.obsName}" th:value="${it.obsValue}">
+                </div>
+
+                <input th:if="${it.type == 'TEXT'}" type="text" class="form-control form-control-sm"
+                       th:name="${it.fieldName}" th:value="${it.value}">
+
+                <input th:if="${it.type == 'DATE'}" type="date" class="form-control form-control-sm"
+                       th:name="${it.fieldName}" th:value="${it.value}">
+
+                <textarea th:if="${it.type == 'AREA'}" class="form-control form-control-sm" rows="2"
+                          th:name="${it.fieldName}" th:text="${it.value}"></textarea>
+
+                <select th:if="${it.type == 'RESULTADO'}" class="form-select form-select-sm" th:name="${it.fieldName}">
+                    <option value="">Seleccionar</option>
+                    <option value="apto" th:selected="${it.value == 'apto'}">Apto</option>
+                    <option value="no_apto" th:selected="${it.value == 'no_apto'}">No apto</option>
+                    <option value="apto_condicionado" th:selected="${it.value == 'apto_condicionado'}">Apto condicionado</option>
+                    <option value="apto_restringido" th:selected="${it.value == 'apto_restringido'}">Apto restringido</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

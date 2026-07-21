@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reporte Ejecutivo · Casos de Uso · Portal Salud (PHP → Java)</title>
+<style>
+  :root {
+    --navy:#172a45; --blue:#2563af; --light:#eef2f8; --red:#c0392b;
+    --amber:#b7791f; --green:#1e7846; --grey:#5a5a5a; --border:#d9e1ec;
+  }
+  * { box-sizing:border-box; }
+  body { font-family:"Segoe UI",Arial,Helvetica,sans-serif; color:#1e1e1e; line-height:1.55; margin:0; background:#f4f6fa; }
+  .page { max-width:1080px; margin:24px auto; background:#fff; padding:40px 48px 56px; box-shadow:0 2px 14px rgba(0,0,0,.08); border-radius:6px; }
+  h1 { color:var(--navy); font-size:26px; margin:0 0 6px; }
+  .subtitle { color:var(--grey); font-size:14px; margin-bottom:4px; }
+  h2 { color:var(--blue); font-size:18px; border-bottom:2px solid var(--blue); padding-bottom:4px; margin:34px 0 14px; }
+  table { border-collapse:collapse; width:100%; font-size:13.5px; margin:8px 0 4px; }
+  th,td { border:1px solid var(--border); padding:7px 10px; text-align:left; vertical-align:top; }
+  thead th { background:var(--navy); color:#fff; font-weight:600; }
+  tbody tr:nth-child(even) { background:#f7f9fc; }
+  td.c,th.c { text-align:center; white-space:nowrap; }
+  .badge { display:inline-block; padding:1px 9px; border-radius:10px; font-size:11.5px; font-weight:600; color:#fff; }
+  .ok { background:var(--green); } .part { background:var(--amber); } .pend { background:var(--red); }
+  .callout { background:var(--light); border-left:4px solid var(--blue); padding:12px 16px; margin:14px 0; border-radius:0 4px 4px 0; font-size:13.5px; color:var(--navy); }
+  .callout.warn { background:#fdf6ec; border-left-color:var(--amber); color:#6b4c11; }
+  ul { margin:4px 0 10px; padding-left:22px; } li { margin:3px 0; }
+  code { background:#eef1f6; padding:1px 5px; border-radius:3px; font-family:Consolas,"Courier New",monospace; font-size:12.5px; }
+  footer { margin-top:34px; padding-top:12px; border-top:1px solid var(--border); color:var(--grey); font-size:12px; font-style:italic; }
+
+  /* KPIs */
+  .kpi-row { display:flex; gap:16px; flex-wrap:wrap; margin:10px 0 4px; }
+  .kpi { flex:1 1 140px; border:1px solid var(--border); border-radius:6px; padding:14px 16px; text-align:center; background:#fbfcfe; }
+  .kpi .num { font-size:30px; font-weight:700; line-height:1; }
+  .kpi .lbl { font-size:12px; color:var(--grey); margin-top:6px; text-transform:uppercase; letter-spacing:.4px; }
+  .kpi.g .num{color:var(--green);} .kpi.a .num{color:var(--amber);} .kpi.r .num{color:var(--red);} .kpi.b .num{color:var(--blue);}
+
+  /* Distribución visual */
+  .dist { display:flex; gap:28px; align-items:center; flex-wrap:wrap; margin:8px 0; }
+  .donut { width:150px; height:150px; border-radius:50%;
+    background: conic-gradient(var(--green) 0 81.8%, var(--amber) 81.8% 90.9%, var(--red) 90.9% 100%);
+    position:relative; flex:0 0 auto; }
+  .donut::after { content:""; position:absolute; inset:26px; background:#fff; border-radius:50%; }
+  .donut .ctr { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:1; }
+  .donut .ctr b { font-size:26px; color:var(--navy); line-height:1; }
+  .donut .ctr span { font-size:11px; color:var(--grey); }
+  .legend { font-size:13px; }
+  .legend div { margin:5px 0; }
+  .dot { display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:7px; vertical-align:middle; }
+
+  /* Barra de avance */
+  .bar { height:22px; border-radius:11px; background:#e7ecf3; overflow:hidden; display:flex; margin:6px 0 2px; }
+  .bar > span { display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:600; }
+
+  @media print { body { background:#fff; } .page { box-shadow:none; margin:0; max-width:none; border-radius:0; } h2{ page-break-after:avoid; } table{ page-break-inside:avoid; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Portal Salud &nbsp;|&nbsp; Reporte Ejecutivo de Casos de Uso</h1>
+  <div class="subtitle"><strong>Proyecto:</strong> Migración del sistema médico legacy — PHP → Java Spring Boot 3.3 (Java 21), MariaDB → Oracle 21c</div>
+  <div class="subtitle"><strong>Corte de estado:</strong> 2026-07-13 &nbsp;·&nbsp; <strong>Alcance:</strong> 11 casos de uso (incluida la migración de datos)</div>
+
+  <h2>Resumen ejecutivo</h2>
+  <div class="kpi-row">
+    <div class="kpi g"><div class="num">9</div><div class="lbl">Completos</div></div>
+    <div class="kpi a"><div class="num">1</div><div class="lbl">En progreso</div></div>
+    <div class="kpi r"><div class="num">1</div><div class="lbl">Pendiente</div></div>
+    <div class="kpi b"><div class="num">11</div><div class="lbl">Total casos de uso</div></div>
+  </div>
+
+  <div class="dist">
+    <div class="donut">
+      <div class="ctr"><b>82%</b><span>completo</span></div>
+    </div>
+    <div class="legend">
+      <div><span class="dot" style="background:var(--green)"></span><strong>9 completos</strong> — flujo clínico operativo end-to-end</div>
+      <div><span class="dot" style="background:var(--amber)"></span><strong>1 en progreso</strong> — Migración de datos (U09): esquema y escritura nueva OK; falta carga histórica</div>
+      <div><span class="dot" style="background:var(--red)"></span><strong>1 pendiente</strong> — QA integral / UAT (U10)</div>
+    </div>
+  </div>
+
+  <div class="callout"><strong>Estado del negocio:</strong> el sistema está <strong>funcional end-to-end</strong> — login (BD local u ORDS), búsqueda por NSS, menú de módulos por permisos y todos los módulos clínicos (consultas, incapacidades, exámenes médicos, pre-test, archivos y notas) con alta, detalle, firma digital y adjuntos. Restan dos frentes para producción: <strong>cargar el histórico de datos</strong> del sistema viejo y ejecutar la <strong>QA/UAT integral</strong>.</div>
+
+  <h2>Avances recientes</h2>
+  <table>
+    <thead><tr><th class="c">CU</th><th>Avance</th><th>Impacto</th></tr></thead>
+    <tbody>
+      <tr><td class="c"><strong>U08</strong></td><td>Integración del <strong>login contra el WS ORDS</strong> (estrategia híbrida: BD local + ORDS) con timeouts y trazas de auditoría</td><td>El menú de módulos por permisos ya opera con usuarios reales del ORDS</td></tr>
+      <tr><td class="c"><strong>U09 / U04</strong></td><td><strong>Almacenamiento de archivos alineado a la arquitectura</strong>: metadatos en BD + binario en <em>filesystem</em> (se corrigió el guardado del binario en BD)</td><td>Cumple el contrato <code>metadata-in-db-and-binary-in-filesystem</code>; sienta la base del corte de datos</td></tr>
+      <tr><td class="c"><strong>U11</strong></td><td>Manejo de <strong>expiración de sesión</strong> (403/CSRF) con aviso y redirección al login; timeout de sesión configurable (4 h)</td><td>Elimina el error 403 tras inactividad prolongada</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Estado por caso de uso</h2>
+  <table>
+    <thead>
+      <tr><th class="c">ID</th><th>Caso de uso</th><th class="c">Estado</th><th>Notas</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="c"><strong>U01</strong></td><td>Búsqueda por NSS</td><td class="c"><span class="badge ok">Completo</span></td><td>POST→HTML fiel al PHP; flujos ORDS encadenados; página <code>/nss</code> y buscador del header</td></tr>
+      <tr><td class="c"><strong>U02</strong></td><td>Menú dinámico de módulos por permisos</td><td class="c"><span class="badge ok">Completo</span></td><td>validateModules (2 llamadas ORDS) → submenú lateral por rol del usuario</td></tr>
+      <tr><td class="c"><strong>U03</strong></td><td>Pre-Test y Checklist</td><td class="c"><span class="badge ok">Completo</span></td><td>Laboratorio (archivos) + cuestionario Pre-Test EAV (~55 campos)</td></tr>
+      <tr><td class="c"><strong>U04</strong></td><td>Expediente general + consultas</td><td class="c"><span class="badge ok">Completo</span></td><td>Historial + detalle + alta + IMC + ICD + firma + adjuntos PDF</td></tr>
+      <tr><td class="c"><strong>U05</strong></td><td>Incapacidades + archivo</td><td class="c"><span class="badge ok">Completo</span></td><td>Lista + detalle + alta (reusa firma/adjuntos/export)</td></tr>
+      <tr><td class="c"><strong>U06</strong></td><td>Notas e históricos PDF</td><td class="c"><span class="badge ok">Completo</span></td><td>Histórico E.M / Nota médica / Nota incapacidad (módulo genérico por tipo)</td></tr>
+      <tr><td class="c"><strong>U07</strong></td><td>Examen médico + navegación in-page</td><td class="c"><span class="badge ok">Completo</span></td><td>El más complejo (~43 secciones); carga, edición y guardado. <em>Guardado por validar contra el WS real.</em></td></tr>
+      <tr><td class="c"><strong>U08</strong></td><td>Autenticación (BD local / ORDS / híbrida)</td><td class="c"><span class="badge ok">Completo</span></td><td>Login ORDS integrado (estrategia HYBRID); mantiene el admin local y habilita usuarios del ORDS</td></tr>
+      <tr><td class="c"><strong>U09</strong></td><td><strong>Migración de datos → Oracle 21c</strong></td><td class="c"><span class="badge part">En progreso</span></td><td>Esquema aplicado (QA+local); datos nuevos ya en el modelo definitivo (metadatos en Oracle + archivos en filesystem); <strong>falta la carga histórica</strong> del legacy (requiere origen MariaDB)</td></tr>
+      <tr><td class="c"><strong>U10</strong></td><td>QA integral (contract / E2E / UAT)</td><td class="c"><span class="badge pend">Pendiente</span></td><td>Suite de pruebas y aceptación con usuarios; los tests automatizados requieren entorno JDK 21</td></tr>
+      <tr><td class="c"><strong>U11</strong></td><td>Hardening y observabilidad</td><td class="c"><span class="badge ok">Completo</span></td><td>Cabeceras de seguridad, health-checks (actuator), correlation-id, manejo de expiración de sesión</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Foco: Migración de datos (U09) — como caso de uso</h2>
+  <div class="callout warn"><strong>Es el único frente técnico que depende de un tercero</strong> (acceso al origen MariaDB del sistema viejo). Está dividido en dos partes: el <em>motor</em> ya está listo y probado; falta el <em>corte de datos</em> histórico previo a producción.</div>
+  <table>
+    <thead><tr><th style="width:20%">Componente</th><th class="c" style="width:14%">Estado</th><th>Detalle</th></tr></thead>
+    <tbody>
+      <tr><td>Almacenamiento de archivos (metadatos en BD + binario en filesystem)</td><td class="c"><span class="badge ok">Completo</span></td><td>Modelo del contrato: <code>APP_FS_FILE</code> + <code>StorageProvider</code> a disco (sharding por fecha, UUID, checksum SHA-256, escritura atómica). Reemplaza el guardado del binario en BD</td></tr>
+      <tr><td>Esquema destino de landing (Oracle)</td><td class="c"><span class="badge ok">Completo</span></td><td>Tablas de aterrizaje (archivos/etiquetas) creadas; función base64→BLOB validada para la migración histórica</td></tr>
+      <tr><td>Escritura de datos nuevos</td><td class="c"><span class="badge ok">Completo</span></td><td>Adjuntos (a filesystem), pre-test y exámenes ya se guardan en el modelo definitivo</td></tr>
+      <tr><td>Carga masiva histórica</td><td class="c"><span class="badge pend">Pendiente</span></td><td><strong>Bloqueante:</strong> necesita acceso al origen MariaDB (dump o DB-link) para migrar los registros existentes</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Avance por frente</h2>
+  <div style="font-size:13px;">
+    <div>Flujo clínico funcional (U01–U08, U11)</div>
+    <div class="bar"><span class="ok" style="width:100%">100%</span></div>
+    <div style="margin-top:10px;">Migración de datos (U09)</div>
+    <div class="bar"><span class="ok" style="width:75%">motor listo</span><span class="pend" style="width:25%">histórico</span></div>
+    <div style="margin-top:10px;">QA integral / UAT (U10)</div>
+    <div class="bar"><span class="pend" style="width:100%">pendiente</span></div>
+  </div>
+
+  <h2>Pendientes y próximos pasos</h2>
+  <ul>
+    <li><strong>Migración histórica (U09):</strong> gestionar acceso al MariaDB legacy y ejecutar la carga de archivos/etiquetas existentes (paso de cutover).</li>
+    <li><strong>QA integral (U10):</strong> pruebas de contrato con el WS ORDS, pruebas E2E de cada módulo y aceptación con usuarios (UAT) en entorno JDK 21.</li>
+    <li><strong>Validaciones puntuales:</strong> confirmar el guardado del examen médico (U07) contra el WS real y disponer del <code>x-api-key</code> productivo del ORDS.</li>
+  </ul>
+
+  <footer>
+    Reporte generado el 2026-07-13 · Portal Salud (Onest Smart Logistics) · Estado a la fecha de desarrollo; sujeto a validación en QA/UAT.
+  </footer>
+
+</div>
+</body>
+</html>

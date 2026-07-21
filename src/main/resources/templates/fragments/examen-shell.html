@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Examen medico (U07) - shell con navegacion in-page. Equivale a menuHeredoFam.html.
+  Cada boton carga su seccion en #examenSecciones sin recargar (irAContenido).
+-->
+<div th:fragment="shell">
+    <div class="card card-one">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h6 class="card-title mb-0">Examen medico &mdash; Antecedentes heredofamiliares</h6>
+            <span class="badge bg-primary" th:text="'NSS ' + ${nss}">NSS</span>
+        </div>
+        <div class="card-body">
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <button th:each="s : ${secciones}" type="button"
+                        class="btn btn-sm btn-outline-primary"
+                        th:text="${s}"
+                        th:attr="data-seccion=${s}, data-nss=${nss}"
+                        onclick="cargarSeccionExamen(this);">Seccion</button>
+            </div>
+
+            <div id="examenSecciones"></div>
+
+            <hr class="my-3">
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label d-block">Firma del paciente</label>
+                    <input type="hidden" id="firma">
+                    <canvas id="firmaCanvas" width="320" height="160"
+                            class="border rounded bg-white" style="touch-action: none; cursor: crosshair;"></canvas>
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="firmaClear">
+                            <i class="ri-eraser-line me-1"></i> Limpiar firma
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end mt-3">
+                <button type="button" class="btn btn-primary" onclick="guardarExamen(this);">
+                    <i class="ri-save-line me-1"></i> Guardar examen
+                </button>
+            </div>
+            <div class="text-muted fs-sm mt-2">
+                <i class="ri-information-line me-1"></i>
+                Se guardan las secciones que hayas cargado (evita sobrescribir las no abiertas).
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Detalle de una consulta medica (U04). Equivale a viewConsultaDetails.php.
+  Se inyecta en el cuerpo del modal de la pagina de busqueda NSS.
+-->
+<div th:fragment="detalle">
+
+    <div th:if="${detalle == null}" class="alert alert-warning mb-0" role="alert">
+        No se encontro el detalle de la consulta.
+    </div>
+
+    <div th:if="${detalle != null}" th:with="d=${detalle}">
+        <div class="row g-3">
+            <div class="col-md-6" th:each="campo : ${ {
+                    {'Tipo de consulta', d.tipoConsulta},
+                    {'Area accidente', d.areaAccidente},
+                    {'Area anatomica', d.areaInvolucrada},
+                    {'Causa', d.causa},
+                    {'Peso', d.peso},
+                    {'Talla', d.talla},
+                    {'IMC', d.imc},
+                    {'FC', d.fc},
+                    {'FR', d.fr},
+                    {'TA', d.ta},
+                    {'Temperatura', d.temperatura},
+                    {'Motivo de consulta', d.motivo},
+                    {'Exploracion fisica', d.exploracion},
+                    {'Diagnostico', d.diagnostico},
+                    {'Tratamiento', d.tratamiento}
+                } }">
+                <label class="form-label mb-1 text-muted fs-sm" th:text="${campo[0]}">Campo</label>
+                <input type="text" readonly class="form-control form-control-sm"
+                       th:value="${campo[1]}">
+            </div>
+        </div>
+
+        <hr class="my-4">
+        <h6 class="mb-2"><i class="ri-attachment-2 me-1"></i> Archivos adjuntos</h6>
+        <div th:if="${#lists.isEmpty(adjuntos)}" class="text-muted fs-sm">Sin archivos adjuntos.</div>
+        <ul th:unless="${#lists.isEmpty(adjuntos)}" class="list-group">
+            <li th:each="a : ${adjuntos}"
+                class="list-group-item d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="ri-file-pdf-2-line me-1 text-danger"></i>
+                    <span th:text="${a.name}">archivo.pdf</span>
+                    <small class="text-muted" th:if="${a.sizeBytes != null}"
+                           th:text="'(' + ${#numbers.formatInteger(a.sizeBytes / 1024, 1)} + ' KB)'">(KB)</small>
+                </span>
+                <a class="btn btn-sm btn-outline-primary" target="_blank" title="Descargar"
+                   th:href="@{'/api/nss/consulta/file/' + ${a.id}}">
+                    <i class="ri-download-2-line"></i>
+                </a>
+            </li>
+        </ul>
+
+        <div th:if="${d.firmaDigital != null and !d.firmaDigital.isBlank()}" class="text-center mt-4">
+            <h6 class="mb-2">Firma del paciente</h6>
+            <hr>
+            <img th:src="${d.firmaDigital}" class="img-fluid" alt="Firma del paciente"
+                 style="max-height: 180px;">
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

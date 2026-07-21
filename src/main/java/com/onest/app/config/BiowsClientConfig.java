@@ -1,8 +1,11 @@
 package com.onest.app.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Duration;
 import java.util.List;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.web.client.ClientHttpRequestFactories;
+import org.springframework.boot.web.client.ClientHttpRequestFactorySettings;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -20,8 +23,14 @@ public class BiowsClientConfig {
 
     @Bean
     public RestClient biowsRestClient(RestClient.Builder builder, BiowsProperties properties, ObjectMapper objectMapper) {
+        // Timeouts explicitos: un ORDS inalcanzable no debe colgar el request
+        // (critico para el login HYBRID/LEGACY_PHP que pasa por el WS).
+        ClientHttpRequestFactorySettings timeouts = ClientHttpRequestFactorySettings.DEFAULTS
+                .withConnectTimeout(Duration.ofSeconds(5))
+                .withReadTimeout(Duration.ofSeconds(20));
         return builder
                 .baseUrl(properties.baseUrl())
+                .requestFactory(ClientHttpRequestFactories.get(timeouts))
                 .defaultHeader("x-api-key", properties.apiKey())
                 .defaultHeader("Content-Type", "application/json; charset=utf-8")
                 // El ORDS responde con Content-Type text/html aunque el cuerpo es JSON

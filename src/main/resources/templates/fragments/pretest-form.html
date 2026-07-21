@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Pre-Test (U03, modulo id 11). Equivale a pretest.html + savePretest.php.
+  Carga/guarda EAV en MED_TAG (TYPE=<base>PRETEST). Se inyecta en #moduleContent.
+-->
+
+<!-- Fragmento reutilizable: una pregunta si/no con observaciones opcionales -->
+<th:block th:fragment="pregunta(code, label, obs)">
+    <div class="col-md-6">
+        <label class="form-label" th:text="${label}">Pregunta</label>
+        <select class="form-select" th:name="${code}">
+            <option value="" th:selected="${p[code] == null}">Seleccionar</option>
+            <option value="1" th:selected="${p[code] == '1'}">Si</option>
+            <option value="0" th:selected="${p[code] != null and p[code] != '1'}">No</option>
+        </select>
+        <input th:if="${obs}" type="text" class="form-control mt-2"
+               th:name="${code} + 'OBS'" th:value="${p[code + 'OBS']}" placeholder="Observaciones">
+    </div>
+</th:block>
+
+<div th:fragment="form">
+    <div class="card card-one">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h6 class="card-title mb-0">Pre-Test</h6>
+            <span class="badge bg-primary" th:text="'NSS ' + ${nss}">NSS</span>
+        </div>
+        <div class="card-body">
+            <form id="pretestForm" class="row g-3" novalidate>
+                <input type="hidden" name="nss" th:value="${nss}">
+
+                <div class="col-12"><h6 class="text-primary mb-0">Datos personales</h6></div>
+                <div class="col-md-6"><label class="form-label">Cuenta</label>
+                    <input type="text" class="form-control" name="cuenta" th:value="${p['cuenta']}"></div>
+                <div class="col-md-6"><label class="form-label">Puesto</label>
+                    <input type="text" class="form-control" name="puesto" th:value="${p['puesto']}"></div>
+                <div class="col-12"><label class="form-label">Agencia</label>
+                    <input type="text" class="form-control" name="agencia" th:value="${p['agencia']}"></div>
+                <div class="col-md-4"><label class="form-label">Apellido paterno</label>
+                    <input type="text" class="form-control" name="ape" th:value="${p['ape']}"></div>
+                <div class="col-md-4"><label class="form-label">Apellido materno</label>
+                    <input type="text" class="form-control" name="apm" th:value="${p['apm']}"></div>
+                <div class="col-md-4"><label class="form-label">Nombre(s)</label>
+                    <input type="text" class="form-control" name="nom" th:value="${p['nom']}"></div>
+                <div class="col-md-4"><label class="form-label">Fecha de nacimiento</label>
+                    <input type="text" class="form-control" name="fechN" th:value="${p['fechN']}"></div>
+                <div class="col-md-4"><label class="form-label">Estado civil</label>
+                    <input type="text" class="form-control" name="ecivil" th:value="${p['ecivil']}"></div>
+                <div class="col-md-4"><label class="form-label">Numero IMSS</label>
+                    <input type="text" class="form-control" name="num_imss" th:value="${p['num_imss']}"></div>
+                <div class="col-md-6"><label class="form-label">Telefono personal</label>
+                    <input type="text" class="form-control" name="tel_personal" th:value="${p['tel_personal']}"></div>
+                <div class="col-md-6"><label class="form-label">Telefono de casa</label>
+                    <input type="text" class="form-control" name="tel_casa" th:value="${p['tel_casa']}"></div>
+
+                <div class="col-12"><h6 class="text-primary mb-0">Domicilio</h6></div>
+                <div class="col-md-6"><label class="form-label">Calle</label>
+                    <input type="text" class="form-control" name="calleIn" th:value="${p['calleIn']}"></div>
+                <div class="col-md-2"><label class="form-label">Numero</label>
+                    <input type="text" class="form-control" name="numeroCin" th:value="${p['numeroCin']}"></div>
+                <div class="col-md-4"><label class="form-label">Colonia</label>
+                    <input type="text" class="form-control" name="coloniaInp" th:value="${p['coloniaInp']}"></div>
+                <div class="col-12"><label class="form-label">Delegacion o municipio</label>
+                    <input type="text" class="form-control" name="delegOmUn" th:value="${p['delegOmUn']}"></div>
+
+                <div class="col-12"><h6 class="text-primary mb-0">Contactos de emergencia</h6></div>
+                <div class="col-md-6"><label class="form-label">Telefono (contacto 1)</label>
+                    <input type="text" class="form-control" name="contacto_emergencia" th:value="${p['contacto_emergencia']}"></div>
+                <div class="col-md-6"><label class="form-label">Contactar a</label>
+                    <input type="text" class="form-control" name="contactar_a" th:value="${p['contactar_a']}"></div>
+                <div class="col-md-6"><label class="form-label">Telefono (contacto 2)</label>
+                    <input type="text" class="form-control" name="contacto_emergencia1" th:value="${p['contacto_emergencia1']}"></div>
+                <div class="col-md-6"><label class="form-label">Contactar a</label>
+                    <input type="text" class="form-control" name="contactar_a1" th:value="${p['contactar_a1']}"></div>
+
+                <div class="col-12"><h6 class="text-primary mb-0">Cuestionario de salud</h6></div>
+                <div th:replace="~{:: pregunta('LHOP', '¿Lo han operado en menos de 6 meses?', true)}"></div>
+                <div th:replace="~{:: pregunta('TALMED', '¿Toma algun medicamento en especifico?', true)}"></div>
+                <div th:replace="~{:: pregunta('SUAA', '¿Sufre de alguna alergia?', true)}"></div>
+                <div th:replace="~{:: pregunta('SAFOPH', '¿Se ha fracturado o padece hernias?', true)}"></div>
+                <div th:replace="~{:: pregunta('ESEMB', '¿Esta embarazada (solo mujeres)?', true)}"></div>
+                <div th:replace="~{:: pregunta('PALENF', '¿Padece alguna enfermedad(es)?', true)}"></div>
+                <div th:replace="~{:: pregunta('CONDROG', '¿Actualmente consume drogas?', true)}"></div>
+
+                <div class="col-12"><h6 class="text-primary mb-0">Sintomas (COVID)</h6></div>
+                <div th:replace="~{:: pregunta('TOSIN', 'Tos', false)}"></div>
+                <div th:replace="~{:: pregunta('FIEBREIN', 'Fiebre', false)}"></div>
+                <div th:replace="~{:: pregunta('DOLOCABINP', 'Dolor de cabeza', false)}"></div>
+                <div th:replace="~{:: pregunta('DIFRESP', 'Dificultad para respirar', false)}"></div>
+                <div th:replace="~{:: pregunta('DOLARDGARG', 'Dolor o ardor en la garganta', false)}"></div>
+                <div th:replace="~{:: pregunta('ESCURRINAZ', 'Escurrimiento nasal', false)}"></div>
+                <div th:replace="~{:: pregunta('OJOSROJOS', 'Ojos rojos', false)}"></div>
+                <div th:replace="~{:: pregunta('DOLMUSART', 'Dolor muscular o articular', false)}"></div>
+
+                <div class="col-md-6"><label class="form-label">Caso COVID - ¿quien?</label>
+                    <input type="text" class="form-control" name="caso_covid_quien" th:value="${p['caso_covid_quien']}"></div>
+                <div class="col-md-6"><label class="form-label">Caso COVID - ¿cuando?</label>
+                    <input type="text" class="form-control" name="caso_covid_cuando" th:value="${p['caso_covid_cuando']}"></div>
+
+                <div class="col-12"><h6 class="text-primary mb-0">Comentarios</h6></div>
+                <div class="col-12"><label class="form-label">Comentarios</label>
+                    <textarea class="form-control" name="comentarios" rows="2" th:text="${p['comentarios']}"></textarea></div>
+                <div class="col-12"><label class="form-label">Comentarios adicionales</label>
+                    <textarea class="form-control" name="comentarios_adicionales" rows="2" th:text="${p['comentarios_adicionales']}"></textarea></div>
+
+                <div class="col-12">
+                    <label class="form-label d-block">Firma del paciente</label>
+                    <input type="hidden" name="drawdataUrl" id="firma" th:value="${p['drawdataUrl']}">
+                    <canvas id="firmaCanvas" width="320" height="160"
+                            class="border rounded bg-white" style="touch-action: none; cursor: crosshair;"></canvas>
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="firmaClear">
+                            <i class="ri-eraser-line me-1"></i> Limpiar firma
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-12 d-flex justify-content-end">
+                    <button type="button" class="btn btn-primary" onclick="guardarPretest(this);">
+                        <i class="ri-save-line me-1"></i> Guardar Pre-Test
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -3,6 +3,8 @@ package com.onest.app.catalog.module.service;
 import com.onest.app.catalog.module.client.ModulePermissionClient;
 import com.onest.app.catalog.module.dto.ModuleDto;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -14,6 +16,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class ModulePermissionService {
 
+    private static final Logger log = LoggerFactory.getLogger(ModulePermissionService.class);
+
     private final ModulePermissionClient client;
 
     public ModulePermissionService(ModulePermissionClient client) {
@@ -23,8 +27,16 @@ public class ModulePermissionService {
     public List<ModuleDto> allowedModulesForCurrentUser() {
         String idUsuario = usuarioActual();
         return client.findRoleId(idUsuario)
-                .map(client::findMenusByRole)
-                .orElseGet(List::of);
+                .map(idRol -> {
+                    List<ModuleDto> modulos = client.findMenusByRole(idRol);
+                    log.info("[modulos] usuario={} rol={} -> {} modulo(s)", idUsuario, idRol, modulos.size());
+                    return modulos;
+                })
+                .orElseGet(() -> {
+                    log.warn("[modulos] usuario={} SIN rol en ORDS (consulta_app_rol_usuario, id_app=13);"
+                            + " el submenu lateral quedara vacio", idUsuario);
+                    return List.of();
+                });
     }
 
     /**

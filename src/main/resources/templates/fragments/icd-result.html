@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Resultados de busqueda ICD (showIcd.php). Se inyecta en #icdResult del form de consulta.
+  Cada clave se agrega al diagnostico (addIcd).
+-->
+<div th:fragment="table">
+    <div th:if="${#lists.isEmpty(claves)}" class="text-muted fs-sm">Sin resultados ICD.</div>
+    <div th:unless="${#lists.isEmpty(claves)}" class="list-group" style="max-height: 220px; overflow-y: auto;">
+        <button th:each="c : ${claves}" type="button"
+                class="list-group-item list-group-item-action py-2"
+                th:attr="data-icd=${c.claveId} + ' - ' + ${c.nombreClave}"
+                th:text="${c.claveId} + ' - ' + ${c.nombreClave}"
+                onclick="addIcd(this);">clave</button>
+    </div>
+</div>
+</body>
+</html>

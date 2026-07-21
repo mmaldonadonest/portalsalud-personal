@@ -29,6 +29,7 @@
                 <div class="card-body">
                     <div class="alert alert-danger" th:if="${param.error}" role="alert">Credenciales inv&aacute;lidas. Verifica tus datos.</div>
                     <div class="alert alert-success" th:if="${param.logout}" role="alert">Tu sesi&oacute;n ha finalizado correctamente.</div>
+                    <div class="alert alert-warning" th:if="${param.expired}" role="alert">Tu sesi&oacute;n expir&oacute; por inactividad. Vuelve a iniciar sesi&oacute;n.</div>
                     <form th:action="@{/login}" action="/login" method="post" novalidate>
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                         <div class="mb-4">

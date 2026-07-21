@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 import com.onest.app.config.SecurityConfiguration;
+import com.onest.app.security.legacy.LegacyPhpAuthenticationProvider;
 import com.onest.app.security.service.PortalUserDetailsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,10 @@ class PortalViewControllerTest {
 
     @MockBean
     private PortalUserDetailsService portalUserDetailsService;
+
+    // Requerido por SecurityConfiguration (selector de estrategia de auth, U08).
+    @MockBean
+    private LegacyPhpAuthenticationProvider legacyPhpAuthenticationProvider;
 
     @Test
     void shouldRenderLoginPage() throws Exception {

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Vista generica de archivos por NSS + tipo (MED_FILE). Cubre Laboratorio (U03) e
+  Historico E.M / Notas medicas / Notas incapacidad (U06). Se inyecta en #moduleContent.
+-->
+<div th:fragment="view">
+    <div class="card card-one">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h6 class="card-title mb-0" th:text="${titulo}">Archivos</h6>
+            <span class="badge bg-primary" th:text="'NSS ' + ${nss}">NSS</span>
+        </div>
+        <div class="card-body">
+            <div class="row g-2 align-items-end mb-3">
+                <div class="col-md-8">
+                    <label class="form-label" for="archivoFiles">Subir PDF</label>
+                    <input type="file" class="form-control" id="archivoFiles" accept="application/pdf" multiple>
+                </div>
+                <div class="col-md-4">
+                    <button type="button" class="btn btn-primary"
+                            th:attr="data-nss=${nss}, data-tipo=${tipo}" onclick="subirArchivo(this);">
+                        <i class="ri-upload-2-line me-1"></i> Subir
+                    </button>
+                </div>
+            </div>
+
+            <h6 class="mb-2">Archivos</h6>
+            <div th:if="${#lists.isEmpty(files)}" class="text-muted fs-sm">Sin archivos.</div>
+            <ul th:unless="${#lists.isEmpty(files)}" class="list-group">
+                <li th:each="a : ${files}"
+                    class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>
+                        <i class="ri-file-pdf-2-line me-1 text-danger"></i>
+                        <span th:text="${a.name}">archivo.pdf</span>
+                        <small class="text-muted" th:if="${a.sizeBytes != null}"
+                               th:text="'(' + ${#numbers.formatInteger(a.sizeBytes / 1024, 1)} + ' KB)'">(KB)</small>
+                    </span>
+                    <span class="d-flex gap-2">
+                        <a class="btn btn-sm btn-outline-primary" target="_blank" title="Descargar"
+                           th:href="@{'/api/nss/consulta/file/' + ${a.id}}"><i class="ri-download-2-line"></i></a>
+                        <button type="button" class="btn btn-sm btn-outline-danger" title="Borrar"
+                                th:attr="data-id=${a.id}, data-nss=${nss}, data-tipo=${tipo}"
+                                onclick="borrarArchivo(this);"><i class="ri-delete-bin-line"></i></button>
+                    </span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+</body>
+</html>

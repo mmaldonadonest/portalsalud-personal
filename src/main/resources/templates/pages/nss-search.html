@@ -41,6 +41,22 @@
             <div id="nssSearchResult" class="mt-3" style="display: none;"></div>
         </div>
     </div>
+
+    <!-- Area donde se cargan las vistas de los modulos (expediente, etc.) -->
+    <div id="moduleContent" class="mt-3"></div>
+
+    <!-- Modal de detalle de consulta (U04) -->
+    <div class="modal fade" id="consultaModal" tabindex="-1" aria-labelledby="consultaModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title mb-0" id="consultaModalTitle">Detalle de consulta</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body" id="consultaModalBody"></div>
+            </div>
+        </div>
+    </div>
 </th:block>
 
 <th:block id="pageScripts">
@@ -54,6 +70,21 @@
             if (!form || !status || !result || !input) {
                 return;
             }
+
+            // Sesion/CSRF expirada: cualquier POST AJAX que devuelva 401/403 (tipico
+            // tras dejar la pagina abierta mas que el timeout de sesion) redirige al
+            // login en vez de mostrar un "Error 403" confuso. Se envuelve fetch una vez.
+            var _portalFetch = window.fetch.bind(window);
+            window.fetch = function (input, init) {
+                return _portalFetch(input, init).then(function (resp) {
+                    if (resp.status === 401 || resp.status === 403) {
+                        window.location.href = contextPath + 'login?expired';
+                        // Promesa que nunca resuelve: frena el manejo posterior al navegar.
+                        return new Promise(function () {});
+                    }
+                    return resp;
+                });
+            };
 
             async function doSearch() {
                 var nss = (input.value || '').trim();
@@ -97,9 +128,11 @@
                     result.innerHTML = html;
                     result.style.display = 'block';
 
-                    // Reiniciamos el menu lateral de modulos y, si es empleado
-                    // (el fragmento incluye #nssEmpleadoMarker), lo cargamos.
+                    // Reiniciamos el menu lateral de modulos y el area de contenido; si es
+                    // empleado (el fragmento incluye #nssEmpleadoMarker), cargamos los modulos.
                     resetSidebarModules();
+                    var mc = document.getElementById('moduleContent');
+                    if (mc) { mc.innerHTML = ''; }
                     if (document.getElementById('nssEmpleadoMarker')) {
                         loadSidebarModules(nss);
                     }
@@ -145,20 +178,574 @@
                         // Solo mostramos el grupo si hay al menos un modulo permitido.
                         if (sub.querySelector('a')) {
                             group.style.display = '';
+                        } else {
+                            // El WS respondio bien pero sin modulos: el usuario logueado
+                            // no tiene rol/menus en el ORDS (consulta_app_rol_usuario) para app 13.
+                            status.textContent = 'Ficha cargada, pero el usuario logueado no tiene modulos'
+                                + ' asignados en el ORDS (validateModules). Revisa el rol del usuario.';
                         }
+                    } else {
+                        status.textContent = 'Ficha cargada, pero no se pudieron cargar los modulos'
+                            + ' del menu (HTTP ' + response.status + ').';
                     }
                 } catch (error) {
                     // Los modulos son complementarios: si fallan, no rompemos la ficha.
+                    status.textContent = 'Ficha cargada, pero fallo la carga de modulos del menu: ' + error;
                 }
             }
 
-            // Handler de los botones de modulo. Placeholder hasta implementar U03-U07;
-            // ya recibe id_menu y nss para la futura navegacion a cada modulo.
+            // Carga la vista de un modulo (POST form-urlencoded con el NSS) en #moduleContent.
+            async function loadModuleView(path, nss) {
+                var mc = document.getElementById('moduleContent');
+                if (!mc) {
+                    return;
+                }
+                mc.innerHTML = '<div class="text-muted fs-sm">Cargando...</div>';
+                try {
+                    var body = new URLSearchParams();
+                    body.append('data', nss);
+                    var csrf = form.querySelector('input[type="hidden"][name]');
+                    if (csrf && csrf.name) {
+                        body.append(csrf.name, csrf.value);
+                    }
+                    var response = await fetch(contextPath + path, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'Accept': 'text/html'
+                        },
+                        body: body.toString()
+                    });
+                    if (response.ok) {
+                        mc.innerHTML = await response.text();
+                        // Si el modulo trae el canvas de firma, inicializar el signature pad.
+                        if (document.getElementById('firmaCanvas')) {
+                            initSignaturePad();
+                        }
+                    } else {
+                        mc.innerHTML = '<div class="alert alert-danger mb-0">Error al cargar el modulo (HTTP ' + response.status + ').</div>';
+                    }
+                } catch (error) {
+                    mc.innerHTML = '<div class="alert alert-danger mb-0">Error de red al cargar el modulo.</div>';
+                }
+            }
+
+            // Handler de los modulos del sidebar. Despacha por data-action; los modulos
+            // aun no implementados (sin action) muestran mensaje placeholder.
             window.abrirModulo = function (btn) {
-                var idMenu = btn.getAttribute('data-id-menu');
+                var action = btn.getAttribute('data-action');
                 var nss = btn.getAttribute('data-nss');
+                if (action === 'expediente') {
+                    loadModuleView('api/nss/expediente', nss);
+                    return;
+                }
+                if (action === 'consulta-form') {
+                    loadModuleView('api/nss/consulta/form', nss);
+                    return;
+                }
+                if (action === 'incapacidades') {
+                    loadModuleView('api/nss/incapacidades', nss);
+                    return;
+                }
+                if (action === 'incapacidad-form') {
+                    loadModuleView('api/nss/incapacidades/form', nss);
+                    return;
+                }
+                if (action === 'archivos') {
+                    loadArchivos(nss, btn.getAttribute('data-tipo'));
+                    return;
+                }
+                if (action === 'pretest') {
+                    loadModuleView('api/nss/pretest', nss);
+                    return;
+                }
+                if (action === 'examen') {
+                    loadModuleView('api/nss/examen', nss);
+                    return;
+                }
+                var idMenu = btn.getAttribute('data-id-menu');
                 status.textContent = 'Modulo "' + btn.textContent.trim() + '" (id ' + idMenu +
                     ', NSS ' + nss + ') disponible en una proxima entrega.';
+            };
+
+            // Busqueda ICD: inyecta los resultados bajo el input; addIcd los agrega al diagnostico.
+            window.buscarIcd = async function () {
+                var input = document.getElementById('icdConsult');
+                var out = document.getElementById('icdResult');
+                if (!input || !out) {
+                    return;
+                }
+                var q = (input.value || '').trim();
+                if (!q) {
+                    out.innerHTML = '';
+                    return;
+                }
+                out.innerHTML = '<div class="text-muted fs-sm">Buscando...</div>';
+                try {
+                    var body = new URLSearchParams();
+                    body.append('icd', q);
+                    var csrf = form.querySelector('input[type="hidden"][name]');
+                    if (csrf && csrf.name) {
+                        body.append(csrf.name, csrf.value);
+                    }
+                    var response = await fetch(contextPath + 'api/nss/icd', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'Accept': 'text/html'
+                        },
+                        body: body.toString()
+                    });
+                    if (response.ok) {
+                        out.innerHTML = await response.text();
+                    } else {
+                        out.innerHTML = '';
+                    }
+                } catch (error) {
+                    out.innerHTML = '';
+                }
+            };
+
+            window.addIcd = function (btn) {
+                var text = btn.getAttribute('data-icd');
+                var ta = document.getElementById('diagnostico');
+                if (ta) {
+                    ta.value = (ta.value ? ta.value + ' ' : '') + text;
+                }
+                var out = document.getElementById('icdResult');
+                if (out) {
+                    out.innerHTML = '';
+                }
+            };
+
+            // Signature pad en canvas (mouse + touch) -> data URL en el campo oculto #firma.
+            window.initSignaturePad = function () {
+                var canvas = document.getElementById('firmaCanvas');
+                var hidden = document.getElementById('firma');
+                if (!canvas || !hidden) {
+                    return;
+                }
+                var ctx = canvas.getContext('2d');
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = '#000';
+                var drawing = false;
+                var last = null;
+
+                function pos(e) {
+                    var r = canvas.getBoundingClientRect();
+                    var t = (e.touches && e.touches.length) ? e.touches[0] : e;
+                    return { x: t.clientX - r.left, y: t.clientY - r.top };
+                }
+                function start(e) { drawing = true; last = pos(e); e.preventDefault(); }
+                function move(e) {
+                    if (!drawing) { return; }
+                    var p = pos(e);
+                    ctx.beginPath();
+                    ctx.moveTo(last.x, last.y);
+                    ctx.lineTo(p.x, p.y);
+                    ctx.stroke();
+                    last = p;
+                    hidden.value = canvas.toDataURL('image/png');
+                    e.preventDefault();
+                }
+                function end() { drawing = false; }
+
+                canvas.addEventListener('mousedown', start);
+                canvas.addEventListener('mousemove', move);
+                window.addEventListener('mouseup', end);
+                canvas.addEventListener('touchstart', start, { passive: false });
+                canvas.addEventListener('touchmove', move, { passive: false });
+                canvas.addEventListener('touchend', end);
+
+                var clearBtn = document.getElementById('firmaClear');
+                if (clearBtn) {
+                    clearBtn.onclick = function () {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        hidden.value = '';
+                    };
+                }
+            };
+
+            // Calcula IMC = peso / talla^2 en el formulario de alta de consulta.
+            window.calcImc = function () {
+                var f = document.getElementById('consultaAltaForm');
+                if (!f) {
+                    return;
+                }
+                var peso = parseFloat(f.peso.value);
+                var talla = parseFloat(f.talla.value);
+                if (peso > 0 && talla > 0) {
+                    f.imc.value = (peso / (talla * talla)).toFixed(2);
+                }
+            };
+
+            // Guardado generico de un alta (consulta / incapacidad) + subida de adjuntos.
+            async function guardarRegistro(btn, opts) {
+                var formEl = document.getElementById(opts.formId);
+                if (!formEl) {
+                    return;
+                }
+                var body = new URLSearchParams(new FormData(formEl));
+                var csrf = form.querySelector('input[type="hidden"][name]');
+                if (csrf && csrf.name) {
+                    body.append(csrf.name, csrf.value);
+                }
+                btn.disabled = true;
+                status.textContent = 'Guardando ' + opts.label + '...';
+                try {
+                    var response = await fetch(contextPath + opts.savePath, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'Accept': 'text/plain'
+                        },
+                        body: body.toString()
+                    });
+                    var txt = await response.text();
+                    if (response.ok) {
+                        status.textContent = txt;
+                        var fileInput = document.getElementById(opts.fileInputId);
+                        if (fileInput && fileInput.files && fileInput.files.length) {
+                            status.textContent = txt + ' Subiendo adjuntos...';
+                            var up = await subirAdjuntos(formEl, fileInput.files);
+                            status.textContent = txt + ' ' + up;
+                        }
+                    } else {
+                        status.textContent = 'Error al registrar (HTTP ' + response.status + '): ' + txt;
+                    }
+                } catch (error) {
+                    status.textContent = 'Error de red al registrar.';
+                } finally {
+                    btn.disabled = false;
+                }
+            }
+
+            window.guardarConsulta = function (btn) {
+                guardarRegistro(btn, { formId: 'consultaAltaForm', savePath: 'api/nss/consulta', fileInputId: 'consultaFiles', label: 'consulta' });
+            };
+
+            window.guardarIncapacidad = function (btn) {
+                guardarRegistro(btn, { formId: 'incapacidadAltaForm', savePath: 'api/nss/incapacidades/save', fileInputId: 'incapacidadFiles', label: 'incapacidad' });
+            };
+
+            window.guardarPretest = function (btn) {
+                guardarRegistro(btn, { formId: 'pretestForm', savePath: 'api/nss/pretest/save', fileInputId: '__none__', label: 'Pre-Test' });
+            };
+
+            // Costo = salario diario * dias autorizados (legacy calcularSalario).
+            window.calcCostoIncap = function () {
+                var f = document.getElementById('incapacidadAltaForm');
+                if (!f) {
+                    return;
+                }
+                var sal = parseFloat(f.salarioIntegrado.value);
+                var dias = parseFloat(f.diasAutorizados.value);
+                if (sal > 0 && dias > 0) {
+                    f.costo.value = (sal * dias).toFixed(2);
+                }
+            };
+
+            // --- Modulos de archivos por tipo (Laboratorio U03 / Historico+Notas U06) ---
+            async function loadArchivos(nss, tipo) {
+                var mc = document.getElementById('moduleContent');
+                if (!mc) {
+                    return;
+                }
+                mc.innerHTML = '<div class="text-muted fs-sm">Cargando...</div>';
+                try {
+                    var body = new URLSearchParams();
+                    body.append('data', nss);
+                    body.append('tipo', tipo);
+                    var csrf = form.querySelector('input[type="hidden"][name]');
+                    if (csrf && csrf.name) {
+                        body.append(csrf.name, csrf.value);
+                    }
+                    var response = await fetch(contextPath + 'api/nss/archivos', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'text/html' },
+                        body: body.toString()
+                    });
+                    mc.innerHTML = response.ok ? (await response.text())
+                            : ('<div class="alert alert-danger mb-0">Error al cargar (HTTP ' + response.status + ').</div>');
+                } catch (error) {
+                    mc.innerHTML = '<div class="alert alert-danger mb-0">Error de red al cargar.</div>';
+                }
+            }
+
+            window.subirArchivo = async function (btn) {
+                var nss = btn.getAttribute('data-nss') || (input.value || '').trim();
+                var tipo = btn.getAttribute('data-tipo');
+                var fileInput = document.getElementById('archivoFiles');
+                if (!fileInput || !fileInput.files || !fileInput.files.length) {
+                    status.textContent = 'Selecciona al menos un PDF.';
+                    return;
+                }
+                var fd = new FormData();
+                fd.append('nss', nss);
+                fd.append('relacion', tipo);
+                for (var i = 0; i < fileInput.files.length; i++) {
+                    fd.append('file', fileInput.files[i]);
+                }
+                var headers = {};
+                var csrf = form.querySelector('input[type="hidden"][name]');
+                if (csrf) {
+                    headers['X-CSRF-TOKEN'] = csrf.value;
+                }
+                btn.disabled = true;
+                status.textContent = 'Subiendo...';
+                try {
+                    var response = await fetch(contextPath + 'api/nss/consulta/file', {
+                        method: 'POST', headers: headers, body: fd
+                    });
+                    status.textContent = response.ok ? (await response.text())
+                            : ('Error al subir (HTTP ' + response.status + ').');
+                    if (response.ok) {
+                        await loadArchivos(nss, tipo);
+                    }
+                } catch (error) {
+                    status.textContent = 'Error de red al subir.';
+                } finally {
+                    btn.disabled = false;
+                }
+            };
+
+            window.borrarArchivo = async function (btn) {
+                var id = btn.getAttribute('data-id');
+                var nss = btn.getAttribute('data-nss') || (input.value || '').trim();
+                var tipo = btn.getAttribute('data-tipo');
+                var headers = {};
+                var csrf = form.querySelector('input[type="hidden"][name]');
+                if (csrf) {
+                    headers['X-CSRF-TOKEN'] = csrf.value;
+                }
+                try {
+                    var response = await fetch(contextPath + 'api/nss/consulta/file/' + encodeURIComponent(id) + '/delete', {
+                        method: 'POST', headers: headers
+                    });
+                    if (response.ok) {
+                        status.textContent = 'Archivo borrado.';
+                        await loadArchivos(nss, tipo);
+                    } else {
+                        status.textContent = 'No se pudo borrar (HTTP ' + response.status + ').';
+                    }
+                } catch (error) {
+                    status.textContent = 'Error de red al borrar.';
+                }
+            };
+
+            // Sube los PDF adjuntos via multipart (CSRF por header, no por body).
+            async function subirAdjuntos(formEl, files) {
+                var fd = new FormData();
+                fd.append('nss', formEl.nss.value);
+                fd.append('relacion', formEl.idArchivoRel.value);
+                for (var i = 0; i < files.length; i++) {
+                    fd.append('file', files[i]);
+                }
+                var headers = {};
+                var csrf = form.querySelector('input[type="hidden"][name]');
+                if (csrf) {
+                    headers['X-CSRF-TOKEN'] = csrf.value;
+                }
+                try {
+                    var response = await fetch(contextPath + 'api/nss/consulta/file', {
+                        method: 'POST',
+                        headers: headers,
+                        body: fd
+                    });
+                    return response.ok ? (await response.text())
+                            : ('Error al subir adjuntos (HTTP ' + response.status + ').');
+                } catch (error) {
+                    return 'Error de red al subir adjuntos.';
+                }
+            }
+
+            // Carga un detalle (consulta o incapacidad) en el modal compartido.
+            async function cargarDetalle(path, id, titulo) {
+                var nss = (input.value || '').trim();
+                var bodyEl = document.getElementById('consultaModalBody');
+                var modalEl = document.getElementById('consultaModal');
+                var titleEl = document.getElementById('consultaModalTitle');
+                if (!bodyEl || !modalEl) {
+                    return;
+                }
+                if (titleEl && titulo) {
+                    titleEl.textContent = titulo;
+                }
+                bodyEl.innerHTML = '<div class="text-muted fs-sm">Cargando...</div>';
+                var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+                try {
+                    var body = new URLSearchParams();
+                    body.append('data', nss);
+                    body.append('serieId', id);
+                    var csrf = form.querySelector('input[type="hidden"][name]');
+                    if (csrf && csrf.name) {
+                        body.append(csrf.name, csrf.value);
+                    }
+                    var response = await fetch(contextPath + path, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'Accept': 'text/html'
+                        },
+                        body: body.toString()
+                    });
+                    if (response.ok) {
+                        bodyEl.innerHTML = await response.text();
+                    } else {
+                        bodyEl.innerHTML = '<div class="alert alert-danger mb-0">Error al cargar el detalle (HTTP ' + response.status + ').</div>';
+                    }
+                } catch (error) {
+                    bodyEl.innerHTML = '<div class="alert alert-danger mb-0">Error de red al cargar el detalle.</div>';
+                }
+            }
+
+            // Examen medico (U07): carga una seccion en #examenSecciones sin recargar (irAContenido).
+            window.cargarSeccionExamen = async function (btn) {
+                var seccion = btn.getAttribute('data-seccion');
+                var nss = btn.getAttribute('data-nss') || (input.value || '').trim();
+                var cont = document.getElementById('examenSecciones');
+                if (!cont) {
+                    return;
+                }
+                try {
+                    var body = new URLSearchParams();
+                    body.append('data', seccion);
+                    body.append('nss', nss);
+                    var csrf = form.querySelector('input[type="hidden"][name]');
+                    if (csrf && csrf.name) {
+                        body.append(csrf.name, csrf.value);
+                    }
+                    var response = await fetch(contextPath + 'api/nss/examen/seccion', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'text/html' },
+                        body: body.toString()
+                    });
+                    if (!response.ok) {
+                        status.textContent = 'Error al cargar la seccion (HTTP ' + response.status + ').';
+                        return;
+                    }
+                    var tmp = document.createElement('div');
+                    tmp.innerHTML = await response.text();
+                    var nuevo = tmp.firstElementChild;
+                    if (!nuevo) {
+                        return;
+                    }
+                    var existente = cont.querySelector('[data-seccion="' + seccion.replace(/"/g, '') + '"]');
+                    if (existente) {
+                        existente.replaceWith(nuevo);
+                    } else {
+                        cont.appendChild(nuevo);
+                        nuevo.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                } catch (error) {
+                    status.textContent = 'Error de red al cargar la seccion.';
+                }
+            };
+
+            // Guarda el examen completo: recolecta los campos de las secciones cargadas + firma.
+            window.guardarExamen = async function (btn) {
+                var cont = document.getElementById('examenSecciones');
+                var nss = (input.value || '').trim();
+                var body = new URLSearchParams();
+                body.append('nss', nss);
+                if (cont) {
+                    cont.querySelectorAll('input[name], select[name], textarea[name]').forEach(function (el) {
+                        body.append(el.name, el.value);
+                    });
+                }
+                var firmaEl = document.getElementById('firma');
+                if (firmaEl) {
+                    body.append('firma', firmaEl.value);
+                }
+                var csrf = form.querySelector('input[type="hidden"][name]');
+                if (csrf && csrf.name) {
+                    body.append(csrf.name, csrf.value);
+                }
+                btn.disabled = true;
+                status.textContent = 'Guardando examen...';
+                try {
+                    var response = await fetch(contextPath + 'api/nss/examen/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'text/plain' },
+                        body: body.toString()
+                    });
+                    var txt = await response.text();
+                    status.textContent = response.ok ? ('Examen: ' + txt)
+                            : ('Error al guardar (HTTP ' + response.status + '): ' + txt);
+                } catch (error) {
+                    status.textContent = 'Error de red al guardar el examen.';
+                } finally {
+                    btn.disabled = false;
+                }
+            };
+
+            // Detalle de una consulta (viewConsultaDetails) en el modal.
+            window.verConsulta = function (btn) {
+                cargarDetalle('api/nss/expediente/detalle', btn.getAttribute('data-id-consulta'), 'Detalle de consulta');
+            };
+
+            // Detalle de una incapacidad (viewIncapDetails) en el modal.
+            window.verIncapacidad = function (btn) {
+                cargarDetalle('api/nss/incapacidades/detalle', btn.getAttribute('data-id-consulta'), 'Detalle de incapacidad');
+            };
+
+            function escapeHtml(s) {
+                return (s || '').replace(/[&<>"']/g, function (ch) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+                });
+            }
+
+            // Filtro cliente de una tabla (input dentro de la misma .card). Reutilizable.
+            window.filtrarConsultas = function (input) {
+                var card = input.closest('.card');
+                var table = card ? card.querySelector('table') : null;
+                if (!table) {
+                    return;
+                }
+                var q = (input.value || '').toLowerCase();
+                table.querySelectorAll('tbody tr').forEach(function (tr) {
+                    tr.style.display = tr.textContent.toLowerCase().indexOf(q) >= 0 ? '' : 'none';
+                });
+            };
+
+            // Exporta la tabla de la misma .card a un archivo Excel (.xls). Respeta el filtro
+            // (solo filas visibles) y omite columnas marcadas con [data-no-export].
+            window.exportarConsultasExcel = function (btn) {
+                var card = btn.closest('.card');
+                var table = card ? card.querySelector('table') : null;
+                if (!table) {
+                    return;
+                }
+                var name = table.getAttribute('data-export-name') || 'export';
+                var html = '<meta charset="utf-8"><table border="1"><thead><tr>';
+                table.querySelectorAll('thead th').forEach(function (th) {
+                    if (th.hasAttribute('data-no-export')) { return; }
+                    html += '<th>' + escapeHtml(th.textContent.trim()) + '</th>';
+                });
+                html += '</tr></thead><tbody>';
+                table.querySelectorAll('tbody tr').forEach(function (tr) {
+                    if (tr.style.display === 'none') { return; }
+                    html += '<tr>';
+                    tr.querySelectorAll('td').forEach(function (td) {
+                        if (td.hasAttribute('data-no-export')) { return; }
+                        html += '<td>' + escapeHtml(td.textContent.trim()) + '</td>';
+                    });
+                    html += '</tr>';
+                });
+                html += '</tbody></table>';
+
+                var bom = String.fromCharCode(0xFEFF);
+                var blob = new Blob([bom + html], { type: 'application/vnd.ms-excel' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = name + '.xls';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
             };
 
             form.addEventListener('submit', function (event) {

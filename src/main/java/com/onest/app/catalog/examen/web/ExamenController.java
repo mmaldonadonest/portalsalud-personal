@@ -1,0 +1,85 @@
+package com.onest.app.catalog.examen.web;
+
+import com.onest.app.catalog.examen.service.ExamenService;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.server.ResponseStatusException;
+
+/**
+ * Examen medico (U07) - Slice 1. Shell con navegacion in-page (irAContenido) y
+ * secciones heredofamiliares. Equivale a viewExpHeroFam.php / viewTypeExped.php.
+ */
+@Controller
+@RequestMapping("/api/nss")
+public class ExamenController {
+
+    private final ExamenService examenService;
+
+    public ExamenController(ExamenService examenService) {
+        this.examenService = examenService;
+    }
+
+    /** Shell del examen: navegacion de secciones + contenedor in-page. */
+    @PostMapping(
+            path = "/examen",
+            consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+            produces = MediaType.TEXT_HTML_VALUE)
+    public String examen(@RequestParam("data") String data, Model model) {
+        model.addAttribute("nss", data == null ? "" : data.trim());
+        model.addAttribute("secciones", examenService.secciones());
+        return "fragments/examen-shell :: shell";
+    }
+
+    /** Una seccion, pre-cargada (viewTypeExped). Se agrega al contenedor sin recargar. */
+    @PostMapping(
+            path = "/examen/seccion",
+            consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+            produces = MediaType.TEXT_HTML_VALUE)
+    public String seccion(
+            @RequestParam("data") String seccion,
+            @RequestParam("nss") String nss,
+            Model model) {
+        try {
+            model.addAttribute("seccion", seccion);
+            model.addAttribute("items", examenService.itemsDeSeccion(seccion, nss));
+            return "fragments/examen-seccion :: seccion";
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        }
+    }
+
+    /**
+     * Guarda el examen completo (sendHeredoFamDats CAMBIO -> /Servcio/Medico).
+     * Recibe los campos de todas las secciones cargadas (name=clave punteada) + firma.
+     */
+    @PostMapping(
+            path = "/examen/save",
+            consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+            produces = "text/plain;charset=UTF-8")
+    @ResponseBody
+    public String save(@RequestParam MultiValueMap<String, String> params) {
+        try {
+            String nss = params.getFirst("nss");
+            String firma = params.getFirst("firma");
+            Map<String, String> campos = new LinkedHashMap<>();
+            params.forEach((key, values) -> {
+                if (!"nss".equals(key) && !"firma".equals(key) && !"_csrf".equals(key)) {
+                    campos.put(key, (values == null || values.isEmpty()) ? "" : values.get(0));
+                }
+            });
+            String proceso = examenService.guardar(nss, campos, firma);
+            return (proceso == null || proceso.isBlank()) ? "Examen guardado." : proceso;
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        }
+    }
+}

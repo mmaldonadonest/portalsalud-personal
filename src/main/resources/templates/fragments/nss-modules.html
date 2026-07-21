@@ -8,15 +8,18 @@
   Iconos curados por id_menu (fallback generico); label = nombre_menu del WS.
 -->
 <th:block th:fragment="modules"
-          th:with="icons=${ {1:'ri-booklet-line',2:'ri-flask-line',3:'ri-history-line',4:'ri-file-text-line',5:'ri-file-paper-2-line',6:'ri-book-2-line',7:'ri-health-book-line',8:'ri-first-aid-kit-line',9:'ri-archive-line',10:'ri-heart-pulse-line',11:'ri-survey-line'} }">
+          th:with="icons=${ {1:'ri-booklet-line',2:'ri-flask-line',3:'ri-history-line',4:'ri-file-text-line',5:'ri-file-paper-2-line',6:'ri-book-2-line',7:'ri-health-book-line',8:'ri-first-aid-kit-line',9:'ri-archive-line',10:'ri-heart-pulse-line',11:'ri-survey-line'} },
+                   labels=${ {1:'Expediente General',2:'E. Laboratorio',3:'Historico E.M',4:'Nota Medica',5:'Nota Incapacidad',6:'Archivo de Consultas',7:'Consulta Medica',8:'Incapacidades',9:'Archivo Incapacidades',10:'Examen Medico',11:'Pre-Test'} },
+                   actions=${ {2:'archivos', 3:'archivos', 4:'archivos', 5:'archivos', 6:'expediente', 7:'consulta-form', 8:'incapacidad-form', 9:'incapacidades', 10:'examen', 11:'pretest'} },
+                   tipos=${ {2:'laboratorio', 3:'examen_medico', 4:'nota_medica', 5:'nota_incapacidad'} }">
     <a th:each="m : ${modulos}"
        href="javascript:void(0)"
        class="nav-sub-link module"
        th:classappend="'modulo-' + ${m.idMenu}"
-       th:attr="data-id-menu=${m.idMenu}, data-nss=${nss}"
+       th:attr="data-id-menu=${m.idMenu}, data-nss=${nss}, data-action=${actions.get(m.idMenu)}, data-tipo=${tipos.get(m.idMenu)}"
        onclick="abrirModulo(this);">
         <i class="me-2" th:classappend="${icons.get(m.idMenu)} ?: 'ri-file-list-2-line'"></i>
-        <span th:text="${m.nombreMenu}">Modulo</span>
+        <span th:text="${labels.get(m.idMenu)} ?: ${m.nombreMenu}">Modulo</span>
     </a>
 </th:block>
 </body>

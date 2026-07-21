@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inventario de Webservices — Portal Salud (php-old)</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-alt: #f7f8fa;
+    --bg-code: #f2f4f7;
+    --fg: #1a1d23;
+    --fg-muted: #5c6470;
+    --border: #dfe3e8;
+    --accent: #1a56b8;
+    --warn-bg: #fff8e6;
+    --warn-border: #e0a800;
+    --danger-bg: #fdf0ef;
+    --danger-border: #c0392b;
+    --danger-fg: #a5281b;
+    --ok: #1e7a45;
+    --mono: ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c;
+      --bg-alt: #1b1f26;
+      --bg-code: #1f242c;
+      --fg: #e4e7eb;
+      --fg-muted: #9aa3af;
+      --border: #2c323b;
+      --accent: #6ea8fe;
+      --warn-bg: #2b2410;
+      --warn-border: #b8860b;
+      --danger-bg: #2b1816;
+      --danger-border: #c0392b;
+      --danger-fg: #f0968c;
+      --ok: #56c98a;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem 1.25rem 5rem;
+    background: var(--bg);
+    color: var(--fg);
+    font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  h1 { font-size: 1.85rem; margin: 0 0 .35rem; letter-spacing: -.02em; }
+  h2 {
+    font-size: 1.3rem; margin: 3rem 0 1rem; padding-bottom: .45rem;
+    border-bottom: 2px solid var(--border); letter-spacing: -.01em;
+  }
+  h3 {
+    font-size: 1.02rem; margin: 2.2rem 0 .6rem; letter-spacing: -.005em;
+    display: flex; align-items: baseline; gap: .55rem; flex-wrap: wrap;
+  }
+  h3 code { font-size: .95em; }
+  .sub { color: var(--fg-muted); margin: 0 0 1.75rem; font-size: .95rem; }
+
+  code, .mono { font-family: var(--mono); font-size: .875em; }
+  :not(pre) > code {
+    background: var(--bg-code); padding: .12em .38em;
+    border-radius: 4px; border: 1px solid var(--border);
+  }
+  pre {
+    background: var(--bg-code); border: 1px solid var(--border);
+    border-radius: 7px; padding: .85rem 1rem; overflow-x: auto;
+    font-family: var(--mono); font-size: .82rem; line-height: 1.55; margin: .6rem 0;
+  }
+  pre code { background: none; border: none; padding: 0; }
+
+  .meta {
+    background: var(--bg-alt); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1rem 1.15rem; margin-bottom: 2rem;
+  }
+  .meta dl { display: grid; grid-template-columns: max-content 1fr; gap: .4rem 1.1rem; margin: 0; }
+  .meta dt { color: var(--fg-muted); font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; }
+  .meta dd { margin: 0; }
+
+  .tw { overflow-x: auto; margin: .6rem 0 1rem; border-radius: 8px; border: 1px solid var(--border); }
+  table { border-collapse: collapse; width: 100%; font-size: .875rem; }
+  th, td { padding: .5rem .7rem; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th {
+    background: var(--bg-alt); font-weight: 600; font-size: .78rem;
+    text-transform: uppercase; letter-spacing: .04em; color: var(--fg-muted);
+    position: sticky; top: 0; white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--bg-alt); }
+  td.f { font-family: var(--mono); font-size: .82rem; white-space: nowrap; }
+  td.n { color: var(--fg-muted); font-size: .84rem; }
+  .num { text-align: right; color: var(--fg-muted); width: 2.5rem; }
+
+  .badge {
+    display: inline-block; font-size: .68rem; font-weight: 600; letter-spacing: .05em;
+    padding: .12rem .45rem; border-radius: 4px; border: 1px solid var(--border);
+    background: var(--bg-alt); color: var(--fg-muted); text-transform: uppercase;
+    font-family: var(--mono); white-space: nowrap;
+  }
+  .badge.post { color: var(--accent); border-color: var(--accent); }
+  .badge.get  { color: var(--ok); border-color: var(--ok); }
+  .badge.dead { color: var(--danger-fg); border-color: var(--danger-border); background: var(--danger-bg); }
+
+  .note, .warn {
+    border-left: 3px solid var(--border); background: var(--bg-alt);
+    padding: .6rem .9rem; margin: .7rem 0; border-radius: 0 6px 6px 0; font-size: .9rem;
+  }
+  .warn { border-left-color: var(--warn-border); background: var(--warn-bg); }
+  .warn strong, .note strong { display: block; margin-bottom: .2rem; }
+  .warn ul, .note ul { margin: .35rem 0 0; padding-left: 1.15rem; }
+  .warn li, .note li { margin: .25rem 0; }
+
+  .src { color: var(--fg-muted); font-size: .84rem; font-family: var(--mono); margin: 0 0 .5rem; }
+  .plabel {
+    font-size: .72rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--fg-muted); margin: 1rem 0 .1rem; font-family: var(--mono);
+  }
+  pre.payload { max-height: 34rem; overflow-y: auto; }
+  footer { margin-top: 4rem; padding-top: 1.25rem; border-top: 1px solid var(--border); color: var(--fg-muted); font-size: .85rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Inventario de Webservices</h1>
+<p class="sub">Portal Salud &mdash; extraído de <code>php-old/</code>. Se excluye <code>gli_dev/</code> (app CodeIgniter independiente) y <code>node_modules/</code>.</p>
+
+<div class="meta">
+  <dl>
+    <dt>Host</dt>
+    <dd><code>http://10.249.249.3/biows/ords/</code> &mdash; Oracle ORDS</dd>
+    <dt>Endpoints</dt>
+    <dd><strong>20</strong> &mdash; 12 portal · 2 permisos · 8 gestión (2 compartidos)</dd>
+    <dt>Método</dt>
+    <dd><code>POST</code> con body JSON, salvo <code>info/apps_onest</code> (GET sin body)</dd>
+    <dt>Headers</dt>
+    <dd class="mono">x-api-key: XXXXXX &nbsp;<span style="color:var(--fg-muted)">(ofuscada en el fuente)</span><br>Content-Type: application/json; charset=utf-8</dd>
+    <dt>Constante</dt>
+    <dd><code>id_app = 13</code> (Portal Salud). El módulo <code>gestion/</code> la recibe variable.</dd>
+    <dt>Fechas</dt>
+    <dd>Formato <code>d/m/y H:i:s</code> (año de 2 dígitos), timezone <code>UTC</code></dd>
+  </dl>
+</div>
+
+<h2>Resumen de endpoints</h2>
+<div class="tw">
+<table>
+  <thead>
+    <tr><th class="num">#</th><th>Endpoint</th><th>Función</th><th>Consumidor</th><th>Método</th></tr>
+  </thead>
+  <tbody>
+    <tr><td class="num">1</td><td class="f">security/login/registro_app</td><td>Login</td><td>portal + gestión</td><td><span class="badge post">POST</span></td></tr>
+    <tr><td class="num">2</td><td class="f">security/login/menus</td><td>Apps y menús del usuario</td><td>gestión</td><td><span class="badge post">POST</span></td></tr>
+    <tr><td class="num">3</td><td class="f">security/login/registra_rol_usuario</td><td>Asignar rol</td><td>gestión</td><td><span class="badge post">POST</span></td></tr>
+    <tr><td class="num">4</td><td class="f">security/login/login_asigna_modulos</td><td>Asignar módulos</td><td>gestión</td><td><span class="badge dead">roto</span></td></tr>
+    <tr><td class="num">5</td><td class="f">security/Catalogo/usuario</td><td>Buscar empleado por NSS</td><td>portal</td><td><span class="badge post">POST</span></td></tr>
+    <tr><td class="num">6</td><td class="f">security/Catalogo/Candidatos</td><td>Buscar prospecto por CURP</td><td>portal</td><td><span class="badge post">POST</span></td></tr>
+    <tr><td class="num">7</td><td class="f">security/Servcio/Medico</td><td>Alta / cambio de examen médico</td><td>portal</td><td><span class="badge post">POST</span></td></tr>
+    <tr><td class="num">8</td><td class="f">security/Servcio/consulta_examen</td><td>Expediente del NSS</td><td>portal</td><td><span class="badge post">POST</span></td></tr>
+    <tr><td class="num">9</td><td class="f">security/Servcio/consulta</td><td>Alta de consulta médica</td><td>portal</td><td><span class="badge post">POST</span></td></tr>
+    <tr><td class="num">10</td><td class="f">security/Servcio/conuslta_medica_usuario</td><td>Historial de consultas</td><td>portal</td><td><span class="badge post">POST</span></td></tr>
+    <tr><td class="num">11</td><td class="f">security/Servcio/incapacidades</td><td>Alta de incapacidad</td><td>portal</td><td><span class="badge post">POST</span></td></tr>
+    <tr><td class="num">12</td><td class="f">security/Servcio/consulta_incapacidad</td><td>Incapacidades del NSS</td><td>portal</td><td><span class="badge post">POST</span></td></tr>
+    <tr><td class="num">13</td><td class="f">security/Servcio/consulta_incapacidades_fecha</td><td>Incapacidades por rango</td><td>portal</td><td><span class="badge post">POST</span></td></tr>
+    <tr><td class="num">14</td><td class="f">security/Servcio/consulta_cuestionario</td><td>Pretest / checklist</td><td>portal</td><td><span class="badge post">POST</span></td></tr>
+    <tr><td class="num">15</td><td class="f">security/Servcio/indice</td><td>Catálogo ICD</td><td>portal</td><td><span class="badge post">POST</span></td></tr>
+    <tr><td class="num">16</td><td class="f">security/info/consulta_app_rol_usuario</td><td>Rol del usuario</td><td>portal + gestión</td><td><span class="badge post">POST</span></td></tr>
+    <tr><td class="num">17</td><td class="f">security/info/consulta_app_rol_menu</td><td>Menús permitidos del rol</td><td>portal</td><td><span class="badge post">POST</span></td></tr>
+    <tr><td class="num">18</td><td class="f">security/info/apps_onest</td><td>Catálogo de aplicaciones</td><td>gestión</td><td><span class="badge get">GET</span></td></tr>
+    <tr><td class="num">19</td><td class="f">security/info/app_menu</td><td>Menús de una app/rol</td><td>gestión</td><td><span class="badge post">POST</span></td></tr>
+    <tr><td class="num">20</td><td class="f">security/info/crud_alta_app_menu</td><td>CRUD apps / roles / menús</td><td>gestión</td><td><span class="badge post">POST</span></td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="warn">
+  <strong>Typos que son parte del contrato</strong>
+  La ruta es <code>Servcio</code> (no <code>Servicio</code>) y existe <code>conuslta_medica_usuario</code>. En los payloads:
+  <code>"CIRUGIAS _OBS"</code> e <code>"INFARTOS "</code> llevan espacio literal, más <code>GOCE_SUEDO</code>,
+  <code>LITASIS</code>, <code>LORDOSISI</code>, <code>TOXICOLOGIOCAS</code>, <code>MIGRANA</code>,
+  <code>BLG</code> (por BCG) y <code>BANO</code>. Si el WS los espera así, hay que replicarlos tal cual.
+</div>
+
+<h2>1 · Portal Salud &mdash; <code>app/app.php</code></h2>
+
+<h3>1.1 <code>security/login/registro_app</code> <span class="badge post">POST</span></h3>
+<p class="src">app::loginApiRest($userV, $pass) · usado por rest/login/checklog.php</p>
+<div class="tw"><table>
+  <thead><tr><th>Campo</th><th>Valor</th><th>Notas</th></tr></thead>
+  <tbody>
+    <tr><td class="f">id_usuario</td><td class="f">&lt;user&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">id_password</td><td class="f">&lt;pass&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">id_app</td><td class="f">"13"</td><td class="n">fijo</td></tr>
+  </tbody>
+</table></div>
+<p class="plabel">Payload</p>
+<pre class="payload"><code>{
+  "id_usuario": "&lt;userV&gt;",
+  "id_password": "&lt;pass&gt;",
+  "id_app": "13"
+}</code></pre>
+
+<h3>1.2 <code>security/Catalogo/usuario</code> <span class="badge post">POST</span> &mdash; Búsqueda por NSS</h3>
+<p class="src">app::searchUser($nss)</p>
+<div class="tw"><table>
+  <thead><tr><th>Campo</th><th>Valor</th><th>Notas</th></tr></thead>
+  <tbody>
+    <tr><td class="f">Nss</td><td class="f">&lt;nss&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">Fecha_consulta</td><td class="f">20/07/26 14:03:11</td><td class="n">d/m/y H:i:s en UTC</td></tr>
+    <tr><td class="f">Usuario_consulta</td><td class="f">$_SESSION['nombre']</td><td class="n"></td></tr>
+    <tr><td class="f">Aplicacion_id</td><td class="f">"Biometrico"</td><td class="n">fijo</td></tr>
+    <tr><td class="f">Id_aplicacion</td><td class="f">"4"</td><td class="n">fijo &mdash; <strong>no</strong> es 13</td></tr>
+  </tbody>
+</table></div>
+<p class="plabel">Payload</p>
+<pre class="payload"><code>{
+  "Nss": "&lt;nss&gt;",
+  "Fecha_consulta": "20/07/26 14:03:11",
+  "Usuario_consulta": "&lt;$_SESSION['nombre']&gt;",
+  "Aplicacion_id": "Biometrico",
+  "Id_aplicacion": "4"
+}</code></pre>
+
+<h3>1.3 <code>security/Catalogo/Candidatos</code> <span class="badge post">POST</span> &mdash; Prospecto por CURP</h3>
+<p class="src">app::searchProspecto($curp)</p>
+<div class="tw"><table>
+  <thead><tr><th>Campo</th><th>Valor</th><th>Notas</th></tr></thead>
+  <tbody><tr><td class="f">curp</td><td class="f">&lt;curp&gt;</td><td class="n">único campo</td></tr></tbody>
+</table></div>
+<p class="plabel">Payload</p>
+<pre class="payload"><code>{
+  "curp": "&lt;curp&gt;"
+}</code></pre>
+
+<h3>1.4 <code>security/Servcio/consulta_examen</code> <span class="badge post">POST</span> &mdash; Expediente del NSS</h3>
+<p class="src">app::CheckEmploye($nss, $user) y app::getDatsNss($nss) &mdash; misma URL, dos usos</p>
+<div class="tw"><table>
+  <thead><tr><th>Campo</th><th>Valor</th><th>Notas</th></tr></thead>
+  <tbody>
+    <tr><td class="f">NNS</td><td class="f">&lt;nss&gt;</td><td class="n">doble N, no NSS</td></tr>
+    <tr><td class="f">FECHA</td><td class="f">20/07/26 14:03:11</td><td class="n"></td></tr>
+    <tr><td class="f">USUARIO</td><td class="f">$_SESSION['nombre']</td><td class="n"></td></tr>
+  </tbody>
+</table></div>
+<p class="plabel">Payload</p>
+<pre class="payload"><code>{
+  "NNS": "&lt;nss&gt;",
+  "FECHA": "20/07/26 14:03:11",
+  "USUARIO": "&lt;$_SESSION['nombre']&gt;"
+}</code></pre>
+<div class="note"><strong>Respuesta</strong>Se lee <code>Datos[].Estado</code>. Si <code>Estado != 0</code>, <code>CheckEmploye</code> dispara automáticamente un ALTA contra <code>Servcio/Medico</code>. <code>getDatsNss</code> añade los headers <code>Connection: Keep-Alive</code> y <code>Accept-Encoding: gzip,deflate</code>.</div>
+
+<h3>1.5 <code>security/Servcio/Medico</code> <span class="badge post">POST</span> &mdash; Examen médico</h3>
+<p class="src">app::sendHeredoFamDats($nss, $type, $data) &mdash; dos variantes según $type</p>
+
+<p><strong>Variante ALTA</strong> &mdash; payload mínimo, se dispara solo si el NSS no tiene expediente:</p>
+<div class="tw"><table>
+  <thead><tr><th>Campo</th><th>Valor</th></tr></thead>
+  <tbody>
+    <tr><td class="f">NNS</td><td class="f">&lt;nss&gt;</td></tr>
+    <tr><td class="f">FECHA</td><td class="f">20/07/26 14:03:11</td></tr>
+    <tr><td class="f">TIPO_REGISTROS</td><td class="f">"ALTA"</td></tr>
+    <tr><td class="f">TIPO_EMPLEADO</td><td class="f">&lt;typeuser&gt;</td></tr>
+    <tr><td class="f">USUARIO_CAMBIO</td><td class="f">$_SESSION['nombre']</td></tr>
+    <tr><td class="f">OTRAS</td><td class="f">{ OTRAS: "", OTRAS_OBS: "" }</td></tr>
+  </tbody>
+</table></div>
+<p class="plabel">Payload ALTA</p>
+<pre class="payload"><code>{
+  "NNS": "&lt;nss&gt;",
+  "FECHA": "20/07/26 14:03:11",
+  "TIPO_REGISTROS": "ALTA",
+  "TIPO_EMPLEADO": "&lt;typeuser&gt;",
+  "USUARIO_CAMBIO": "&lt;$_SESSION['nombre']&gt;",
+  "OTRAS": {
+    "OTRAS": "",
+    "OTRAS_OBS": ""
+  }
+}</code></pre>
+
+<p><strong>Variante CAMBIO</strong> &mdash; ~44 secciones anidadas. Cabecera: <code>NNS</code>, <code>FECHA</code>, <code>TIPO_REGISTROS: "CAMBIO"</code>, <code>USUARIO_CAMBIO</code>. La mayoría de campos <code>X</code> viaja acompañado de su <code>X_OBS</code>:</p>
+<div class="tw"><table>
+  <thead><tr><th>Sección</th><th>Campos</th></tr></thead>
+  <tbody>
+    <tr><td class="f">CARDIOPATIA</td><td class="n">CARDIOPATIA_ISQUEMICA, HIPERTENSION, HIPOTENSION, INSUFICIENCIA_CARDIACA, INSUFICIENCIA_VASCULAR_PERIFERICA (+_OBS)</td></tr>
+    <tr><td class="f">ENDOCRINA</td><td class="n">ID, DM, HIPERTIROIDISMO, HIPOTIROIDISMO (+_OBS)</td></tr>
+    <tr><td class="f">GENERALES</td><td class="n">CANCER, ALERGIAS, MALFORMACIONES (+_OBS)</td></tr>
+    <tr><td class="f">MENTALES</td><td class="n">NEUROSIS, PSICOSIS, INTENTO_DE_SUICIDIO, ESQUIZOFRENIA (+_OBS)</td></tr>
+    <tr><td class="f">NEFROPATIA</td><td class="n">IRC, LITASIS (+_OBS)</td></tr>
+    <tr><td class="f">NEUMOPATICA</td><td class="n">BRONQUITIS, TUBERCULOSIS, ASMA, INSUFICIENCIA_RESPIRATORIA (+_OBS)</td></tr>
+    <tr><td class="f">NEUROLOGIA</td><td class="n">AVC, EPILEPSIA, PARALISIS_FACIAL, PARKINSON, ALZHEIMER, MIGRANA (+_OBS salvo AVC)</td></tr>
+    <tr><td class="f">OBESIDAD</td><td class="n">TRANSTORNO_DE_CRECIMIENTO (+_OBS)</td></tr>
+    <tr><td class="f">OTRAS</td><td class="n">OTRAS (+_OBS)</td></tr>
+    <tr><td class="f">TOXICOLOGIOCAS</td><td class="n">ALCOHOLISMO, TABAQUISMO, DROGAS (+_OBS)</td></tr>
+    <tr><td class="f">SERV_MED_ANT_PATOLOGICOS</td><td class="n">HABITACION, NO_DORMITORIOS, NO_HABITANTES, PISO, TECHO, AGUA_POTABLE, LUZ, DRENAJE, CONVIVENCIA_CON_ANIMALES, AIRE_ACONDICIONADO, RELIGION, HIGIENE_PERSONAL, BANO, CAMBIO_DE_ROPA, ASEO_BUCAL, ALIMENTACION, NO_COMIDAS_AL_DIA, BALANCEADA, SUFICIENTE, DEPORTE, FC1, HOBBIES_PASATIEMPOS, FC2</td></tr>
+    <tr><td class="f">SERV_MED_INMUNIZACIONES</td><td class="n">BLG, SABIN, DPT, HEPATITIS_B, SR, INFLUENZA, TD, view, COVID, FECHA</td></tr>
+    <tr><td class="f">SERV_MED_ANT_GIN_OBSTETRICOS</td><td class="n">MENARCA, RITMO, IVSA, FUM, G, A, P, C, MET_PLANIFICACION, PAPANICOLAOU, INFECC_REP, FUP</td></tr>
+    <tr><td class="f">SERV_MED_ANT_PER_PATOLOGICOS</td><td class="n">ENF_CONGENITAS, GENITAL, ENF_PROP_INF, DERMATOPATIAS, SIST_AUDITIVO, RESPIRATORIO, SIS_OLFATIVO, TRAUMATICOS</td></tr>
+    <tr><td class="f">SERV_MED_OFTALMOLOGICO</td><td class="n">USO_LENTES, ASTIGMATISMO, PRESBICIA, ESTRABISMO, DALTONISMO, DESPENDIMIENTO_RET, MIOPIA (+_OBS)</td></tr>
+    <tr><td class="f">SERV_MED_DIGESTIVO</td><td class="n">HERNIAS, CIRROSIS, COLITIS, GASTRITIS, HEMORROIDES, CIRUGIAS (+_OBS)</td></tr>
+    <tr><td class="f">SERV_MED_RENAL</td><td class="n">INCONTINENSIA, INSUFICIENCIA, LITIASIS (+_OBS)</td></tr>
+    <tr><td class="f">SERV_MED_SIST_NERVIOSO</td><td class="n">ANEURISMA, ENF_DEG_MUS_NEU, ACC_CER_VASCU, EPILEPSIA, PAR_FACIAL (+_OBS)</td></tr>
+    <tr><td class="f">SERV_MED_MUS_ESQUELETICO</td><td class="n">ESCOLIOSIS, XIFOSIS, LORDOSISI, LUMBALGIA, BASCULAMIENTO, ALTERACION_DISCAL (+_OBS)</td></tr>
+    <tr><td class="f">SERV_MED_CARDIO_NO_PATO</td><td class="n">ANEURISMA, HIPERTENSION, HIPOTENSION, "INFARTOS ", INSUFIC_CAR (+_OBS)</td></tr>
+    <tr><td class="f">SERV_MED_TOXI_NO_PATO</td><td class="n">TABAQUISMO, ALCOHOLISMO, DROGAS, ALT_CARGA, PERFORACIONES, TATUAJES, ALERGIAS (+_OBS)</td></tr>
+    <tr><td class="f">SERV_MED_ENDOCRI_NO_PATO</td><td class="n">DIABETES, HIPERTIROIDISMO, HIPOTIROIDISMO (+_OBS)</td></tr>
+    <tr><td class="f">SERV_MED_PADECI_ACTUAL</td><td class="n">OBSERVACIONES</td></tr>
+    <tr><td class="f">SERV_MED_INT_APARATO_SIST</td><td class="n">OBSERVACIONES</td></tr>
+    <tr><td class="f">SERV_MED_EXPLORACION_FISICA</td><td class="n">PESO, TALLA, IMC, FC, FR, TA, TEMP, ECTOMORFICO, MESOMORFO, ENDOMORFICA, SATISFACCION, COMP_TRABAJO, COMP_ORGANIZACION, TIEMPO, ESPACIO, PERSONA, SERENIDAD, INTERES, ANTAGONICO, ENTUSIASTA, ENOJO, HIPOCRITA, ICTERICA, ANEMICA, TIROIDEA, NOLMAL_FASCIES, PARKINSON, HEMIPLEJICO, ATAXICA, HEMIPARESIA, NORMAL_MARCHA, LENGUAJE, CONVER_FLUIDA, COHERENCIA_PALABLAS</td></tr>
+    <tr><td class="f">SERV_MED_CRANEO</td><td class="n">OJOS, PUPILAS, CONJUNTIVAS, REFLEJOS, FONDO_OJO</td></tr>
+    <tr><td class="f">SERV_MED_AGUDEZA_VISUAL</td><td class="n">OD, OIZ, COLORES</td></tr>
+    <tr><td class="f">SERV_MED_NARIZ</td><td class="n">CAVIDAD_NASAL, MUCOSA, TABIQUE_NASAL, OLFATO</td></tr>
+    <tr><td class="f">SERV_MED_COLUMNA_VERTEBRAL</td><td class="n">CERVICAL, DORSAL, LUMBAR</td></tr>
+    <tr><td class="f">SERV_MED_BOCA</td><td class="n">LESIONES, ENCIAS, OROIFARINGE</td></tr>
+    <tr><td class="f">SERV_MED_OIDOS</td><td class="n">CAE, MEM_TIM, AGUD_AUDIT, OD, OI</td></tr>
+    <tr><td class="f">SERV_MED_TORAX</td><td class="n">RUIDOS_CARDIACOS, REG_PRECORDIAL, CAMPOS_PULM</td></tr>
+    <tr><td class="f">SERV_MED_COLUMNA_VERTEBRAL_AUX</td><td class="n">DEFORMACIONES, DOLOR, MOVIMIENTOS, MARCHA, LASSEGUE, PUNTA_TALON</td></tr>
+    <tr><td class="f">SERV_MED_CUELLO</td><td class="n">DEFORMACIONES, TIROIDES, TRAQUEA (+_OBS) &mdash; los 3 flags hardcodeados a 1</td></tr>
+    <tr><td class="f">SERV_MED_ABDOMEN</td><td class="n">FORMA, VISCEROMEGALIAS, HERNIAS, DOLOR, PERISTALSIS</td></tr>
+    <tr><td class="f">SERV_MED_GENITALES</td><td class="n">MASCULINO, FEMENINO</td></tr>
+    <tr><td class="f">SERV_MED_URINARIO</td><td class="n">PUNTOS_URETRALES, FOSAS_RENALES</td></tr>
+    <tr><td class="f">SERV_MED_EXTREMIDADES</td><td class="n">SUPERIOR, INFERIOR, IVP, EDEMA</td></tr>
+    <tr><td class="f">SERV_MED_PIEL</td><td class="n">LUNARES, PIGMENTACION, CICATRICES_QUIRUR</td></tr>
+    <tr><td class="f">SERV_MED_DIENTES</td><td class="n">DIENTE_11..18, DIENTE_2, DIENTE_22..28, DIENTE_31..38, DIENTE_41..48</td></tr>
+    <tr><td class="f">SERV_MED_ESTUDIOS_REALIZADOS</td><td class="n">RESULTADOS</td></tr>
+    <tr><td class="f">SERV_MED_DIAGNOSTICO</td><td class="n">OBSERVACIONES</td></tr>
+    <tr><td class="f">SERV_MED_PLAN_TERAPIA</td><td class="n">OBSERVACIONES</td></tr>
+    <tr><td class="f">SERV_MED_RESULTADO_EXAMEN</td><td class="n">OBSERVACIONES, APTO, NO_APTO, APTO_CONDICIONADO, APTO_RESTRINGIDO, FIRMA_DIGITAL</td></tr>
+    <tr><td class="f">SERV_ANTECEDENTESLAB</td><td class="n">edad_inicio_laboral, cantidad_trabajos, pension, trabajos[] { nombre, giro, puesto, turno, antiguedad, salida, descripcion, riesgos, epp, observaciones }</td></tr>
+  </tbody>
+</table></div>
+
+<p class="plabel">Payload CAMBIO &mdash; completo (placeholders = variable PHP de origen)</p>
+<pre class="payload"><code>{
+  "NNS": "&lt;nss&gt;",
+  "FECHA": "20/07/26 14:03:11",
+  "TIPO_REGISTROS": "CAMBIO",
+  "USUARIO_CAMBIO": "&lt;$_SESSION['nombre']&gt;",
+
+  "CARDIOPATIA": {
+    "CARDIOPATIA_ISQUEMICA": "&lt;cardIsq&gt;",
+    "HIPERTENSION": "&lt;hiper&gt;",
+    "HIPOTENSION": "&lt;hipotension&gt;",
+    "INSUFICIENCIA_CARDIACA": "&lt;insuCard&gt;",
+    "INSUFICIENCIA_VASCULAR_PERIFERICA": "&lt;insuVasPer&gt;",
+    "CARDIOPATIA_ISQUEMICA_OBS": "&lt;cardIsqOBS&gt;",
+    "HIPERTENSION_OBS": "&lt;hiperOBS&gt;",
+    "HIPOTENSION_OBS": "&lt;hipotensionObs&gt;",
+    "INSUFICIENCIA_CARDIACA_OBS": "&lt;insuCardObs&gt;",
+    "INSUFICIENCIA_VASCULAR_PERIFERICA_OBS": "&lt;insuVasPerObs&gt;"
+  },
+  "ENDOCRINA": {
+    "ID": "&lt;nss&gt;",
+    "DM": "&lt;dm&gt;",
+    "HIPERTIROIDISMO": "&lt;hipertirod&gt;",
+    "HIPOTIROIDISMO": "&lt;hipotiro&gt;",
+    "DM_OBS": "&lt;dmOBS&gt;",
+    "HIPERTIROIDISMO_OBS": "&lt;hipertirodOBS&gt;",
+    "HIPOTIROIDISMO_OBS": "&lt;hipotiroObs&gt;"
+  },
+  "GENERALES": {
+    "CANCER": "&lt;cancer&gt;",
+    "ALERGIAS": "&lt;alergias&gt;",
+    "MALFORMACIONES": "&lt;malforma&gt;",
+    "CANCER_OBS": "&lt;cancerOBS&gt;",
+    "ALERGIAS_OBS": "&lt;alergiasOBS&gt;",
+    "MALFORMACIONES_OBS": "&lt;malformaObs&gt;"
+  },
+  "MENTALES": {
+    "NEUROSIS": "&lt;neurosis&gt;",
+    "PSICOSIS": "&lt;psicosis&gt;",
+    "INTENTO_DE_SUICIDIO": "&lt;intentoSuicidio&gt;",
+    "ESQUIZOFRENIA": "&lt;esquizo&gt;",
+    "NEUROSIS_OBS": "&lt;neurosisOBS&gt;",
+    "PSICOSIS_OBS": "&lt;psicosisOBS&gt;",
+    "INTENTO_DE_SUICIDIO_OBS": "&lt;intentoSuicidioObs&gt;",
+    "ESQUIZOFRENIA_OBS": "&lt;esquizoObs&gt;"
+  },
+  "NEFROPATIA": {
+    "IRC": "&lt;irc&gt;",
+    "LITASIS": "&lt;litiasis&gt;",
+    "IRC_OBS": "&lt;ircOBS&gt;",
+    "LITASIS_OBS": "&lt;litiasisOBS&gt;"
+  },
+  "NEUMOPATICA": {
+    "BRONQUITIS": "&lt;bronqui&gt;",
+    "TUBERCULOSIS": "&lt;tuber&gt;",
+    "ASMA": "&lt;asma&gt;",
+    "INSUFICIENCIA_RESPIRATORIA": "&lt;insuResp&gt;",
+    "BRONQUITIS_OBS": "&lt;bronquiOBS&gt;",
+    "TUBERCULOSIS_OBS": "&lt;tuberOBS&gt;",
+    "ASMA_OBS": "&lt;asmaObs&gt;",
+    "INSUFICIENCIA_RESPIRATORIA_OBS": "&lt;insuRespObs&gt;"
+  },
+  "NEUROLOGIA": {
+    "AVC": "&lt;avc&gt;",
+    "EPILEPSIA": "&lt;emilepcheck&gt;",
+    "PARALISIS_FACIAL": "&lt;paralisisFac&gt;",
+    "PARKINSON": "&lt;parkinson&gt;",
+    "ALZHEIMER": "&lt;alzheimer&gt;",
+    "MIGRANA": "&lt;migraña&gt;",
+    "EPILEPSIA_OBS": "&lt;epilepCom&gt;",
+    "PARALISIS_FACIAL_OBS": "&lt;paralisisFacObs&gt;",
+    "PARKINSON_OBS": "&lt;parkinsonObs&gt;",
+    "ALZHEIMER_OBS": "&lt;alzheimerObs&gt;",
+    "MIGRANA_OBS": "&lt;migrañaObs&gt;"
+  },
+  "OBESIDAD": {
+    "TRANSTORNO_DE_CRECIMIENTO": "&lt;transtornoCreci&gt;",
+    "TRANSTORNO_DE_CRECIMIENTO_OBS": "&lt;transtornoCreciOBS&gt;"
+  },
+  "OTRAS": {
+    "OTRAS": "&lt;otras&gt;",
+    "OTRAS_OBS": "&lt;otrasOBS&gt;"
+  },
+  "TOXICOLOGIOCAS": {
+    "ALCOHOLISMO": "&lt;alcoholismo&gt;",
+    "TABAQUISMO": "&lt;tabaquismo&gt;",
+    "DROGAS": "&lt;drogas&gt;",
+    "ALCOHOLISMO_OBS": "&lt;alcoholismoOBS&gt;",
+    "TABAQUISMO_OBS": "&lt;tabaquismoOBS&gt;",
+    "DROGAS_OBS": "&lt;drogasObs&gt;"
+  },
+  "SERV_MED_ANT_PATOLOGICOS": {
+    "HABITACION": "&lt;habitaInp&gt;",
+    "NO_DORMITORIOS": "&lt;NoDorm&gt;",
+    "NO_HABITANTES": "&lt;NoHabita&gt;",
+    "PISO": "&lt;pisoInp&gt;",
+    "TECHO": "&lt;techoInp&gt;",
+    "AGUA_POTABLE": "&lt;AguaPotable&gt;",
+    "LUZ": "&lt;LuzInput&gt;",
+    "DRENAJE": "&lt;Drenajein&gt;",
+    "CONVIVENCIA_CON_ANIMALES": "&lt;CCAIn&gt;",
+    "AIRE_ACONDICIONADO": "&lt;AAconIn&gt;",
+    "RELIGION": "&lt;ReligionIn&gt;",
+    "HIGIENE_PERSONAL": "&lt;HPIn&gt;",
+    "BANO": "&lt;BañoIn&gt;",
+    "CAMBIO_DE_ROPA": "&lt;CrInp&gt;",
+    "ASEO_BUCAL": "&lt;ABInp&gt;",
+    "ALIMENTACION": "&lt;AlimInp&gt;",
+    "NO_COMIDAS_AL_DIA": "&lt;NCDInp&gt;",
+    "BALANCEADA": "&lt;BalIn&gt;",
+    "SUFICIENTE": "&lt;SufIn&gt;",
+    "DEPORTE": "&lt;DepIn&gt;",
+    "FC1": "&lt;FCInp1&gt;",
+    "HOBBIES_PASATIEMPOS": "&lt;HOPInp&gt;",
+    "FC2": "&lt;FCInp2&gt;"
+  },
+  "SERV_MED_INMUNIZACIONES": {
+    "BLG": "&lt;bcgs&gt;",
+    "SABIN": "&lt;sabin&gt;",
+    "DPT": "&lt;dptin&gt;",
+    "HEPATITIS_B": "&lt;hepatitis&gt;",
+    "SR": "&lt;srinp&gt;",
+    "INFLUENZA": "&lt;influenza&gt;",
+    "TD": "&lt;tdinp&gt;",
+    "view": "&lt;view&gt;",
+    "COVID": "&lt;covidInp&gt;",
+    "FECHA": "&lt;fechaInm&gt;"
+  },
+  "SERV_MED_ANT_GIN_OBSTETRICOS": {
+    "MENARCA": "&lt;MenarcaInp&gt;",
+    "RITMO": "&lt;RitmoInp&gt;",
+    "IVSA": "&lt;IvsaInp&gt;",
+    "FUM": "&lt;FumInp&gt;",
+    "G": "&lt;GInp&gt;",
+    "A": "&lt;AInp&gt;",
+    "P": "&lt;PInp&gt;",
+    "C": "&lt;CInp&gt;",
+    "MET_PLANIFICACION": "&lt;MdPFInp&gt;",
+    "PAPANICOLAOU": "&lt;PapanInp&gt;",
+    "INFECC_REP": "&lt;InReInp&gt;",
+    "FUP": "&lt;FupInp&gt;"
+  },
+  "SERV_MED_ANT_PER_PATOLOGICOS": {
+    "ENF_CONGENITAS": "&lt;ENFcONGiNP&gt;",
+    "GENITAL": "&lt;genitals&gt;",
+    "ENF_PROP_INF": "&lt;enfPropInf&gt;",
+    "DERMATOPATIAS": "&lt;dermopatics&gt;",
+    "SIST_AUDITIVO": "&lt;sisTAudt&gt;",
+    "RESPIRATORIO": "&lt;respirInp&gt;",
+    "SIS_OLFATIVO": "&lt;SisOlfas&gt;",
+    "TRAUMATICOS": "&lt;TraumasInp&gt;"
+  },
+  "SERV_MED_OFTALMOLOGICO": {
+    "USO_LENTES": "&lt;ofta&gt;",
+    "USO_LENTES_OBS": "&lt;oftaOBS&gt;",
+    "ASTIGMATISMO": "&lt;astigma&gt;",
+    "ASTIGMATISMO_OBS": "&lt;astigmaOBS&gt;",
+    "PRESBICIA": "&lt;prebisia&gt;",
+    "PRESBICIA_OBS": "&lt;prebisiaOBS&gt;",
+    "ESTRABISMO": "&lt;estra&gt;",
+    "ESTRABISMO_OBS": "&lt;estraOBS&gt;",
+    "DALTONISMO": "&lt;dalto&gt;",
+    "DALTONISMO_OBS": "&lt;daltoOBS&gt;",
+    "DESPENDIMIENTO_RET": "&lt;desp&gt;",
+    "DESPENDIMIENTO_RET_OBS": "&lt;despOBS&gt;",
+    "MIOPIA": "&lt;miope&gt;",
+    "MIOPIA_OBS": "&lt;miopeOBS&gt;"
+  },
+  "SERV_MED_DIGESTIVO": {
+    "HERNIAS": "&lt;herns&gt;",
+    "HERNIAS_OBS": "&lt;hernsOBS&gt;",
+    "CIRROSIS": "&lt;cirrosiss&gt;",
+    "CIRROSIS_OBS": "&lt;cirrosissOBS&gt;",
+    "COLITIS": "&lt;colis&gt;",
+    "COLITIS_OBS": "&lt;colisOBS&gt;",
+    "GASTRITIS": "&lt;gast&gt;",
+    "GASTRITIS_OBS": "&lt;gastOBS&gt;",
+    "HEMORROIDES": "&lt;hemos&gt;",
+    "HEMORROIDES_OBS": "&lt;hemosOBS&gt;",
+    "CIRUGIAS": "&lt;ciru&gt;",
+    "CIRUGIAS _OBS": "&lt;ciruOBS&gt;"
+  },
+  "SERV_MED_RENAL": {
+    "INCONTINENSIA": "&lt;inconti&gt;",
+    "INCONTINENSIA_OBS": "&lt;incontiOBS&gt;",
+    "INSUFICIENCIA": "&lt;insufi&gt;",
+    "INSUFICIENCIA_OBS": "&lt;insufiOBS&gt;",
+    "LITIASIS": "&lt;litia&gt;",
+    "LITIASIS_OBS": "&lt;litiaOBS&gt;"
+  },
+  "SERV_MED_SIST_NERVIOSO": {
+    "ANEURISMA": "&lt;aneuri&gt;",
+    "ANEURISMA_OBS": "&lt;aneuriOBS&gt;",
+    "ENF_DEG_MUS_NEU": "&lt;enfdegneu&gt;",
+    "ENF_DEG_MUS_NEU_OBS": "&lt;enfdegneuOBS&gt;",
+    "ACC_CER_VASCU": "&lt;acccervascu&gt;",
+    "ACC_CER_VASCU_OBS": "&lt;acccervascuOBS&gt;",
+    "EPILEPSIA": "&lt;epilep&gt;",
+    "EPILEPSIA_OBS": "&lt;epilepOBS&gt;",
+    "PAR_FACIAL": "&lt;parfacil&gt;",
+    "PAR_FACIAL_OBS": "&lt;parfacilOBS&gt;"
+  },
+  "SERV_MED_MUS_ESQUELETICO": {
+    "ESCOLIOSIS": "&lt;escoliosi&gt;",
+    "ESCOLIOSIS_OBS": "&lt;escoliosiOBS&gt;",
+    "XIFOSIS": "&lt;xifosis&gt;",
+    "XIFOSIS_OBS": "&lt;xifosisOBS&gt;",
+    "LORDOSISI": "&lt;lordosis&gt;",
+    "LORDOSISI_OBS": "&lt;lordosisOBS&gt;",
+    "LUMBALGIA": "&lt;lumbagia&gt;",
+    "LUMBALGIA_OBS": "&lt;lumbagiaOBS&gt;",
+    "BASCULAMIENTO": "&lt;basculamiento&gt;",
+    "BASCULAMIENTO_OBS": "&lt;basculamientoOBS&gt;",
+    "ALTERACION_DISCAL": "&lt;altdiscal&gt;",
+    "ALTERACION_DISCAL_OBS": "&lt;altdiscalOBS&gt;"
+  },
+  "SERV_MED_CARDIO_NO_PATO": {
+    "ANEURISMA": "&lt;aneurism2&gt;",
+    "ANEURISMA_OBS": "&lt;aneurism2OBS&gt;",
+    "HIPERTENSION": "&lt;himertensss&gt;",
+    "HIPERTENSION_OBS": "&lt;himertensssOBS&gt;",
+    "HIPOTENSION": "&lt;hipotensi&gt;",
+    "HIPOTENSION_OBS": "&lt;hipotensiOBS&gt;",
+    "INFARTOS ": "&lt;infs&gt;",
+    "INFARTOS_OBS": "&lt;infsOBS&gt;",
+    "INSUFIC_CAR": "&lt;insfcards&gt;",
+    "INSUFIC_CAR_OBS": "&lt;insfcardsOBS&gt;"
+  },
+  "SERV_MED_TOXI_NO_PATO": {
+    "TABAQUISMO": "&lt;tabaqqq&gt;",
+    "TABAQUISMO_OBS": "&lt;tabaqqqOBS&gt;",
+    "ALCOHOLISMO": "&lt;alcohool&gt;",
+    "ALCOHOLISMO_OBS": "&lt;alcohoolOBS&gt;",
+    "DROGAS": "&lt;grugss&gt;",
+    "DROGAS_OBS": "&lt;grugssOBS&gt;",
+    "ALT_CARGA": "&lt;altcargs&gt;",
+    "ALT_CARGA_OBS": "&lt;altcargsOBS&gt;",
+    "PERFORACIONES": "&lt;perfoss&gt;",
+    "PERFORACIONES_OBS": "&lt;perfossOBS&gt;",
+    "TATUAJES": "&lt;tattoo&gt;",
+    "TATUAJES_OBS": "&lt;tattooOBS&gt;",
+    "ALERGIAS": "&lt;alergiasInp&gt;",
+    "ALERGIAS_OBS": "&lt;alergiasInOBS&gt;"
+  },
+  "SERV_MED_ENDOCRI_NO_PATO": {
+    "DIABETES": "&lt;diabolica&gt;",
+    "DIABETES_OBS": "&lt;diabolicaOBS&gt;",
+    "HIPERTIROIDISMO": "&lt;hipertirones&gt;",
+    "HIPERTIROIDISMO_OBS": "&lt;hipertironesOBS&gt;",
+    "HIPOTIROIDISMO": "&lt;superhipo&gt;",
+    "HIPOTIROIDISMO_OBS": "&lt;superhipoOBS&gt;"
+  },
+  "SERV_MED_PADECI_ACTUAL": {
+    "OBSERVACIONES": "&lt;padecimientoActual&gt;"
+  },
+  "SERV_MED_INT_APARATO_SIST": {
+    "OBSERVACIONES": "&lt;interAS&gt;"
+  },
+  "SERV_MED_EXPLORACION_FISICA": {
+    "PESO": "&lt;PESOEXFISINP&gt;",
+    "TALLA": "&lt;TALLAEXFISINP&gt;",
+    "IMC": "&lt;IMCEXFISINP&gt;",
+    "FC": "&lt;FCEXFISINP&gt;",
+    "FR": "&lt;FREXFISINP&gt;",
+    "TA": "&lt;TAEXFISINP&gt;",
+    "TEMP": "&lt;TEMPEXFISINP&gt;",
+    "ECTOMORFICO": "&lt;ECTOMORFICOEXFISINP&gt;",
+    "MESOMORFO": "&lt;MESOMORFOEXFISINP&gt;",
+    "ENDOMORFICA": "&lt;ENDOMORFICAEXFISINP&gt;",
+    "SATISFACCION": "&lt;SATISFACCIONEXFISINP&gt;",
+    "COMP_TRABAJO": "&lt;COMP_TRABAJOEXFISINP&gt;",
+    "COMP_ORGANIZACION": "&lt;COMP_ORGANIZACIONEXFISINP&gt;",
+    "TIEMPO": "&lt;TIEMPOEXFISINP&gt;",
+    "ESPACIO": "&lt;ESPACIOEXFISINP&gt;",
+    "PERSONA": "&lt;PERSONAEXFISINP&gt;",
+    "SERENIDAD": "&lt;SERENIDADEXFISINP&gt;",
+    "INTERES": "&lt;INTERESEXFISINP&gt;",
+    "ANTAGONICO": "&lt;ANTAGONICOEXFISINP&gt;",
+    "ENTUSIASTA": "&lt;ENTUSIASTAEXFISINP&gt;",
+    "ENOJO": "&lt;ENOJOEXFISINP&gt;",
+    "HIPOCRITA": "&lt;HIPOCRITAEXFISINP&gt;",
+    "ICTERICA": "&lt;ICTERICAEXFISINP&gt;",
+    "ANEMICA": "&lt;ANEMICAEXFISINP&gt;",
+    "TIROIDEA": "&lt;TIROIDEAEXFISINP&gt;",
+    "NOLMAL_FASCIES": "&lt;NOLMAL_FASCIESEXFISINP&gt;",
+    "PARKINSON": "&lt;PARKINSONEXFISINP&gt;",
+    "HEMIPLEJICO": "&lt;HEMIPLEJICOEXFISINP&gt;",
+    "ATAXICA": "&lt;ATAXICAEXFISINP&gt;",
+    "HEMIPARESIA": "&lt;HEMIPARESIAEXFISINP&gt;",
+    "NORMAL_MARCHA": "&lt;NORMAL_MARCHAEXFISINP&gt;",
+    "LENGUAJE": "&lt;LENGUAJEEXFISINP&gt;",
+    "CONVER_FLUIDA": "&lt;CONVER_FLUIDAEXFISINP&gt;",
+    "COHERENCIA_PALABLAS": "&lt;COHERENCIA_PALABLASEXFISINP&gt;"
+  },
+  "SERV_MED_CRANEO": {
+    "OJOS": "&lt;OJOSEXFISINP&gt;",
+    "PUPILAS": "&lt;PUPILASEXFISINP&gt;",
+    "CONJUNTIVAS": "&lt;CONJUNTIVASEXFISINP&gt;",
+    "REFLEJOS": "&lt;REFLEJOSEXFISINP&gt;",
+    "FONDO_OJO": "&lt;FONDO_OJOEXFISINP&gt;"
+  },
+  "SERV_MED_AGUDEZA_VISUAL": {
+    "OD": "&lt;ODEXFISINP&gt;",
+    "OIZ": "&lt;OIZEXFISINP&gt;",
+    "COLORES": "&lt;COLORESEXFISINP&gt;"
+  },
+  "SERV_MED_NARIZ": {
+    "CAVIDAD_NASAL": "&lt;CAVIDAD_NASALEXFISINP&gt;",
+    "MUCOSA": "&lt;MUCOSAEXFISINP&gt;",
+    "TABIQUE_NASAL": "&lt;TABIQUE_NASALEXFISINP&gt;",
+    "OLFATO": "&lt;OLFATOEXFISINP&gt;"
+  },
+  "SERV_MED_COLUMNA_VERTEBRAL": {
+    "CERVICAL": "&lt;CERVICALEXFISINP&gt;",
+    "DORSAL": "&lt;DORSALEXFISINP&gt;",
+    "LUMBAR": "&lt;LUMBAREXFISINP&gt;"
+  },
+  "SERV_MED_BOCA": {
+    "LESIONES": "&lt;LESIONESEXFISINP&gt;",
+    "ENCIAS": "&lt;ENCIASEXFISINP&gt;",
+    "OROIFARINGE": "&lt;OROIFARINGEEXFISINP&gt;"
+  },
+  "SERV_MED_OIDOS": {
+    "CAE": "&lt;CAEEXFISINP&gt;",
+    "MEM_TIM": "&lt;MEM_TIMEXCAEEXFISINP&gt;",
+    "AGUD_AUDIT": "&lt;AGUD_AUDITEXCAEEXFISINP&gt;",
+    "OD": "&lt;ODEXCAEEXFISINP&gt;",
+    "OI": "&lt;OIEXCAEEXFISINP&gt;"
+  },
+  "SERV_MED_TORAX": {
+    "RUIDOS_CARDIACOS": "&lt;RUIDOS_CARDIACOSEXFISINP&gt;",
+    "REG_PRECORDIAL": "&lt;REG_PRECORDIALEXFISINP&gt;",
+    "CAMPOS_PULM": "&lt;CAMPOS_PULMEXFISINP&gt;"
+  },
+  "SERV_MED_COLUMNA_VERTEBRAL_AUX": {
+    "DEFORMACIONES": "&lt;DEFORMACIONESEXFISINP&gt;",
+    "DOLOR": "&lt;DOLOREXFISINP&gt;",
+    "MOVIMIENTOS": "&lt;MOVIMIENTOSEXFISINP&gt;",
+    "MARCHA": "&lt;MARCHAEXFISINP&gt;",
+    "LASSEGUE": "&lt;LASSEGUEEXFISINP&gt;",
+    "PUNTA_TALON": "&lt;PUNTA_TALONEXFISINP&gt;"
+  },
+  "SERV_MED_CUELLO": {
+    "DEFORMACIONES": 1,
+    "DEFORMACIONES_OBS": "&lt;DEFORMACIONES_OBSINP&gt;",
+    "TIROIDES": 1,
+    "TIROIDES_OBS": "&lt;TIROIDES_OBSINP&gt;",
+    "TRAQUEA": 1,
+    "TRAQUEA_OBS": "&lt;TRAQUEA_OBSINP&gt;"
+  },
+  "SERV_MED_ABDOMEN": {
+    "FORMA": "&lt;FORMAEXFISINP&gt;",
+    "VISCEROMEGALIAS": "&lt;VISCEROMEGALIASEXFISINP&gt;",
+    "HERNIAS": "&lt;HERNIASEXFISINP&gt;",
+    "DOLOR": "&lt;DOLOREXFISINP&gt;",
+    "PERISTALSIS": "&lt;PERISTALSISEXFISINP&gt;"
+  },
+  "SERV_MED_GENITALES": {
+    "MASCULINO": "&lt;MASCULINOEXFISINP&gt;",
+    "FEMENINO": "&lt;FEMENINOEXFISINP&gt;"
+  },
+  "SERV_MED_URINARIO": {
+    "PUNTOS_URETRALES": "&lt;PUNTOS_URETRALESEXFISINP&gt;",
+    "FOSAS_RENALES": "&lt;FOSAS_RENALESEXFISINP&gt;"
+  },
+  "SERV_MED_EXTREMIDADES": {
+    "SUPERIOR": "&lt;SUPERIOREXFISINP&gt;",
+    "INFERIOR": "&lt;INFERIOREXFISINP&gt;",
+    "IVP": "&lt;IVPEXFISINP&gt;",
+    "EDEMA": "&lt;EDEMAEXFISINP&gt;"
+  },
+  "SERV_MED_PIEL": {
+    "LUNARES": "&lt;LUNARESEXFISINP&gt;",
+    "PIGMENTACION": "&lt;PIGMENTACIONEXFISINP&gt;",
+    "CICATRICES_QUIRUR": "&lt;CICATRICES_QUIRUREXFISINP&gt;"
+  },
+  "SERV_MED_DIENTES": {
+    "DIENTE_11": "&lt;DIENTE_11&gt;", "DIENTE_12": "&lt;DIENTE_12&gt;",
+    "DIENTE_13": "&lt;DIENTE_13&gt;", "DIENTE_14": "&lt;DIENTE_14&gt;",
+    "DIENTE_15": "&lt;DIENTE_15&gt;", "DIENTE_16": "&lt;DIENTE_16&gt;",
+    "DIENTE_17": "&lt;DIENTE_17&gt;", "DIENTE_18": "&lt;DIENTE_18&gt;",
+    "DIENTE_41": "&lt;DIENTE_41&gt;", "DIENTE_42": "&lt;DIENTE_42&gt;",
+    "DIENTE_43": "&lt;DIENTE_43&gt;", "DIENTE_44": "&lt;DIENTE_44&gt;",
+    "DIENTE_45": "&lt;DIENTE_45&gt;", "DIENTE_46": "&lt;DIENTE_46&gt;",
+    "DIENTE_47": "&lt;DIENTE_47&gt;", "DIENTE_48": "&lt;DIENTE_48&gt;",
+    "DIENTE_2":  "&lt;DIENTE_2&gt;",  "DIENTE_22": "&lt;DIENTE_22&gt;",
+    "DIENTE_23": "&lt;DIENTE_23&gt;", "DIENTE_24": "&lt;DIENTE_24&gt;",
+    "DIENTE_25": "&lt;DIENTE_25&gt;", "DIENTE_26": "&lt;DIENTE_26&gt;",
+    "DIENTE_27": "&lt;DIENTE_27&gt;", "DIENTE_28": "&lt;DIENTE_28&gt;",
+    "DIENTE_31": "&lt;DIENTE_31&gt;", "DIENTE_32": "&lt;DIENTE_32&gt;",
+    "DIENTE_33": "&lt;DIENTE_33&gt;", "DIENTE_34": "&lt;DIENTE_34&gt;",
+    "DIENTE_35": "&lt;DIENTE_35&gt;", "DIENTE_36": "&lt;DIENTE_36&gt;",
+    "DIENTE_37": "&lt;DIENTE_37&gt;", "DIENTE_38": "&lt;DIENTE_38&gt;"
+  },
+  "SERV_MED_ESTUDIOS_REALIZADOS": {
+    "RESULTADOS": "&lt;RESULTADOSESYRES&gt;"
+  },
+  "SERV_MED_DIAGNOSTICO": {
+    "OBSERVACIONES": "&lt;OBSERVACIONESDIAGINP&gt;"
+  },
+  "SERV_MED_PLAN_TERAPIA": {
+    "OBSERVACIONES": "&lt;OBSERVACIONESPLATERINP&gt;"
+  },
+  "SERV_MED_RESULTADO_EXAMEN": {
+    "OBSERVACIONES": "&lt;resExamIn&gt;",
+    "APTO": "",
+    "NO_APTO": "",
+    "APTO_CONDICIONADO": "",
+    "APTO_RESTRINGIDO": "",
+    "FIRMA_DIGITAL": "&lt;FIRMA&gt;"
+  },
+  "SERV_ANTECEDENTESLAB": {
+    "edad_inicio_laboral": 20,
+    "cantidad_trabajos": 3,
+    "pension": "true",
+    "trabajos": [
+      {
+        "nombre": "Trabajo 1",
+        "giro": "Giro 1",
+        "puesto": "Puesto 1",
+        "turno": "Turno 1",
+        "antiguedad": "5 años",
+        "salida": "2022",
+        "descripcion": "Descripción del trabajo 1",
+        "riesgos": "Alto",
+        "epp": "Sí",
+        "observaciones": "Observaciones del trabajo 1000"
+      },
+      // Trabajo 2, 3 y 4: misma forma, también hardcodeados en el PHP
+    ]
+  }
+}</code></pre>
+
+<div class="warn">
+  <strong>Bugs en el payload CAMBIO &mdash; decidir si se replican o se corrigen</strong>
+  <ul>
+    <li><code>SERV_MED_RESULTADO_EXAMEN</code>: <code>APTO</code>, <code>NO_APTO</code>, <code>APTO_CONDICIONADO</code> y <code>APTO_RESTRINGIDO</code> se envían <strong>siempre vacíos</strong> (<code>""</code>) &mdash; el dictamen nunca viaja.</li>
+    <li><code>SERV_ANTECEDENTESLAB</code> está <strong>hardcodeado con datos de prueba</strong> ("Trabajo 1..4", <code>edad_inicio_laboral: 20</code>, <code>pension: "true"</code>); no lee el formulario.</li>
+    <li><code>SERV_MED_CUELLO</code>: <code>DEFORMACIONES</code>, <code>TIROIDES</code> y <code>TRAQUEA</code> van fijos en <code>1</code>.</li>
+  </ul>
+</div>
+
+<h3>1.6 <code>security/Servcio/consulta</code> <span class="badge post">POST</span> &mdash; Alta de consulta médica</h3>
+<p class="src">app::addConsultM($data)</p>
+<div class="tw"><table>
+  <thead><tr><th>Campo</th><th>Valor</th><th>Notas</th></tr></thead>
+  <tbody>
+    <tr><td class="f">FECHA</td><td class="f">20/07/26 14:03:11</td><td class="n"></td></tr>
+    <tr><td class="f">NSS</td><td class="f">&lt;idNss&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">TIPO_CONSULTA</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">AREA_ACCIDENTE</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">AREA_ANATOMICA</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">CAUSA</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">PESO / TALLA / IMC</td><td class="f">&lt;form&gt;</td><td class="n">signos vitales</td></tr>
+    <tr><td class="f">FC / FR / TA / TEMPERATURA</td><td class="f">&lt;form&gt;</td><td class="n">signos vitales</td></tr>
+    <tr><td class="f">MOTIVO_CONSULTA</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">EXPLORACION_FISICA</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">DIAGNOSTICO</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">TRATAMIENTO</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">CONSULTA_RELACIONADA</td><td class="f">&lt;idArchivoRel&gt;</td><td class="n">mismo valor que ID_ARCHIVOS</td></tr>
+    <tr><td class="f">ID_ARCHIVOS</td><td class="f">&lt;idArchivoRel&gt;</td><td class="n">mismo valor que CONSULTA_RELACIONADA</td></tr>
+    <tr><td class="f">USUARIO</td><td class="f">"747849849"</td><td class="n"><strong>hardcodeado</strong></td></tr>
+    <tr><td class="f">NOMBRE_USUARIO</td><td class="f">$_SESSION['nombre']</td><td class="n">sí viene de sesión</td></tr>
+    <tr><td class="f">FIRMA_DIGITAL</td><td class="f">&lt;FIRMA&gt;</td><td class="n"></td></tr>
+  </tbody>
+</table></div>
+<p class="plabel">Payload</p>
+<pre class="payload"><code>{
+  "FECHA": "20/07/26 14:03:11",
+  "NSS": "&lt;idNss&gt;",
+  "TIPO_CONSULTA": "&lt;TipoConsultaInput&gt;",
+  "AREA_ACCIDENTE": "&lt;AreaAccidenteInput&gt;",
+  "AREA_ANATOMICA": "&lt;AreaAnatomicaInput&gt;",
+  "CAUSA": "&lt;CausaInput&gt;",
+  "PESO": "&lt;PesoInput&gt;",
+  "TALLA": "&lt;TallaInput&gt;",
+  "IMC": "&lt;IMCINPUT&gt;",
+  "FC": "&lt;FCINPUT&gt;",
+  "FR": "&lt;FRINPUT&gt;",
+  "TA": "&lt;TAINPUT&gt;",
+  "TEMPERATURA": "&lt;TemperaturaInput&gt;",
+  "MOTIVO_CONSULTA": "&lt;MOTIVOCONSULTAINP&gt;",
+  "EXPLORACION_FISICA": "&lt;EXPLOFISIINP&gt;",
+  "DIAGNOSTICO": "&lt;DIAGNOSTICOINPUT&gt;",
+  "TRATAMIENTO": "&lt;TRATAMIENTOINPUT&gt;",
+  "CONSULTA_RELACIONADA": "&lt;idArchivoRel&gt;",
+  "ID_ARCHIVOS": "&lt;idArchivoRel&gt;",
+  "USUARIO": "747849849",
+  "NOMBRE_USUARIO": "&lt;$_SESSION['nombre']&gt;",
+  "FIRMA_DIGITAL": "&lt;FIRMA&gt;"
+}</code></pre>
+
+<h3>1.7 <code>security/Servcio/conuslta_medica_usuario</code> <span class="badge post">POST</span> &mdash; Historial</h3>
+<p class="src">app::showConsults($nss) — nótese el typo "conuslta" en la ruta</p>
+<div class="tw"><table>
+  <thead><tr><th>Campo</th><th>Valor</th></tr></thead>
+  <tbody><tr><td class="f">NSS</td><td class="f">&lt;nss&gt;</td></tr></tbody>
+</table></div>
+<p class="plabel">Payload</p>
+<pre class="payload"><code>{
+  "NSS": "&lt;nss&gt;"
+}</code></pre>
+
+<h3>1.8 <code>security/Servcio/incapacidades</code> <span class="badge post">POST</span> &mdash; Alta de incapacidad</h3>
+<p class="src">app::addIncapacidad($data)</p>
+<div class="tw"><table>
+  <thead><tr><th>Campo</th><th>Valor</th><th>Notas</th></tr></thead>
+  <tbody>
+    <tr><td class="f">FECHA</td><td class="f">20/07/26 14:03:11</td><td class="n"></td></tr>
+    <tr><td class="f">NSS</td><td class="f">&lt;idNss&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">FOLIO_INCAPACIDAD</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">RAMO</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">TIPO_INCAPACIDAD</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">FECHA_INICIO</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">FECHA_TERMINO</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">DIAS_AUTORIZADOS</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">SALARIO_INTEGRADO</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">COSTO</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">IMPUTABLE</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">ESTADO_DICTAMEN</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">GOCE_SUEDO</td><td class="f">&lt;form&gt;</td><td class="n">typo por SUELDO &mdash; llave literal</td></tr>
+    <tr><td class="f">COMPLEMENTO_SALARIAL</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">URL_ARCHIVOS</td><td class="f">&lt;idArchivoRel&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">USUARIO</td><td class="f">"747849849"</td><td class="n"><strong>hardcodeado</strong></td></tr>
+    <tr><td class="f">NOMBRE_USUARIO</td><td class="f">$_SESSION['nombre']</td><td class="n"></td></tr>
+    <tr><td class="f">FIRMA_DIGITAL</td><td class="f">&lt;FIRMA&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">RUBRO</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">FECHA_ALTA</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">FECHA_PRIMERA_INCAPACIDAD</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">ST2</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">SALARIO_ACUMULADO</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+    <tr><td class="f">ALTA</td><td class="f">&lt;form&gt;</td><td class="n"></td></tr>
+  </tbody>
+</table></div>
+<p class="plabel">Payload</p>
+<pre class="payload"><code>{
+  "FECHA": "20/07/26 14:03:11",
+  "NSS": "&lt;idNss&gt;",
+  "FOLIO_INCAPACIDAD": "&lt;foilioInc&gt;",
+  "RAMO": "&lt;ramoInp&gt;",
+  "TIPO_INCAPACIDAD": "&lt;tipoIncInput&gt;",
+  "FECHA_INICIO": "&lt;fechainiInp&gt;",
+  "FECHA_TERMINO": "&lt;fechaTermInp&gt;",
+  "DIAS_AUTORIZADOS": "&lt;DiasAutInp&gt;",
+  "SALARIO_INTEGRADO": "&lt;SalIntegrInp&gt;",
+  "COSTO": "&lt;CostoInp&gt;",
+  "IMPUTABLE": "&lt;InpuInput&gt;",
+  "ESTADO_DICTAMEN": "&lt;EstDictInput&gt;",
+  "GOCE_SUEDO": "&lt;GoceSueldoInp&gt;",
+  "COMPLEMENTO_SALARIAL": "&lt;ComplSalaInp&gt;",
+  "URL_ARCHIVOS": "&lt;idArchivoRel&gt;",
+  "USUARIO": "747849849",
+  "NOMBRE_USUARIO": "&lt;$_SESSION['nombre']&gt;",
+  "FIRMA_DIGITAL": "&lt;FIRMA&gt;",
+  "RUBRO": "&lt;rubroInput&gt;",
+  "FECHA_ALTA": "&lt;fechaAltaInp&gt;",
+  "FECHA_PRIMERA_INCAPACIDAD": "&lt;fechainiInpINI&gt;",
+  "ST2": "&lt;st2Input&gt;",
+  "SALARIO_ACUMULADO": "&lt;salarioAcomuIn&gt;",
+  "ALTA": "&lt;altaInput&gt;"
+}</code></pre>
+
+<h3>1.9 – 1.12 · Consultas simples <span class="badge post">POST</span></h3>
+<div class="tw"><table>
+  <thead><tr><th>Endpoint</th><th>Función PHP</th><th>Payload</th></tr></thead>
+  <tbody>
+    <tr><td class="f">security/Servcio/consulta_incapacidad</td><td class="f">app::showIncapacidades($nss)</td><td class="f">{ "NSS": "&lt;nss&gt;" }</td></tr>
+    <tr><td class="f">security/Servcio/consulta_incapacidades_fecha</td><td class="f">another::traerDatosGeneralIncap()</td><td class="f">{ "fecha_inicial": "...", "fecha_final": "..." }</td></tr>
+    <tr><td class="f">security/Servcio/indice</td><td class="f">app::showICD($data)</td><td class="f">{ "variable": "&lt;texto&gt;" }</td></tr>
+    <tr><td class="f">security/Servcio/consulta_cuestionario</td><td class="f">another::showPretest($nss)</td><td class="f">{ "NSS": "&lt;nss&gt;" }</td></tr>
+  </tbody>
+</table></div>
+<p class="plabel">Payloads</p>
+<pre class="payload"><code>// consulta_incapacidad
+{ "NSS": "&lt;nss&gt;" }
+
+// consulta_incapacidades_fecha
+{ "fecha_inicial": "&lt;fecha_inicial&gt;", "fecha_final": "&lt;fecha_final&gt;" }
+
+// indice  (catálogo ICD)
+{ "variable": "&lt;texto de búsqueda&gt;" }
+
+// consulta_cuestionario  (pretest)
+{ "NSS": "&lt;nss&gt;" }</code></pre>
+<div class="note"><strong>ICD</strong><code>Servcio/indice</code> alimenta el autocompletar de diagnóstico desde <code>rest/icd/showIcd.php</code>. El campo de búsqueda se llama literalmente <code>variable</code>.</div>
+
+<h2>2 · Permisos y menús &mdash; <code>rest/validateModules.php</code></h2>
+<p>Encadena dos llamadas: primero resuelve el rol del usuario, luego pide los menús de ese rol.</p>
+<div class="tw"><table>
+  <thead><tr><th>Paso</th><th>Endpoint</th><th>Payload</th><th>Se lee de la respuesta</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="n">1</td>
+      <td class="f">security/info/consulta_app_rol_usuario</td>
+      <td class="f">{ "id_usuario": $_SESSION['nombre'], "id_app": "13" }</td>
+      <td class="f">Resultado.Datos[0].id_rol</td>
+    </tr>
+    <tr>
+      <td class="n">2</td>
+      <td class="f">security/info/consulta_app_rol_menu</td>
+      <td class="f">{ "id_app": 13, "id_rol": &lt;paso 1&gt; }</td>
+      <td class="n">lista de menús permitidos</td>
+    </tr>
+  </tbody>
+</table></div>
+<p class="plabel">Payloads</p>
+<pre class="payload"><code>// Paso 1 — consulta_app_rol_usuario
+{
+  "id_usuario": "&lt;$_SESSION['nombre']&gt;",
+  "id_app": "13"
+}
+
+// Paso 2 — consulta_app_rol_menu
+{
+  "id_app": 13,
+  "id_rol": "&lt;Resultado.Datos[0].id_rol del paso 1&gt;"
+}</code></pre>
+
+<h2>3 · Módulo <code>gestion/</code> &mdash; admin de apps, roles y menús</h2>
+
+<h3>3.1 – 3.7 · Endpoints directos</h3>
+<div class="tw"><table>
+  <thead><tr><th>Endpoint</th><th>Archivo</th><th>Payload</th><th>Notas</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="f">login/registro_app</td>
+      <td class="f">element/auth.php</td>
+      <td class="f">{ id_usuario, id_password, id_app: 13 }</td>
+      <td class="n">login del admin</td>
+    </tr>
+    <tr>
+      <td class="f">login/menus</td>
+      <td class="f">element/usercard.php<br>element/module.php</td>
+      <td class="f">{ id_usuario, id_password: "123", id_app }</td>
+      <td class="n"><strong>password hardcodeado</strong>: se usa como consulta, no valida credencial. <code>usercard</code> fija id_app=13; <code>module</code> lo recibe variable.</td>
+    </tr>
+    <tr>
+      <td class="f">info/consulta_app_rol_usuario</td>
+      <td class="f">element/roles.php</td>
+      <td class="f">{ id_usuario, id_app }</td>
+      <td class="n">roles del usuario en una app</td>
+    </tr>
+    <tr>
+      <td class="f">login/registra_rol_usuario</td>
+      <td class="f">element/saveRol.php</td>
+      <td class="f">{ id_usuario, password, app, roles: [{ rol, activa: true }] }</td>
+      <td class="n">nombres de campo distintos al resto (<code>app</code>, <code>password</code> sin prefijo <code>id_</code>)</td>
+    </tr>
+    <tr>
+      <td class="f">login/login_asigna_modulos</td>
+      <td class="f">saveDats/saveConfModules.php</td>
+      <td class="f">{ id_usuario, id_password, id_app: 13 }</td>
+      <td class="n"><strong>endpoint muerto</strong> &mdash; ver aviso abajo</td>
+    </tr>
+    <tr>
+      <td class="f">info/apps_onest <span class="badge get">GET</span></td>
+      <td class="f">appGestion::contarApps()<br>appGestion::buscarIdAp()<br>element/altaMenu.php</td>
+      <td class="n">sin body</td>
+      <td class="n">catálogo de apps. <code>contarApps()</code> calcula <code>max(id_app)+1</code> en cliente para el siguiente alta.</td>
+    </tr>
+    <tr>
+      <td class="f">info/app_menu</td>
+      <td class="f">appGestion::traerMenus()</td>
+      <td class="f">{ id_app, id_rol }</td>
+      <td class="n">menús de una app/rol</td>
+    </tr>
+  </tbody>
+</table></div>
+
+<p class="plabel">Payloads</p>
+<pre class="payload"><code>// login/registro_app  — auth.php
+{ "id_usuario": "&lt;user&gt;", "id_password": "&lt;pass&gt;", "id_app": 13 }
+
+// login/menus  — usercard.php (id_app fijo 13) / module.php (id_app variable)
+{ "id_usuario": "&lt;nss&gt;", "id_password": "123", "id_app": 13 }
+
+// info/consulta_app_rol_usuario  — roles.php
+{ "id_usuario": "&lt;nssUserRol&gt;", "id_app": "&lt;idAppUserRol&gt;" }
+
+// login/registra_rol_usuario  — saveRol.php
+{
+  "id_usuario": "&lt;nssUserRol&gt;",
+  "password": "&lt;passInpRols1&gt;",
+  "app": "&lt;idAppUserRol&gt;",
+  "roles": [
+    { "rol": "&lt;SelectRol&gt;", "activa": true }
+  ]
+}
+
+// login/login_asigna_modulos  — saveConfModules.php  (nunca se envía, ver aviso)
+{ "id_usuario": null, "id_password": null, "id_app": 13 }
+
+// info/apps_onest  — GET, sin body
+
+// info/app_menu  — appGestion::traerMenus()
+{ "id_app": "&lt;idApp&gt;", "id_rol": "&lt;idRol&gt;" }</code></pre>
+
+<div class="warn">
+  <strong>login_asigna_modulos no funciona</strong>
+  <code>saveConfModules.php</code> no setea <code>CURLOPT_POST</code> y sus variables <code>$user</code>/<code>$pass</code> nunca se definen:
+  el payload se arma con nulls y ni siquiera se envía como POST. Verificar si la funcionalidad se usa antes de migrarla.
+</div>
+
+<h3>3.8 <code>security/info/crud_alta_app_menu</code> <span class="badge post">POST</span> &mdash; CRUD genérico</h3>
+<p>Un solo endpoint cubre 9 operaciones, parametrizado por <code>tipo_mov</code> × <code>servicio</code>. El payload siempre tiene la misma forma; los campos no usados se rellenan con valores dummy.</p>
+<pre><code>{ "id_app": "…", "id_menu": "…", "nombre_menu": "…", "id_rol": "…",
+  "tipo_mov": "ALTA|CAMBIO|BAJA", "servicio": "APP|ROL|MENU" }</code></pre>
+<div class="tw"><table>
+  <thead><tr><th>Método (<code>appGestion</code>)</th><th>tipo_mov</th><th>servicio</th><th>Campos significativos</th><th>Relleno dummy</th></tr></thead>
+  <tbody>
+    <tr><td class="f">altaApp</td><td class="f">ALTA</td><td class="f">APP</td><td class="n">nombre_menu = nombre de la app</td><td class="n">id_menu=1, id_rol=1</td></tr>
+    <tr><td class="f">cambioApp</td><td class="f">CAMBIO</td><td class="f">APP</td><td class="n">nombre_menu = nombre de la app</td><td class="n">id_menu=1, id_rol=1</td></tr>
+    <tr><td class="f">bajaApp</td><td class="f">BAJA</td><td class="f">APP</td><td class="n">id_app</td><td class="n">todo lo demás = "1"</td></tr>
+    <tr><td class="f">altaRol</td><td class="f">ALTA</td><td class="f">ROL</td><td class="n">id_rol, nombre_menu = nombre del rol</td><td class="n">id_menu=1</td></tr>
+    <tr><td class="f">editRol</td><td class="f">CAMBIO</td><td class="f">ROL</td><td class="n">id_rol, nombre_menu = nombre del rol</td><td class="n">id_menu=1</td></tr>
+    <tr><td class="f">bajaRol</td><td class="f">BAJA</td><td class="f">ROL</td><td class="n">id_rol</td><td class="n">nombre_menu="ADMIN"</td></tr>
+    <tr><td class="f">altaMenu</td><td class="f">ALTA</td><td class="f">MENU</td><td class="n">id_menu, nombre_menu, id_rol</td><td class="n">&mdash;</td></tr>
+    <tr><td class="f">editMenu</td><td class="f">CAMBIO</td><td class="f">MENU</td><td class="n">id_menu, nombre_menu, id_rol</td><td class="n">&mdash;</td></tr>
+    <tr><td class="f">bajaMenu</td><td class="f">BAJA</td><td class="f">MENU</td><td class="n">id_menu, id_rol</td><td class="n">nombre_menu="menu"</td></tr>
+  </tbody>
+</table></div>
+<p class="plabel">Payloads por operación</p>
+<pre class="payload"><code>// altaApp
+{ "id_app": "&lt;idApp&gt;", "id_menu": 1, "nombre_menu": "&lt;nombreApp&gt;", "id_rol": 1,
+  "tipo_mov": "ALTA", "servicio": "APP" }
+
+// cambioApp
+{ "id_app": "&lt;idApp&gt;", "id_menu": "1", "nombre_menu": "&lt;nombreApp&gt;", "id_rol": "1",
+  "tipo_mov": "CAMBIO", "servicio": "APP" }
+
+// bajaApp
+{ "id_app": "&lt;idApp&gt;", "id_menu": "1", "nombre_menu": "1", "id_rol": "1",
+  "tipo_mov": "BAJA", "servicio": "APP" }
+
+// altaRol
+{ "id_app": "&lt;idApp&gt;", "id_menu": "1", "nombre_menu": "&lt;nombreROL&gt;", "id_rol": "&lt;idROL&gt;",
+  "tipo_mov": "ALTA", "servicio": "ROL" }
+
+// editRol
+{ "id_app": "&lt;idApp&gt;", "id_menu": "1", "nombre_menu": "&lt;name&gt;", "id_rol": "&lt;idRol&gt;",
+  "tipo_mov": "CAMBIO", "servicio": "ROL" }
+
+// bajaRol
+{ "id_app": "&lt;idApp&gt;", "id_menu": "1", "nombre_menu": "ADMIN", "id_rol": "&lt;idRol&gt;",
+  "tipo_mov": "BAJA", "servicio": "ROL" }
+
+// altaMenu
+{ "id_app": "&lt;idApp&gt;", "id_menu": "&lt;idMenu&gt;", "nombre_menu": "&lt;nombreMenu&gt;", "id_rol": "&lt;idRol&gt;",
+  "tipo_mov": "ALTA", "servicio": "MENU" }
+
+// editMenu
+{ "id_app": "&lt;idApp&gt;", "id_menu": "&lt;idMenu&gt;", "nombre_menu": "&lt;nombreMenu&gt;", "id_rol": "&lt;idRol&gt;",
+  "tipo_mov": "CAMBIO", "servicio": "MENU" }
+
+// bajaMenu
+{ "id_app": "&lt;idApp&gt;", "id_menu": "&lt;idMenu&gt;", "nombre_menu": "menu", "id_rol": "&lt;idRol&gt;",
+  "tipo_mov": "BAJA", "servicio": "MENU" }</code></pre>
+
+<h2>Fuera del webservice &mdash; acceso directo a MySQL</h2>
+<p>Estas tablas se consultan con <code>mysqli</code> desde <code>app/app.php</code>, sin pasar por ORDS. Es el alcance del ETL (U09).</p>
+<div class="tw"><table>
+  <thead><tr><th>Tabla</th><th>Uso</th><th>Métodos</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="f">files</td>
+      <td class="n">adjuntos por NSS y <code>type</code>: <code>laboratorio</code>, <code>examen_medico</code>, <code>nota_medica</code>, <code>nota_incapacidad</code>, <code>JSONCODE</code></td>
+      <td class="n">showfiles, showfilesLb, showfilesExMedPdf, getFileExMedPdf, showfilesNotaMedPdf, showfilesNotaIncPdf, showfilesExMedJSON, extractFileJson, addFileBD, showFilesConsult, eraseDock</td>
+    </tr>
+    <tr>
+      <td class="f">tags</td>
+      <td class="n">borradores del examen por <code>nss</code> + <code>type</code> (delete + insert, se conserva solo el último)</td>
+      <td class="n">insertDatsExpFis, selectDatsExMed, insertDatsPretest</td>
+    </tr>
+    <tr>
+      <td class="f">antecedentes<br>heredofamiliar<br>neurologia</td>
+      <td class="n">estructura local de antecedentes; <code>neurologiaDats</code> inserta datos de prueba</td>
+      <td class="n">checkExp, neurologiaDats</td>
+    </tr>
+  </tbody>
+</table></div>
+
+<div class="warn">
+  <strong>SQL sin parametrizar</strong>
+  Todas las consultas a estas tablas interpolan variables directamente en el string SQL
+  (<code>WHERE nss = '$nss'</code>), sin escapado ni prepared statements. Inyección SQL en todos los métodos listados.
+</div>
+
+<footer>
+  Generado desde <code>docs/inventario-webservices.md</code> · 20 endpoints ORDS · fuente <code>php-old/</code><br>
+  Copias de respaldo ignoradas por idénticas: <code>php-old/1</code>, <code>php-old/12</code>, <code>php-old/app/1</code>, <code>php-old/pdf/1</code>.
+</footer>
+
+</div>
+</body>
+</html>

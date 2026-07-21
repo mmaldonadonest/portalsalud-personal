@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Alta de incapacidad (U05). Equivale a incapacidadForm.html + incap.php.
+  Simplificado: sin el show/hide dinamico del legacy; costo se autocalcula.
+  Se inyecta en #moduleContent. Guarda via /api/nss/incapacidades/save.
+-->
+<div th:fragment="form">
+    <div class="card card-one">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h6 class="card-title mb-0">Nueva incapacidad</h6>
+            <span class="badge bg-primary" th:text="'NSS ' + ${nss}">NSS</span>
+        </div>
+        <div class="card-body">
+            <form id="incapacidadAltaForm" class="row g-3" novalidate>
+                <input type="hidden" name="nss" th:value="${nss}">
+                <input type="hidden" name="idArchivoRel" th:value="${idArchivoRel}">
+                <input type="hidden" name="firma" id="firma">
+
+                <div class="col-md-6">
+                    <label class="form-label" for="rubro">Rubro</label>
+                    <select class="form-select" name="rubro" id="rubro">
+                        <option value="">Seleccionar</option>
+                        <option value="Interna">Interna</option>
+                        <option value="IMSS">IMSS</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="folio">Folio</label>
+                    <input type="text" class="form-control" name="folio" id="folio" placeholder="Folio">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="ramo">Ramo</label>
+                    <select class="form-select" name="ramo" id="ramo">
+                        <option value="">Seleccionar</option>
+                        <option value="enfermedad_general">Enfermedad General</option>
+                        <option value="profesional">Enfermedad profesional</option>
+                        <option value="rt1">RT1</option>
+                        <option value="rt2">RT2</option>
+                        <option value="maternidad">Maternidad</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="tipo">Tipo de incapacidad</label>
+                    <select class="form-select" name="tipo" id="tipo">
+                        <option value="">Elegir</option>
+                        <option value="inicial">Inicial</option>
+                        <option value="subsecuente">Subsecuente</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="fechaPrimera">Fecha inicial (primera incapacidad)</label>
+                    <input type="date" class="form-control" name="fechaPrimera" id="fechaPrimera">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="fechaInicio">Fecha inicial subsecuente</label>
+                    <input type="date" class="form-control" name="fechaInicio" id="fechaInicio">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="fechaTermino">Fecha termino</label>
+                    <input type="date" class="form-control" name="fechaTermino" id="fechaTermino">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="fechaAlta">Fecha de alta</label>
+                    <input type="date" class="form-control" name="fechaAlta" id="fechaAlta">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label" for="salarioIntegrado">Salario diario</label>
+                    <input type="number" step="0.01" class="form-control" name="salarioIntegrado"
+                           id="salarioIntegrado" placeholder="Salario" oninput="calcCostoIncap();">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="diasAutorizados">Dias autorizados</label>
+                    <input type="number" class="form-control" name="diasAutorizados" id="diasAutorizados"
+                           placeholder="Dias" oninput="calcCostoIncap();">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="costo">Costo</label>
+                    <input type="number" step="0.01" class="form-control" name="costo" id="costo" placeholder="Costo">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label" for="salarioAcumulado">Salario acumulado</label>
+                    <input type="number" step="0.01" class="form-control" name="salarioAcumulado" id="salarioAcumulado" placeholder="Acumulado">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="complementoSalarial">Complemento salarial</label>
+                    <input type="number" step="0.01" class="form-control" name="complementoSalarial" id="complementoSalarial" placeholder="Complemento">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="imputable">Imputable</label>
+                    <input type="text" class="form-control" name="imputable" id="imputable" placeholder="Imputable">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label" for="st2">ST2</label>
+                    <select class="form-select" name="st2" id="st2">
+                        <option value="">Seleccionar</option>
+                        <option value="Si">Si</option>
+                        <option value="No">No</option>
+                        <option value="No_aplica">No aplica</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="estadoDictamen">Estado dictamen</label>
+                    <select class="form-select" name="estadoDictamen" id="estadoDictamen">
+                        <option value="N/A">N/A</option>
+                        <option value="si_calificado">Si Calificado</option>
+                        <option value="no_calificado">No Calificado</option>
+                        <option value="pendiente_calificaciones">Pendiente de Calificaciones</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="alta">Alta</label>
+                    <select class="form-select" name="alta" id="alta">
+                        <option value="">Seleccionar</option>
+                        <option value="Si">Si</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="goceSueldo">Goce de sueldo</label>
+                    <select class="form-select" name="goceSueldo" id="goceSueldo">
+                        <option value="1">Si</option>
+                        <option value="0">No</option>
+                    </select>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label d-block">Firma del paciente</label>
+                    <canvas id="firmaCanvas" width="320" height="160"
+                            class="border rounded bg-white" style="touch-action: none; cursor: crosshair;"></canvas>
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="firmaClear">
+                            <i class="ri-eraser-line me-1"></i> Limpiar firma
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label" for="incapacidadFiles">Adjuntar PDF (opcional)</label>
+                    <input type="file" class="form-control" id="incapacidadFiles" accept="application/pdf" multiple>
+                </div>
+
+                <div class="col-12 d-flex justify-content-end">
+                    <button type="button" class="btn btn-primary" onclick="guardarIncapacidad(this);">
+                        <i class="ri-save-line me-1"></i> Guardar incapacidad
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

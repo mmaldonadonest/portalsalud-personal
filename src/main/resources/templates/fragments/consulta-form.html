@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Alta de consulta medica (U04). Equivale a consultaMedica.html + consultMedic.php.
+  Se inyecta en #moduleContent. Guarda via /api/nss/consulta (guardarConsulta()).
+  Nota: firma digital, adjuntos PDF e ICD lookup quedan fuera de este slice.
+-->
+<div th:fragment="form">
+    <div class="card card-one">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h6 class="card-title mb-0">Nueva consulta medica</h6>
+            <span class="badge bg-primary" th:text="'NSS ' + ${nss}">NSS</span>
+        </div>
+        <div class="card-body">
+            <form id="consultaAltaForm" class="row g-3" novalidate>
+                <input type="hidden" name="nss" th:value="${nss}">
+                <input type="hidden" name="idArchivoRel" th:value="${idArchivoRel}">
+                <input type="hidden" name="firma" id="firma">
+
+                <div class="col-md-6">
+                    <label class="form-label" for="tipoConsulta">Tipo de consulta</label>
+                    <select class="form-select" name="tipoConsulta" id="tipoConsulta">
+                        <option value="enfermedad_general">Enfermedad General</option>
+                        <option value="incidente_accidente">Incidente/Accidente</option>
+                        <option value="pase_salida">Pase de Salida</option>
+                        <option value="cronico_degenerativo">Cronico Degenerativo</option>
+                        <option value="campana">Campana</option>
+                        <option value="entrega_incapacidad">Entrega de Incapacidad</option>
+                        <option value="st7">ST7</option>
+                        <option value="otros_consulta">Otros</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="areaAccidente">Area accidente</label>
+                    <select class="form-select" name="areaAccidente" id="areaAccidente">
+                        <option value="oficinas">Oficinas</option>
+                        <option value="patio_maniobras">Patio de Maniobras</option>
+                        <option value="acceso">Acceso</option>
+                        <option value="filtro">Filtro</option>
+                        <option value="rampas">Rampas</option>
+                        <option value="picking">Picking</option>
+                        <option value="surtido">Surtido</option>
+                        <option value="paletizadoras">Paletizadoras</option>
+                        <option value="preparado">Preparado</option>
+                        <option value="comedor">Comedor</option>
+                        <option value="estacionamiento">Estacionamiento</option>
+                        <option value="via_publica">Via Publica</option>
+                        <option value="trayecto_empresa">Trayecto a Empresa</option>
+                        <option value="trayecto_domicilio">Trayecto a Domicilio</option>
+                        <option value="comision">En Comision</option>
+                        <option value="trabajos_especiales">En Trabajos Especiales</option>
+                        <option value="otros_accidente">Otros</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="areaAnatomica">Area anatomica</label>
+                    <select class="form-select" name="areaAnatomica" id="areaAnatomica">
+                        <option value="cabeza">Cabeza</option>
+                        <option value="cuello">Cuello</option>
+                        <option value="torax">Torax</option>
+                        <option value="abdomen">Abdomen</option>
+                        <option value="pelvis">Pelvis</option>
+                        <option value="extremidad_superior_derecha">Extremidad Superior Derecha</option>
+                        <option value="extremidad_superior_izquierda">Extremidad Superior Izquierda</option>
+                        <option value="extremidad_inferior_derecha">Extremidad Inferior Derecha</option>
+                        <option value="extremidad_inferior_izquierda">Extremidad Inferior Izquierda</option>
+                        <option value="dos_o_mas_segmentos">Dos o mas Segmentos Corporales</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="causa">Causa</label>
+                    <input type="text" class="form-control" name="causa" id="causa" placeholder="Causa">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label" for="peso">Peso (Kg)</label>
+                    <input type="number" step="0.01" class="form-control" name="peso" id="peso"
+                           placeholder="Peso" oninput="calcImc();">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="talla">Talla (m)</label>
+                    <input type="number" step="0.01" class="form-control" name="talla" id="talla"
+                           placeholder="Talla" oninput="calcImc();">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="imc">IMC</label>
+                    <input type="number" step="0.01" class="form-control" name="imc" id="imc" placeholder="IMC">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label" for="fc">FC</label>
+                    <input type="number" class="form-control" name="fc" id="fc" placeholder="FC">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="fr">FR</label>
+                    <input type="number" class="form-control" name="fr" id="fr" placeholder="FR">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="ta">TA</label>
+                    <input type="text" class="form-control" name="ta" id="ta" placeholder="TA">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="temperatura">Temperatura</label>
+                    <input type="number" step="0.1" class="form-control" name="temperatura" id="temperatura" placeholder="Temp.">
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label" for="motivo">Motivo de consulta</label>
+                    <textarea class="form-control" name="motivo" id="motivo" rows="2"></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="exploracion">Exploracion fisica</label>
+                    <textarea class="form-control" name="exploracion" id="exploracion" rows="3"></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="diagnostico">Diagnostico</label>
+                    <textarea class="form-control" name="diagnostico" id="diagnostico" rows="3"></textarea>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="icdConsult">Consultar ICD (la clave se agrega al diagnostico)</label>
+                    <input type="text" class="form-control" id="icdConsult"
+                           placeholder="Buscar clave ICD y presiona Enter/Tab..." onchange="buscarIcd();">
+                    <div id="icdResult" class="mt-2"></div>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label" for="tratamiento">Tratamiento</label>
+                    <textarea class="form-control" name="tratamiento" id="tratamiento" rows="3"></textarea>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label d-block">Firma del paciente</label>
+                    <canvas id="firmaCanvas" width="320" height="160"
+                            class="border rounded bg-white" style="touch-action: none; cursor: crosshair;"></canvas>
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="firmaClear">
+                            <i class="ri-eraser-line me-1"></i> Limpiar firma
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label" for="consultaFiles">Adjuntar PDF (opcional)</label>
+                    <input type="file" class="form-control" id="consultaFiles" accept="application/pdf" multiple>
+                </div>
+
+                <div class="col-12 d-flex justify-content-end">
+                    <button type="button" class="btn btn-primary" onclick="guardarConsulta(this);">
+                        <i class="ri-save-line me-1"></i> Guardar consulta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>
