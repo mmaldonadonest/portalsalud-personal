@@ -8,6 +8,13 @@
 -- Fecha      : 2026-07-13
 -- Versión    : V1
 --
+-- [!] CREADOR AUTORITATIVO = 00_init_oracle21c.sql
+--     APP_FS_FILE (y sus tablas satelite, FKs, trigger, vista) se crean en
+--     00_init, que corre primero y GANA el guard -955. El CREATE de este script
+--     se salta si la tabla ya existe. Ambas definiciones ya convergen en las
+--     columnas que usa FsFileRepository (NSS, FILE_TYPE, DATE_UPLOAD, VERSION).
+--     Para parchear una BD existente con la forma vieja: app-fs-file-reconcile.sql.
+--
 -- PROPÓSITO
 -- ─────────
 -- Tabla de metadatos del modelo de almacenamiento acordado: el BINARIO vive en
