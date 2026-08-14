@@ -45,14 +45,14 @@ public class FilesystemStorageProvider implements StorageProvider {
     }
 
     @Override
-    public StoredBinary store(byte[] content, String extension) {
+    public StoredBinary store(byte[] content, String extension, LocalDate fecha) {
         String sha = sha256Hex(content);
-        LocalDate today = LocalDate.now();
+        LocalDate dia = fecha == null ? LocalDate.now() : fecha;
         String suffix = (extension == null || extension.isBlank()) ? "" : "." + extension;
         String relativePath = String.join("/",
-                String.valueOf(today.getYear()),
-                String.format("%02d", today.getMonthValue()),
-                String.format("%02d", today.getDayOfMonth()),
+                String.valueOf(dia.getYear()),
+                String.format("%02d", dia.getMonthValue()),
+                String.format("%02d", dia.getDayOfMonth()),
                 sha.substring(0, 2),
                 uuid() + suffix);
 

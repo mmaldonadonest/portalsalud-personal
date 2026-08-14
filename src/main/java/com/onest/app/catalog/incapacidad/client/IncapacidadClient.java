@@ -3,6 +3,7 @@ package com.onest.app.catalog.incapacidad.client;
 import com.onest.app.catalog.incapacidad.client.dto.BiowsIncapacidadAltaRequest;
 import com.onest.app.catalog.incapacidad.dto.IncapacidadDetalleDto;
 import com.onest.app.catalog.incapacidad.dto.IncapacidadDto;
+import com.onest.app.catalog.incapacidad.dto.IncapacidadReporteDto;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,4 +21,10 @@ public interface IncapacidadClient {
 
     /** addIncapacidad -> POST .../Servcio/incapacidades. Devuelve el mensaje Proceso. */
     String crearIncapacidad(BiowsIncapacidadAltaRequest request);
+
+    /**
+     * Reporte administrativo por rango de fechas (todas las NSS), para RH/contabilidad.
+     * Equivale a app::traerDatosGeneralIncap(). fechaInicial/fechaFinal en formato "dd/MM/yy".
+     */
+    List<IncapacidadReporteDto> reportePorFecha(String fechaInicial, String fechaFinal);
 }

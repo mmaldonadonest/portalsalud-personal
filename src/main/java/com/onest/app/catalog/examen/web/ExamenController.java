@@ -35,7 +35,7 @@ public class ExamenController {
             produces = MediaType.TEXT_HTML_VALUE)
     public String examen(@RequestParam("data") String data, Model model) {
         model.addAttribute("nss", data == null ? "" : data.trim());
-        model.addAttribute("secciones", examenService.secciones());
+        model.addAttribute("grupos", examenService.grupos());
         return "fragments/examen-shell :: shell";
     }
 

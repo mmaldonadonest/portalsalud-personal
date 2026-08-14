@@ -46,7 +46,7 @@ public class ExpedienteService {
 
     /** Alta de consulta medica (addConsultM -> /Servcio/consulta). Devuelve el mensaje Proceso. */
     public String crearConsulta(ConsultaAltaForm form) {
-        String nss = normalizeNss(form.getNss());
+        String nss = normalizeNss(form.getNss()); 
         // CONSULTA_RELACIONADA/ID_ARCHIVOS: id que relaciona la consulta con sus adjuntos.
         // En php-old es md5(rand+fecha); si el form no lo trae, generamos uno.
         String relacion = (form.getIdArchivoRel() != null && !form.getIdArchivoRel().isBlank())

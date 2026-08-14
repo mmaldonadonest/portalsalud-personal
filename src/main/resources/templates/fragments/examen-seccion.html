@@ -8,6 +8,13 @@
 <div th:fragment="seccion" class="card bg-light mb-3 exsec" th:attr="data-seccion=${seccion}">
     <div class="card-header py-2"><strong th:text="${seccion}">Seccion</strong></div>
     <div class="card-body">
+        <div th:if="${seccion == 'Diagnóstico'}" class="mb-3">
+            <label class="form-label" for="examenIcdConsult">Consultar ICD (la clave se agrega al diagnóstico)</label>
+            <input type="text" class="form-control form-control-sm" id="examenIcdConsult"
+                   placeholder="Buscar clave ICD y presiona Enter/Tab..."
+                   onchange="buscarIcd('examenIcdConsult','examenIcdResult','examenDiagnostico');">
+            <div id="examenIcdResult" class="mt-2"></div>
+        </div>
         <div class="row g-3">
             <div class="col-md-6" th:each="it : ${items}">
                 <label class="form-label mb-1" th:text="${it.label}">Campo</label>
@@ -29,6 +36,7 @@
                        th:name="${it.fieldName}" th:value="${it.value}">
 
                 <textarea th:if="${it.type == 'AREA'}" class="form-control form-control-sm" rows="2"
+                          th:id="${seccion == 'Diagnóstico'} ? 'examenDiagnostico'"
                           th:name="${it.fieldName}" th:text="${it.value}"></textarea>
 
                 <select th:if="${it.type == 'RESULTADO'}" class="form-select form-select-sm" th:name="${it.fieldName}">

@@ -1,0 +1,4975 @@
+CONTEXTO: 
+
+======================================== security/login/registro_app
+
+declare
+kusuario varchar2(50);
+kusuario1 varchar2(50);
+kpassword varchar2(50);
+kapp  number ;
+kclob clob;
+knombre varchar2(50);
+kexiste number;
+kcuenta number;
+kcuentanombre varchar2(50);
+kidrol number;
+dcursor number;
+v_NumRows integer;
+dsql1 varchar2(2000);
+dsql varchar2(2000);
+l_response_body_clob  clob ;
+l_response_length     NUMBER;
+l_response_buffer     VARCHAR2(32767);
+l_response_chunk_size BINARY_INTEGER := 32000;
+l_offset              INTEGER := 1; 
+kid_usuario varchar2(30);
+j apex_json.t_values;
+kjson clob;
+kexiste2 number;
+kexiste1 number;
+kexiste3 number;
+dsql200 varchar2(2000);
+dsql201 varchar2(2000);
+dsql202 varchar2(2000);
+dsql203 varchar2(2000);
+knombrerol varchar2(50);
+kid_rol number;
+kcaracter number;
+kapli varchar2(10);
+
+begin 
+--app 13 servicion medico 
+--json request 
+/*{
+ "id_usuario":"admin",
+ "id_password":"admin",
+ "id_app":13	
+}
+*/
+kclob:= utl_raw.cast_to_varchar2(:body);
+apex_json.parse(j,kclob);
+
+ kusuario  := apex_json.get_varchar2(p_path=>'id_usuario',p_values=>j); 
+ kapp  := apex_json.get_number(p_path=>'id_app',p_values=>j); 
+ kpassword  := apex_json.get_varchar2(p_path=>'id_password',p_values=>j);
+
+if kapp = 13 then --servicio medico 
+  --revisamos si existe el usuario registrado 
+  select count(*) into kexiste from tbl_apps_usuario where emp_nss=KUSUARIO 
+  and upper(trim(password))=upper(trim(kpassword)) and id_app=13;
+
+    if kexiste > 0 then 
+
+
+     dsql200 := 'select e.emp_nss,
+     e.emp_nombre'||'||'||''''||' '||''''||'||'||'e.emp_apellido'||'||'||''''||' '||''''||'||'||'e.emp_apellido2  
+     from bio_empleado e 
+       where 1=1
+       and  emp_status= 0
+       and emp_nss='||''''||kusuario||'''';
+
+         execute immediate dsql200 into kid_usuario,knombre;
+
+        APEX_JSON.initialize_clob_output;
+        	APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos');    
+
+            APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','Login');
+               APEX_JSON.write('Estado',0);
+               APEX_JSON.write('Mensaje','Login correcto');
+               APEX_JSON.write('id_rol','usuario');
+	           APEX_JSON.write('id_usuario',kid_usuario);
+               APEX_JSON.write('nombre_usuario',knombre);
+               APEX_JSON.open_array('apps');
+               for x in (
+                   SELECT distinct(A.id_app),
+                          A.nombre_aplicacion
+                   FROM tbl_apps_onest A INNER JOIN 
+                   TBL_APPS_ROL_MENU R  
+                   ON A.ID_APP=R.ID_APP
+                   )
+              loop
+                APEX_JSON.open_OBJECT;    
+                 APEX_JSON.write('id_app',x.id_app);
+                 APEX_JSON.write('nombre_app',x.nombre_aplicacion);
+               APEX_JSON.open_array('modulos');  
+               for i in (
+                 SELECT R.id_rol AS ID_ROL,
+                 R.id_menu AS ID_MENU,
+                 R.nombre_menu AS NOMBRE_MENU  
+                 FROM TBL_APPS_USUARIO A INNER JOIN 
+                 TBL_APPS_ROL_MENU R  
+                 ON A.ID_APP=R.ID_APP
+                 WHERE A.EMP_NSS=kid_usuario
+                 and A.ID_APP=x.id_app
+                 AND R.ID_ROL=1)
+              loop
+                APEX_JSON.open_OBJECT; 
+         	     APEX_JSON.write('id_menu',i.ID_MENU);
+         	     APEX_JSON.write('modulo',i.NOMBRE_MENU);
+                 APEX_JSON.write('acess',true);
+         	    APEX_JSON.close_OBJECT; 
+              END LOOP;
+             APEX_JSON.close_array;  
+             APEX_JSON.close_OBJECT; 
+            end loop;
+          APEX_JSON.close_array;    
+       APEX_JSON.CLOSE_object;
+     APEX_JSON.CLOSE_array; 
+    APEX_JSON.CLOSE_object; 
+
+    kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+
+  else
+ APEX_JSON.initialize_clob_output;
+ APEX_JSON.open_object;
+   APEX_JSON.open_object('Resultado');
+  APEX_JSON.write('Proceso','Login ');
+                    APEX_JSON.write('Estado',-100);
+                    APEX_JSON.write('Mensaje','El usuario no se encuentra registrado en base de datos');
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output;  
+ end if;  
+
+else
+ APEX_JSON.initialize_clob_output;
+ APEX_JSON.open_object;
+   APEX_JSON.open_object('Resultado');
+                    APEX_JSON.write('Proceso','Login');
+                    APEX_JSON.write('Estado',100);
+                    APEX_JSON.write('Mensaje','El password o el usuario no es valido para acceso ');
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output;  
+end if;
+
+   l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         /* Increase Counter */
+         l_offset := l_offset + l_response_chunk_size;
+         /* Resize CLOB length */
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+
+
+exception 
+when others then 
+rollback;
+ APEX_JSON.initialize_clob_output;
+ APEX_JSON.open_object;
+   APEX_JSON.open_object('Resultado');
+                    APEX_JSON.write('Proceso','Login');
+                    APEX_JSON.write('Estado',1000);
+                    APEX_JSON.write('Mensaje','Error en la consulta del Servicio');
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output;  
+
+ l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+
+         l_offset := l_offset + l_response_chunk_size;
+
+         l_response_length := l_response_length - l_response_chunk_size;
+    END LOOP;
+    dbms_lob.close(l_response_body_clob);
+end;
+
+======================================== security/login/menus
+
+declare
+kusuario varchar2(50);
+kusuario1 varchar2(50);
+kpassword varchar2(50);
+kapp  number ;
+kclob clob;
+knombre varchar2(50);
+kexiste number;
+kcuenta number;
+kcuentanombre varchar2(50);
+kidrol number;
+dcursor number;
+v_NumRows integer;
+dsql1 varchar2(2000);
+dsql varchar2(2000);
+l_response_body_clob  clob ;
+l_response_length     NUMBER;
+l_response_buffer     VARCHAR2(32767);
+l_response_chunk_size BINARY_INTEGER := 32000;
+l_offset              INTEGER := 1; 
+kid_usuario varchar2(30);
+j apex_json.t_values;
+kjson clob;
+kexiste2 number;
+kexiste1 number;
+kexiste3 number;
+dsql200 varchar2(2000);
+dsql201 varchar2(2000);
+dsql202 varchar2(2000);
+dsql203 varchar2(2000);
+knombrerol varchar2(50);
+kid_rol number;
+kcaracter number;
+zexiste number;
+kapli varchar2(10);
+
+begin 
+--app 13 servicion medico 
+--json request 
+/*{
+ "id_usuario":"admin",
+ "id_password":"admin",
+ "id_app":13	
+}
+*/
+kclob:= utl_raw.cast_to_varchar2(:body);
+apex_json.parse(j,kclob);
+
+ kusuario  := apex_json.get_varchar2(p_path=>'id_usuario',p_values=>j); 
+  --revisamos si existe el usuario registrado 
+
+select count(*) into zexiste from bio_empleado where emp_nss=kusuario;
+
+  if zexiste > 0 then
+
+   select count(*) into zexiste from bio_empleado where 
+     emp_nss=kusuario and emp_status=0;
+
+    if zexiste > 0 then 
+
+       dsql200 := 'select e.emp_nss,
+        e.emp_nombre'||'||'||''''||' '||''''||'||'||'e.emp_apellido'||'||'||''''||' '||''''||'||'||'e.emp_apellido2  
+       from bio_empleado e 
+        where emp_nss='||''''||kusuario||'''';
+
+         execute immediate dsql200 into kid_usuario,knombre;
+
+
+        APEX_JSON.initialize_clob_output;
+        	APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos');    
+
+            APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','Login');
+               APEX_JSON.write('Estado',0);
+               APEX_JSON.write('Mensaje','Login correcto');
+               APEX_JSON.write('id_rol','usuario');
+	           APEX_JSON.write('id_usuario',kid_usuario);
+               APEX_JSON.write('nombre_usuario',knombre);
+               APEX_JSON.open_array('apps');
+               for x in (
+                   SELECT distinct(A.id_app),
+                          A.nombre_aplicacion
+                   FROM tbl_apps_onest A INNER JOIN 
+                   TBL_APPS_ROL_MENU R  
+                   ON A.ID_APP=R.ID_APP
+                   )
+              loop
+                APEX_JSON.open_OBJECT;    
+                 APEX_JSON.write('id_app',x.id_app);
+                 APEX_JSON.write('nombre_app',x.nombre_aplicacion);
+               APEX_JSON.open_array('modulos');  
+               for i in (
+                 SELECT R.id_rol AS ID_ROL,
+                 R.id_menu AS ID_MENU,
+                 R.nombre_menu AS NOMBRE_MENU  
+                 FROM TBL_APPS_USUARIO A INNER JOIN 
+                 TBL_APPS_ROL_MENU R  
+                 ON A.ID_APP=R.ID_APP
+                 WHERE A.EMP_NSS=kid_usuario
+                 and A.ID_APP=x.id_app
+                 AND R.ID_ROL=1)
+              loop
+                APEX_JSON.open_OBJECT; 
+         	     APEX_JSON.write('id_menu',i.ID_MENU);
+         	     APEX_JSON.write('modulo',i.NOMBRE_MENU);
+                 APEX_JSON.write('acess',true);
+         	    APEX_JSON.close_OBJECT; 
+              END LOOP;
+             APEX_JSON.close_array;  
+             APEX_JSON.close_OBJECT; 
+            end loop;
+          APEX_JSON.close_array;    
+       APEX_JSON.CLOSE_object;
+     APEX_JSON.CLOSE_array; 
+    APEX_JSON.CLOSE_object; 
+
+    kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+
+ else
+ APEX_JSON.initialize_clob_output;
+ APEX_JSON.open_object;
+   APEX_JSON.open_object('Resultado');
+  APEX_JSON.write('Proceso','Login ');
+                    APEX_JSON.write('Estado',-100);
+                    APEX_JSON.write('Mensaje','El usuario se encuentra en estado de baja en sistema validar');
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output;  
+ end if;  
+
+else
+ APEX_JSON.initialize_clob_output;
+ APEX_JSON.open_object;
+   APEX_JSON.open_object('Resultado');
+  APEX_JSON.write('Proceso','Login ');
+                    APEX_JSON.write('Estado',-100);
+                    APEX_JSON.write('Mensaje','El usuario no se encuentra registrado en base de datos');
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output;  
+ end if;   
+
+
+   l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         /* Increase Counter */
+         l_offset := l_offset + l_response_chunk_size;
+         /* Resize CLOB length */
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+
+
+exception 
+when others then 
+rollback;
+ APEX_JSON.initialize_clob_output;
+ APEX_JSON.open_object;
+   APEX_JSON.open_object('Resultado');
+                    APEX_JSON.write('Proceso','Login');
+                    APEX_JSON.write('Estado',1000);
+                    APEX_JSON.write('Mensaje','Error en la consulta del Servicio');
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output;  
+
+ l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+
+         l_offset := l_offset + l_response_chunk_size;
+
+         l_response_length := l_response_length - l_response_chunk_size;
+    END LOOP;
+    dbms_lob.close(l_response_body_clob);
+end;
+
+
+==================================================   security/login/registra_rol_usuario
+
+declare 
+
+l_response_body_clob  clob ;
+l_response_length     NUMBER;
+l_response_buffer     VARCHAR2(32767);
+l_response_chunk_size BINARY_INTEGER := 32000;
+l_offset              INTEGER := 1; 
+kid_usuario varchar2(30);
+j apex_json.t_values;
+kclob clob;
+kfinal number;
+kap number;
+krol number;
+kactiva number;
+kexiste number;
+kerror number;
+kjson clob;
+kusuario varchar2(30);
+kapp number;
+zexiste number;
+nactiva BOOLEAN;
+kpassword varchar2(50);
+kdata varchar2(250);
+begin 
+--app 13 servicion medico 
+--json request 
+/*{
+ "id_usuario":"admin",
+ "id_password":"admin",
+ "id_app":13	
+}
+*/
+kclob:= utl_raw.cast_to_varchar2(:body);
+apex_json.parse(j,kclob);
+
+ kusuario  := apex_json.get_varchar2(p_path=>'id_usuario',p_values=>j); 
+ kapp  := apex_json.get_number(p_path=>'app',p_values=>j); 
+ kpassword  := apex_json.get_varchar2(p_path=>'password',p_values=>j);
+
+if kapp is not null and kusuario is not null and kpassword is not null then
+
+--actualizamo el password 
+select count(*) into zexiste from tbl_apps_usuario where emp_nss=kusuario and id_app=kapp;
+  if zexiste > 0 then 
+    --actualiza password 
+    update tbl_apps_usuario set password=kpassword where emp_nss=kusuario and id_app=kapp;
+
+  else
+    insert into tbl_apps_usuario(
+      REG_ID,
+ID_APP,
+EMP_NSS,
+ESTADO_ACCESO,
+PASSWORD,
+ID_AREAS) values ('',kapp,kusuario,0,kpassword,1);
+  end if;
+
+ kfinal := APEX_JSON.get_count(p_path =>'roles',p_values=>j);
+ kap := 1;
+
+insert into bug values (kfinal);
+commit;
+
+WHILE kap <= kfinal
+   LOOP
+       krol := apex_json.get_number(p_path=>'roles[%d].rol',p0=> kap,p_values=>j);  
+       nactiva := apex_json.get_boolean(p_path=>'roles[%d].activa',p0=> kap,p_values=>j);
+
+   select count(*) into kexiste from TBL_APP_ROL_USUARIO where id_app=kapp and id_usuario=kusuario;
+
+ insert into bug values (kexiste||' '||'inserta');
+commit;
+     if kexiste > 0 then --existe el registro 
+       --asignamos el rol al usuario 
+       update TBL_APP_ROL_USUARIO set id_rol=krol where id_app=kapp and id_usuario=kusuario;
+
+          kerror := 0;
+          commit;
+     else  --insertamos el nuevo rol  
+         insert into TBL_APP_ROL_USUARIO (id_app,id_rol,id_usuario) values (kapp,krol,kusuario);
+          kerror := 0;
+          commit;
+     end if;  
+     kap := kap +1;
+  end loop;
+
+    if kerror = 0 then
+       commit;
+        APEX_JSON.initialize_clob_output;
+     APEX_JSON.open_object;
+   APEX_JSON.open_object('Resultado');
+  APEX_JSON.write('Proceso','Registro');
+                    APEX_JSON.write('Estado',200);
+                    APEX_JSON.write('Mensaje','Se registro el rol a la app de forma corrrecta');
+                     APEX_JSON.open_array('Datos');
+               for x in (
+                   SELECT id_app,
+                          id_rol,
+                          id_usuario
+                           FROM TBL_APP_ROL_USUARIO where id_app=kapp and id_rol=krol and id_usuario=kusuario)
+                loop
+                  APEX_JSON.open_object;
+                  APEX_JSON.write('id_app',x.id_app);
+                  APEX_JSON.write('id_rol',x.id_rol);
+                   APEX_JSON.write('id_usuario',x.id_usuario);
+                  APEX_JSON.close_object;
+                end loop;  
+              apex_json.close_array;   
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output;  
+  else
+    APEX_JSON.initialize_clob_output;
+ APEX_JSON.open_object;
+   APEX_JSON.open_object('Resultado');
+  APEX_JSON.write('Proceso','Registro');
+                    APEX_JSON.write('Estado',-100);
+                    APEX_JSON.write('Mensaje','No se pudo realizar el registro a la app');
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output;  
+  end if;
+
+else
+APEX_JSON.initialize_clob_output;
+ APEX_JSON.open_object;
+   APEX_JSON.open_object('Resultado');
+  APEX_JSON.write('Proceso','Registro');
+                    APEX_JSON.write('Estado',-100);
+                    APEX_JSON.write('Mensaje','el request es incorrecto');
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output;  
+end if;
+
+      l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         /* Increase Counter */
+         l_offset := l_offset + l_response_chunk_size;
+         /* Resize CLOB length */
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+
+
+exception 
+when others then 
+kdata := sqlerrm;
+insert into bug values (kdata);
+commit;
+rollback;
+ APEX_JSON.initialize_clob_output;
+ APEX_JSON.open_object;
+   APEX_JSON.open_object('Resultado');
+                    APEX_JSON.write('Proceso','Registro');
+                    APEX_JSON.write('Estado',1000);
+                    APEX_JSON.write('Mensaje','Error en peoceso de insercion de los roles');
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output;  
+
+ l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+
+         l_offset := l_offset + l_response_chunk_size;
+
+         l_response_length := l_response_length - l_response_chunk_size;
+    END LOOP;
+    dbms_lob.close(l_response_body_clob);
+end;
+
+
+
+===========================================================================================     security/login/login_asigna_modulos  roto NO EXISTE
+
+
+===========================================================================================     security/Catalogo/usuario
+declare
+kdata1 clob ;
+l_response_body_clob clob ;
+l_response_length     NUMBER;
+l_response_buffer     VARCHAR2(32767);
+l_response_chunk_size BINARY_INTEGER := 32000;
+l_offset              INTEGER := 1; 
+kSQL  VARCHAR2(2000);	
+dcursor number;	
+v_NumRows integer;	
+kjson clob;
+kcadena varchar2(200);
+kestado number;
+KEMP_NSS VARCHAR2(20);
+KEMP_NOMBRE VARCHAR2(100);
+KEMP_APELLIDO VARCHAR(100);
+kEMP_APELLIDO2 VARCHAR2(100);
+kEMP_RFC  VARCHAR2(20);
+kexiste number;
+dsql varchar2(4000);
+kdata varchar2(250);
+kerror varchar2(4000);
+kclob clob;
+kcompleto varchar2(100);
+j apex_json.t_values;
+kns varchar2(30);
+kfechai varchar2(20);
+kfechan varchar2(20);
+  kdireccion varchar2(2000);
+         ksexo varchar2(10);
+         kcelular varchar2(20);
+          ktelfijo varchar2(20);
+           ktelmensajes varchar2(20);
+            kcuenta varchar2(50);
+           kestadocivil varchar2(20);
+ kpuesto varchar2(20);
+ kexiste1 number;
+ knombre_puesto varchar2(50);
+ npuesto number;
+
+
+begin
+
+/*{"Registro"  : 
+ {"Id_Ticket_id": "TK100621111432000016",
+	"Id_Cuenta":"0",
+	"Fecha_registro":"21/07/2021"
+ }
+ }*/
+
+--http://dev.m2:7090/ords/internal_apps/create/Label
+
+kclob:= utl_raw.cast_to_varchar2(:body);
+apex_json.parse(j,kclob);
+
+ kns := apex_json.get_varchar2(p_path=>'Nss',p_values=>j); 
+ select upper(kns) into kns from dual;
+
+  ksql :=  'select count(*) from (
+select emp_nombre||'||''''||' '||''''||'||emp_apellido||'||''''||' '||''''||'||emp_apellido2 as empleado from BIO_EMPLEADO where 
+    emp_nss = '||''''||kns||''''||')';
+
+  execute immediate ksql into kexiste;
+
+
+
+ APEX_JSON.initialize_clob_output;	
+  APEX_JSON.open_object;
+   APEX_JSON.open_array('Datos'); 
+
+  if kexiste > 0 then
+
+  -- DBMS_OUTPUT.put_line('entro al proceso');  
+     dsql:='select * from (SELECT 
+                            d.EMP_NSS,
+                            d.emp_nombre ,
+                            d.emp_apellido ,
+                            d.emp_apellido2 ,
+                            d.emp_RFC,
+                            d.emp_nombre||'||''''||' '||''''||'||d.emp_apellido||'||''''||' '||''''||'||d.emp_apellido2 completo,
+                            d.emp_sexo,
+                            d.emp_calle||'||''''||' '||''''||'||d.emp_colonia||'||''''||' '||''''||'||d.EMP_CP||'||''''||' '||''''||'||d.emp_delegacion direccion,
+                            d.emp_celular,
+                            d.emp_telefono_fijo,
+                            d.EMP_ESTADO_CIVIL,
+                            d.EMP_TEL_MENSAJES,
+                            coalesce(bc.cuenta_nombre,'||''''||'Sin cuenta_asignada en sap'||''''||'),
+                            d.EMP_FECHAN,
+                            d.EMP_FECHAI,
+                            coalesce(c.id_puesto,0)
+                     FROM BIO_EMPLEADO d
+                     left JOIN BIO_DATOS_LABORALES_EMPLEADOS c
+                     ON d.EMP_NSS=c.EMP_NSS
+                     left join biometrico_cuenta_SAP bc
+                     on c.cuenta_id=bc.cuenta_id
+                     where d.emp_nss='||''''||kns||''''||')';
+
+--insert into onsys_debug values(dsql);
+--commit;
+
+	    dcursor := DBMS_SQL.OPEN_CURSOR;
+
+         dbms_sql.parse(dCURSOR,DSQL,dbms_sql.native);
+
+         dbms_sql.define_column(dcursor,1,KEMP_NSS,50);
+         dbms_sql.define_column(dcursor,2,Kemp_nombre,50);
+         dbms_sql.define_column(dcursor,3,kemp_apellido,100);
+         dbms_sql.define_column(dcursor,4,kemp_apellido2,100);
+         dbms_sql.define_column(dcursor,5,kemp_RFC,20);
+         dbms_sql.define_column(dcursor,6,kcompleto,100);
+         dbms_sql.define_column(dcursor,7,ksexo,20);
+         dbms_sql.define_column(dcursor,8,kdireccion,2000);
+         dbms_sql.define_column(dcursor,9,kcelular,20);
+         dbms_sql.define_column(dcursor,10,ktelfijo,20);
+         dbms_sql.define_column(dcursor,11,kestadocivil,20);
+         dbms_sql.define_column(dcursor,12,ktelmensajes,20);
+         dbms_sql.define_column(dcursor,13,kcuenta,50);
+         dbms_sql.define_column(dcursor,14,kfechan,20);
+         dbms_sql.define_column(dcursor,15,kfechai,20);
+         dbms_sql.define_column(dcursor,16,kpuesto,20);
+
+
+          v_NumRows := DBMS_SQL.EXECUTE(dcursor);
+
+
+        LOOP                    
+           IF DBMS_SQL.FETCH_ROWS(dcursor)=0 then   
+
+        EXIT;        
+
+
+           ELSE         
+
+            DBMS_SQL.COLUMN_VALUE(dcursor,1,KEMP_NSS); 
+            DBMS_SQL.COLUMN_VALUE(dcursor,2,KEMP_NOMBRE);
+            DBMS_SQL.COLUMN_VALUE(dcursor,3,KEMP_APELLIDO);
+            DBMS_SQL.COLUMN_VALUE(dcursor,4,kEMP_APELLIDO2);
+            DBMS_SQL.COLUMN_VALUE(dcursor,5,kEMP_RFC); 
+            DBMS_SQL.COLUMN_VALUE(dcursor,6,kcompleto); 
+            DBMS_SQL.COLUMN_VALUE(dcursor,7,ksexo);
+            DBMS_SQL.COLUMN_VALUE(dcursor,8,kdireccion);
+            DBMS_SQL.COLUMN_VALUE(dcursor,9,kcelular);
+            DBMS_SQL.COLUMN_VALUE(dcursor,10,ktelfijo);
+            DBMS_SQL.COLUMN_VALUE(dcursor,11,kestadocivil);
+            DBMS_SQL.COLUMN_VALUE(dcursor,12,ktelmensajes);
+            DBMS_SQL.COLUMN_VALUE(dcursor,13,kcuenta); 
+               DBMS_SQL.COLUMN_VALUE(dcursor,14,kfechan); 
+                  DBMS_SQL.COLUMN_VALUE(dcursor,15,kfechai); 
+                  DBMS_SQL.COLUMN_VALUE(dcursor,16,kpuesto); 
+
+
+         if kpuesto>0 or kpuesto is not null  then 
+          select count(*) into kexiste1 from biometrico_puesto 
+          where puesto_id=kpuesto;
+
+           if kexiste1 >0 then  
+             select puesto_nombre into knombre_puesto from biometrico_puesto where puesto_id=kpuesto;
+           else
+             knombre_puesto := 'el no. de puesto no existe en base de datos';
+         end if;  
+         else
+           knombre_puesto := 'sin puesto_asignado';
+         end if;  
+
+
+         APEX_JSON.open_object;      
+           APEX_JSON.write('nss',KEMP_NSS);  
+           APEX_JSON.write('nombre',KEMP_NOMBRE);  
+           APEX_JSON.write('apellidoPaterno',KEMP_APELLIDO);    
+           APEX_JSON.write('apellidoMaterno',kEMP_APELLIDO2);   
+           APEX_JSON.write('rfc',KEMP_RFC);  
+           APEX_JSON.write('completo',Kcompleto); 
+           APEX_JSON.write('direccion',Kdireccion);
+           APEX_JSON.write('sexo',Ksexo);
+           APEX_JSON.write('celular',Kcelular);
+           APEX_JSON.write('tel_fijo',Ktelfijo);
+           APEX_JSON.write('estado_civil',Kestadocivil);
+           APEX_JSON.write('tel_mensajes',Ktelmensajes);
+           APEX_JSON.write('cuenta',Kcuenta); 
+           APEX_JSON.write('fecha_nacimiento',Kfechan);
+           APEX_JSON.write('fecha_ingreso',Kfechai); 
+           APEX_JSON.write('id_puesto',Kpuesto);
+           APEX_JSON.write('nombre_puesto',Knombre_puesto); 
+           APEX_JSON.write('nombre_empresa','Onest México s.a de c.v'); 
+           APEX_JSON.write('turno','Matutino'); 
+           APEX_JSON.write('giro_industrial','Lógistica'); 
+           APEX_JSON.write('antiguedad','10.3'); 
+         APEX_JSON.CLOSE_object;            
+
+
+    END IF;
+   END LOOP;  
+  DBMS_SQL.CLOSE_CURSOR(dcursor); 
+
+ APEX_JSON.CLOSE_array;  
+
+ APEX_JSON.close_object;   
+  kjson := APEX_JSON.get_clob_output;
+   --DBMS_OUTPUT.put_line(Kjson);    
+
+
+  APEX_JSON.free_output;
+  l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         /* Increase Counter */
+         l_offset := l_offset + l_response_chunk_size;
+         /* Resize CLOB length */
+         l_response_length := l_response_length - l_response_chunk_size;
+    END LOOP;
+      dbms_lob.close(l_response_body_clob); 
+
+
+else
+APEX_JSON.initialize_clob_output;
+  DBMS_OUTPUT.put_line('ERROR'||'---'||Kemp_nombre); 
+   APEX_JSON.open_object;
+   APEX_JSON.open_array('Datos'); 
+
+       APEX_JSON.open_object;      
+           APEX_JSON.write('nss','      ');  
+           APEX_JSON.write('nombre','------------');  
+           APEX_JSON.write('apellidoPaterno','--------------');    
+           APEX_JSON.write('apellidoMaterno','--------------');   
+           APEX_JSON.write('rfc','Sin RFC');  
+            APEX_JSON.write('completo','Sin Registro de Usuario');  
+         APEX_JSON.CLOSE_object;     
+  APEX_JSON.CLOSE_array;  
+ APEX_JSON.close_object;          
+kjson := APEX_JSON.get_clob_output;
+--dbms_output.put_line(kjson);
+	  APEX_JSON.free_output;	 
+
+ l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         /* Increase Counter */
+         l_offset := l_offset + l_response_chunk_size;
+         /* Resize CLOB length */
+         l_response_length := l_response_length - l_response_chunk_size;
+    END LOOP;
+    dbms_lob.close(l_response_body_clob);       
+
+
+
+end if;
+
+EXCEPTION 
+WHEN OTHERS THEN
+    kerror := sqlerrm;
+    rollback;
+    insert into onsys_debug values(kerror);
+    commit;
+ APEX_JSON.initialize_clob_output;
+ -- DBMS_OUTPUT.put_line('ERROR'||'---'||Kemp_nombre); 
+APEX_JSON.open_object;
+   APEX_JSON.open_array('Datos'); 
+       APEX_JSON.open_object;      
+           APEX_JSON.write('nss','         ');  
+           APEX_JSON.write('nombre','------------');  
+           APEX_JSON.write('apellidoPaterno','--------------');    
+           APEX_JSON.write('apellidoMaterno','--------------');   
+           APEX_JSON.write('rfc','Sin RFC');  
+            APEX_JSON.write('completo','Sin Registro de Usuario');  
+         APEX_JSON.CLOSE_object;     
+  APEX_JSON.CLOSE_array;  
+ APEX_JSON.close_object;      
+kjson := APEX_JSON.get_clob_output;
+--dbms_output.put_line(kjson);
+	  APEX_JSON.free_output;	 
+
+ l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         /* Increase Counter */
+         l_offset := l_offset + l_response_chunk_size;
+         /* Resize CLOB length */
+         l_response_length := l_response_length - l_response_chunk_size;
+    END LOOP;
+    dbms_lob.close(l_response_body_clob);
+
+end;
+
+============================================================================================================     security/Catalogo/Candidatos
+
+declare
+kdata1 clob ;
+l_response_body_clob clob ;
+l_response_length     NUMBER;
+l_response_buffer     VARCHAR2(32767);
+l_response_chunk_size BINARY_INTEGER := 32000;
+l_offset              INTEGER := 1; 
+kSQL  VARCHAR2(2000);	
+dcursor number;	
+v_NumRows integer;	
+kjson clob;
+kcadena varchar2(200);
+kestado number;
+KEMP_NSS VARCHAR2(20);
+KEMP_NOMBRE VARCHAR2(100);
+KEMP_APELLIDO VARCHAR(100);
+kEMP_APELLIDO2 VARCHAR2(100);
+kEMP_RFC  VARCHAR2(20);
+kexiste number;
+dsql varchar2(4000);
+kdata varchar2(250);
+kclob clob;
+kcompleto varchar2(100);
+j apex_json.t_values;
+kns varchar2(30);
+kfechai varchar2(20);
+kfechan varchar2(20);
+  kdireccion varchar2(200);
+         ksexo varchar2(10);
+         kcelular varchar2(20);
+          ktelfijo varchar2(20);
+           ktelmensajes varchar2(20);
+            kcuenta varchar2(50);
+           kestadocivil varchar2(20);
+ kpuesto varchar2(20);
+ kexiste1 number;
+ knombre_puesto varchar2(50);
+ npuesto number;
+ knombrecandidato varchar2(30);
+ kfcontratacion varchar2(30);
+
+
+begin
+
+/*{"Registro"  : 
+ {"Id_Ticket_id": "TK100621111432000016",
+	"Id_Cuenta":"0",
+	"Fecha_registro":"21/07/2021"
+ }
+ }*/
+
+--http://dev.m2:7090/ords/internal_apps/create/Label
+
+kclob:= utl_raw.cast_to_varchar2(:body);
+apex_json.parse(j,kclob);
+
+ kns := apex_json.get_varchar2(p_path=>'curp',p_values=>j); 
+ select upper(kns) into kns from dual;
+
+  ksql :=  'select count(*) from tbl_bio_candidato where curp='||''''||kns||'''';
+    execute immediate ksql into kexiste;
+
+ APEX_JSON.initialize_clob_output;	
+  APEX_JSON.open_object;
+   APEX_JSON.open_array('Datos'); 
+
+  if kexiste > 0 then
+
+   -- DBMS_OUTPUT.put_line('entro al proceso');  
+     dsql:='SELECT 
+            nombre_candidato,
+            to_char(fecha_reclutamiento,'||''''||'dd/mm/yyyy'||''''||')
+                     FROM tbl_bio_candidato
+                     where curp='||''''||kns||'''';
+
+  execute immediate dsql into knombrecandidato,kfcontratacion;
+
+         APEX_JSON.open_object;      
+           APEX_JSON.write('curp',kns);  
+           APEX_JSON.write('nombre',knombrecandidato);  
+           APEX_JSON.write('fecha_inicio_proceso',Kfcontratacion);    
+           APEX_JSON.write('estado_candidato','EN PROCESO');  
+           APEX_JSON.write('mensaje','curp encontrado'); 
+           APEX_JSON.write('status',0);    
+         APEX_JSON.CLOSE_object;            
+
+  else
+    APEX_JSON.open_object;    
+           APEX_JSON.write('curp','------');  
+           APEX_JSON.write('nombre','--------');  
+           APEX_JSON.write('fecha_inicio_proceso','----------');    
+           APEX_JSON.write('estado_candidato','SIN DATOS'); 
+           APEX_JSON.write('mensaje','El curp no se encuentra registrado');  
+           APEX_JSON.write('status',-200);  
+    APEX_JSON.CLOSE_object;    
+   end if;      
+
+
+ APEX_JSON.CLOSE_array;  
+ APEX_JSON.close_object;   
+  kjson := APEX_JSON.get_clob_output;
+   DBMS_OUTPUT.put_line(Kjson);    
+  APEX_JSON.free_output;
+
+ l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         /* Increase Counter */
+         l_offset := l_offset + l_response_chunk_size;
+         /* Resize CLOB length */
+         l_response_length := l_response_length - l_response_chunk_size;
+    END LOOP;
+    dbms_lob.close(l_response_body_clob);       
+end;
+
+
+==============================================================================================================    security/Servcio/Medico
+
+declare 
+
+l_response_body_clob  clob ;
+l_response_length     NUMBER;
+l_response_buffer     VARCHAR2(32767);
+l_response_chunk_size BINARY_INTEGER := 32000;
+l_offset              INTEGER := 1; 
+j apex_json.t_values;
+kjson clob;
+kaccion varchar2(20);
+kcuenta number;
+knombre_cuenta varchar2(50);
+kfecha varchar2(20);
+KEXISTE NUMBER;
+Kno_empleados VARCHAR2(20);
+NERROR NUMBER;
+kmessage varchar2(250);
+kcantidad number;
+kclob clob;
+ktotal number;
+KVAR1 NUMBER;
+KVAR2 NUMBER;
+KVAR3 NUMBER;
+KVAR4 NUMBER;
+KVAR5 NUMBER;
+KVAR6 NUMBER;
+kvar7 number;
+kvar8 number;
+kvar9 number;
+kvar10 number;
+CVAR1 varchar2(500);
+CVAR2 varchar2(500);
+CVAR3 varchar2(500);
+CVAR4 varchar2(500);
+CVAR5 varchar2(500);
+CVAR6 varchar2(500);
+CVAR7 varchar2(500);
+CVAR8 varchar2(500);
+CVAR9 varchar2(500);
+CVAR10 varchar2(500);
+CVAR11 varchar2(500);
+CVAR12 varchar2(500);
+KNNS VARCHAR2(13);
+ktiporegistro varchar2(20);
+kresp number;
+
+begin
+
+kclob:= utl_raw.cast_to_varchar2(:body);
+--SELECT REPLACE( kclob,' ','') into kclob FROM dual;
+apex_json.parse(j,kclob);
+
+knns  := apex_json.get_varchar2(p_path=>'NNS',p_values=>j); 
+kfecha  := apex_json.get_varchar2(p_path=>'FECHA',p_values=>j); 
+ktiporegistro  := apex_json.get_varchar2(p_path=>'TIPO_REGISTROS',p_values=>j);
+----
+if knns is not null then 
+  IF KTIPOREGISTRO = 'ALTA' THEN 
+ --BUSCAMOS EL REGISTRO
+   NERROR := 0;
+   INSERT INTO SER_MED_REGISTRO_MEDICO VALUES (KNNS,SYSDATE,KTIPOREGISTRO);
+ COMMIT;
+  ELSE
+   KTIPOREGISTRO := 'CAMBIO';
+   NERROR := 0;
+  END IF; 
+
+
+
+ IF NERROR = 0 THEN 
+
+
+
+KVAR1  := apex_json.get_NUMBER(p_path=>'CARDIOPATIA.CARDIOPATIA_ISQUEMICA',p_values=>j); 
+DBMS_OUTPUT.PUT_LINE(kvar1);
+KVAR2  := apex_json.get_NUMBER(p_path=>'CARDIOPATIA.HIPERTENSION',p_values=>j); 
+KVAR3  := apex_json.get_number(p_path=>'CARDIOPATIA.HIPOTENSION',p_values=>j); 
+KVAR4  := apex_json.get_number(p_path=>'CARDIOPATIA.INSUFICIENCIA_CARDIACA',p_values=>j); 
+KVAR5  := apex_json.get_number(p_path=>'CARDIOPATIA.INSUFICIENCIA_VASCULAR_PERIFERICA',p_values=>j); 
+CVAR1  := apex_json.get_varchar2(p_path=>'CARDIOPATIA.CARDIOPATIA_ISQUEMICA_OBS',p_values=>j); 
+CVAR2  := apex_json.get_varchar2(p_path=>'CARDIOPATIA.HIPERTENSION_OBS',p_values=>j);
+CVAR3  := apex_json.get_varchar2(p_path=>'CARDIOPATIA.HIPOTENSION_OBS',p_values=>j);
+CVAR4  := apex_json.get_varchar2(p_path=>'CARDIOPATIA.INSUFICIENCIA_CARDIACA_OBS',p_values=>j);
+CVAR5  := apex_json.get_varchar2(p_path=>'CARDIOPATIA.INSUFICIENCIA_VASCULAR_PERIFERICA_OBS',p_values=>j);
+
+select count(*) into kexiste from serv_med_cardiopatias where nss=knns;
+IF kexiste = 0 then 
+
+ insert into SERV_MED_CARDIOPATIAS (NSS,CARDIOPATIA_ISQUEMICA,HIPERTENSION,HIPOTENSION,INSUFICIENCIA_CARDIACA, INSUFICIENCIA_VAS_PERI, CARDIOPATIA_ISQUEMICA_OBS,HIPERTENSION_OBS,  HIPOTENSION_OBS,  
+INSUFICIENCIA_CARDIACA_OBS,INSUFICIENCIA_VAS_PERI_OBS) 
+values (KNNS,KVAR1,KVAR2,KVAR3,KVAR4,KVAR5,CVAR1,CVAR2,CVAR3,CVAR4,CVAR5);
+ELSE
+ UPDATE SERV_MED_CARDIOPATIAS SET CARDIOPATIA_ISQUEMICA=KVAR1,HIPERTENSION=KVAR2,HIPOTENSION=KVAR3,INSUFICIENCIA_CARDIACA=KVAR4,
+ INSUFICIENCIA_VAS_PERI=KVAR5,CARDIOPATIA_ISQUEMICA_OBS=CVAR1,HIPERTENSION_OBS=CVAR2,HIPOTENSION_OBS=CVAR3,INSUFICIENCIA_CARDIACA_OBS=CVAR4,
+ INSUFICIENCIA_VAS_PERI_OBS=CVAR5 WHERE NSS=KNNS;
+END IF; 
+-------
+kvar1  := apex_json.get_number(p_path=>'ENDOCRINA.DM',p_values=>j);
+kvar2  := apex_json.get_number(p_path=>'ENDOCRINA.HIPERTIROIDISMO',p_values=>j);
+kvar3  := apex_json.get_number(p_path=>'ENDOCRINA.HIPOTIROIDISMO',p_values=>j);
+cvar1  := apex_json.get_varchar2(p_path=>'ENDOCRINA.DM_OBS',p_values=>j);
+cvar2  := apex_json.get_varchar2(p_path=>'ENDOCRINA.HIPERTIROIDISMO_OBS',p_values=>j);
+cvar3  := apex_json.get_varchar2(p_path=>'ENDOCRINA.HIPOTIROIDISMO_OBS',p_values=>j);
+select count(*) into kexiste from serv_med_endocrinas where nss=knns;
+IF kexiste = 0 then 
+
+insert into SERV_MED_ENDOCRINAS (NSS, DM,HIPERTIROIDISMO,HIPOTIROIDISMO,DM_OBS,HIPERTIROIDISMO_OBS,
+HIPOTIROIDISMO_OBS) values (knns,kvar1,kvar2,kvar3,cvar1,cvar2,cvar3);
+ELSE
+UPDATE SERV_MED_ENDOCRINAS SET DM=KVAR1,HIPERTIROIDISMO=KVAR2,HIPOTIROIDISMO=KVAR3,DM_OBS=CVAR1,HIPERTIROIDISMO_OBS=CVAR2,
+HIPOTIROIDISMO_OBS=CVAR3 WHERE NSS=KNNS;
+END IF;
+-------GENERALES 
+Kvar1  := apex_json.get_NUMBER(p_path=>'GENERALES.CANCER',p_values=>j);
+kvar2  := apex_json.get_NUMBER(p_path=>'GENERALES.ALERGIAS',p_values=>j);
+kvar3  := apex_json.get_NUMBER(p_path=>'GENERALES.MALFORMACIONES',p_values=>j);
+cvar1  := apex_json.get_varchar2(p_path=>'GENERALES.CANCER_OBS',p_values=>j);
+cvar2  := apex_json.get_varchar2(p_path=>'GENERALES.ALERGIAS_OBS',p_values=>j);
+cvar3  := apex_json.get_varchar2(p_path=>'GENERALES.MALFORMACIONES_OBS',p_values=>j);
+-----
+select count(*) into kexiste from serv_med_generales where nss=knns;
+IF kexiste = 0 then 
+insert into SERV_MED_GENERALES(NSS,CANCER,ALERGIAS,MALFORMACIONES,CANCER_OBS,ALERGIAS_OBS,              
+MALFORMACIONES_OBS) values (KNNS,kvar1,kvar2,kvar3,cvar1,cvar2,cvar3);          
+ELSE
+UPDATE SERV_MED_GENERALES SET CANCER=KVAR1,ALERGIAS=KVAR2,MALFORMACIONES=KVAR3,CANCER_OBS=CVAR1,ALERGIAS_OBS=CVAR2,MALFORMACIONES_OBS=CVAR3
+WHERE NSS=KNNS;
+END IF;
+
+kvar1  := apex_json.get_number(p_path=>'HEREDOFAMILIARES.NEUROLOGIA_ID',p_values=>j);
+kvar2  := apex_json.get_number(p_path=>'HEREDOFAMILIARES.CARDIOPATIA_ID',p_values=>j);
+kvar3  := apex_json.get_number(p_path=>'HEREDOFAMILIARES.NEUMOPATICA_ID',p_values=>j);
+kvar4  := apex_json.get_number(p_path=>'HEREDOFAMILIARES.TOXICOLOGICO_ID',p_values=>j);
+kvar5  := apex_json.get_number(p_path=>'HEREDOFAMILIARES.NEFROPATIAS_ID',p_values=>j);
+kvar6  := apex_json.get_number(p_path=>'HEREDOFAMILIARES.ENDOCRINAS_ID',p_values=>j);
+kvar7  := apex_json.get_number(p_path=>'HEREDOFAMILIARES.OBESIDAD_ID',p_values=>j);
+kvar8  := apex_json.get_number(p_path=>'HEREDOFAMILIARES.MENTALES_ID',p_values=>j);
+kvar9  := apex_json.get_number(p_path=>'HEREDOFAMILIARES.GENERALES_ID',p_values=>j);
+kvar10  := apex_json.get_number(p_path=>'HEREDOFAMILIARES.OTRAS_ID',p_values=>j);
+----
+select count(*) into kexiste from serv_med_heredofamiliar where nss=knns;
+IF kexiste = 0 then 
+insert into SERV_MED_HEREDOFAMILIAR (NSS,NEUROLOGIA_ID,CARDIOPATIA_ID,NEUMOPATICA_ID ,TOXICOLOGICO_ID,          
+NEFROPATIAS_ID,ENDOCRINAS_ID,OBESIDAD_ID,MENTALES_ID,GENERALES_ID,OTRAS_ID) 
+values (knns,kvar1,kvar2,kvar3,kvar4,kvar5,kvar6,kvar7,kvar8,kvar9,kvar10);              
+ELSE
+UPDATE SERV_MED_HEREDOFAMILIAR SET NEUROLOGIA_ID=KVAR1,CARDIOPATIA_ID=KVAR2,NEUMOPATICA_ID=KVAR3,TOXICOLOGICO_ID=KVAR4,
+NEFROPATIAS_ID=KVAR5,ENDOCRINAS_ID=KVAR6,OBESIDAD_ID=KVAR7,MENTALES_ID=KVAR8,GENERALES_ID=KVAR9,OTRAS_ID=KVAR10 WHERE NSS=KNNS;
+END IF;
+
+kvar1  := apex_json.get_number(p_path=>'MENTALES.NEUROSIS',p_values=>j);
+kvar2  := apex_json.get_number(p_path=>'MENTALES.PSICOSIS',p_values=>j);
+kvar3  := apex_json.get_number(p_path=>'MENTALES.INTENTO_DE_SUICIDIO',p_values=>j);
+kvar4  := apex_json.get_number(p_path=>'MENTALES.ESQUIZOFRENIA',p_values=>j);
+cvar1  := apex_json.get_varchar2(p_path=>'MENTALES.NEUROSIS_OBS',p_values=>j);
+cvar2  := apex_json.get_varchar2(p_path=>'MENTALES.PSICOSIS_OBS',p_values=>j);
+cvar3  := apex_json.get_varchar2(p_path=>'MENTALES.INTENTO_DE_SUICIDIO_OBS',p_values=>j);
+cvar4  := apex_json.get_varchar2(p_path=>'MENTALES.ESQUIZOFRENIA_OBS',p_values=>j);
+---
+select count(*) into kexiste from SERV_MED_mentales where nss=knns;
+IF kexiste = 0 then 
+insert into SERV_MED_MENTALES (NSS,NEUROSIS,PSICOSIS,INTENTO_DE_SUICIDIO,ESQUIZOFRENIA,NEUROSIS_OBS,PSICOSIS_OBS,INTENTO_DE_SUICIDIO_OBS,ESQUIZOFRENIA_OBS) 
+values (knns,kvar1,kvar2,kvar3,kvar4,cvar1,cvar2,cvar3,cvar4);               
+ELSE
+UPDATE SERV_MED_MENTALES SET NEUROSIS=KVAR1,PSICOSIS=KVAR2,INTENTO_DE_SUICIDIO=KVAR3,ESQUIZOFRENIA=KVAR4,
+NEUROSIS_OBS=CVAR1,PSICOSIS_OBS=CVAR2,INTENTO_DE_SUICIDIO_OBS=CVAR3,ESQUIZOFRENIA_OBS=CVAR4 WHERE NSS=KNNS;
+END IF;
+
+kvar1  := apex_json.get_NUMBER(p_path=>'NEFROPATIA.IRC',p_values=>j);
+kvar2  := apex_json.get_NUMBER(p_path=>'NEFROPATIA.LITASIS',p_values=>j);
+cvar1  := apex_json.get_varchar2(p_path=>'NEFROPATIA.IRC_OBS',p_values=>j);
+cvar2  := apex_json.get_varchar2(p_path=>'NEFROPATIA.LITASIS_OBS',p_values=>j);
+---
+select count(*) into kexiste from serv_med_nefropatia where nss=knns;
+IF kexiste = 0 then 
+
+INSERT INTO SERV_MED_NEFROPATIA (NSS,IRC,LITASIS,IRC_OBS,LITASIS_OBS) 
+VALUES (KNNS,kvar1,kvar2,cvar1,cvar2);
+ELSE
+UPDATE SERV_MED_NEFROPATIA SET IRC=KVAR1,LITASIS=KVAR2,IRC_OBS=CVAR1,LITASIS_OBS=CVAR2 WHERE NSS=KNNS;
+END IF;
+
+kvar1  := apex_json.get_number(p_path=>'NEUMOPATICA.BRONQUITIS',p_values=>j);
+kvar2  := apex_json.get_number(p_path=>'NEUMOPATICA.TUBERCULOSIS',p_values=>j);
+kvar3  := apex_json.get_number(p_path=>'NEUMOPATICA.ASMA',p_values=>j);
+kvar4  := apex_json.get_number(p_path=>'NEUMOPATICA.INSUFICIENCIA_RESPIRATORIA',p_values=>j);
+cvar1  := apex_json.get_varchar2(p_path=>'NEUMOPATICA.BRONQUITIS_OBS',p_values=>j);
+cvar2  := apex_json.get_varchar2(p_path=>'NEUMOPATICA.TUBERCULOSIS_OBS',p_values=>j);
+cvar3  := apex_json.get_varchar2(p_path=>'NEUMOPATICA.ASMA_OBS',p_values=>j);
+cvar4  := apex_json.get_varchar2(p_path=>'NEUMOPATICA.INSUFICIENCIA_RESPIRATORIA_OBS',p_values=>j);
+---
+select count(*) into kexiste from serv_med_neumopatica where nss=knns;
+IF kexiste = 0 then 
+
+insert into SERV_MED_NEUMOPATICA (NSS,BRONQUITIS,TUBERCULOSIS,ASMA,INSUFICIENCIA_RESPIRATORIA,BRONQUITIS_OBS,
+TUBERCULOSIS_OBS,ASMA_OBS,INSUFICIENCIA_RESPIRATORIA_OBS) values (knns,kvar1,kvar2,kvar3,kvar4,cvar1,cvar2,cvar3,cvar4);          
+ELSE
+UPDATE SERV_MED_NEUMOPATICA SET BRONQUITIS=KVAR1,TUBERCULOSIS=KVAR2,ASMA=KVAR3,INSUFICIENCIA_RESPIRATORIA=KVAR4,BRONQUITIS_OBS=CVAR1,
+TUBERCULOSIS_OBS=CVAR2,ASMA_OBS=CVAR3,INSUFICIENCIA_RESPIRATORIA_OBS=CVAR4 WHERE NSS=KNNS;
+END IF;
+
+cvar7  := apex_json.get_varchar2(p_path=>'NEUROLOGIA.AVC',p_values=>j);
+cvar8  := apex_json.get_varchar2(p_path=>'NEUROLOGIA.EPILEPSIA',p_values=>j);
+cvar9  := apex_json.get_varchar2(p_path=>'NEUROLOGIA.PARALISIS_FACIAL',p_values=>j);
+cvar10  := apex_json.get_varchar2(p_path=>'NEUROLOGIA.PARKINSON',p_values=>j);
+cvar11  := apex_json.get_varchar2(p_path=>'NEUROLOGIA.ALZHEIMER',p_values=>j);
+cvar12  := apex_json.get_varchar2(p_path=>'NEUROLOGIA.MIGRANA',p_values=>j);
+cvar1  := apex_json.get_varchar2(p_path=>'NEUROLOGIA.AVC_OBS',p_values=>j);
+cvar2  := apex_json.get_varchar2(p_path=>'NEUROLOGIA.EPILEPSIA_OBS',p_values=>j);
+cvar3  := apex_json.get_varchar2(p_path=>'NEUROLOGIA.PARALISIS_FACIAL_OBS',p_values=>j);
+cvar4  := apex_json.get_varchar2(p_path=>'NEUROLOGIA.PARKINSON_OBS',p_values=>j);
+cvar5  := apex_json.get_varchar2(p_path=>'NEUROLOGIA.ALZHEIMER_OBS',p_values=>j);
+cvar6  := apex_json.get_varchar2(p_path=>'NEUROLOGIA.MIGRANA_OBS',p_values=>j);
+---
+select count(*) into kexiste from serv_med_neurologia where nss=knns;
+IF kexiste = 0 then 
+
+insert into SERV_MED_NEUROLOGIA (NSS,AVC,EPILEPSIA,PARALISIS_FACIAL,PARKINSON,ALZHEIMER,MIGRAÑA,
+AVC_OBS,EPILEPSIA_OBS,PARALISIS_FACIAL_OBS,PARKINSON_OBS,ALZHEIMER_OBS,MIGRAÑA_OBS) values (knns,cvar7,cvar8,cvar9,cvar10,cvar11,cvar12,cvar1,cvar2,cvar3,cvar4,cvar5,cvar6);                
+ELSE
+UPDATE SERV_MED_NEUROLOGIA SET AVC=CVAR7,EPILEPSIA=CVAR8,PARALISIS_FACIAL=CVAR9,
+PARKINSON=CVAR10,ALZHEIMER=CVAR11,MIGRAÑA=CVAR12,
+AVC_OBS=CVAR1,EPILEPSIA_OBS=CVAR2,PARALISIS_FACIAL_OBS=CVAR3,
+PARKINSON_OBS=CVAR4,ALZHEIMER_OBS=CVAR5,
+MIGRAÑA_OBS=CVAR6 WHERE NSS=KNNS;
+END IF;
+
+cvar2  := apex_json.get_varchar2(p_path=>'OBESIDAD.TRANSTORNO_DE_CRECIMIENTO',p_values=>j);
+cvar1  := apex_json.get_varchar2(p_path=>'OBESIDAD.TRANSTORNO_DE_CRECIMIENTO_OBS',p_values=>j);
+---
+select count(*) into kexiste from SERV_MED_OBESIDAD where nss=knns;
+IF kexiste = 0 then 
+
+insert into SERV_MED_OBESIDAD(NSS,TRANSTORNO_DE_CRECIMIENTO,TRANSTORNO_DE_CRECIMIENTO_OBS)
+values (knns,cvar2,cvar1);   
+ELSE
+UPDATE SERV_MED_OBESIDAD SET TRANSTORNO_DE_CRECIMIENTO=CVAR2,TRANSTORNO_DE_CRECIMIENTO_OBS=CVAR1 WHERE NSS=KNNS;
+END IF;
+kvar1  := apex_json.get_number(p_path=>'TOXICOLOGIOCAS.ALCOHOLISMO',p_values=>j);
+kvar2  := apex_json.get_number(p_path=>'TOXICOLOGIOCAS.TABAQUISMO',p_values=>j);
+kvar3  := apex_json.get_number(p_path=>'TOXICOLOGIOCAS.DROGAS',p_values=>j);
+cvar1  := apex_json.get_varchar2(p_path=>'TOXICOLOGIOCAS.ALCOHOLISMO_OBS',p_values=>j);
+cvar2  := apex_json.get_varchar2(p_path=>'TOXICOLOGIOCAS.TABAQUISMO_OBS',p_values=>j);
+cvar3  := apex_json.get_varchar2(p_path=>'TOXICOLOGIOCAS.DROGAS_OBS',p_values=>j);
+---
+select count(*) into kexiste from serv_med_toxicologico  where nss=knns;
+IF kexiste = 0 then 
+
+insert into SERV_MED_TOXICOLOGICO(NSS,ALCOHOLISMO,TABAQUISMO,DROGAS,ALCOHOLISMO_OBS,TABAQUISMO_OBS,          
+DROGAS_OBS) values (knns,kvar1,kvar2,kvar3,cvar1,cvar2,cvar3);               
+ELSE
+UPDATE SERV_MED_TOXICOLOGICO SET ALCOHOLISMO=KVAR1,TABAQUISMO=KVAR2,DROGAS=KVAR3,ALCOHOLISMO_OBS=CVAR1,TABAQUISMO_OBS=CVAR2,          
+DROGAS_OBS=CVAR3 WHERE NSS=KNNS;
+END IF;
+
+kvar1  := apex_json.get_number(p_path=>'OTRAS.OTRAS',p_values=>j);
+cvar1  := apex_json.get_varchar2(p_path=>'OTRAS.OTRAS_OBS',p_values=>j);
+select count(*) into kexiste from SERV_MED_OTRAS where nss=knns;
+IF kexiste = 0 then 
+
+insert into SERV_MED_OTRAS(NSS,OTRAS,OTRAS_OBS) values (knns,kvar1,cvar1);
+ELSE
+UPDATE SERV_MED_OTRAS SET OTRAS=KVAR1,OTRAS_OBS=CVAR1 WHERE NSS=KNNS;
+END IF;
+
+cvar1  := apex_json.get_number(p_path=>'FILES.name',p_values=>j);
+cvar2  := apex_json.get_number(p_path=>'FILES.date_upload',p_values=>j);
+cvar3  := apex_json.get_number(p_path=>'FILES.url',p_values=>j);
+cvar4  := apex_json.get_varchar2(p_path=>'FILES.type',p_values=>j);
+
+select count(*) into kexiste from SERV_MED_FILES where nss=knns;
+IF kexiste = 0 then 
+
+insert into SERV_MED_FILES(NSS,NAME,date_upload,URL,TYPE) values (knns,cvar1,cvar2,cvar3,cvar4);               
+ELSE
+UPDATE SERV_MED_FILES SET name=cvar1,date_upload=cVAR2,url=cvar3,type=CVAR4 WHERE NSS=KNNS;
+END IF;
+
+--realizamos el alta de examen medico 
+PR_SERVICIO_MED_EXAMEN1(KTIPOREGISTRO,KNNS,J,KRESP);
+ IF KRESP = 0 THEN 
+
+  PR_SERVICIO_MED_EXAMEN2(KTIPOREGISTRO,KNNS,J,KRESP);
+
+   IF KRESP = 0 THEN 
+      commit;
+        APEX_JSON.initialize_clob_output;
+        	APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos');    
+              APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','Registro aceptado');
+               APEX_JSON.write('Estado',0);
+               APEX_JSON.write('No_empleados',1);
+               APEX_JSON.write('Mensaje','Proceso correcto');
+	           APEX_JSON.write('Data','llego mensaje completo');
+              APEX_JSON.close_OBJECT;
+            APEX_JSON.close_array; 
+          APEX_JSON.close_OBJECT; 
+        kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+  ELSE
+    ROLLBACK;
+        APEX_JSON.initialize_clob_output;
+        	APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos');    
+              APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','Error en el registro');
+               APEX_JSON.write('Estado',-100);
+               APEX_JSON.write('No_empleados',1);
+               APEX_JSON.write('Mensaje','Proceso incorrecto');
+	           APEX_JSON.write('Data','Problema en el procedimiento PR_SERVICIO_MED_EXAMEN2');
+              APEX_JSON.close_OBJECT;
+            APEX_JSON.close_array; 
+          APEX_JSON.close_OBJECT; 
+        kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+
+  END IF;
+ ELSE
+   ROLLBACK;
+        APEX_JSON.initialize_clob_output;
+        	APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos');    
+              APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','Error en el registro');
+               APEX_JSON.write('Estado',-100);
+               APEX_JSON.write('No_empleados',1);
+               APEX_JSON.write('Mensaje','Proceso incorrecto');
+	           APEX_JSON.write('Data','Problema en el procedimiento PR_SERVICIO_MED_EXAMEN2');
+              APEX_JSON.close_OBJECT;
+            APEX_JSON.close_array; 
+          APEX_JSON.close_OBJECT; 
+        kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+ END IF;
+
+    l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         /* Increase Counter */
+         l_offset := l_offset + l_response_chunk_size;
+         /* Resize CLOB length */
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+
+ else
+  APEX_JSON.initialize_clob_output;
+        	APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos');    
+            APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','Registro rechazado');
+               APEX_JSON.write('Estado',100);
+               APEX_JSON.write('Mensaje','El formulario a insertar ya se encuentra dado de alta en la base');
+	           APEX_JSON.write('Data','Error de actualización');
+            APEX_JSON.close_OBJECT;
+           APEX_JSON.close_array; 
+          APEX_JSON.close_OBJECT; 
+        kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+
+    l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         --Increase Counter 
+         l_offset := l_offset + l_response_chunk_size;
+         -- Resize CLOB length 
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+ end if;
+else
+  APEX_JSON.initialize_clob_output;
+        	APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos');    
+            APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','Registro rechazado');
+               APEX_JSON.write('Estado',100);
+               APEX_JSON.write('Mensaje','El Número de seguridad social no se envío');
+	           APEX_JSON.write('Data','Error de actualización');
+            APEX_JSON.close_OBJECT;
+           APEX_JSON.close_array; 
+          APEX_JSON.close_OBJECT; 
+        kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+
+    l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         --Increase Counter 
+         l_offset := l_offset + l_response_chunk_size;
+         -- Resize CLOB length 
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+ end if;
+exception 
+when others then 
+rollback;
+        APEX_JSON.initialize_clob_output;
+        	APEX_JSON.open_OBJECT;	
+
+             APEX_JSON.open_array('Datos');    
+
+            APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','Error al insertar el registro en base ');
+               APEX_JSON.write('Estado',-2);
+               APEX_JSON.write('No_empleados',0);
+               APEX_JSON.write('Mensaje','Error Proceso correcto');
+	           APEX_JSON.write('Data',sqlerrm);
+            APEX_JSON.close_OBJECT;
+           APEX_JSON.close_array; 
+          APEX_JSON.close_OBJECT; 
+        kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+
+    l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         /* Increase Counter */
+         l_offset := l_offset + l_response_chunk_size;
+         /* Resize CLOB length */
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+
+end;
+
+
+=========================================================================================     security/Servcio/consulta_examen
+
+declare 
+
+l_response_body_clob  clob ;
+l_response_length     NUMBER;
+l_response_buffer     VARCHAR2(32767);
+l_response_chunk_size BINARY_INTEGER := 32000;
+l_offset              INTEGER := 1; 
+j apex_json.t_values;
+k apex_json.t_values;
+kjson clob;
+kaccion varchar2(20);
+kcuenta number;
+knombre_cuenta varchar2(50);
+kfecha varchar2(20);
+KEXISTE NUMBER;
+Kno_empleados VARCHAR2(20);
+NERROR NUMBER;
+kmessage varchar2(250);
+kcantidad number;
+kclob clob;
+ktotal number;
+KVAR1 NUMBER;
+KVAR2 NUMBER;
+KVAR3 NUMBER;
+KVAR4 NUMBER;
+KVAR5 NUMBER;
+KVAR6 NUMBER;
+kvar7 number;
+kvar8 number;
+kvar9 number;
+kvar10 number;
+CVAR1 varchar2(500);
+CVAR2 varchar2(500);
+CVAR3 varchar2(500);
+CVAR4 varchar2(500);
+CVAR5 varchar2(500);
+CVAR6 varchar2(500);
+KNNS VARCHAR2(13);
+ktiporegistro varchar2(20);
+kjson1 clob;
+kusuario varchar2(30);
+
+begin
+
+kclob:= utl_raw.cast_to_varchar2(:body);
+apex_json.parse(j,kclob);
+
+knns  := apex_json.get_varchar2(p_path=>'NNS',p_values=>j); 
+kfecha  := apex_json.get_varchar2(p_path=>'FECHA',p_values=>j); 
+kusuario  := apex_json.get_varchar2(p_path=>'USUARIO',p_values=>j);
+
+PR_SERVICIO_MED_CONSULTA(knns,kjson1);
+
+
+        apex_json.parse(k,kjson1);
+        APEX_JSON.initialize_clob_output;
+        	APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos');    
+              APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','consulta correcta');
+               APEX_JSON.write('Estado',0);
+               APEX_JSON.write('No_empleados',1);
+               APEX_JSON.write('Mensaje','Proceso correcto');
+	           APEX_JSON.write('Data',k);
+              APEX_JSON.close_OBJECT;
+            APEX_JSON.close_array; 
+          APEX_JSON.close_OBJECT; 
+        kjson := APEX_JSON.get_clob_output;	 
+     APEX_JSON.free_output; 
+
+
+    l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         /* Increase Counter */
+         l_offset := l_offset + l_response_chunk_size;
+         /* Resize CLOB length */
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+exception 
+when others then 
+rollback;
+        APEX_JSON.initialize_clob_output;
+        	APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos');    
+
+            APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','Error al realuzar la consulta');
+               APEX_JSON.write('Estado',-2);
+               APEX_JSON.write('No_empleados',0);
+               APEX_JSON.write('Mensaje','Error Proceso correcto');
+	           APEX_JSON.write('Data',sqlerrm);
+            APEX_JSON.close_OBJECT;
+           APEX_JSON.close_array; 
+          APEX_JSON.close_OBJECT; 
+        kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+
+    l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         /* Increase Counter */
+         l_offset := l_offset + l_response_chunk_size;
+         /* Resize CLOB length */
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+
+end;
+
+
+==========================================================================================  security/Servcio/consulta    
+declare 
+
+l_response_body_clob  clob ;
+l_response_length     NUMBER;
+l_response_buffer     VARCHAR2(32767);
+l_response_chunk_size BINARY_INTEGER := 32000;
+l_offset              INTEGER := 1; 
+j apex_json.t_values;
+kjson clob;
+kdata varchar2(250);
+kaccion varchar2(20);
+kcuenta number;
+knombre_cuenta varchar2(50);
+kfecha varchar2(20);
+KEXISTE NUMBER;
+Kno_empleados VARCHAR2(20);
+NERROR NUMBER;
+kmessage varchar2(250);
+kcantidad number;
+kclob clob;
+ktotal number;
+KVAR1 NUMBER;
+KVAR2 NUMBER;
+KVAR3 NUMBER;
+KVAR4 NUMBER;
+KVAR5 NUMBER;
+KVAR6 NUMBER;
+kvar7 number;
+kvar8 number;
+kvar9 number;
+kvar10 number;
+CVAR1 varchar2(500);
+CVAR2 varchar2(500);
+CVAR3 varchar2(500);
+CVAR4 varchar2(500);
+CVAR5 varchar2(500);
+CVAR6 varchar2(500);
+CVAR7 varchar2(500);
+CVAR8 varchar2(500);
+CVAR9 varchar2(500);
+CVAR10 varchar2(500);
+CVAR11 varchar2(500);
+CVAR12 varchar2(500);
+CVAR13 varchar2(500);
+CVAR14 varchar2(500);
+CVAR15 varchar2(500);
+CVAR16 varchar2(500);
+CVAR17 varchar2(500);
+CVAR18 varchar2(500);
+CVAR19 varchar2(500);
+KNNS VARCHAR2(13);
+ktiporegistro varchar2(20);
+kresp number;
+KFIRMA CLOB;
+
+begin
+kclob:= utl_raw.cast_to_varchar2(:body);
+apex_json.parse(j,kclob);
+
+knns  := apex_json.get_varchar2(p_path=>'NSS',p_values=>j); 
+kfecha  := apex_json.get_varchar2(p_path=>'FECHA',p_values=>j); 
+cvar1  := apex_json.get_varchar2(p_path=>'TIPO_CONSULTA',p_values=>j);
+cvar2  := apex_json.get_varchar2(p_path=>'AREA_ACCIDENTE',p_values=>j);
+cvar3  := apex_json.get_varchar2(p_path=>'AREA_ANATOMICA',p_values=>j);
+cvar4  := apex_json.get_varchar2(p_path=>'CAUSA',p_values=>j);
+cvar5  := apex_json.get_varchar2(p_path=>'PESO',p_values=>j);
+cvar6  := apex_json.get_varchar2(p_path=>'TALLA',p_values=>j);
+cvar7  := apex_json.get_varchar2(p_path=>'IMC',p_values=>j);
+cvar8  := apex_json.get_varchar2(p_path=>'FC',p_values=>j);
+cvar9  := apex_json.get_varchar2(p_path=>'FR',p_values=>j);
+cvar10  := apex_json.get_varchar2(p_path=>'TA',p_values=>j);
+cvar11  := apex_json.get_varchar2(p_path=>'TEMPERATURA',p_values=>j);
+cvar12  := apex_json.get_varchar2(p_path=>'MOTIVO_CONSULTA',p_values=>j);
+cvar13  := apex_json.get_varchar2(p_path=>'EXPLORACION_FISICA',p_values=>j);
+cvar14  := apex_json.get_varchar2(p_path=>'DIAGNOSTICO',p_values=>j);
+cvar15  := apex_json.get_varchar2(p_path=>'TRATAMIENTO',p_values=>j);
+cvar16  := apex_json.get_varchar2(p_path=>'CONSULTA_RELACIONADA',p_values=>j);
+cvar17  := apex_json.get_varchar2(p_path=>'ID_ARCHIVOS',p_values=>j);
+cvar18  := apex_json.get_varchar2(p_path=>'USUARIO',p_values=>j);
+cvar19  := apex_json.get_varchar2(p_path=>'NOMBRE_USUARIO',p_values=>j);
+KFIRMA := apex_json.get_clob(p_path=>'FIRMA_DIGITAL',p_values=>j);
+
+insert into TBL_SERV_CONSULTA_MEDICA (
+REG_ID,                     
+FECHA,                           
+NSS,                         
+TIPO_CONSULTA,                      
+AREA_DE_ACCIDENTE,                  
+AREA_ANATOMICA_INVOLUCRADA,         
+CAUSA,                              
+PESO,                                 
+TALLA,                                 
+IMC,                                  
+FC,                                 
+FR,                                   
+TA,                                   
+TEMPETARURA,                          
+MOTIVO_CONSULTA,                    
+EXPLORACION_FISICA,                  
+DIAGNOSTICO,                      
+TRATAMIENTO,                        
+CONSULTA_RELACIONADA,               
+ID_ARCHIVOS,
+ID_USUARIO,
+NOMBRE_USUARIO,
+FIRMA_DIGITAL
+) values ('',sysdate,knns,cvar1,cvar2,cvar3,cvar4,cvar5,cvar6,cvar7,cvar8,cvar9,cvar10,cvar11,cvar12,cvar13,
+cvar14,cvar15,cvar16,cvar17,cvar18,cvar19,KFIRMA);
+
+  commit;
+
+
+     APEX_JSON.initialize_clob_output;
+        	APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos');    
+            APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','Registro procesado correctamente');
+               APEX_JSON.write('Estado',100);
+               APEX_JSON.write('Mensaje','Inserción de forma correcta');
+	           APEX_JSON.write('Data','Proceso correcto');
+            APEX_JSON.close_OBJECT;
+           APEX_JSON.close_array; 
+          APEX_JSON.close_OBJECT; 
+        kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+
+
+    l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         --Increase Counter 
+         l_offset := l_offset + l_response_chunk_size;
+         -- Resize CLOB length 
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+
+exception 
+ when others then 
+  rollback;
+  kdata := sqlerrm;
+
+     APEX_JSON.initialize_clob_output;
+        	APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos');    
+            APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','Error al proceso de inserción');
+               APEX_JSON.write('Estado',100);
+               APEX_JSON.write('Mensaje','Error de la inservción');
+	           APEX_JSON.write('Data',kdata);
+            APEX_JSON.close_OBJECT;
+           APEX_JSON.close_array; 
+          APEX_JSON.close_OBJECT; 
+        kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+
+
+
+    l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         --Increase Counter 
+         l_offset := l_offset + l_response_chunk_size;
+         -- Resize CLOB length 
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+end;
+
+
+
+====================================================================       security/Servcio/conuslta_medica_usuario     
+declare 
+
+l_response_body_clob  clob ;
+l_response_length     NUMBER;
+l_response_buffer     VARCHAR2(32767);
+l_response_chunk_size BINARY_INTEGER := 32000;
+l_offset              INTEGER := 1; 
+j apex_json.t_values;
+kjson clob;
+kdata varchar2(250);
+kaccion varchar2(20);
+kcuenta number;
+knombre_cuenta varchar2(50);
+kfecha varchar2(20);
+KEXISTE NUMBER;
+Kno_empleados VARCHAR2(20);
+NERROR NUMBER;
+kmessage varchar2(250);
+kcantidad number;
+kclob clob;
+ktotal number;
+KVAR1 NUMBER;
+KVAR2 NUMBER;
+KVAR3 NUMBER;
+KVAR4 NUMBER;
+KVAR5 NUMBER;
+KVAR6 NUMBER;
+kvar7 number;
+kvar8 number;
+kvar9 number;
+kvar10 number;
+CVAR1 varchar2(500);
+CVAR2 varchar2(500);
+CVAR3 varchar2(500);
+CVAR4 varchar2(500);
+CVAR5 varchar2(500);
+CVAR6 varchar2(500);
+CVAR7 varchar2(500);
+CVAR8 varchar2(500);
+CVAR9 varchar2(500);
+CVAR10 varchar2(500);
+CVAR11 varchar2(500);
+CVAR12 varchar2(500);
+CVAR13 varchar2(500);
+KNNS VARCHAR2(13);
+ktiporegistro varchar2(20);
+kresp number;
+KFIRMA CLOB;
+
+begin
+kclob:= utl_raw.cast_to_varchar2(:body);
+apex_json.parse(j,kclob);
+
+knns  := apex_json.get_varchar2(p_path=>'NSS',p_values=>j); 
+
+
+
+
+
+select  
+COUNT(*)INTO  KEXISTE  from TBL_SERV_CONSULTA_MEDICA where NSS= knns;
+APEX_JSON.initialize_clob_output;
+APEX_JSON.OPEN_OBJECT;
+
+IF KEXISTE > 0 THEN 
+APEX_JSON.open_array('Datos');   
+for i in (select  
+REG_ID,FECHA,                           
+NSS,                         
+TIPO_CONSULTA,                      
+AREA_DE_ACCIDENTE,                  
+AREA_ANATOMICA_INVOLUCRADA,         
+CAUSA,                              
+PESO,                                 
+TALLA,                                 
+IMC,                                  
+FC,                                 
+FR,                                   
+TA,                                   
+TEMPETARURA,                          
+MOTIVO_CONSULTA,                    
+EXPLORACION_FISICA,                  
+DIAGNOSTICO,                      
+TRATAMIENTO,                        
+CONSULTA_RELACIONADA,               
+ID_ARCHIVOS,
+ID_USUARIO,
+NOMBRE_USUARIO,
+FIRMA_DIGITAL from TBL_SERV_CONSULTA_MEDICA where NSS= knns)
+
+loop
+    APEX_JSON.open_OBJECT; 
+    APEX_JSON.WRITE('id_consulta',coalesce(i.reg_id,0));
+    APEX_JSON.WRITE('fecha_consulta',coalesce(i.fecha,'sin datos'));
+    APEX_JSON.WRITE('tipo_consulta',coalesce(i.tipo_consulta,'sin datos'));
+    APEX_JSON.WRITE('area_accidente',coalesce(i.area_de_accidente,'sin datos'));
+    APEX_JSON.WRITE('area_involucrada',coalesce(i.area_anatomica_involucrada,'sin datos'));
+    APEX_JSON.WRITE('causa',coalesce(i.causa,'sin datos'));
+    APEX_JSON.WRITE('peso',coalesce(i.peso,'sin datos'));
+    APEX_JSON.WRITE('talla',coalesce(i.talla,'sin datos'));
+    APEX_JSON.WRITE('imc',coalesce(i.imc,'sin datos'));
+    APEX_JSON.WRITE('fc',coalesce(i.fc,'sin datos'));
+    APEX_JSON.WRITE('fr',coalesce(i.fr,'sin datos'));
+    APEX_JSON.WRITE('ta',coalesce(i.ta,'sin datos'));
+    APEX_JSON.WRITE('temperatura',coalesce(i.TEMPETARURA,'sin datos'));
+    APEX_JSON.WRITE('motivo',coalesce(i.motivo_consulta,'sin datos'));
+    APEX_JSON.WRITE('exploracion',coalesce(i.exploracion_fisica,'sin datos'));
+    APEX_JSON.WRITE('diagnostico',coalesce(i.diagnostico,'sin datos'));
+    APEX_JSON.WRITE('tratamiento',coalesce(i.tratamiento,'sin datos'));
+    APEX_JSON.WRITE('consulta_relacionada',coalesce(i.consulta_relacionada,'sin datos'));
+    APEX_JSON.WRITE('usuario',coalesce(i.nombre_usuario,'sin datos'));
+     APEX_JSON.WRITE('firma_digital',coalesce(i.firma_digital,'sin datos'));
+    APEX_JSON.close_OBJECT; 
+end loop;
+   APEX_JSON.CLOSE_array;   
+  APEX_JSON.close_OBJECT; 
+       kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+
+ELSE
+   APEX_JSON.initialize_clob_output;
+            APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos');    
+            APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','consulta de citas medicas por usuario');
+               APEX_JSON.write('Estado',-100);
+               APEX_JSON.write('Mensaje','No se tienen datos en la consulta');
+	           APEX_JSON.write('Data',kdata);
+            APEX_JSON.close_OBJECT;
+           APEX_JSON.close_array; 
+          APEX_JSON.close_OBJECT; 
+              kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+END IF;
+
+    l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         --Increase Counter 
+         l_offset := l_offset + l_response_chunk_size;
+         -- Resize CLOB length 
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+
+end;
+
+============================================================================================   security/Servcio/incapacidades
+declare 
+
+l_response_body_clob  clob ;
+l_response_length     NUMBER;
+l_response_buffer     VARCHAR2(32767);
+l_response_chunk_size BINARY_INTEGER := 32000;
+l_offset              INTEGER := 1; 
+j apex_json.t_values;
+kjson clob;
+kdata varchar2(250);
+kaccion varchar2(20);
+kcuenta number;
+knombre_cuenta varchar2(50);
+kfecha varchar2(20);
+KEXISTE NUMBER;
+Kno_empleados VARCHAR2(20);
+NERROR NUMBER;
+kmessage varchar2(250);
+kcantidad number;
+kclob clob;
+ktotal number;
+KVAR1 NUMBER;
+KVAR2 NUMBER;
+KVAR3 NUMBER;
+KVAR4 NUMBER;
+KVAR5 NUMBER;
+KVAR6 NUMBER;
+kvar7 number;
+kvar8 number;
+kvar9 number;
+kvar10 number;
+CVAR1 varchar2(500);
+CVAR3 varchar2(500);
+CVAR2 varchar2(500);
+kfolio varchar2(50);
+CVAR4 varchar2(500);
+CVAR5 varchar2(500);
+CVAR6 varchar2(500);
+CVAR7 varchar2(500);
+CVAR8 varchar2(500);
+CVAR9 varchar2(500);
+CVAR10 varchar2(500);
+CVAR11 varchar2(500);
+CVAR12 varchar2(500);
+CVAR13 varchar2(500);
+CVAR14 varchar2(500);
+CVAR15 varchar2(500);
+CVAR16 varchar2(50);
+CVAR17 varchar2(30);
+CVAR18 varchar2(30);
+CVAR19 varchar2(50);
+CVAR20 varchar2(50);
+CVAR21 varchar2(50);
+KNNS VARCHAR2(13);
+ktiporegistro varchar2(20);
+kresp number;
+kfirma clob;
+
+begin
+kclob:= utl_raw.cast_to_varchar2(:body);
+apex_json.parse(j,kclob);
+
+knns  := apex_json.get_varchar2(p_path=>'NSS',p_values=>j); 
+kfecha  := apex_json.get_varchar2(p_path=>'FECHA',p_values=>j); 
+kfolio  := apex_json.get_varchar2(p_path=>'FOLIO_INCAPACIDAD',p_values=>j);
+cvar2  := apex_json.get_varchar2(p_path=>'RAMO',p_values=>j);
+cvar3  := apex_json.get_varchar2(p_path=>'TIPO_INCAPACIDAD',p_values=>j);
+cvar4  := apex_json.get_varchar2(p_path=>'FECHA_INICIO',p_values=>j);
+cvar5  := apex_json.get_varchar2(p_path=>'FECHA_TERMINO',p_values=>j);
+kvar6  := apex_json.get_NUMBER(p_path=>'DIAS_AUTORIZADOS',p_values=>j);
+kvar7  := apex_json.get_number(p_path=>'SALARIO_INTEGRADO',p_values=>j);
+kvar8  := apex_json.get_number(p_path=>'COSTO',p_values=>j);
+cvar9  := apex_json.get_varchar2(p_path=>'IMPUTABLE',p_values=>j);
+cvar10  := apex_json.get_varchar2(p_path=>'ESTADO_DICTAMEN',p_values=>j);
+cvar11  := apex_json.get_varchar2(p_path=>'GOCE_SUELDO',p_values=>j);
+cvar12  := apex_json.get_varchar2(p_path=>'COMPLEMENTO_SALARIAL',p_values=>j);
+cvar13  := apex_json.get_varchar2(p_path=>'URL_ARCHIVOS',p_values=>j);
+cvar14  := apex_json.get_varchar2(p_path=>'USUARIO_ID',p_values=>j);
+cvar15  := apex_json.get_varchar2(p_path=>'NOMBRE_USUARIO',p_values=>j);
+kfirma  := apex_json.get_clob(p_path=>'FIRMA_DIGITAL',p_values=>j);
+cvar16  := apex_json.get_clob(p_path=>'RUBRO',p_values=>j);
+cvar17  := apex_json.get_clob(p_path=>'FECHA_ALTA',p_values=>j);
+cvar18  := apex_json.get_clob(p_path=>'FECHA_PRIMERA_INCAPACIDAD',p_values=>j);
+cvar19  := apex_json.get_clob(p_path=>'ALTA',p_values=>j);
+cvar20  := apex_json.get_clob(p_path=>'ST2',p_values=>j);
+cvar21  := apex_json.get_clob(p_path=>'SALARIO_ACUMULADO',p_values=>j);
+
+
+
+
+insert into TBL_SERV_INCAPACIDAD_MEDICA(
+REG_ID,
+FECHA_REGISTRO,
+NSS,
+FOLIO_INCAPACIDAD, 
+RAMO,
+TIPO_INCAPACIDAD, 
+FECHA_INICIO,
+FECHA_TERMINO,
+DIAS_AUTORIZADOS,
+SALARIO_INTEGRADO,
+COSTO,
+IMPUTABLE, 
+ESTADO_DICTAMEN,
+GOCE_SUELDO,
+COMPLEMENTO_SALARIAL,
+URL_ARCHIVOS,
+ID_USUARIO,
+NOMBRE_USUARIO,
+FIRMA_DIGITAL,
+RUBRO,
+FECHA_ALTA,
+FECHA_PRIMERA_INCAPACIDAD,
+ST2,
+SALARIO_ACUMULADO,
+ALTA)
+ values ('',sysdate,knns,kfolio,cvar2,cvar3,cvar4,cvar5,kvar6,kvar7,kvar8,cvar9,cvar10,cvar11,cvar12,cvar13,cvar14,cvar15,KFIRMA,CVAR16,CVAR17,CVAR18,CVAR19,CVAR21,CVAR20);
+
+  commit;
+
+
+     APEX_JSON.initialize_clob_output;
+        	APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos');    
+            APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','Registro procesado correctamente');
+               APEX_JSON.write('Estado',100);
+               APEX_JSON.write('Mensaje','Inserción de forma correcta');
+	           APEX_JSON.write('Data','Proceso correcto');
+            APEX_JSON.close_OBJECT;
+           APEX_JSON.close_array; 
+          APEX_JSON.close_OBJECT; 
+        kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+
+
+    l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         --Increase Counter 
+         l_offset := l_offset + l_response_chunk_size;
+         -- Resize CLOB length 
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+
+exception 
+ when others then 
+  rollback;
+  kdata := sqlerrm;
+
+     APEX_JSON.initialize_clob_output;
+        	APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos');    
+            APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','Error al proceso de inserción');
+               APEX_JSON.write('Estado',100);
+               APEX_JSON.write('Mensaje','Error de la inservción');
+	           APEX_JSON.write('Data',kdata);
+            APEX_JSON.close_OBJECT;
+           APEX_JSON.close_array; 
+          APEX_JSON.close_OBJECT; 
+        kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+
+
+
+    l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         --Increase Counter 
+         l_offset := l_offset + l_response_chunk_size;
+         -- Resize CLOB length 
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+end;
+
+=============================================================================================    security/Servcio/consulta_incapacidad
+
+declare 
+
+l_response_body_clob  clob ;
+l_response_length     NUMBER;
+l_response_buffer     VARCHAR2(32767);
+l_response_chunk_size BINARY_INTEGER := 32000;
+l_offset              INTEGER := 1; 
+j apex_json.t_values;
+kjson clob;
+kdata varchar2(250);
+kaccion varchar2(20);
+kcuenta number;
+knombre_cuenta varchar2(50);
+kfecha varchar2(20);
+KEXISTE NUMBER;
+Kno_empleados VARCHAR2(20);
+NERROR NUMBER;
+kmessage varchar2(250);
+kcantidad number;
+kclob clob;
+ktotal number;
+KNNS VARCHAR2(30);
+ktiporegistro varchar2(20);
+kresp number;
+
+begin
+kclob:= utl_raw.cast_to_varchar2(:body);
+apex_json.parse(j,kclob);
+
+knns  := apex_json.get_varchar2(p_path=>'NSS',p_values=>j); 
+
+select  COUNT(*)INTO  KEXISTE  from TBL_SERV_INCAPACIDAD_MEDICA where NSS=knns;
+
+APEX_JSON.initialize_clob_output;
+APEX_JSON.OPEN_OBJECT;
+
+IF KEXISTE > 0 THEN 
+APEX_JSON.open_array('Datos');   
+for i in (select  
+REG_ID,
+FECHA_REGISTRO,
+NSS,
+FOLIO_INCAPACIDAD, 
+RAMO,
+TIPO_INCAPACIDAD, 
+FECHA_INICIO,
+FECHA_TERMINO,
+DIAS_AUTORIZADOS,
+SALARIO_INTEGRADO,
+COSTO,
+IMPUTABLE, 
+ESTADO_DICTAMEN,
+GOCE_SUELDO,
+COMPLEMENTO_SALARIAL,
+URL_ARCHIVOS,
+ID_USUARIO,
+NOMBRE_USUARIO,
+FIRMA_DIGITAL,
+RUBRO,
+FECHA_ALTA,
+FECHA_PRIMERA_INCAPACIDAD,
+ST2,
+SALARIO_ACUMULADO,
+ALTA from TBL_SERV_INCAPACIDAD_MEDICA where NSS=knns)
+
+
+
+loop
+  APEX_JSON.open_OBJECT; 
+    APEX_JSON.WRITE('id_consulta',coalesce(i.reg_id,0));
+    APEX_JSON.WRITE('fecha_consulta',coalesce(i.fecha_registro,'0'));
+    APEX_JSON.WRITE('folio_incapacidad',coalesce(i.folio_incapacidad,'0'));
+    APEX_JSON.WRITE('ramo',coalesce(i.ramo,'0'));
+    APEX_JSON.WRITE('tipo_incapacidad',coalesce(i.tipo_incapacidad,'0'));
+    APEX_JSON.WRITE('fecha_inicio',coalesce(i.fecha_inicio,'0'));
+    APEX_JSON.WRITE('fecha_termino',coalesce(i.fecha_termino,'0'));
+    APEX_JSON.WRITE('dias_autorizados',coalesce(i.dias_autorizados,0));
+    APEX_JSON.WRITE('salario_integrado',coalesce(i.salario_integrado,0));
+    APEX_JSON.WRITE('costo',coalesce(i.costo,0));
+    APEX_JSON.WRITE('imputable',coalesce(i.imputable,'0'));
+    APEX_JSON.WRITE('estado_dictamen',coalesce(i.estado_dictamen,'0'));
+    APEX_JSON.WRITE('goce_sueldo',coalesce(i.goce_sueldo,'0'));
+    APEX_JSON.WRITE('complemento_salarial',coalesce(i.complemento_salarial,'0'));
+    APEX_JSON.WRITE('url_archivos',coalesce(i.url_archivos,'0'));
+    APEX_JSON.WRITE('id_usuario',coalesce(i.id_usuario,'0'));
+    APEX_JSON.WRITE('usuario',coalesce(i.nombre_usuario,'0'));
+    APEX_JSON.WRITE('firma_digital',coalesce(i.firma_digital,'sin firma'));
+    APEX_JSON.WRITE('rubro',coalesce(i.rubro,'sin rubro'));
+    APEX_JSON.WRITE('fecha_alta',coalesce(i.fecha_alta,'sin fecha de alta'));
+    APEX_JSON.WRITE('fecha_primera_incapacidad',coalesce(i.fecha_primera_incapacidad,'sin fecha_primera_incapacidad'));
+    APEX_JSON.WRITE('st2',coalesce(i.st2,'sin st2'));
+    APEX_JSON.WRITE('salario_acumulado',coalesce(i.salario_acumulado,'sin salario_acumulado'));
+    APEX_JSON.WRITE('alta',coalesce(i.alta,'sin alta'));
+   APEX_JSON.close_OBJECT; 
+end loop;
+   APEX_JSON.CLOSE_array;   
+  APEX_JSON.close_OBJECT; 
+       kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+
+ELSE
+   APEX_JSON.initialize_clob_output;
+            APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos');    
+            APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','consulta de incapacidades medicas por usuario');
+               APEX_JSON.write('Estado',-100);
+               APEX_JSON.write('Mensaje','No se tienen datos en la consulta');
+	           APEX_JSON.write('Data',kdata);
+            APEX_JSON.close_OBJECT;
+           APEX_JSON.close_array; 
+          APEX_JSON.close_OBJECT; 
+              kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+END IF;
+
+    l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         --Increase Counter 
+         l_offset := l_offset + l_response_chunk_size;
+         -- Resize CLOB length 
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+
+end;
+
+
+================================================================================   security/Servcio/consulta_incapacidades_fecha
+declare 
+
+l_response_body_clob  clob ;
+l_response_length     NUMBER;
+l_response_buffer     VARCHAR2(32767);
+l_response_chunk_size BINARY_INTEGER := 32000;
+l_offset              INTEGER := 1; 
+j apex_json.t_values;
+kjson clob;
+kdata varchar2(250);
+kaccion varchar2(20);
+kcuenta number;
+knombre_cuenta varchar2(50);
+kfecha varchar2(20);
+KEXISTE NUMBER;
+Kno_empleados VARCHAR2(20);
+NERROR NUMBER;
+kmessage varchar2(250);
+kcantidad number;
+kclob clob;
+ktotal number;
+KNNS VARCHAR2(30);
+ktiporegistro varchar2(20);
+kresp number;
+kfechaini varchar2(20);
+kfechafin varchar2(20);
+ksql varchar2(1000);
+kfechai date;
+kfechaf date;
+
+begin
+kclob:= utl_raw.cast_to_varchar2(:body);
+apex_json.parse(j,kclob);
+
+kfechaini  := apex_json.get_varchar2(p_path=>'fecha_inicial',p_values=>j); 
+kfechafin  := apex_json.get_varchar2(p_path=>'fecha_final',p_values=>j); 
+
+if kfechaini is not null and kfechafin is not null then 
+
+insert into bug values (kfechafin);
+insert into bug values (kfechaini);
+commit;
+
+select  
+count(*) into kexiste 
+from TBL_SERV_INCAPACIDAD_MEDICA a left join bio_empleado b
+on a.nss=b.emp_nss
+where trunc(a.fecha_registro)>=to_date(kfechaini,'dd/mm/yy')
+and trunc(a.fecha_registro)<=to_date(kfechafin,'dd/mm/yy'); 
+
+
+
+
+
+if kexiste > 0 then 
+
+
+APEX_JSON.initialize_clob_output;
+APEX_JSON.OPEN_OBJECT;
+
+insert into bug values ('entro');
+commit;
+APEX_JSON.open_array('Datos');   
+for i in (select  
+a.REG_ID,
+a.FECHA_REGISTRO,
+a.NSS,
+b.emp_nombre||' '||b.emp_apellido||' '||b.emp_apellido2 nombre,
+b.emp_rfc,
+b.emp_curp,
+a.FOLIO_INCAPACIDAD, 
+a.RAMO,
+a.TIPO_INCAPACIDAD, 
+a.FECHA_INICIO,
+a.FECHA_TERMINO,
+a.DIAS_AUTORIZADOS,
+a.SALARIO_INTEGRADO,
+a.COSTO,
+a.IMPUTABLE, 
+a.ESTADO_DICTAMEN,
+a.GOCE_SUELDO,
+a.COMPLEMENTO_SALARIAL,
+a.URL_ARCHIVOS,
+a.ID_USUARIO,
+a.NOMBRE_USUARIO,
+a.FIRMA_DIGITAL,
+a.RUBRO,
+a.FECHA_ALTA,
+a.FECHA_PRIMERA_INCAPACIDAD,
+a.ST2,
+a.SALARIO_ACUMULADO,
+a.ALTA 
+from TBL_SERV_INCAPACIDAD_MEDICA a left join bio_empleado b
+on a.nss=b.emp_nss
+where  trunc(a.fecha_registro)>=to_date(kfechaini,'dd/mm/yy')
+and trunc(a.fecha_registro)<=to_date(kfechafin,'dd/mm/yy') 
+)
+loop
+
+  APEX_JSON.open_OBJECT; 
+    APEX_JSON.WRITE('id_consulta',coalesce(i.reg_id,0));
+    APEX_JSON.WRITE('fecha_consulta',coalesce(i.fecha_registro,'0'));
+    APEX_JSON.WRITE('folio_incapacidad',coalesce(i.folio_incapacidad,'0'));
+    APEX_JSON.WRITE('nss',coalesce(i.nss,'0'));
+    APEX_JSON.WRITE('nombre',coalesce(i.nombre,'0'));
+    APEX_JSON.WRITE('rfc',coalesce(i.emp_rfc,'0'));
+    APEX_JSON.WRITE('curp',coalesce(i.emp_curp,'0'));
+    APEX_JSON.WRITE('ramo',coalesce(i.ramo,'0'));
+    APEX_JSON.WRITE('tipo_incapacidad',coalesce(i.tipo_incapacidad,'0'));
+    APEX_JSON.WRITE('fecha_inicio',coalesce(i.fecha_inicio,'0'));
+    APEX_JSON.WRITE('fecha_termino',coalesce(i.fecha_termino,'0'));
+    APEX_JSON.WRITE('dias_autorizados',coalesce(i.dias_autorizados,0));
+    APEX_JSON.WRITE('salario_integrado',coalesce(i.salario_integrado,0));
+    APEX_JSON.WRITE('costo',coalesce(i.costo,0));
+    APEX_JSON.WRITE('imputable',coalesce(i.imputable,'0'));
+    APEX_JSON.WRITE('estado_dictamen',coalesce(i.estado_dictamen,'0'));
+    APEX_JSON.WRITE('goce_sueldo',coalesce(i.goce_sueldo,'0'));
+    APEX_JSON.WRITE('complemento_salarial',coalesce(i.complemento_salarial,'0'));
+    APEX_JSON.WRITE('url_archivos',coalesce(i.url_archivos,'0'));
+    APEX_JSON.WRITE('id_usuario',coalesce(i.id_usuario,'0'));
+    APEX_JSON.WRITE('usuario',coalesce(i.nombre_usuario,'0'));
+    APEX_JSON.WRITE('firma_digital',coalesce(i.firma_digital,'sin firma'));
+    APEX_JSON.WRITE('rubro',coalesce(i.rubro,'sin rubro'));
+    APEX_JSON.WRITE('fecha_alta',coalesce(i.fecha_alta,'sin fecha de alta'));
+    APEX_JSON.WRITE('fecha_primera_incapacidad',coalesce(i.fecha_primera_incapacidad,'sin fecha_primera_incapacidad'));
+    APEX_JSON.WRITE('st2',coalesce(i.st2,'sin st2'));
+    APEX_JSON.WRITE('salario_acumulado',coalesce(i.salario_acumulado,'sin salario_acumulado'));
+    APEX_JSON.WRITE('alta',coalesce(i.alta,'sin alta'));
+   APEX_JSON.close_OBJECT; 
+
+   insert into bug values (i.reg_id);
+   commit;
+commit;
+end loop;
+
+insert into bug values ('salio del proceso');
+commit;
+   APEX_JSON.CLOSE_array;   
+  APEX_JSON.close_OBJECT; 
+       kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+
+
+ELSE
+   APEX_JSON.initialize_clob_output;
+            APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos');    
+            APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','consulta de incapacidades medicas por fecha');
+               APEX_JSON.write('Estado',-100);
+               APEX_JSON.write('Mensaje','No se tienen datos en la consulta');
+	           APEX_JSON.write('Data',kdata);
+            APEX_JSON.close_OBJECT;
+           APEX_JSON.close_array; 
+          APEX_JSON.close_OBJECT; 
+              kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+END IF;
+
+ELSE
+   APEX_JSON.initialize_clob_output;
+            APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos');    
+            APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','consulta de incapacidades medicas por fecha');
+               APEX_JSON.write('Estado',-100);
+               APEX_JSON.write('Mensaje','fechas incorrectas');
+	           APEX_JSON.write('Data',kdata);
+            APEX_JSON.close_OBJECT;
+           APEX_JSON.close_array; 
+          APEX_JSON.close_OBJECT; 
+              kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+END IF;
+
+    l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         --Increase Counter 
+         l_offset := l_offset + l_response_chunk_size;
+         -- Resize CLOB length 
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+
+end;
+
+==================================================================================          security/Servcio/consulta_cuestionario
+declare 
+
+l_response_body_clob  clob ;
+l_response_length     NUMBER;
+l_response_buffer     VARCHAR2(32767);
+l_response_chunk_size BINARY_INTEGER := 32000;
+l_offset              INTEGER := 1; 
+j apex_json.t_values;
+kjson clob;
+kdata varchar2(250);
+kaccion varchar2(20);
+kcuenta varchar2(20);
+knombre_cuenta varchar2(50);
+kfecha varchar2(20);
+KEXISTE NUMBER;
+NERROR NUMBER;
+kmessage varchar2(250);
+kclob clob;
+ktotal number;
+knombre varchar2(50);
+kapellido varchar2(50);
+kapellido2 varchar2(50);
+kcalle varchar2(100);
+kcolonia varchar2(50);
+kdelegacion varchar2(50);
+knacimiento date;
+kcivil varchar2(20);
+KNNS VARCHAR2(13);
+ktiporegistro varchar2(20);
+kresp number;
+KFIRMA CLOB;
+KFECHAE VARCHAR2(20);
+knacimiento1 VARCHAR2(20);
+ksql varchar2(1000);
+
+begin
+kclob:= utl_raw.cast_to_varchar2(:body);
+apex_json.parse(j,kclob);
+
+knns  := apex_json.get_varchar2(p_path=>'NSS',p_values=>j); 
+
+If knns is not null then 
+
+select count(*) into kexiste from bio_empleado where emp_nss=knns and EMP_status=1;
+if kexiste > 0 then 
+  select emp_nombre,emp_apellido,emp_apellido2,emp_calle,
+    emp_colonia,emp_delegacion,emp_fechan,emp_estado_civil into knombre,kapellido,kapellido2,kcalle,kcolonia,
+    kdelegacion,knacimiento,kcivil from bio_empleado where emp_nss=knns;
+
+  select coalesce(CUENTA_NOMBRE,'sin cuenta asignada') into kcuenta 
+  from bio_datos_laborales_empleados e inner join biometrico_cuenta c
+  on e.cuenta_id=c.cuenta_id where
+  e.emp_nss=knns;
+
+  SELECT TO_CHAR(to_date(FECHA_REGISTRO),'DD/MM/YYYY') INTO KFECHAE FROM SERV_MED_CUEST_TEL_EMERGENCIA where NSS= knns;
+  SELECT TO_CHAR(to_date(knacimiento),'DD/MM/YYYY') INTO Knacimiento1 FROM SERV_MED_CUEST_TEL_EMERGENCIA where NSS= knns;
+
+APEX_JSON.initialize_clob_output;
+APEX_JSON.OPEN_OBJECT;
+APEX_JSON.OPEN_OBJECT('TARJETA DE IDENTIFICACION');
+    APEX_JSON.WRITE('CUENTA',coalesce(kcuenta,'sin cuenta asignada'));
+   APEX_JSON.WRITE('FECHA DE ELABORACION',coalesce(KFECHAE,'sin fecha registro'));
+   APEX_JSON.WRITE('AGENCIA',coalesce('sin agencia','0'));
+     APEX_JSON.OPEN_OBJECT('DATOS PERSONALES');
+        APEX_JSON.WRITE('APELLIDO PATERNO',coalesce(kapellido,'sin apellido'));
+        APEX_JSON.WRITE('APELLIDO MATERNO',coalesce(kapellido2,'sin apellido'));
+        APEX_JSON.WRITE('NOMBRE (S)',coalesce(knombre,'sin nombre'));
+        APEX_JSON.WRITE('FECHA DE NACIMIENTO',coalesce(knacimiento1,'sin fecha nacimiento'));
+        APEX_JSON.WRITE('ESTADO CIVIL',coalesce(kcivil,'0'));
+
+for i in (select  
+TEL_PERSONAL,
+TEL_CASA,
+TEL_EMERGENCIA,
+CONTACTO,
+TEL_EMERGENCIA1,
+CONTACTO1 from SERV_MED_CUEST_TEL_EMERGENCIA where NSS= knns)
+
+loop
+    APEX_JSON.WRITE('NUM IMSS',coalesce(KNNS,0));
+    APEX_JSON.OPEN_OBJECT('DOMICILIO');
+      APEX_JSON.WRITE('CALLE',coalesce(kcalle,'sin datos'));
+      APEX_JSON.WRITE('NUM',coalesce('--','sin datos'));
+      APEX_JSON.WRITE('COL',coalesce(kcolonia,'sin datos'));
+      APEX_JSON.WRITE('DELEG O MUNICIPIO',coalesce(kdelegacion,'sin datos'));
+    APEX_JSON.CLOSE_OBJECT;
+    APEX_JSON.OPEN_OBJECT('TELEFONOS DE EMERGENCIA');
+      APEX_JSON.WRITE('TEL PERSONAL',coalesce(i.TEL_PERSONAL,'sin datos')); 
+      APEX_JSON.WRITE('TEL CASA',coalesce(i.TEL_CASA,'sin datos'));
+      APEX_JSON.OPEN_OBJECT('TEL EN CASO DE EMERGENCIA');
+        APEX_JSON.WRITE('CONTACTAR A',coalesce(i.CONTACTO,'sin datos'));
+       APEX_JSON.OPEN_OBJECT('TEL EN CASO DE EMERGENCIA');
+        APEX_JSON.WRITE('CONTACTAR A',coalesce(i.CONTACTO,'sin datos'));
+       APEX_JSON.CLOSE_OBJECT;
+      APEX_JSON.CLOSE_OBJECT;
+    APEX_JSON.CLOSE_OBJECT;
+   APEX_JSON.CLOSE_OBJECT;        
+end loop;
+
+for i in (select  
+OPERACIONES_MENOS_6_MESES,
+OBS_OPERACIONES,
+CANT_OPERACIONES,
+MEDICAMENTO_ESPECIFICO,
+OBS_MEDICAMENTO,
+CANT_MEDICAMENTO,
+ALERGIA,
+OBS_ALEGIAS,
+CANT_ALERGIAS,
+FRACTURAS_HERNIAS,
+OBS_FRACTURAS,
+CANT_FRACTURAS,
+EMBARAZADA,
+OBS_EMBARAZO,
+TIEMPO_EMBARAZO,
+PADECIMEINTO_ENFEREMEDAD,
+OBS_PADECIMIENTOS,
+CANT_PADECIMIENTOS,
+CONSUMO_DROGAS,
+OBS_DROGAS,
+CANTIDAD_DROGAS,
+DECLARACION,
+FIRMA from SERV_MED_CUEST_INFO_GENERAL where NSS= knns)
+LOOP
+ APEX_JSON.OPEN_OBJECT('INFORMACION GENERAL DE SALUD');
+   APEX_JSON.OPEN_OBJECT('LO HAN OPERADO EN MENOS DE 6 MESES');
+     APEX_JSON.WRITE('SINO',coalesce(i.OPERACIONES_MENOS_6_MESES,'sin datos'));
+     APEX_JSON.WRITE('OBS',coalesce(i.OBS_OPERACIONES,'sin datos'));
+     APEX_JSON.WRITE('QTY',coalesce(i.CANT_OPERACIONES,'sin datos'));
+   APEX_JSON.CLOSE_OBJECT; 
+  APEX_JSON.OPEN_OBJECT('TOMA ALGUN MEDICAMENTO EN ESPECIFICO');
+     APEX_JSON.WRITE('SINO',coalesce(i.MEDICAMENTO_ESPECIFICO,'sin datos'));
+     APEX_JSON.WRITE('OBS',coalesce(i.OBS_MEDICAMENTO,'sin datos'));
+     APEX_JSON.WRITE('QTY',coalesce(i.CANT_MEDICAMENTO,'sin datos'));
+  APEX_JSON.CLOSE_OBJECT; 
+  APEX_JSON.OPEN_OBJECT('SUFRE DE ALGUNA ALERGIA');
+     APEX_JSON.WRITE('SINO',coalesce(i.ALERGIA,'sin datos'));
+     APEX_JSON.WRITE('OBS',coalesce(I.obs_alegias,'sin datos'));
+     APEX_JSON.WRITE('QTY',coalesce(i.CANT_ALERGIAS,'sin datos'));
+  APEX_JSON.CLOSE_OBJECT; 
+  APEX_JSON.OPEN_OBJECT('SE HA FRACTURADO O PADECE HERNIAS');
+     APEX_JSON.WRITE('SINO',coalesce(i.FRACTURAS_HERNIAS,'sin datos'));
+     APEX_JSON.WRITE('OBS',coalesce(i.OBS_FRACTURAS,'sin datos'));
+     APEX_JSON.WRITE('QTY',coalesce(i.CANT_FRACTURAS,'sin datos'));
+  APEX_JSON.CLOSE_OBJECT; 
+  APEX_JSON.OPEN_OBJECT('ESTA EMBARAZADA (SOLO MUJER)');
+     APEX_JSON.WRITE('SINO',coalesce(i.EMBARAZADA,'sin datos'));
+     APEX_JSON.WRITE('OBS',coalesce(i.OBS_EMBARAZO,'sin datos'));
+     APEX_JSON.WRITE('QTY',coalesce(i.TIEMPO_EMBARAZO,'sin datos'));
+   APEX_JSON.CLOSE_OBJECT;  
+   APEX_JSON.OPEN_OBJECT('PADECE ALGUNA ENFERMEDAD (ES)');
+     APEX_JSON.WRITE('SINO',coalesce(i.PADECIMEINTO_ENFEREMEDAD,'sin datos'));
+     APEX_JSON.WRITE('OBS',coalesce(i.OBS_PADECIMIENTOS,'sin datos'));
+     APEX_JSON.WRITE('QTY',coalesce(i.CANT_PADECIMIENTOS,'sin datos'));
+   APEX_JSON.CLOSE_OBJECT;  
+    APEX_JSON.OPEN_OBJECT('ACTUALMENTE CONSUME DROGAS');
+     APEX_JSON.WRITE('SINO',coalesce(i.CONSUMO_DROGAS,'sin datos'));
+     APEX_JSON.WRITE('OBS',coalesce(i.OBS_DROGAS,'sin datos'));
+     APEX_JSON.WRITE('QTY',coalesce(i.CANTIDAD_DROGAS,'sin datos'));
+   APEX_JSON.CLOSE_OBJECT;  
+     APEX_JSON.WRITE('COMENTARIOS',coalesce(i.DECLARACION,'sin datos'));
+     APEX_JSON.WRITE('DECLARO QUE LA INFORMACION PROPORCIONADA ES VERIDICA FIRMA',coalesce(i.FIRMA,'sin datos'));
+  APEX_JSON.CLOSE_OBJECT;  
+END loop;
+
+for i in (select  
+TOS,
+FIEBRE,
+DOLOR_DE_CABEZA,
+DIFICULTAD_RESPIRAR,
+DOLOR_GARGANTA,
+ESCURRIMIENTO_NASAL,
+OJOS_ROJOS,
+DOLOR_ARTI_MUSCULOS,
+COVID_FAM,
+COVID_FAM_QUIEN,
+COVID_FAM_CUANDO,
+COMENTARIOS,
+DECLARACION,
+FIRMA from SERV_MED_CUEST_SINTOMAS_RESP where NSS= knns)
+LOOP
+   APEX_JSON.OPEN_OBJECT('CUESTIONARIO DE SINTOMAS RESPIRATORIOS');
+     APEX_JSON.WRITE('TOS',coalesce(i.TOS,'sin datos'));
+     APEX_JSON.WRITE('FIEBRE',coalesce(i.FIEBRE,'sin datos'));
+     APEX_JSON.WRITE('DOLOR DE CABEZA',coalesce(i.DOLOR_DE_CABEZA,'sin datos'));
+     APEX_JSON.WRITE('DIFICULTAD PARA RESPIRAR',coalesce(i.DIFICULTAD_RESPIRAR,'sin datos'));
+     APEX_JSON.WRITE('DOLOR O ARDOR EN LA GARGANTA',coalesce(i.DOLOR_GARGANTA,'sin datos'));
+     APEX_JSON.WRITE('ESCURRIMIENTO NASAL',coalesce(i.ESCURRIMIENTO_NASAL,'sin datos'));
+     APEX_JSON.WRITE('OJOS ROJOS',coalesce(i.OJOS_ROJOS,'sin datos'));
+     APEX_JSON.WRITE('DOLORES EN MUSCULOS O ARTICULACIONES',coalesce(i.DOLOR_ARTI_MUSCULOS,'sin datos'));
+
+   APEX_JSON.OPEN_OBJECT('CASO COVID FAMILIAR');
+    APEX_JSON.WRITE('CASO COVID FAMILIAR QUIEN',coalesce(i.COVID_FAM_QUIEN,'sin datos'));
+    APEX_JSON.WRITE('CASO COVID FAMILIAR HACE CUANTO',coalesce(i.COVID_FAM_CUANDO,'sin datos'));
+   APEX_JSON.CLOSE_OBJECT;   
+    APEX_JSON.WRITE('COMENTARIOS ADICIONALES',coalesce(i.DECLARACION,'sin datos'));
+    APEX_JSON.WRITE('DECLARO QUE LA INFORMACION PROPORCIONADA ES VERIDICA FIRMA',coalesce(i.FIRMA,'sin datos'));
+
+  APEX_JSON.CLOSE_OBJECT;  
+END LOOP;
+
+APEX_JSON.close_OBJECT; 
+APEX_JSON.close_OBJECT; 
+       kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+
+
+ELSE
+
+APEX_JSON.initialize_clob_output;
+            APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos');    
+            APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','El NSS del empleado no se encontro en base de datos');
+               APEX_JSON.write('Estado',-100);
+               APEX_JSON.write('Mensaje','Revisar si el empleado no se encuentra dado de baja');
+	           APEX_JSON.write('Data',kdata);
+            APEX_JSON.close_OBJECT;
+           APEX_JSON.close_array; 
+          APEX_JSON.close_OBJECT; 
+              kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+END IF;
+
+
+
+ELSE
+
+APEX_JSON.initialize_clob_output;
+            APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos');    
+            APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','error en la consulta correcta falta el NSS');
+               APEX_JSON.write('Estado',-100);
+               APEX_JSON.write('Mensaje','No se tienen datos en la consulta');
+	           APEX_JSON.write('Data',kdata);
+            APEX_JSON.close_OBJECT;
+           APEX_JSON.close_array; 
+          APEX_JSON.close_OBJECT; 
+              kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+END IF;
+
+    l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         --Increase Counter 
+         l_offset := l_offset + l_response_chunk_size;
+         -- Resize CLOB length 
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+EXCEPTION 
+WHEN OTHERS THEN 
+KDATA := SQLERRM;
+APEX_JSON.initialize_clob_output;
+            APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos');    
+            APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','error en la consulta correcta falta el NSS');
+               APEX_JSON.write('Estado',-100);
+               APEX_JSON.write('Mensaje','No se tienen datos en la consulta');
+	           APEX_JSON.write('Data',kdata);
+            APEX_JSON.close_OBJECT;
+           APEX_JSON.close_array; 
+          APEX_JSON.close_OBJECT; 
+              kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+    l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         --Increase Counter 
+         l_offset := l_offset + l_response_chunk_size;
+         -- Resize CLOB length 
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob);
+end;
+=============================================================================== security/Servcio/indice
+declare 
+
+l_response_body_clob  clob ;
+l_response_length     NUMBER;
+l_response_buffer     VARCHAR2(32767);
+l_response_chunk_size BINARY_INTEGER := 32000;
+l_offset              INTEGER := 1; 
+j apex_json.t_values;
+kjson clob;
+kdata varchar2(250);
+kaccion varchar2(20);
+kcuenta number;
+knombre_cuenta varchar2(50);
+kfecha varchar2(20);
+KEXISTE NUMBER;
+Kno_empleados VARCHAR2(20);
+NERROR NUMBER;
+kmessage varchar2(250);
+kcantidad number;
+kclob clob;
+ktotal number;
+KNNS VARCHAR2(30);
+ktiporegistro varchar2(20);
+kresp number;
+TYPE tipoCursor IS REF CURSOR;	
+recorre     tipoCursor;	
+ksql varchar2(1000);
+kclave varchar2(20);
+kclave_nombre varchar2(300);
+kdato varchar2(100);
+
+begin
+kclob:= utl_raw.cast_to_varchar2(:body);
+apex_json.parse(j,kclob);
+
+kdato  := apex_json.get_varchar2(p_path=>'variable',p_values=>j); 
+select upper(kdato) into kdato from dual;
+
+APEX_JSON.initialize_clob_output;
+
+ksql := 'select count(*) from SERV_MED_CAT_INDICE_IDC10 where clave_nombre like '||''''||'%%'||kdato||'%%'||'''';
+execute immediate ksql into ktotal;
+
+if ktotal >0 then 
+
+APEX_JSON.open_array; 
+ OPEN RECORRE FOR 
+    'select trim(clave_id),trim(clave_nombre) from SERV_MED_CAT_INDICE_IDC10 
+       where clave_nombre like '||''''||'%%'||kdato||'%%'||'''';
+  LOOP	
+     FETCH RECORRE INTO kclave,kclave_nombre;	
+      EXIT WHEN RECORRE%NOTFOUND;	
+      EXIT WHEN NERROR > 0;  	
+       APEX_JSON.open_OBJECT; 
+         APEX_JSON.WRITE('clave_id',coalesce(kclave,'0'));
+         APEX_JSON.WRITE('nombre_clave',coalesce(kclave_nombre,'0'));
+       APEX_JSON.close_OBJECT; 
+ end loop;
+close recorre; 
+APEX_JSON.close_array;    
+
+       kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output; 
+
+ELSE
+        APEX_JSON.open_array; 
+            APEX_JSON.open_OBJECT;    
+               APEX_JSON.write('Proceso','catalogo IDC10');
+               APEX_JSON.write('Estado',-100);
+               APEX_JSON.write('Mensaje','No se tienen datos en la consulta');
+	           APEX_JSON.write('Data',kdata);
+            APEX_JSON.close_OBJECT;
+        APEX_JSON.close_array; 
+    kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output;     
+END IF;
+
+    l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         --Increase Counter 
+         l_offset := l_offset + l_response_chunk_size;
+         -- Resize CLOB length 
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+
+end;
+
+
+===========================================================================      security/info/consulta_app_rol_usuario
+declare 
+
+l_response_body_clob  clob ;
+l_response_length     NUMBER;
+l_response_buffer     VARCHAR2(32767);
+l_response_chunk_size BINARY_INTEGER := 32000;
+l_offset              INTEGER := 1; 
+kid_usuario varchar2(30);
+j apex_json.t_values;
+kclob clob;
+kfinal number;
+kap number;
+krol number;
+kactiva number;
+kexiste number;
+kerror number;
+kjson clob;
+kusuario varchar2(30);
+kapp number;
+zexiste number;
+nactiva BOOLEAN;
+kpassword varchar2(50);
+kdata varchar2(250);
+begin 
+--app 13 servicion medico 
+--json request 
+/*Consultas
+*{
+ "id_usuario":"admin",
+ "id_password":"admin",
+ "id_app":13	
+}
+*/
+kclob:= utl_raw.cast_to_varchar2(:body);
+apex_json.parse(j,kclob);
+
+ kusuario  := apex_json.get_varchar2(p_path=>'id_usuario',p_values=>j); 
+ kapp  := apex_json.get_number(p_path=>'id_app',p_values=>j); 
+
+   APEX_JSON.initialize_clob_output;
+     APEX_JSON.open_object;
+   APEX_JSON.open_object('Resultado');
+  APEX_JSON.write('Proceso','Consulta');
+                    APEX_JSON.write('Estado',200);
+                    APEX_JSON.write('Mensaje','Consulta correcta');
+
+         select count(*) into kexiste from TBL_APP_ROL_USUARIO where id_app=kapp and id_usuario=kusuario;
+             if kexiste > 0 then         
+                     APEX_JSON.open_array('Datos');
+
+
+               for x in (
+                   SELECT id_app,
+                          id_rol,
+                          id_usuario
+                          FROM TBL_APP_ROL_USUARIO where id_app=kapp and id_usuario=kusuario)
+                loop
+                  APEX_JSON.open_object;
+                  APEX_JSON.write('id_app',x.id_app);
+                  APEX_JSON.write('id_rol',x.id_rol);
+                   APEX_JSON.write('id_usuario',x.id_usuario);
+                  APEX_JSON.close_object;
+                end loop;  
+              apex_json.close_array;
+            else
+               APEX_JSON.open_array('Datos');
+                APEX_JSON.open_object;
+                 APEX_JSON.write('mensaje','el usuario no tienen roles asignados para la aplicación');
+                APEX_JSON.close_object;
+               apex_json.close_array;
+            end if;
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output;  
+
+  l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         /* Increase Counter */
+         l_offset := l_offset + l_response_chunk_size;
+         /* Resize CLOB length */
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+
+
+exception 
+when others then 
+kdata := sqlerrm;
+ APEX_JSON.initialize_clob_output;
+ APEX_JSON.open_object;
+   APEX_JSON.open_object('Resultado');
+                    APEX_JSON.write('Proceso','Registro');
+                    APEX_JSON.write('Estado',1000);
+                    APEX_JSON.write('Mensaje','Error en peoceso de insercion de los roles');
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output;  
+
+ l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+
+         l_offset := l_offset + l_response_chunk_size;
+
+         l_response_length := l_response_length - l_response_chunk_size;
+    END LOOP;
+    dbms_lob.close(l_response_body_clob);
+end;
+
+========================================================================================     security/info/consulta_app_rol_menu  
+
+declare 
+
+l_response_body_clob  clob ;
+l_response_length     NUMBER;
+l_response_buffer     VARCHAR2(32767);
+l_response_chunk_size BINARY_INTEGER := 32000;
+l_offset              INTEGER := 1; 
+kid_usuario varchar2(30);
+j apex_json.t_values;
+kclob clob;
+kfinal number;
+kap number;
+krol number;
+kactiva number;
+kexiste number;
+kerror number;
+kjson clob;
+kusuario varchar2(30);
+kapp number;
+zexiste number;
+nactiva BOOLEAN;
+kpassword varchar2(50);
+kdata varchar2(250);
+begin 
+--app 13 servicion medico 
+--json request 
+
+kclob:= utl_raw.cast_to_varchar2(:body);
+apex_json.parse(j,kclob);
+
+ krol  := apex_json.get_varchar2(p_path=>'id_rol',p_values=>j); 
+ kapp  := apex_json.get_number(p_path=>'id_app',p_values=>j); 
+
+   APEX_JSON.initialize_clob_output;
+     APEX_JSON.open_object;
+   APEX_JSON.open_object('Resultado');
+        APEX_JSON.write('Proceso','Consulta');
+                    APEX_JSON.write('Estado',200);
+                    APEX_JSON.write('Mensaje','Consulta correcta');
+
+         select count(*) into kexiste from TBL_APPS_ROL_MENU where id_app=kapp and id_rol=krol;
+             if kexiste > 0 then         
+                      APEX_JSON.open_array('Datos');
+            for x in (
+                   SELECT id_app,
+                          id_rol,
+                          id_menu,
+                          nombre_menu
+                           FROM TBL_APPS_ROL_MENU where id_app=kapp and id_rol=krol)
+              loop
+                APEX_JSON.open_object;
+                  APEX_JSON.write('id_app',x.id_app);
+                  APEX_JSON.write('id_rol',x.id_rol);
+                  APEX_JSON.write('id_menu',x.id_menu);
+                  APEX_JSON.write('nombre_menu',x.nombre_menu);
+               APEX_JSON.close_object;
+           end loop;  
+      apex_json.close_array;   
+
+            else
+               APEX_JSON.open_array('Datos');
+                APEX_JSON.open_object;
+                 --
+                 APEX_JSON.write('Mensaje','el id rol seleccionado no tiene menus asignados.'||' SELECT id_app,id_rol, id_menu, nombre_menu '||
+                    'FROM TBL_APPS_ROL_MENU where id_app='||kapp||' and id_rol='||krol);APEX_JSON.write('mensaje','el id rol seleccionado no tiene menus asignados');
+                APEX_JSON.close_object;
+               apex_json.close_array;
+            end if;
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output;  
+
+  l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         /* Increase Counter */
+         l_offset := l_offset + l_response_chunk_size;
+         /* Resize CLOB length */
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+
+
+exception 
+when others then 
+kdata := sqlerrm;
+ APEX_JSON.initialize_clob_output;
+ APEX_JSON.open_object;
+   APEX_JSON.open_object('Resultado');
+                    APEX_JSON.write('Proceso','Registro');
+                    APEX_JSON.write('Estado',1001);
+                    APEX_JSON.write('Mensaje','el id rol seleccionado no tiene menus asignados.'||' SELECT id_app,id_rol, id_menu, nombre_menu '||
+                    'FROM TBL_APPS_ROL_MENU where id_app='||kapp||' and id_rol='||krol);
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output;  
+
+ l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+
+         l_offset := l_offset + l_response_chunk_size;
+
+         l_response_length := l_response_length - l_response_chunk_size;
+    END LOOP;
+    dbms_lob.close(l_response_body_clob);
+end;
+
+
+==============================================================      security/info/apps_onest
+declare
+
+kjson clob;
+l_response_body_clob  clob ;
+l_response_length     NUMBER;
+l_response_buffer     VARCHAR2(32767);
+l_response_chunk_size BINARY_INTEGER := 32000;
+l_offset              INTEGER := 1; 
+kcontrol       number;
+
+begin 
+APEX_JSON.initialize_clob_output;
+        	APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos');    
+            for x in (
+                   SELECT distinct(A.id_app),
+                          A.nombre_aplicacion
+                           FROM tbl_apps_onest A )
+            loop
+              APEX_JSON.open_OBJECT;    
+                 APEX_JSON.write('id_app',x.id_app);
+                 APEX_JSON.write('nombre_app',x.nombre_aplicacion);
+
+              --buscamos si la aplicacion tiene roles asisgnados 
+                   APEX_JSON.open_array('Roles');  
+                    select count(*) into kcontrol from tbl_apps_rol where id_app=x.id_app;
+                  if kcontrol > 0 then 
+                          for i in (
+                              SELECT distinct(r.id_rol),
+                              r.nombre_rol
+                              FROM tbl_apps_rol r 
+                              where r.id_app=x.id_app)
+                            loop
+                             APEX_JSON.open_OBJECT;    
+                               APEX_JSON.write('id_rol',i.id_rol);
+                               APEX_JSON.write('nombre_rol',i.nombre_rol);
+                             APEX_JSON.close_OBJECT; 
+                            end loop; 
+                 else
+                        APEX_JSON.open_OBJECT;    
+                               APEX_JSON.write('id_rol',0);
+                               APEX_JSON.write('nombre_rol','sin roles');
+                         APEX_JSON.close_OBJECT; 
+                end if;
+
+                APEX_JSON.CLOSE_array;  --roles     
+              APEX_JSON.close_OBJECT; 
+
+            end loop;
+         APEX_JSON.CLOSE_array;     
+     APEX_JSON.CLOSE_object; 
+
+    kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output;        
+
+     l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         /* Increase Counter */
+         l_offset := l_offset + l_response_chunk_size;
+         /* Resize CLOB length */
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+exception 
+ when others then
+ APEX_JSON.initialize_clob_output;
+ APEX_JSON.open_object;
+   APEX_JSON.open_object('Resultado');
+                    APEX_JSON.write('Proceso','Consulta');
+                    APEX_JSON.write('Estado',1000);
+                    APEX_JSON.write('Mensaje','No se tienen apps asignadas');
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output;  
+
+ l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+
+         l_offset := l_offset + l_response_chunk_size;
+
+         l_response_length := l_response_length - l_response_chunk_size;
+    END LOOP;
+    dbms_lob.close(l_response_body_clob);
+
+
+
+end;
+
+======================================================  security/info/app_menu
+declare 
+
+kjson clob;
+l_response_body_clob  clob ;
+l_response_length     NUMBER;
+l_response_buffer     VARCHAR2(32767);
+l_response_chunk_size BINARY_INTEGER := 32000;
+l_offset              INTEGER := 1; 
+j apex_json.t_values;
+kclob clob;
+kapp number;
+krol number;
+
+begin 
+
+kclob:= utl_raw.cast_to_varchar2(:body);
+apex_json.parse(j,kclob);
+
+ kapp  := apex_json.get_number(p_path=>'id_app',p_values=>j);
+ krol  := apex_json.get_number(p_path=>'id_rol',p_values=>j);
+
+if kapp is not null then  
+ APEX_JSON.initialize_clob_output;
+        	APEX_JSON.open_OBJECT;	
+             APEX_JSON.open_array('Datos'); 
+           for i in (
+                 SELECT id_menu,nombre_menu
+                 from TBL_APPS_ROL_MENU where id_app=kapp  
+                 AND ID_ROL=krol)
+              loop
+                 APEX_JSON.open_OBJECT; 
+         	     APEX_JSON.write('id_menu',i.ID_MENU);
+         	     APEX_JSON.write('nombre_menu',i.NOMBRE_MENU);
+         	    APEX_JSON.close_OBJECT;
+              end loop;
+                APEX_JSON.close_array; 
+                APEX_JSON.close_OBJECT;
+     kjson := APEX_JSON.get_clob_output;	 
+    APEX_JSON.free_output;             
+else
+
+ APEX_JSON.initialize_clob_output;
+ APEX_JSON.open_object;
+   APEX_JSON.open_object('Resultado');
+                    APEX_JSON.write('Proceso','consulta');
+                    APEX_JSON.write('Estado',1000);
+                    APEX_JSON.write('Mensaje','No se envio el parametro de número APP');
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output;  
+
+
+
+
+end if;
+       l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         /* Increase Counter */
+         l_offset := l_offset + l_response_chunk_size;
+         /* Resize CLOB length */
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+
+
+exception 
+when others then 
+
+ APEX_JSON.initialize_clob_output;
+ APEX_JSON.open_object;
+   APEX_JSON.open_object('Resultado');
+                    APEX_JSON.write('Proceso','consulta');
+                    APEX_JSON.write('Estado',1000);
+                    APEX_JSON.write('Mensaje','No se tienen menus para la aplicación seleccionada');
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output;  
+
+ l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+
+         l_offset := l_offset + l_response_chunk_size;
+
+         l_response_length := l_response_length - l_response_chunk_size;
+    END LOOP;
+    dbms_lob.close(l_response_body_clob);
+end;
+
+=================================   security/info/crud_alta_app_menu
+
+declare 
+
+kjson clob;
+l_response_body_clob  clob ;
+l_response_length     NUMBER;
+l_response_buffer     VARCHAR2(32767);
+l_response_chunk_size BINARY_INTEGER := 32000;
+l_offset              INTEGER := 1; 
+j apex_json.t_values;
+kclob clob;
+kapp number;
+kmov varchar2(50);
+kmenu number;
+kexiste number;
+knombre varchar2(100);
+krol number;
+nerror number;
+kmessage varchar2(300);
+kservicio varchar2(100);
+kmas number;
+DQL VARCHAR2(1000);
+
+
+begin 
+
+kclob:= utl_raw.cast_to_varchar2(:body);
+apex_json.parse(j,kclob);
+
+ kapp  := apex_json.get_number(p_path=>'id_app',p_values=>j);
+ kmenu  := apex_json.get_number(p_path=>'id_menu',p_values=>j);
+ knombre := apex_json.get_varchar2(p_path=>'nombre_menu',p_values=>j);
+ kmov  := apex_json.get_varchar2(p_path=>'tipo_mov',p_values=>j);
+ krol  := apex_json.get_number(p_path=>'id_rol',p_values=>j);
+ kservicio  := apex_json.get_varchar2(p_path=>'servicio',p_values=>j);
+
+select upper(kservicio) into kservicio from dual;
+select upper(kmov) into kmov from dual;
+select upper(kNOMBRE) into kNOMBRE from dual;
+
+--VALIDAMOS 
+
+IF KMOV IS NOT NULL AND KNOMBRE IS NOT NULL THEN 
+
+  if KSERVICIO = 'ROL' THEN --PROCESO DE ROLES
+    IF KNOMBRE IS NOT NULL and kapp is not null and krol is not null THEN 
+      SELECT COUNT(*) INTO KEXISTE from tbl_apps_rol WHERE ID_APP=KAPP and id_rol=krol;
+       if kexiste = 0 then 
+        if kmov='ALTA' THEN 
+         insert into tbl_apps_rol (id_app,nombre_rol,id_rol) values (kapp,knombre,krol);
+          nerror := 0;
+        else
+         kmessage:= 'la clave app se encuentra registrada en base de datos'; 
+         NERROR :=1;
+        end if;
+      elsif kmov='BAJA' THEN
+        DELETE tbl_apps_rol WHERE id_app=KAPP AND ID_ROL=KROL;
+        nerror := 0;
+
+      elsif kmov='CAMBIO' THEN
+        UPDATE tbl_apps_rol SET nombre_rol=KNOMBRE WHERE id_app=KAPP AND ID_ROL=KROL;
+        nerror := 0;
+      end if;
+    else
+       kmessage:= 'El Nombre o la clave app se encuentra null validar datos'; 
+       NERROR :=1;
+    end if;
+
+  ELSIF KSERVICIO = 'APP' THEN --ALTA DE APP EN LA TABLA
+    IF KNOMBRE IS NOT NULL and  kapp is not null THEN 
+
+      SELECT COUNT(*) INTO KEXISTE from tbl_apps_onest WHERE id_app=kapp;
+
+     IF KEXISTE = 0 THEN --NO EXISTE LA APP
+       if kmov='ALTA' THEN 
+          INSERT INTO tbl_apps_onest (id_app,NOMBRE_APLICACION) VALUES (Kapp,KNOMBRE);
+                NERROR := 0;
+                kmessage  := 'La aplicación se inserto de forma correcta ';
+                NERROR := 0;    
+      ELSE
+          kmessage  := 'El id de aplicacion ya se encuentra registrada';
+            NERROR := 1;
+      end if;  
+     elsif kmov='BAJA' THEN
+       DELETE tbl_apps_onest WHERE ID_APP=KAPP;
+       NERROR := 0;   
+       kmessage  := 'La aplicación se dío de baja de forma correcta ';
+     ELSIF KMOV='CAMBIO' THEN 
+       update tbl_apps_onest  set nombre_aplicacion=knombre where id_APP=kapp;
+        NERROR := 0;   
+       kmessage  := 'La aplicación se cambio de forma correcta ';
+     END IF;
+    else
+       kmessage:= 'El id o nombre de la APP se encuentra null'; 
+       NERROR :=1;
+    end if;  
+
+
+  ELSIF KSERVICIO = 'MENU' THEN 
+
+   if knombre is not null and kapp is not null and kmenu is not null and krol is not null then
+
+    --bucamos si existe la app
+    SELECT COUNT(*) INTO KEXISTE from tbl_apps_onest WHERE id_app=kapp;
+    if kexiste > 0 then 
+
+      SELECT COUNT(*) INTO KEXISTE FROM TBL_APPS_ROL_MENU WHERE ID_APP=KAPP AND ID_MENU=KMENU AND ID_ROL=krol;
+
+     IF KEXISTE = 0 THEN 
+
+      if kmov='ALTA' THEN 
+
+       DQL := 'insert into TBL_APPS_ROL_MENU (id_app,id_rol,id_menu,nombre_menu,estado) 
+           values ('||kapp||','||''''||krol||''''||','||kMENU||','||''''||KNOMBRE||''''||',0)';
+
+
+           execute immediate dql;
+            nerror := 0;
+      end if;
+     else
+      if kmov='BAJA' THEN 
+      DELETE TBL_APPS_ROL_MENU where id_menu=kmenu and id_rol=krol and id_app=kapp;
+        nerror := 0;
+      elsif kmov='CAMBIO' THEN 
+      update TBL_APPS_ROL_MENU set nombre_menu=knombre where id_menu=kmenu and id_rol=krol and id_app=kapp;    
+        nerror := 0;
+      else
+       nerror := 1;
+       kmessage := 'La alta del registro no se puede generar por que ya se encuentra registrada en base de datos';
+      end if;         
+     END IF; 
+
+    else
+      nerror := 1;
+      kmessage := 'el id_app no se encuentra registrada en el catalogo de APPS';
+    end if; 
+   else
+      nerror := 1;
+      kmessage := 'el id_app,id_menu o id_rol se encuentran null';
+   end if; 
+  END IF; 
+
+
+
+ELSE
+    kmessage := 'Algun parametro de ingreso se encuentra vacio';
+    nerror := 1;
+END IF;
+
+if nerror = 0 then --actualizacion correcta 
+  commit;
+   IF KSERVICIO='MENU' then 
+    APEX_JSON.initialize_clob_output;
+    APEX_JSON.open_object;
+     APEX_JSON.open_object('Resultado');
+        APEX_JSON.write('Proceso','CRUD');
+        APEX_JSON.write('Estado',200);
+        APEX_JSON.write('Mensaje','Actualización se registro de forma correcta');
+      APEX_JSON.open_array('Datos');
+        for x in (
+                   SELECT id_menu,
+                          nombre_menu
+                           FROM TBL_APPS_ROL_MENU where id_app=kapp and id_rol=krol)
+            loop
+             APEX_JSON.open_object;
+               APEX_JSON.write('id_menu',x.id_menu);
+               APEX_JSON.write('nombre_menu',x.nombre_menu);
+             APEX_JSON.close_object;
+           end loop;  
+      apex_json.close_array;   
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output;  
+
+ ELSIF KSERVICIO='ROL' then
+  APEX_JSON.initialize_clob_output;
+    APEX_JSON.open_object;
+     APEX_JSON.open_object('Resultado');
+        APEX_JSON.write('Proceso','CRUD');
+        APEX_JSON.write('Estado',200);
+        APEX_JSON.write('Mensaje','Actualización se registro de forma correcta');
+      APEX_JSON.open_array('Datos');
+        for x in (
+                   SELECT id_ROL,
+                          nombre_ROL
+                           FROM tbl_apps_rol where id_app=kapp )
+            loop
+             APEX_JSON.open_object;
+               APEX_JSON.write('id_rol',x.id_rol);
+               APEX_JSON.write('nombre_rol',x.nombre_rol);
+             APEX_JSON.close_object;
+           end loop;  
+      apex_json.close_array;   
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output;  
+
+ELSIF KSERVICIO='APP' then
+  APEX_JSON.initialize_clob_output;
+    APEX_JSON.open_object;
+     APEX_JSON.open_object('Resultado');
+        APEX_JSON.write('Proceso','CRUD');
+        APEX_JSON.write('Estado',200);
+        APEX_JSON.write('Mensaje',kmessage);
+      APEX_JSON.open_array('Datos');
+        for x in (
+                   SELECT id_app,
+                          nombre_apLicacion
+                           FROM tbl_apps_onest where id_app=kapp )
+            loop
+             APEX_JSON.open_object;
+               APEX_JSON.write('id_app',x.id_app);
+               APEX_JSON.write('nombre_app',x.nombre_aplicacion);
+             APEX_JSON.close_object;
+           end loop;  
+      apex_json.close_array;   
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output;  
+
+ END IF;
+
+
+
+else
+ rollback;
+ APEX_JSON.initialize_clob_output;
+ APEX_JSON.open_object;
+   APEX_JSON.open_object('Resultado');
+                    APEX_JSON.write('Proceso','CRUD');
+                    APEX_JSON.write('Estado',1000);
+                    APEX_JSON.write('Mensaje',kmessage);
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output; 
+end if;
+
+   l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+         /* Increase Counter */
+         l_offset := l_offset + l_response_chunk_size;
+         /* Resize CLOB length */
+         l_response_length := l_response_length - l_response_chunk_size;
+     END LOOP;
+
+      dbms_lob.close(l_response_body_clob); 
+
+exception 
+when others then 
+rollback;
+ APEX_JSON.initialize_clob_output;
+ APEX_JSON.open_object;
+   APEX_JSON.open_object('Resultado');
+                    APEX_JSON.write('Proceso','crud');
+                    APEX_JSON.write('Estado',1000);
+                    APEX_JSON.write('Mensaje','error en el proceso de actualización de datos');
+    apex_json.close_object; 
+   apex_json.close_object;   
+  kjson := APEX_JSON.get_clob_output;	
+APEX_JSON.free_output;  
+
+ l_response_body_clob := kjson;
+    dbms_lob.open(l_response_body_clob, dbms_lob.lob_readonly); 
+    l_response_length := dbms_lob.getlength (l_response_body_clob);
+
+    WHILE (l_response_length > 0)
+     LOOP
+        dbms_lob.read(l_response_body_clob, l_response_chunk_size, l_offset, l_response_buffer);
+         htp.prn(l_response_buffer);
+
+         l_offset := l_offset + l_response_chunk_size;
+
+         l_response_length := l_response_length - l_response_chunk_size;
+    END LOOP;
+    dbms_lob.close(l_response_body_clob);
+end;
+
+==================================== ============================ STOREDS:
+create or replace PROCEDURE PR_SERVICIO_MED_EXAMEN1 (
+        KTIPOREGISTRO IN VARCHAR2,
+        KNNS in varchar2,
+        j    in apex_json.t_values,
+        KRESPUESTA OUT NUMBER)AS 
+
+l_response_body_clob  clob ;
+l_response_length     NUMBER;
+l_response_buffer     VARCHAR2(32767);
+l_response_chunk_size BINARY_INTEGER := 32000;
+l_offset              INTEGER := 1; 
+kjson clob;
+kaccion varchar2(20);
+kcuenta number;
+knombre_cuenta varchar2(50);
+kfecha varchar2(20);
+KEXISTE NUMBER;
+Kno_empleados VARCHAR2(20);
+NERROR NUMBER;
+kmessage varchar2(250);
+kcantidad number;
+kclob clob;
+ktotal number;
+KVAR1 NUMBER;
+KVAR2 NUMBER;
+KVAR3 NUMBER;
+KVAR4 NUMBER;
+KVAR5 NUMBER;
+KVAR6 NUMBER;
+kvar7 number;
+kvar8 number;
+kvar9 number;
+kvar10 number;
+kvar11 number;
+kvar12 number;
+kvar13 number;
+kvar14 number;
+kvar15 number;
+kvar16 number;
+kvar17 number;
+kvar18 number;
+kvar19 number;
+kvar20 number;
+kvar21 number;
+CVAR1 varchar2(500);
+CVAR2 varchar2(500);
+CVAR3 varchar2(500);
+CVAR4 varchar2(500);
+CVAR5 varchar2(500);
+CVAR6 varchar2(500);
+CVAR7 varchar2(500);
+CVAR8 varchar2(500);
+CVAR9 varchar2(500);
+CVAR10 varchar2(500);
+CVAR11 varchar2(500);
+CVAR12 varchar2(500);
+CVAR13 varchar2(500);
+CVAR14 varchar2(500);
+CVAR15 varchar2(500);
+CVAR16 varchar2(500);
+CVAR17 varchar2(500);
+CVAR18 varchar2(500);
+CVAR19 varchar2(500);
+CVAR20 varchar2(500);
+CVAR21 varchar2(500);
+CVAR22 varchar2(500);
+CVAR23 varchar2(500);
+begin
+
+
+cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.HABITACION',p_values=>j);
+cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.NO_DORMITORIOS',p_values=>j);
+cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.NO_HABITANTES',p_values=>j);
+cvar4   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.PISO',p_values=>j);
+cvar5   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.TECHO',p_values=>j);
+cVAR6   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.AGUA_POTABLE',p_values=>j);
+cvar7   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.LUZ',p_values=>j);
+cvar8   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.DRENAJE',p_values=>j);
+cvar8  := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.CONVIVENCIA_CON_ANIMALES',p_values=>j);
+cvar10  := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.AIRE_ACONDICIONADO',p_values=>j);
+cvar11  := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.RELIGION',p_values=>j);
+cvar12  := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.HIGIENE_PERSONAL',p_values=>j);
+cvar13  := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.BANO',p_values=>j);
+cvar14  := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.CAMBIO_DE_ROPA',p_values=>j);
+cvar15  := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.ASEO_BUCAL',p_values=>j);
+cvar16  := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.ALIMENTACION',p_values=>j);
+cvar17  := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.NO_COMIDAS_AL_DIA',p_values=>j);
+cvar18  := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.BALANCEADA',p_values=>j);
+cvar19  := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.SUFICIENTE',p_values=>j);
+cvar20  := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.DEPORTE',p_values=>j);
+cvar21  := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.FC1',p_values=>j);
+cvar22   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.HOBBIES_PASATIEMPOS',p_values=>j);
+cvar23  := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PATOLOGICOS.FC2',p_values=>j);
+
+
+select count(*) into kexiste from serv_med_ant_patologicos where nss=knns;
+IF kexiste = 0 then 
+
+ insert into SERV_MED_ANT_PATOLOGICOS (NSS,HABITACION,NO_DORMITORIOS,NO_HABITANTES,PISO,
+ TECHO ,AGUA_POTABLE,LUZ ,DRENAJE,CONVIVENCIA_CON_ANIMALES,AIRE_ACONDICIONADO,
+ RELIGION,HIGIENE_PERSONAL,BAÑO,CAMBIO_DE_ROPA,ASEO_BUCAL,
+ ALIMENTACION,NO_COMIDAS_AL_DIA,
+ BALANCEADA,SUFICIENTE,DEPORTE,FC1,HOBBIES_PASATIEMPOS,FC2 ) VALUES 
+(KNNS,cvar1,cvar2,cvar3,cvar4,cvar5,cvar6,cvar7,cvar8,cvar9,cvar10,cvar11,
+  cvar12,cvar13,cvar14,
+  cvar15,cvar16,cvar17,cvar18,cvar19,cvar20,
+  cvar21,cvar22,cvar23);
+ELSE
+   UPDATE SERV_MED_ANT_PATOLOGICOS SET HABITACION=cvar1,NO_DORMITORIOS=cvar2,
+NO_HABITANTES=cvar3,
+PISO=cvar4,
+TECHO=cvar5,
+AGUA_POTABLE=cvar6,
+LUZ=cvar7,
+DRENAJE=cvar8,
+CONVIVENCIA_CON_ANIMALES=cvar9,
+AIRE_ACONDICIONADO=cvar10,
+RELIGION=cvar11,
+HIGIENE_PERSONAL=cvar12,
+BAÑO=cvar13,
+CAMBIO_DE_ROPA=cvar14,
+ASEO_BUCAL=cvar15,
+ALIMENTACION=cvar16,
+NO_COMIDAS_AL_DIA=cvar17,
+BALANCEADA=cvar18,
+SUFICIENTE=cvar19,
+DEPORTE=cvar20,
+FC1=cvar21,
+HOBBIES_PASATIEMPOS=cvar22,
+FC2=cvar23 where NSS=KNNS;
+end if;  
+---/////////////////////////////////////////////////////////////////////////////////////////////////
+---SERV_MED_INMUNIZACIONES
+kvar2   := apex_json.get_number(p_path=>'SERV_MED_INMUNIZACIONES.BLG',p_values=>j);
+kvar3   := apex_json.get_number(p_path=>'SERV_MED_INMUNIZACIONES.SABIN',p_values=>j);
+kvar4   := apex_json.get_number(p_path=>'SERV_MED_INMUNIZACIONES.DPT',p_values=>j);
+kvar5   := apex_json.get_number(p_path=>'SERV_MED_INMUNIZACIONES.HEPATITIS_B',p_values=>j);
+kvar6   := apex_json.get_number(p_path=>'SERV_MED_INMUNIZACIONES.SR',p_values=>j);
+KVAR7   := apex_json.get_number(p_path=>'SERV_MED_INMUNIZACIONES.INFLUENZA',p_values=>j);
+kvar8   := apex_json.get_number(p_path=>'SERV_MED_INMUNIZACIONES.TD',p_values=>j);
+kvar9   := apex_json.get_number(p_path=>'SERV_MED_INMUNIZACIONES.COVID',p_values=>j);
+cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_INMUNIZACIONES.FECHA',p_values=>j);
+---SERV_MED_INMUNIZACIONES
+select count(*) into kexiste from serv_med_inmunizaciones where nss=knns;
+IF kexiste = 0 then 
+
+  insert into SERV_MED_INMUNIZACIONES (NSS,BLG,SABIN,DPT, HEPATITIS_B,SR,INFLUENZA,TD,FECHA,COVID) values 
+  (knns,kvar2,kvar3,kvar4,kvar5,kvar6,kvar7,kvar8,cvar1,KVAR9);
+ELSE
+  update  SERV_MED_INMUNIZACIONES set 
+  BLG=kvar2,SABIN=kvar3,
+  DPT=kvar4,
+  HEPATITIS_B=kvar5,
+  SR=kvar6,
+  INFLUENZA=kvar7,
+  TD=kvar8,
+  COVID=KVAR9,
+  FECHA=cvar1 where NSS=KNNS;
+end if;
+---/////////////////////////////////////////////////////////////////////////////////////////////////
+----SERV_MED_ANT_GIN_OBSTETRICOS
+cvar11   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_GIN_OBSTETRICOS.MENARCA',p_values=>j);
+cvar12   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_GIN_OBSTETRICOS.RITMO',p_values=>j);
+cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_GIN_OBSTETRICOS.IVSA',p_values=>j);
+cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_GIN_OBSTETRICOS.FUM',p_values=>j);
+cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_GIN_OBSTETRICOS.G',p_values=>j);
+cvar4   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_GIN_OBSTETRICOS.A',p_values=>j);
+cvar5   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_GIN_OBSTETRICOS.P',p_values=>j);
+cvar6   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_GIN_OBSTETRICOS.C',p_values=>j);
+cvar7   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_GIN_OBSTETRICOS.MET_PLANIFICACION',p_values=>j);
+cvar8   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_GIN_OBSTETRICOS.PAPANICOLAOU',p_values=>j);
+cvar9   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_GIN_OBSTETRICOS.INFECC_REP',p_values=>j);
+cvar10   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_GIN_OBSTETRICOS.FUP',p_values=>j);
+
+select count(*) into kexiste from serv_med_ant_gin_obstetricos where nss=knns;
+IF kexiste = 0 then 
+  insert into SERV_MED_ANT_GIN_OBSTETRICOS(
+   NSS,
+  MENARCA, 
+  RITMO,
+  IVSA, 
+  FUM, 
+  G, 
+  P, 
+  A, 
+  C, 
+  MET_PLANIFICACION, 
+  PAPANICOLAOU, 
+  INFECC_REP,
+  FUP)  values 
+  (knns,cvar11,cvar12,cvar1,cvar2,cvar3,cvar4,cvar5,cvar6,cvar7,cvar8,cvar9,cvar10);
+ELSE
+  update  SERV_MED_ANT_GIN_OBSTETRICOS set 
+  MENARCA=cvar11, 
+  RITMO=cvar12,
+  IVSA=cvar1, 
+  FUM=cvar2, 
+  G=cvar3, 
+  P=cvar4, 
+  A=cvar5, 
+  C=cvar6, 
+  MET_PLANIFICACION=cvar7, 
+  PAPANICOLAOU=cvar8, 
+  INFECC_REP=cvar9,
+  FUP=cvar10 where NSS=KNNS;
+end if;
+---/////////////////////////////////////////////////////////////////////////////////////////////////
+----SERV_MED_ANT_PER_PATOLOGICOS
+cvar8   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PER_PATOLOGICOS.ENF_CONGENITAS',p_values=>j);
+cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PER_PATOLOGICOS.GENITAL',p_values=>j);
+cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PER_PATOLOGICOS.ENF_PROP_INF',p_values=>j);
+cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PER_PATOLOGICOS.DERMATOPATIAS',p_values=>j);
+cvar4   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PER_PATOLOGICOS.SIST_AUDITIVO',p_values=>j);
+cvar5   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PER_PATOLOGICOS.RESPIRATORIO',p_values=>j);
+cvar6   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PER_PATOLOGICOS.SIS_OLFATIVO',p_values=>j);
+cvar7   := apex_json.get_varchar2(p_path=>'SERV_MED_ANT_PER_PATOLOGICOS.TRAUMATICOS',p_values=>j);
+
+select count(*) into kexiste from serv_med_ant_per_patologicos where nss=knns;
+IF kexiste = 0 then 
+
+  insert into SERV_MED_ANT_PER_PATOLOGICOS(
+   NSS ,
+  ENF_CONGENITAS,
+  GENITAL, 
+  ENF_PROP_INF, 
+  DERMATOPATIAS, 
+  SIST_AUDITIVO ,
+  RESPIRATORIO, 
+  SIS_OLFATIVO, 
+  TRAUMATICOS  
+)  values 
+  (knns,cvar8,cvar1,cvar2,cvar3,cvar4,cvar5,cvar6,cvar7);
+ELSE
+  update  SERV_MED_ANT_PER_PATOLOGICOS set 
+ ENF_CONGENITAS=cvar8,
+  GENITAL=cvar1, 
+  ENF_PROP_INF=cvar2, 
+  DERMATOPATIAS=cvar3, 
+  SIST_AUDITIVO=cvar4,
+  RESPIRATORIO=cvar5, 
+  SIS_OLFATIVO=cvar6, 
+  TRAUMATICOS=cvar7 where NSS=KNNS;
+end if;
+---/////////////////////////////////////////////////////////////////////////////////////////////////
+----SERV_MED_OFTALMOLOGICO
+kvar2   := apex_json.get_number(p_path=>'SERV_MED_OFTALMOLOGICO.USO_LENTES',p_values=>j);
+cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_OFTALMOLOGICO.USO_LENTES_OBS',p_values=>j);
+kvar3   := apex_json.get_number(p_path=>'SERV_MED_OFTALMOLOGICO.ASTIGMATISMO',p_values=>j);
+cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_OFTALMOLOGICO.ASTIGMATISMO_OBS',p_values=>j);
+kvar4   := apex_json.get_number(p_path=>'SERV_MED_OFTALMOLOGICO.PRESBICIA',p_values=>j);
+cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_OFTALMOLOGICO.PRESBICIA_OBS',p_values=>j);
+kvar5   := apex_json.get_number(p_path=>'SERV_MED_OFTALMOLOGICO.ESTRABISMO',p_values=>j);
+cvar4   := apex_json.get_varchar2(p_path=>'SERV_MED_OFTALMOLOGICO.ESTRABISMO_OBS',p_values=>j);
+kvar6   := apex_json.get_number(p_path=>'SERV_MED_OFTALMOLOGICO.DALTONISMO',p_values=>j);
+cvar5   := apex_json.get_varchar2(p_path=>'SERV_MED_OFTALMOLOGICO.DALTONISMO_OBS',p_values=>j);
+kvar7  := apex_json.get_number(p_path=>'SERV_MED_OFTALMOLOGICO.DESPENDIMIENTO_RET',p_values=>j);
+cvar6   := apex_json.get_varchar2(p_path=>'SERV_MED_OFTALMOLOGICO.DESPENDIMIENTO_RET_OBS',p_values=>j);
+kvar8   := apex_json.get_number(p_path=>'SERV_MED_OFTALMOLOGICO.MIOPIA',p_values=>j);
+cvar7   := apex_json.get_varchar2(p_path=>'SERV_MED_OFTALMOLOGICO.MIOPIA_OBS',p_values=>j);
+
+
+
+select count(*) into kexiste from serv_med_oftalmologico where nss=knns;
+IF kexiste = 0 then 
+
+  insert into SERV_MED_OFTALMOLOGICO(
+  NSS, 
+  USO_LENTES,
+  USO_LENTES_OBS, 
+  ASTIGMATISMO,
+  ASTIGMATISMO_OBS, 
+  PRESBICIA, 
+  PRESBICIA_OBS, 
+  ESTRABISMO, 
+  ESTRABISMO_OBS, 
+  DALTONISMO, 
+  DALTONISMO_OBS, 
+  DESPENDIMIENTO_RET, 
+  DESPENDIMIENTO_RET_OBS,
+  MIOPIA,
+  MIOPIA_OBS
+)  values 
+  (knns,kvar2,cvar1,cvar3,cvar2,kvar4,cvar3,kvar5,cvar4,kvar6,cvar5,kvar7,cvar6,KVAR8,CVAR7);
+ELSE
+  update  SERV_MED_OFTALMOLOGICO set 
+  USO_LENTES=kvar2,
+  USO_LENTES_OBS=cvar1, 
+  ASTIGMATISMO=kvar3,
+  ASTIGMATISMO_OBS=cvar2,
+  PRESBICIA=kvar4,
+  PRESBICIA_OBS=cvar3, 
+  ESTRABISMO=kvar5, 
+  ESTRABISMO_OBS=cvar4, 
+  DALTONISMO=kvar6, 
+  DALTONISMO_OBS=cvar5, 
+  DESPENDIMIENTO_RET=kvar7, 
+  DESPENDIMIENTO_RET_OBS=cvar6,
+  MIOPIA=KVAR8,MIOPIA_OBS=CVAR7
+  where NSS=KNNS;
+end if;
+---/////////////////////////////////////////////////////////////////////////////////////////////////
+----SERV_MED_DIGESTIVO
+kvar1   := apex_json.get_number(p_path=>'SERV_MED_DIGESTIVO.HERNIAS',p_values=>j);
+cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_DIGESTIVO.HERNIAS_OBS',p_values=>j);
+kvar2   := apex_json.get_number(p_path=>'SERV_MED_DIGESTIVO.CIRROSIS',p_values=>j);
+cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_DIGESTIVO.CIRROSIS_OBS',p_values=>j);
+kvar3   := apex_json.get_number(p_path=>'SERV_MED_DIGESTIVO.COLITIS',p_values=>j);
+cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_DIGESTIVO.COLITIS_OBS',p_values=>j);
+kvar4   := apex_json.get_number(p_path=>'SERV_MED_DIGESTIVO.GASTRITIS',p_values=>j);
+cvar4   := apex_json.get_varchar2(p_path=>'SERV_MED_DIGESTIVO.GASTRITIS_OBS',p_values=>j);
+kvar5   := apex_json.get_number(p_path=>'SERV_MED_DIGESTIVO.HEMORROIDES',p_values=>j);
+cvar5   := apex_json.get_varchar2(p_path=>'SERV_MED_DIGESTIVO.HEMORROIDES_OBS',p_values=>j);
+kvar6   := apex_json.get_number(p_path=>'SERV_MED_DIGESTIVO.CIRUGIAS',p_values=>j);
+cvar6   := apex_json.get_varchar2(p_path=>'SERV_MED_DIGESTIVO.CIRUGIAS_OBS',p_values=>j);
+select count(*) into kexiste from SERV_MED_digestivo where nss=knns;
+IF kexiste = 0 then 
+
+insert into SERV_MED_DIGESTIVO(
+NSS, 
+  HERNIAS, 
+  HERNIAS_OBS, 
+  CIRROSIS,
+  CIRROSIS_OBS, 
+  COLITIS, 
+  COLITIS_OBS, 
+  GASTRITIS, 
+  GASTRITIS_OBS, 
+  HEMORROIDES, 
+  HEMORROIDES_OBS,
+  CIRUGIAS, 
+  CIRUGIAS_OBS) values (knns,kvar1,cvar1,kvar2,cvar2,kvar3,cvar3,kvar4,cvar4,kvar5,cvar5,kvar6,cvar6);
+
+  ELSE
+
+  update  SERV_MED_DIGESTIVO set 
+  HERNIAS=kvar1, 
+  HERNIAS_OBS=cvar1, 
+  CIRROSIS=kvar2,
+  CIRROSIS_OBS=cvar2, 
+  COLITIS=kvar3, 
+  COLITIS_OBS=cvar3, 
+  GASTRITIS=kvar4, 
+  GASTRITIS_OBS=cvar4, 
+  HEMORROIDES=kvar5, 
+  HEMORROIDES_OBS=cvar5,
+  CIRUGIAS=kvar6, 
+  CIRUGIAS_OBS=cvar6 where NSS=KNNS;
+  end if;
+---/////////////////////////////////////////////////////////////////////////////////////////////////
+----SERV_MED_RENAL
+kvar1   := apex_json.get_number(p_path=>'SERV_MED_RENAL.INCONTINENSIA',p_values=>j);
+cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_RENAL.INCONTINENSIA_OBS',p_values=>j);
+kvar2   := apex_json.get_number(p_path=>'SERV_MED_RENAL.INSUFICIENCIA',p_values=>j);
+cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_RENAL.INSUFICIENCIA_OBS',p_values=>j);
+kvar3   := apex_json.get_number(p_path=>'SERV_MED_RENAL.LITIASIS',p_values=>j);
+cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_RENAL.LITIASIS_OBS',p_values=>j);
+select count(*) into kexiste from SERV_MED_renal where nss=knns;
+IF kexiste = 0 then 
+
+insert into SERV_MED_RENAL(
+NSS, 
+  INCONTINENSIA, 
+  INCONTINENSIA_OBS, 
+  INSUFICIENCIA, 
+  INSUFICIENCIA_OBS, 
+  LITIASIS, 
+  LITIASIS_OBS ) values (knns,kvar1,cvar1,kvar2,cvar2,kvar3,cvar3);
+
+  ELSE
+
+  update SERV_MED_RENAL set 
+  INCONTINENSIA=kvar1, 
+  INCONTINENSIA_OBS=cvar1, 
+  INSUFICIENCIA=kvar2, 
+  INSUFICIENCIA_OBS=cvar2, 
+  LITIASIS=kvar3, 
+  LITIASIS_OBS=cvar3 where NSS=KNNS;
+  end if;
+---/////////////////////////////////////////////////////////////////////////////////////////////////
+---- SERV_MED_SIST_NERVIOSO
+kvar1   := apex_json.get_number(p_path=>'SERV_MED_SIST_NERVIOSO.ANEURISMA',p_values=>j);
+cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_SIST_NERVIOSO.ANEURISMA_OBS',p_values=>j);
+kvar2   := apex_json.get_number(p_path=>'SERV_MED_SIST_NERVIOSO.ENF_DEG_MUS_NEU',p_values=>j);
+cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_SIST_NERVIOSO.ENF_DEG_MUS_NEU_OBS',p_values=>j);
+kvar3   := apex_json.get_number(p_path=>'SERV_MED_SIST_NERVIOSO.ACC_CER_VASCU',p_values=>j);
+cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_SIST_NERVIOSO.ACC_CER_VASCU_OBS',p_values=>j);
+kvar4   := apex_json.get_number(p_path=>'SERV_MED_SIST_NERVIOSO.EPILEPSIA',p_values=>j);
+cvar4   := apex_json.get_varchar2(p_path=>'SERV_MED_SIST_NERVIOSO.EPILEPSIA_OBS',p_values=>j);
+kvar5   := apex_json.get_number(p_path=>'SERV_MED_SIST_NERVIOSO.PAR_FACIAL',p_values=>j);
+cvar5   := apex_json.get_varchar2(p_path=>'SERV_MED_SIST_NERVIOSO.PAR_FACIAL_OBS',p_values=>j);
+
+select count(*) into kexiste from serv_med_sist_nervioso where nss=knns;
+IF kexiste = 0 then 
+
+insert into SERV_MED_SIST_NERVIOSO(
+  NSS, 
+  ANEURISMA, 
+  ANEURISMA_OBS, 
+  ENF_DEG_MUS_NEU, 
+  ENF_DEG_MUS_NEU_OBS, 
+  ACC_CER_VASCU, 
+  ACC_CER_VASCU_OBS, 
+  EPILEPSIA, 
+  EPILEPSIA_OBS, 
+  PAR_FACIAL, 
+  PAR_FACIAL_OBS ) values (knns,kvar1,cvar1,kvar2,cvar2,kvar3,cvar3,kvar4,cvar4,kvar5,cvar5);
+
+  ELSE
+
+  update SERV_MED_SIST_NERVIOSO set 
+  ANEURISMA=kvar1, 
+  ANEURISMA_OBS=cvar1,
+  ENF_DEG_MUS_NEU=kvar2, 
+  ENF_DEG_MUS_NEU_OBS=cvar2, 
+  ACC_CER_VASCU=kvar3,
+  ACC_CER_VASCU_OBS=cvar3, 
+  EPILEPSIA=kvar4, 
+  EPILEPSIA_OBS=cvar4, 
+  PAR_FACIAL=kvar5,
+  PAR_FACIAL_OBS=cvar5  where  NSS=KNNS;  
+  end if;
+  
+ ---/////////////////////////////////////////////////////////////////////////////////////////////////
+---- SERV_MED_MUS_ESQUELETICO
+kvar1   := apex_json.get_number(p_path=>'SERV_MED_MUS_ESQUELETICO.ESCOLIOSIS',p_values=>j);
+cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_MUS_ESQUELETICO.ESCOLIOSIS_OBS',p_values=>j);
+kvar2   := apex_json.get_number(p_path=>'SERV_MED_MUS_ESQUELETICO.XIFOSIS',p_values=>j);
+cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_MUS_ESQUELETICO.XIFOSIS_OBS',p_values=>j);
+kvar3   := apex_json.get_number(p_path=>'SERV_MED_MUS_ESQUELETICO.LORDOSISI',p_values=>j);
+cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_MUS_ESQUELETICO.LORDOSISI_OBS',p_values=>j);
+kvar4   := apex_json.get_number(p_path=>'SERV_MED_MUS_ESQUELETICO.LUMBALGIA',p_values=>j);
+cvar4   := apex_json.get_varchar2(p_path=>'SERV_MED_MUS_ESQUELETICO.LUMBALGIA_OBS',p_values=>j);
+kvar5   := apex_json.get_number(p_path=>'SERV_MED_MUS_ESQUELETICO.BASCULAMIENTO',p_values=>j);
+cvar5   := apex_json.get_varchar2(p_path=>'SERV_MED_MUS_ESQUELETICO.BASCULAMIENTO_OBS',p_values=>j);
+kvar6   := apex_json.get_number(p_path=>'SERV_MED_MUS_ESQUELETICO.ALTERACION_DISCAL',p_values=>j);
+cvar6   := apex_json.get_varchar2(p_path=>'SERV_MED_MUS_ESQUELETICO.ALTERACION_DISCAL_OBS',p_values=>j);
+
+select count(*) into kexiste from serv_med_mus_esqueletico where nss=knns;
+IF kexiste = 0 then 
+
+insert into SERV_MED_MUS_ESQUELETICO(
+  NSS,
+  ESCOLIOSIS, 
+  ESCOLIOSIS_OBS,
+  XIFOSIS, 
+  XIFOSIS_OBS, 
+  LORDOSISI, 
+  LORDOSIS_OBS, 
+  LUMBALGIA,
+  LUMBALGIA_OBS, 
+  BASCULAMIENTO,
+  BASCULAMIENTO_OBS, 
+  ALTERACION_DISCAL, 
+  ALTERACION_DISCAL_OBS ) values (knns,kvar1,cvar1,kvar2,cvar2,kvar3,cvar3,kvar4,cvar4,kvar5,cvar5,kvar6,cvar6);
+
+  ELSE
+
+  update SERV_MED_MUS_ESQUELETICO set 
+  ESCOLIOSIS=kvar1, 
+  ESCOLIOSIS_OBS=cvar1,
+  XIFOSIS=kvar2, 
+  XIFOSIS_OBS=cvar2, 
+  LORDOSISI=kvar3, 
+  LORDOSIS_OBS=cvar3, 
+  LUMBALGIA=kvar4,
+  LUMBALGIA_OBS=cvar4, 
+  BASCULAMIENTO=kvar5,
+  BASCULAMIENTO_OBS=cvar5, 
+  ALTERACION_DISCAL=kvar6, 
+  ALTERACION_DISCAL_OBS=cvar6  where  NSS=KNNS;  
+  end if;
+ 
+---/////////////////////////////////////////////////////////////////////////////////////////////////
+----SERV_MED_SERV_MED_CARD_NO_PATO
+kvar2   := apex_json.get_number(p_path=>'SERV_MED_CARDIO_NO_PATO.ANEURISMA',p_values=>j);
+cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_CARDIO_NO_PATO.ANEURISMA_OBS',p_values=>j);
+kvar3   := apex_json.get_number(p_path=>'SERV_MED_CARDIO_NO_PATO.HIPERTENSION',p_values=>j);
+cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_CARDIO_NO_PATO.HIPERTENSION_OBS',p_values=>j);
+kvar4   := apex_json.get_number(p_path=>'SERV_MED_CARDIO_NO_PATO.HIPOTENSION',p_values=>j);
+cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_CARDIO_NO_PATO.HIPOTENSION_OBS',p_values=>j);
+kvar5   := apex_json.get_number(p_path=>'SERV_MED_CARDIO_NO_PATO.INFARTOS',p_values=>j);
+cvar4   := apex_json.get_varchar2(p_path=>'SERV_MED_CARDIO_NO_PATO.INFARTOS_OBS',p_values=>j);
+kvar6   := apex_json.get_number(p_path=>'SERV_MED_CARDIO_NO_PATO.INSUFIC_CAR',p_values=>j);
+cvar5   := apex_json.get_varchar2(p_path=>'SERV_MED_CARDIO_NO_PATO.INSUFIC_CAR_OBS',p_values=>j);
+select count(*) into kexiste from serv_med_cardio_no_pato where nss=knns;
+IF kexiste = 0 then 
+
+  insert into SERV_MED_CARDIO_NO_PATO(
+  NSS, 
+  ANEURISMA,
+  ANEURISMA_OBS, 
+  HIPERTENSION, 
+  HIPERTENSION_OBS, 
+  HIPOTENSION, 
+  HIPOTENSION_OBS, 
+  INFARTOS,
+  INFARTOS_OBS, 
+  INSUFIC_CAR ,
+  INSUFIC_CAR_OBS 
+)  values 
+  (knns,kvar2,cvar1,Kvar3,cvar2,kvar4,cvar3,kvar5,cvar4,kvar6,cvar5);
+ELSE
+  update  SERV_MED_CARDIO_NO_PATO set 
+  ANEURISMA=kvar2,
+  ANEURISMA_OBS=cvar1, 
+  HIPERTENSION =kvar3,
+  HIPERTENSION_OBS=cvar2, 
+  HIPOTENSION =kvar4,
+  HIPOTENSION_OBS=cvar3, 
+  INFARTOS=kvar5,
+  INFARTOS_OBS =cvar4,
+  INSUFIC_CAR=kvar6, 
+  INSUFIC_CAR_OBS=cvar5   where NSS=KNNS;
+end if; 
+---/////////////////////////////////////////////////////////////////////////////////////////////////
+---- SERV_MED_TOXI_NO_PATO
+kvar1   := apex_json.get_number(p_path=>'SERV_MED_TOXI_NO_PATO.TABAQUISMO',p_values=>j);
+cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_TOXI_NO_PATO.TABAQUISMO_OBS',p_values=>j);
+kvar2    := apex_json.get_number(p_path=>'SERV_MED_TOXI_NO_PATO.ALCOHOLISMO',p_values=>j);
+cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_TOXI_NO_PATO.ALCOHOLISMO_OBS',p_values=>j);
+kvar3    := apex_json.get_number(p_path=>'SERV_MED_TOXI_NO_PATO.DROGAS',p_values=>j);
+cvar3  := apex_json.get_varchar2(p_path=>'SERV_MED_TOXI_NO_PATO.DROGAS_OBS',p_values=>j);
+kvar4   := apex_json.get_number(p_path=>'SERV_MED_TOXI_NO_PATO.ALT_CARGA',p_values=>j);
+cvar4   := apex_json.get_varchar2(p_path=>'SERV_MED_TOXI_NO_PATO.ALT_CARGA_OBS',p_values=>j);
+kvar5   := apex_json.get_number(p_path=>'SERV_MED_TOXI_NO_PATO.PERFORACIONES',p_values=>j);
+cvar5   := apex_json.get_varchar2(p_path=>'SERV_MED_TOXI_NO_PATO.PERFORACIONES_OBS',p_values=>j);
+kvar6   := apex_json.get_number(p_path=>'SERV_MED_TOXI_NO_PATO.TATUAJES',p_values=>j);
+cvar6   := apex_json.get_varchar2(p_path=>'SERV_MED_TOXI_NO_PATO.TATUAJES_OBS',p_values=>j);
+kvar7   := apex_json.get_number(p_path=>'SERV_MED_TOXI_NO_PATO.ALERGIAS',p_values=>j);
+cvar7   := apex_json.get_varchar2(p_path=>'SERV_MED_TOXI_NO_PATO.ALERGIAS_OBS',p_values=>j);
+select count(*) into kexiste from serv_med_toxi_no_pato where nss=knns;
+IF kexiste = 0 then 
+
+insert into SERV_MED_TOXI_NO_PATO(
+  NSS, 
+  TABAQUISMO,
+  TABAQUISMO_OBS, 
+  ALCOHOLISMO,
+  ALCOHOLISMO_OBS, 
+  DROGAS, 
+  DROGAS_OBS, 
+  ALT_CARGA, 
+  ALT_CARGA_OBS, 
+  PERFORACIONES, 
+  PERFORACIONES_OBS, 
+  TATUAJES, 
+  TATUAJES_OBS,
+  ALERGIAS,
+  ALERGIAS_OBS) values (knns,kvar1,cvar1,kvar2,cvar2,kvar3,cvar3,kvar4,cvar4,kvar5,cvar5,kvar6,cvar6,KVAR7,CVAR7);
+ELSE
+  update SERV_MED_TOXI_NO_PATO set  
+  TABAQUISMO=kvar1,
+  TABAQUISMO_OBS=cvar1, 
+  ALCOHOLISMO=kvar2,
+  ALCOHOLISMO_OBS=cvar2, 
+  DROGAS=kvar3, 
+  DROGAS_OBS=cvar3, 
+  ALT_CARGA=kvar4, 
+  ALT_CARGA_OBS=cvar4, 
+  PERFORACIONES=kvar5, 
+  PERFORACIONES_OBS=cvar5, 
+  TATUAJES=kvar6, 
+  TATUAJES_OBS=cvar6,
+  ALERGIAS=KVAR7,
+  ALERGIAS_OBS=CVAR7 where  NSS=KNNS;  
+end if;
+ ---/////////////////////////////////////////////////////////////////////////////////////////////////
+---- SERV_MED_ENDOCRI_NO_PATO
+kvar1   := apex_json.get_number(p_path=>'SERV_MED_ENDOCRI_NO_PATO.DIABETES',p_values=>j);
+cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_ENDOCRI_NO_PATO.DIABETES_OBS',p_values=>j);
+kvar2    := apex_json.get_number(p_path=>'SERV_MED_ENDOCRI_NO_PATO.HIPERTIROIDISMO',p_values=>j);
+cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_ENDOCRI_NO_PATO.HIPERTIROIDISMO_OBS',p_values=>j);
+kvar3    := apex_json.get_number(p_path=>'SERV_MED_ENDOCRI_NO_PATO.HIPOTIROIDISMO',p_values=>j);
+cvar3    := apex_json.get_varchar2(p_path=>'SERV_MED_ENDOCRI_NO_PATO.HIPOTIROIDISMO_OBS',p_values=>j);
+select count(*) into kexiste from serv_med_endocri_no_pato where nss=knns;
+IF kexiste = 0 then 
+
+insert into SERV_MED_ENDOCRI_NO_PATO(
+  NSS, 
+  DIABETES,
+  DIABETES_OBS,
+  HIPERTIROIDISMO,
+  HIPERTIROIDISMO_OBS,
+  HIPOTIROIDISMO,
+  HIPOTIROIDISMO_OBS) values (knns,kvar1,cvar1,kvar2,cvar2,kvar3,cvar3);
+ELSE
+  update SERV_MED_ENDOCRI_NO_PATO SET  
+  DIABETES=Kvar1,
+  DIABETES_OBS=cvar1,
+  HIPERTIROIDISMO=kvar2,
+  HIPERTIROIDISMO_OBS=cvar2,
+  HIPOTIROIDISMO=kvar3,
+  HIPOTIROIDISMO_OBS=cvar3  where  NSS=KNNS;  
+  end if;
+
+ ---/////////////////////////////////////////////////////////////////////////////////////////////////
+---- SERV_MED_PADECI_ACTUAL
+cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_PADECI_ACTUAL.OBSERVACIONES',p_values=>j);
+
+
+
+select count(*) into kexiste from serv_med_padeci_actual where nss=knns;
+IF kexiste = 0 then 
+
+insert into SERV_MED_PADECI_ACTUAL(
+  NSS, 
+  OBSERVACIONES
+  ) values (knns,cvar1);
+
+ELSE
+  update SERV_MED_PADECI_ACTUAL set  
+  OBSERVACIONES=cvar1 where  NSS=KNNS;
+  
+end if;
+
+---/////////////////////////////////////////////////////////////////////////////////////////////////
+---- SERV_MED_INT_APARATO_SIST
+cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_INT_APARATO_SIST.OBSERVACIONES',p_values=>j);
+select count(*) into kexiste from serv_med_int_aparato_sist where nss=knns;
+IF kexiste = 0 then 
+
+  insert into SERV_MED_INT_APARATO_SIST(NSS,OBSERVACIONES) values (knns,cvar1);
+
+ELSE
+    update SERV_MED_INT_APARATO_SIST set  
+    OBSERVACIONES=cvar1   where  NSS=KNNS;
+end if;
+
+       KRESPUESTA := 0;
+       
+EXCEPTION 
+ WHEN OTHERS THEN 
+   KRESPUESTA := 1;
+END PR_SERVICIO_MED_EXAMEN1;
+ 
+ 
+ ===================================================================================   OTRO STORED
+ create or replace PROCEDURE PR_SERVICIO_MED_EXAMEN2 (
+         KTIPOREGISTRO IN VARCHAR2,
+         KNNS in varchar2,
+         j    in apex_json.t_values,
+         KRESPUESTA OUT NUMBER)AS 
+ 
+ l_response_body_clob  clob ;
+ l_response_length     NUMBER;
+ l_response_buffer     VARCHAR2(32767);
+ l_response_chunk_size BINARY_INTEGER := 32000;
+ l_offset              INTEGER := 1; 
+ kjson clob;
+ kaccion varchar2(20);
+ kcuenta number;
+ knombre_cuenta varchar2(50);
+ kfecha varchar2(20);
+ KEXISTE NUMBER;
+ Kno_empleados VARCHAR2(20);
+ NERROR NUMBER;
+ kmessage varchar2(250);
+ kcantidad number;
+ kclob clob;
+ ktotal number;
+ KVAR1 NUMBER;
+ KVAR2 NUMBER;
+ KVAR3 NUMBER;
+ KVAR4 NUMBER;
+ KVAR5 NUMBER;
+ KVAR6 NUMBER;
+ kvar7 number;
+ kvar8 number;
+ kvar9 number;
+ kvar10 number;
+ CVAR1 varchar2(100);
+ CVAR2 varchar2(100);
+ CVAR3 varchar2(100);
+ CVAR4 varchar2(100);
+ CVAR5 varchar2(100);
+ CVAR6 varchar2(100);
+ CVAR7 varchar2(100);
+ CVAR8 varchar2(100);
+ CVAR9 varchar2(100);
+ CVAR10 varchar2(100);
+ CVAR11 varchar2(100);
+ CVAR12 varchar2(100);
+ CVAR13 varchar2(100);
+ CVAR14 varchar2(100);
+ CVAR15 varchar2(100);
+ CVAR16 varchar2(100);
+ CVAR17 varchar2(100);
+ CVAR18 varchar2(100);
+ CVAR19 varchar2(100);
+ CVAR20 varchar2(100);
+ CVAR21 varchar2(100);
+ CVAR22 varchar2(100);
+ CVAR23 varchar2(100);
+ CVAR24 varchar2(100);
+ CVAR25 varchar2(100);
+ CVAR26 varchar2(100);
+ CVAR27 varchar2(100);
+ CVAR28 varchar2(100);
+ CVAR29 varchar2(100);
+ CVAR30 varchar2(100);
+ CVAR31 varchar2(100);
+ CVAR32 varchar2(100);
+ CVAR33 varchar2(100);
+ CVAR34 varchar2(100);
+ CVAR35 VARCHAR2(100);
+ CVAR36 VARCHAR2(100);
+ CVAR100 varchar2(1000);
+ kno_trabajo varchar2(20);
+ kgiro VARCHAR2(100);
+ knombre_puesto VARCHAR2(100);
+ kantiguedad VARCHAR2(100);
+ kriesgo VARCHAR2(100);
+ kturno VARCHAR2(100);
+ cvar200 VARCHAR2(500);
+ ksalida VARCHAR2(50);
+ kepp VARCHAR2(100);
+ cvar300 VARCHAR2(500);
+ kfirma clob;
+ zvar VARCHAR2(20);
+ zvar1 VARCHAR2(20);
+ zvar2 VARCHAR2(30);
+ L_COUNT NUMBER;
+ KEXISTE11 NUMBER;
+ 
+ begin
+ --////////////////////////////////////////
+ --SERV_MED_EXPLORACION_FISICA
+ 
+ 
+ cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.PESO',p_values=>j);
+ cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.TALLA',p_values=>j);
+ cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.IMC',p_values=>j);
+ cvar4   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.FC',p_values=>j);
+ cvar5   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.FR',p_values=>j);
+ cvar6   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.TA',p_values=>j);
+ cvar7   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.TEMP',p_values=>j);
+ cvar8   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.ECTOMORFICO',p_values=>j);
+ cvar9   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.MESOMORFO',p_values=>j);
+ cvar10   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.ENDOMORFICA',p_values=>j);
+ cvar11   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.SATISFACCION',p_values=>j);
+ cvar12   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.COMP_TRABAJO',p_values=>j);
+ cvar13   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.COMP_ORGANIZACION',p_values=>j);
+ cvar14   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.TIEMPO',p_values=>j);
+ cvar15   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.ESPACIO',p_values=>j);
+ cvar16   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.PERSONA',p_values=>j);
+ cvar17   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.SERENIDAD',p_values=>j);
+ cvar18   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.INTERES',p_values=>j);
+ cvar19   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.ANTAGONICO',p_values=>j);
+ cvar20   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.ENTUSIASTA',p_values=>j);
+ cvar21   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.ENOJO',p_values=>j);
+ cvar22   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.HIPOCRITA',p_values=>j);
+ cvar23   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.ICTERICA',p_values=>j);
+ cvar24   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.ANEMICA',p_values=>j);
+ cvar25   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.TIROIDEA',p_values=>j);
+ cvar26   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.NOLMAL_FASCIES',p_values=>j);
+ cvar27   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.PARKINSON',p_values=>j);
+ cvar28  := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.HEMIPLEJICO',p_values=>j);
+ cvar29   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.ATAXICA',p_values=>j);
+ cvar30   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.HEMIPARESIA',p_values=>j);
+ cvar31   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.NORMAL_MARCHA',p_values=>j);
+ cvar32   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.LENGUAJE',p_values=>j);
+ cvar33   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.CONVER_FLUIDA',p_values=>j);
+ cvar34   := apex_json.get_varchar2(p_path=>'SERV_MED_EXPLORACION_FISICA.COHERENCIA_PALABLAS',p_values=>j);
+ 
+ 
+ 
+ select count(*) into kexiste from SERV_MED_EXPLORACION_FISICA where nss=knns;
+ 
+ if kexiste = 0 then 
+ insert into SERV_MED_EXPLORACION_FISICA(NSS,PESO,TALLA,IMC,FC,FR,TA,  
+   TEMP,Ectomorfica,Mesomorfo,Endomorfica, 
+   Satisfacción,Compromiso_Trabajo,Comprimiso_org,Tiempo,Espacio,Persona,  
+   Serenidad,Interes,Antagónico,Entusiasta,Enojo,Hipocrática,Ictérica,  
+   Anémica,Tiroidea,Normal_fascies,Parkinson,  
+   Hemipléjico,Ataxica,Hemiparesia,Normal_marcha,lenguaje,Conversacion_fluida, 
+   Coherencia_palabras) VALUES (KNNS,CVAR1,CVAR2,CVAR3,CVAR4,CVAR5,CVAR6,CVAR7,CVAR8,
+   CVAR9,CVAR10,CVAR11,CVAR12,CVAR13,CVAR14,CVAR15,CVAR16,CVAR17,CVAR18,CVAR19,CVAR20,
+   CVAR21,CVAR22,CVAR23,CVAR24,CVAR25,CVAR26,CVAR27,CVAR28,CVAR29,CVAR30,CVAR31,CVAR32,
+   CVAR33,CVAR34);
+   
+ ELSE
+ 
+ UPDATE SERV_MED_EXPLORACION_FISICA SET 
+ PESO=CVAR1,TALLA=CVAR2,IMC=CVAR3,FC=CVAR4,FR=CVAR5,TA=CVAR6,  
+   TEMP=CVAR7,Ectomorfica=CVAR8,Mesomorfo=CVAR9,Endomorfica=CVAR10, 
+   Satisfacción=CVAR11,Compromiso_Trabajo=CVAR12,Comprimiso_org=CVAR13,
+   Tiempo=CVAR14,Espacio=CVAR15,Persona=CVAR16,  
+   Serenidad=CVAR17,Interes=CVAR18,Antagónico=CVAR19,Entusiasta=CVAR20,
+   Enojo=CVAR21,Hipocrática=CVAR22,Ictérica=CVAR23,  
+   Anémica=CVAR24,Tiroidea=CVAR25,Normal_fascies=CVAR26,Parkinson=CVAR27,  
+   Hemipléjico=CVAR28,Ataxica=CVAR29,Hemiparesia=CVAR30,Normal_marcha=CVAR31,
+   lenguaje=CVAR32,Conversacion_fluida=CVAR33, 
+   Coherencia_palabras=CVAR34 where NSS=KNNS;
+ END IF;
+ --////////////////////////////////////////
+ --SERV_MED_CRANEO
+ 
+ cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_CRANEO.OJOS',p_values=>j);
+ cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_CRANEO.PUPILAS',p_values=>j);
+ cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_CRANEO.CONJUNTIVAS',p_values=>j);
+ cvar4   := apex_json.get_varchar2(p_path=>'SERV_MED_CRANEO.REFLEJOS',p_values=>j);
+ cvar5   := apex_json.get_varchar2(p_path=>'SERV_MED_CRANEO.FONDO_OJO',p_values=>j);
+ 
+ select count(*) into kexiste from SERV_MED_CRANEO where nss=knns;
+ IF kexiste = 0 then 
+ 
+ insert into SERV_MED_CRANEO(NSS, 
+ OJOS, 
+ PUPILAS, 
+ CONJUNTIVAS, 
+ REFLEJOS, 
+ FONDO_OJO) VALUES (KNNS,CVAR1,CVAR2,CVAR3,CVAR4,CVAR5);
+   
+ ELSE
+ 
+ UPDATE SERV_MED_CRANEO SET 
+ OJOS=CVAR1, 
+ PUPILAS=CVAR2, 
+ CONJUNTIVAS=CVAR3, 
+ REFLEJOS=CVAR4, 
+ FONDO_OJO=CVAR5 where NSS=KNNS;
+ END IF;
+ --/////////////////////////////////////////
+ ---CUELLO------------------
+ 
+ KVAR1   := apex_json.get_varchar2(p_path=>'SERV_MED_CUELLO.DEFORMACIONES',p_values=>j);
+ cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_CUELLO.DEFORMACIONES_OBS',p_values=>j);
+ Kvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_CUELLO.TIROIDES',p_values=>j);
+ cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_CUELLO.TIROIDES_OBS',p_values=>j);
+ Kvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_CUELLO.TRAQUEA',p_values=>j);
+ cvar4   := apex_json.get_varchar2(p_path=>'SERV_MED_CUELLO.TRAQUEA_OBS',p_values=>j);
+ 
+ select count(*) into kexiste from SERV_MED_CUELLO where nss=knns;
+ IF kexiste = 0 then 
+  INSERT INTO SERV_MED_CUELLO(
+   NSS,
+   DEFORMACIONES,
+   DEFORMACIONES_OBS,
+   TIROIDES,
+   TIROIDES_OBS,
+   TRAQUEA,
+   TRAQUEA_OBS) VALUES (KNNS,KVAR1,CVAR1,KVAR2,CVAR2,KVAR3,CVAR3);
+ ELSE
+  UPDATE SERV_MED_CUELLO SET 
+  DEFORMACIONES = KVAR1,
+  DEFORMACIONES_OBS=CVAR1,
+  TIROIDES=KVAR2,
+  TIROIDES_OBS=CVAR2,
+  TRAQUEA=KVAR3,
+  TRAQUEA_OBS=CVAR3 WHERE NSS=KNNS;
+ END IF; 
+ 
+ 
+ --////////////////////////////////////////
+ --SERV_MED_AGUDEZA_VISUAL
+ 
+ cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_AGUDEZA_VISUAL.OD',p_values=>j);
+ cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_AGUDEZA_VISUAL.OIZ',p_values=>j);
+ cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_AGUDEZA_VISUAL.COLORES',p_values=>j);
+ 
+ select count(*) into kexiste from SERV_MED_AGUDEZA_VISUAL where nss=knns;
+ IF kexiste = 0 then 
+ 
+ 
+ insert into SERV_MED_AGUDEZA_VISUAL(NSS, 
+ OD, 
+ OIZ, 
+ COLORES) VALUES (KNNS,CVAR1,CVAR2,CVAR3);
+   
+ ELSE
+ 
+ UPDATE SERV_MED_AGUDEZA_VISUAL SET 
+ OD=CVAR1, 
+ OIZ=CVAR2, 
+ COLORES=CVAR3 where NSS=KNNS;
+ END IF;
+ --////////////////////////////////////////
+ --SERV_MED_NARIZ
+ 
+ cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_NARIZ.CAVIDAD_NASAL',p_values=>j);
+ cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_NARIZ.MUCOSA',p_values=>j);
+ cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_NARIZ.TABIQUE_NASAL',p_values=>j);
+ cvar4   := apex_json.get_varchar2(p_path=>'SERV_MED_NARIZ.OLFATO',p_values=>j);
+ 
+ 
+ select count(*) into kexiste from SERV_MED_NARIZ where nss=knns;
+ IF kexiste = 0 then 
+ 
+ insert into SERV_MED_NARIZ(NSS, 
+ CAVIDAD_NASAL, 
+ MUCOSA, 
+ TABIQUE_NASAL,
+ OLFATO) VALUES (KNNS,CVAR1,CVAR2,CVAR3,CVAR4);
+   
+ ELSE
+ 
+ UPDATE SERV_MED_NARIZ SET 
+ CAVIDAD_NASAL=CVAR1, 
+ MUCOSA=CVAR2, 
+ TABIQUE_NASAL=CVAR3,
+ OLFATO=CVAR4 where NSS=KNNS;
+ END IF;
+ --////////////////////////////////////////
+ --SERV_SERV_MED_COLUMNA_VERTEBRAL
+ 
+ cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_COLUMNA_VERTEBRAL.CERVICAL',p_values=>j);
+ cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_COLUMNA_VERTEBRAL.DORSAL',p_values=>j);
+ cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_COLUMNA_VERTEBRAL.LUMBAR',p_values=>j);
+ 
+ 
+ select count(*) into kexiste from SERV_MED_COLUMNA_VERTEBRAL where nss=knns;
+ IF kexiste = 0 then 
+ 
+ 
+ insert into SERV_MED_COLUMNA_VERTEBRAL(NSS, 
+ CERVICAL, 
+ DORSAL, 
+ LUMBAR) VALUES (KNNS,CVAR1,CVAR2,CVAR3);
+   
+ ELSE
+ 
+ UPDATE SERV_MED_COLUMNA_VERTEBRAL SET 
+ CERVICAL=CVAR1, 
+ DORSAL=CVAR2, 
+ LUMBAR=CVAR3 where NSS=KNNS;
+ END IF;
+ 
+ --////////////////////////////////////////
+ --SERV_MED_BOCA
+ 
+ cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_BOCA.LESIONES',p_values=>j);
+ cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_BOCA.ENCIAS',p_values=>j);
+ cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_BOCA.OROIFARINGE',p_values=>j);
+ 
+ 
+ select count(*) into kexiste from SERV_MED_BOCA where nss=knns;
+ IF kexiste = 0 then 
+ 
+ 
+ insert into SERV_MED_BOCA(NSS, 
+ LESIONES, 
+ ENCIAS, 
+ OROIFARINGE) VALUES (KNNS,CVAR1,CVAR2,CVAR3);
+   
+ ELSE
+ 
+ UPDATE SERV_MED_BOCA SET 
+ LESIONES=CVAR1, 
+ ENCIAS=CVAR2, 
+ OROIFARINGE=CVAR3 where NSS=KNNS;
+ END IF;
+ --////////////////////////////////////////
+ --SERV_MED_OIDOS
+ 
+ cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_OIDOS.CAE',p_values=>j);
+ cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_OIDOS.MEM_TIM',p_values=>j);
+ cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_OIDOS.AGUD_AUDIT',p_values=>j);
+ cvar4   := apex_json.get_varchar2(p_path=>'SERV_MED_OIDOS.OD',p_values=>j);
+ cvar5   := apex_json.get_varchar2(p_path=>'SERV_MED_OIDOS.OI',p_values=>j);
+ 
+ select count(*) into kexiste from SERV_MED_OIDOS where nss=knns;
+ IF kexiste = 0 then 
+ 
+ 
+ insert into SERV_MED_OIDOS(NSS, 
+ CAE, 
+ MEM_TIM,
+ AGUD_AUDIT,
+ OD,
+ OI) VALUES (KNNS,CVAR1,CVAR2,CVAR3,CVAR4,CVAR5);
+   
+ ELSE
+ 
+ UPDATE SERV_MED_OIDOS SET 
+ CAE=CVAR1, 
+ MEM_TIM=CVAR2, 
+ AGUD_AUDIT=CVAR3,
+ OD=CVAR4,OI=CVAR5
+ where NSS=KNNS;
+ END IF;
+ 
+ --////////////////////////////////////////
+ --SERV_MED_CUELLO
+ 
+ cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_TORAX.RUIDOS_CARDIACOS',p_values=>j);
+ cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_TORAX.REG_PRECORDIAL',p_values=>j);
+ cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_TORAX.CAMPOS_PULM',p_values=>j);
+ 
+ select count(*) into kexiste from SERV_MED_TORAX where nss=knns;
+ IF kexiste = 0 then 
+ 
+ insert into SERV_MED_TORAX(NSS, 
+ RUIDOS_CARDIACOS, 
+ REG_PRECORDIAL,
+ CAMPOS_PULM) VALUES (KNNS,CVAR1,CVAR2,CVAR3);
+   
+ ELSE
+ 
+ UPDATE SERV_MED_TORAX SET 
+ RUIDOS_CARDIACOS=CVAR1, 
+ REG_PRECORDIAL=CVAR2, 
+ CAMPOS_PULM=CVAR3
+ where NSS=KNNS;
+ 
+ END IF;
+ --////////////////////////////////////////
+ --SERV_MED_COLUMNA_VERTEBRAL_AUX
+ 
+ cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_COLUMNA_VERTEBRAL_AUX.DEFORMACIONES',p_values=>j);
+ cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_COLUMNA_VERTEBRAL_AUX.DOLOR',p_values=>j);
+ cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_COLUMNA_VERTEBRAL_AUX.MOVIMIENTOS',p_values=>j);
+ cvar4   := apex_json.get_varchar2(p_path=>'SERV_MED_COLUMNA_VERTEBRAL_AUX.MARCHA',p_values=>j);
+ cvar5   := apex_json.get_varchar2(p_path=>'SERV_MED_COLUMNA_VERTEBRAL_AUX.LASSEGUE',p_values=>j);
+ cvar6   := apex_json.get_varchar2(p_path=>'SERV_MED_COLUMNA_VERTEBRAL_AUX.PUNTA_TALON',p_values=>j);
+ 
+ 
+ select count(*) into kexiste from serv_med_columna_vertebral_aux where nss=knns;
+ IF kexiste = 0 then 
+ 
+ insert into SERV_MED_COLUMNA_VERTEBRAL_AUX(NSS, 
+ DEFORMACIONES, 
+ DOLOR,
+ MOVIMIENTOS,
+ MARCHA,
+ LASSEGUE,
+ PUNTA_TALON
+ ) VALUES (KNNS,CVAR1,CVAR2,CVAR3,CVAR4,CVAR5,CVAR6);
+   
+ ELSE
+ 
+ UPDATE SERV_MED_COLUMNA_VERTEBRAL_AUX SET 
+ DEFORMACIONES=CVAR1, 
+ DOLOR=CVAR2, 
+ MOVIMIENTOS=CVAR3,
+ MARCHA=CVAR4,
+ LASSEGUE=CVAR5,
+ PUNTA_TALON=CVAR6
+ where NSS=KNNS;
+ 
+ END IF;
+ --////////////////////////////////////////
+ --SERV_MED_ABDOMEN
+ 
+ cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_ABDOMEN.FORMA',p_values=>j);
+ cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_ABDOMEN.VISCEROMEGALIAS',p_values=>j);
+ cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_ABDOMEN.HERNIAS',p_values=>j);
+ cvar4   := apex_json.get_varchar2(p_path=>'SERV_MED_ABDOMEN.DOLOR',p_values=>j);
+ cvar5   := apex_json.get_varchar2(p_path=>'SERV_MED_ABDOMEN.PERISTALSIS',p_values=>j);
+ 
+ select count(*) into kexiste from SERV_MED_ABDOMEN where nss=knns;
+ IF kexiste = 0 then 
+ 
+ 
+ insert into SERV_MED_ABDOMEN(NSS, 
+ FORMA, 
+ VISCEROMEGALIAS,
+ HERNIAS,
+ DOLOR,
+ PERISTALSIS
+ ) VALUES (KNNS,CVAR1,CVAR2,CVAR3,CVAR4,CVAR5);
+   
+ ELSE
+ 
+ UPDATE SERV_MED_ABDOMEN SET 
+ FORMA=CVAR1, 
+ VISCEROMEGALIAS=CVAR2, 
+ HERNIAS=CVAR3,
+ DOLOR=CVAR4,
+ PERISTALSIS=CVAR5
+ where NSS=KNNS;
+ 
+ END IF;
+ --////////////////////////////////////////
+ --SERV_MED_GENITALES
+ 
+ cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_GENITALES.MASCULINO',p_values=>j);
+ cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_GENITALES.FEMENINO',p_values=>j);
+ 
+ select count(*) into kexiste from SERV_MED_GENITALES where nss=knns;
+ IF kexiste = 0 then 
+ 
+ insert into SERV_MED_GENITALES(NSS, 
+ MASCULINO, 
+ FEMENINO
+ ) VALUES (KNNS,CVAR1,CVAR2);
+   
+ ELSE
+ 
+ UPDATE SERV_MED_GENITALES SET 
+ MASCULINO=CVAR1, 
+ FEMENINO=CVAR2
+ where NSS=KNNS;
+ 
+ END IF;
+ --////////////////////////////////////////
+ --SERV_MED_URINARIO
+ 
+ cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_URINARIO.PUNTOS_URETRALES',p_values=>j);
+ cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_URINARIO.FOSAS_RENALES',p_values=>j);
+ 
+ select count(*) into kexiste from SERV_MED_URINARIO where nss=knns;
+ IF kexiste = 0 then 
+ 
+ 
+ insert into SERV_MED_URINARIO(NSS, 
+ PUNTOS_URETRALES, 
+ FOSAS_RENALES
+ ) VALUES (KNNS,CVAR1,CVAR2);
+   
+ ELSE
+ 
+ UPDATE SERV_MED_URINARIO SET 
+ PUNTOS_URETRALES=CVAR1, 
+ FOSAS_RENALES=CVAR2
+ where NSS=KNNS;
+ 
+ END IF;
+ --////////////////////////////////////////
+ --SERV_MED_EXTREMIDADES
+ 
+ cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_EXTREMIDADES.SUPERIOR',p_values=>j);
+ cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_EXTREMIDADES.INFERIOR',p_values=>j);
+ cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_EXTREMIDADES.IVP',p_values=>j);
+ cvar4   := apex_json.get_varchar2(p_path=>'SERV_MED_EXTREMIDADES.EDEMA',p_values=>j);
+ 
+ 
+ select count(*) into kexiste from SERV_MED_EXTREMIDADES where nss=knns;
+ IF kexiste = 0 then 
+ 
+ insert into SERV_MED_EXTREMIDADES(NSS, 
+ SUPERIOR, 
+ INFERIOR,
+ IVP,
+ EDEMA
+ ) VALUES (KNNS,CVAR1,CVAR2,CVAR3,CVAR4);
+   
+ ELSE
+ 
+ UPDATE SERV_MED_EXTREMIDADES SET 
+ SUPERIOR=CVAR1, 
+ INFERIOR=CVAR2,
+ IVP=CVAR3,
+ EDEMA=CVAR4
+ where NSS=KNNS;
+ 
+ END IF;
+ --////////////////////////////////////////
+ --SERV_MED_PIEL
+ cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_PIEL.LUNARES',p_values=>j);
+ cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_PIEL.PIGMENTACION',p_values=>j);
+ cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_PIEL.CICATRICES_QUIRUR',p_values=>j);
+ 
+ select count(*) into kexiste from SERV_MED_PIEL where nss=knns;
+ IF kexiste = 0 then 
+ 
+ insert into SERV_MED_PIEL(NSS, 
+ LUNARES, 
+ PIGMENTACION,
+ CICATRICES_QUIRUR
+ ) VALUES (KNNS,CVAR1,CVAR2,CVAR3);
+   
+ ELSE
+ 
+ UPDATE SERV_MED_PIEL SET 
+ LUNARES=CVAR1, 
+ PIGMENTACION=CVAR2,
+ CICATRICES_QUIRUR=CVAR3
+ where NSS=KNNS;
+ END IF;
+ --////////////////////////////////////////
+ --SERV_MED_DIENTES
+ cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_11',p_values=>j);
+ cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_12',p_values=>j);
+ cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_13',p_values=>j);
+ cvar4   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_14',p_values=>j);
+ cvar5   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_15',p_values=>j);
+ cvar6   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_16',p_values=>j);
+ cvar7   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_17',p_values=>j);
+ cvar8   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_18',p_values=>j);
+ cvar9   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_41',p_values=>j);
+ cvar10   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_42',p_values=>j);
+ cvar11   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_43',p_values=>j);
+ cvar12  := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_44',p_values=>j);
+ cvar13   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_45',p_values=>j);
+ cvar14  := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_46',p_values=>j);
+ cvar15  := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_47',p_values=>j);
+ cvar16   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_48',p_values=>j);
+ cvar17   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_21',p_values=>j);
+ cvar18   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_22',p_values=>j);
+ cvar19   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_23',p_values=>j);
+ cvar20   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_24',p_values=>j);
+ cvar21   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_25',p_values=>j);
+ cvar22   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_26',p_values=>j);
+ cvar23   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_27',p_values=>j);
+ cvar24   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_28',p_values=>j);
+ cvar25   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_31',p_values=>j);
+ cvar26   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_32',p_values=>j);
+ cvar27   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_33',p_values=>j);
+ cvar28   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_34',p_values=>j);
+ cvar29   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_35',p_values=>j);
+ cvar30   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_36',p_values=>j);
+ cvar31   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_37',p_values=>j);
+ cvar32   := apex_json.get_varchar2(p_path=>'SERV_MED_DIENTES.DIENTE_38',p_values=>j);
+ 
+ 
+ select count(*) into kexiste from SERV_MED_DIENTES where nss=knns;
+ IF kexiste = 0 then 
+ 
+ insert into SERV_MED_DIENTES(NSS, 
+ DIENTE_11,DIENTE_12,DIENTE_13,DIENTE_14,DIENTE_15,DIENTE_16,DIENTE_17,DIENTE_18,
+ DIENTE_41,DIENTE_42,DIENTE_43,DIENTE_44,DIENTE_45,DIENTE_46,DIENTE_47,DIENTE_48,
+ DIENTE_21,DIENTE_22,DIENTE_23,DIENTE_24,DIENTE_25,DIENTE_26,DIENTE_27,DIENTE_28,
+ DIENTE_31,DIENTE_32,DIENTE_33,DIENTE_34,DIENTE_35,DIENTE_36,DIENTE_37,DIENTE_38)
+  VALUES (KNNS,CVAR1,CVAR2,CVAR3,CVAR4,CVAR5,CVAR6,CVAR7,CVAR8,CVAR9,CVAR10,CVAR11,CVAR12,
+ CVAR13,CVAR14,CVAR15,CVAR16,CVAR17,CVAR18,CVAR19,CVAR20,CVAR21,CVAR22,CVAR23,CVAR24,CVAR25,CVAR26,CVAR27,
+ CVAR28,CVAR29,CVAR30,CVAR31,CVAR32);
+   
+ ELSE
+ 
+ 
+ UPDATE SERV_MED_DIENTES SET 
+ DIENTE_11=CVAR1,DIENTE_12=CVAR2,DIENTE_13=CVAR3,DIENTE_14=CVAR4,DIENTE_15=CVAR5,DIENTE_16=CVAR6,DIENTE_17=CVAR7,DIENTE_18=CVAR8,
+ DIENTE_41=CVAR9,DIENTE_42=CVAR10,DIENTE_43=CVAR11,DIENTE_44=CVAR12,DIENTE_45=CVAR13,DIENTE_46=CVAR14,DIENTE_47=CVAR15,DIENTE_48=CVAR16,
+ DIENTE_21=CVAR17,DIENTE_22=CVAR18,DIENTE_23=CVAR19,DIENTE_24=CVAR20,DIENTE_25=CVAR21,DIENTE_26=CVAR22,DIENTE_27=CVAR23,DIENTE_28=CVAR24,
+ DIENTE_31=CVAR25,DIENTE_32=CVAR26,DIENTE_33=CVAR27,DIENTE_34=CVAR28,DIENTE_35=CVAR29,DIENTE_36=CVAR30,DIENTE_37=CVAR31,DIENTE_38=CVAR32
+ where NSS=KNNS;
+ END IF;
+ --////////////////////////////////////////
+ --SERV_MED_ESTUDIOS_REALIZADOS
+ 
+ cvar100   := apex_json.get_varchar2(p_path=>'SERV_MED_ESTUDIOS_REALIZADOS.RESULTADOS',p_values=>j);
+ 
+ select count(*) into kexiste from SERV_MED_ESTUDIOS_REALIZADOS where nss=knns;
+ IF kexiste = 0 then 
+ 
+ 
+ insert into SERV_MED_ESTUDIOS_REALIZADOS(NSS, 
+ RESULTADOS) VALUES (KNNS,CVAR100);
+   
+ ELSE
+ 
+ UPDATE SERV_MED_ESTUDIOS_REALIZADOS SET 
+ RESULTADOS=CVAR100
+ where NSS=KNNS;
+ 
+ END IF;
+ --////////////////////////////////////////
+ --SERV_MED_DIAGNOSTICO
+ 
+ cvar100   := apex_json.get_varchar2(p_path=>'SERV_MED_DIAGNOSTICO.OBSERVACIONES',p_values=>j);
+ 
+ select count(*) into kexiste from serv_med_diagnostico where nss=knns;
+ IF kexiste = 0 then 
+ 
+ 
+ insert into SERV_MED_DIAGNOSTICO(NSS, 
+ OBSERVACIONES) VALUES (KNNS,CVAR100);
+   
+ ELSE
+ 
+ UPDATE SERV_MED_DIAGNOSTICO SET 
+ OBSERVACIONES=CVAR100
+ where NSS=KNNS;
+ 
+ END IF;
+ --////////////////////////////////////////
+ --SERV_MED_PLAN_TERAPIA
+ 
+  cvar100   := apex_json.get_varchar2(p_path=>'SERV_MED_PLAN_TERAPIA.OBSERVACIONES',p_values=>j);
+ 
+  select count(*) into kexiste from serv_med_plan_terapia where nss=knns;
+ IF kexiste = 0 then 
+ 
+ 
+    insert into SERV_MED_PLAN_TERAPIA(NSS, 
+    OBSERVACIONES) VALUES (KNNS,CVAR100);
+   
+   ELSE
+ 
+     UPDATE SERV_MED_PLAN_TERAPIA SET 
+     OBSERVACIONES=CVAR100
+     where NSS=KNNS;
+ 
+    END IF;
+    
+ --////////////////////////////////////////
+ --SERV_MED_DATOS_LABORALES 
+ 
+  zvar   := apex_json.get_varchar2(p_path=>'SERV_ANTECEDENTESLAB.edad_inicio_laboral',p_values=>j);
+  zvar1   := apex_json.get_varchar2(p_path=>'SERV_ANTECEDENTESLAB.cantidad_trabajos',p_values=>j);
+  zvar2   := apex_json.get_varchar2(p_path=>'SERV_ANTECEDENTESLAB.pension',p_values=>j);
+  
+ select count(*) into kexiste from SERV_MED_ANT_LABORALES where nss=knns;
+  IF kexiste = 0 then 
+    insert into SERV_MED_ANT_LABORALES(NSS, 
+    EDAD_INICIO_LABORAL,
+    CANTIDAD_TRABAJOS,
+    PENSION,
+    OBSERVACIONES) VALUES (KNNS,zvar,zvar1,zvar2,'');
+  else
+   update SERV_MED_ANT_LABORALES
+   set EDAD_INICIO_LABORAL=zvar,
+   CANTIDAD_TRABAJOS=zvar1,
+   PENSION=zvar2 where nss=knns;
+  end if; 
+    
+     l_count := apex_json.get_count(p_path=>'SERV_ANTECEDENTESLAB.trabajos',p_values=>j);  
+       if l_count>0 then --existe registros  
+              for x in 1 ..l_count
+               loop
+                 kno_trabajo := apex_json.get_varchar2(p_path=>'trabajos[%d].nombre',p0=> x,p_values=>j);     
+                 kgiro := apex_json.get_varchar2(p_path=>'trabajos[%d].giro',p0=> x,p_values=>j);  
+                 knombre_puesto := apex_json.get_varchar2(p_path=>'trabajos[%d].puesto',p0=> x,p_values=>j);  
+                 kturno := apex_json.get_varchar2(p_path=>'trabajos[%d].turno',p0=> x,p_values=>j);  
+                 kantiguedad := apex_json.get_varchar2(p_path=>'trabajos[%d].antiguedad',p0=> x,p_values=>j); 
+                 ksalida := apex_json.get_varchar2(p_path=>'trabajos[%d].salida',p0=> x,p_values=>j); 
+                 cvar200 := apex_json.get_varchar2(p_path=>'trabajos[%d].descripcion',p0=> x,p_values=>j); 
+                 kriesgo := apex_json.get_varchar2(p_path=>'trabajos[%d].riesgos',p0=> x,p_values=>j);
+                 kepp := apex_json.get_varchar2(p_path=>'trabajos[%d].epp',p0=> x,p_values=>j); 
+                 cvar300 := apex_json.get_varchar2(p_path=>'trabajos[%d].observaciones',p0=> x,p_values=>j); 
+               
+               SELECT COUNT(*) into KEXISTE11 
+               FROM SERV_MED_DET_ANT_LABORALES WHERE NSS=KNNS AND NO_TRABAJO=KNO_TRABAJO;
+               
+               IF KEXISTE11 = 0 THEN 
+                  insert into SERV_MED_DET_ANT_LABORALES(
+                  REG_ID,NSS,NO_TRABAJO,
+                  GIRO_NEGOCIO,
+                  turno,
+                  NOMBRE_PUESTO,
+                  ANTIGUEDAD,
+                  TIPO_RIEGO,
+                  DESCRIPCION_TRABAJO,
+                  ANO_SALIDA,
+                  EPP,
+                  OBSERVACIONES) values ('',knns,kno_trabajo,kgiro,kturno,knombre_puesto,kantiguedad,kriesgo,cvar200,
+                  ksalida,kepp,cvar300);
+                ELSE
+                 UPDATE SERV_MED_DET_ANT_LABORALES SET NO_TRABAJO=Kno_trabajo,
+                 turno=kturno,
+                 giro_negocio=kgiro,nombre_puesto=knombre_puesto,
+                 antiguedad=kantiguedad,tipo_riego=kriesgo,
+                 descripcion_trabajo=cvar200,ano_salida=ksalida,epp=kepp,observaciones=cvar300
+                 where nss=knns and NO_TRABAJO=Kno_trabajo;
+                end if;  
+             end loop;
+        end if;        
+ 
+ --////////////////////////////////////////
+ --SERV_MED_RESULTADO_EXAMEN
+ 
+  cvar100   := apex_json.get_varchar2(p_path=>'SERV_MED_RESULTADO_EXAMEN.OBSERVACIONES',p_values=>j);
+  cvar1   := apex_json.get_varchar2(p_path=>'SERV_MED_RESULTADO_EXAMEN.APTO',p_values=>j);
+  cvar2   := apex_json.get_varchar2(p_path=>'SERV_MED_RESULTADO_EXAMEN.NO_APTO',p_values=>j);
+  cvar3   := apex_json.get_varchar2(p_path=>'SERV_MED_RESULTADO_EXAMEN.APTO_CONDICIONADO',p_values=>j);
+  cvar4   := apex_json.get_varchar2(p_path=>'SERV_MED_RESULTADO_EXAMEN.APTO_RESTRINGIDO',p_values=>j);
+  kfirma  := apex_json.get_clob(p_path=>'SERV_MED_RESULTADO_EXAMEN.FIRMA_DIGITAL',p_values=>j);
+ 
+ select count(*) into kexiste from SERV_MED_RESULTADO_EXAMEN where nss=knns;
+ IF kexiste = 0 then 
+ 
+    insert into SERV_MED_RESULTADO_EXAMEN(NSS, 
+    OBSERVACIONES,
+    APTO,
+    NO_APTO,
+    APTO_CONDICIONADO,
+    APTO_RESTRINGIDO,
+    firma_digital) VALUES (KNNS,CVAR100,CVAR1,CVAR2,CVAR3,CVAR4,kfirma);
+   
+   ELSE
+ 
+     UPDATE SERV_MED_RESULTADO_EXAMEN SET 
+     OBSERVACIONES=CVAR100,
+     APTO=CVAR1,NO_APTO=CVAR2,APTO_CONDICIONADO=CVAR3,APTO_RESTRINGIDO=CVAR4,
+     firma_digital=kfirma
+     where NSS=KNNS;
+ 
+    END IF;    
+  
+  
+    
+               KRESPUESTA:= 0;
+         
+         
+ EXCEPTION 
+ WHEN OTHERS THEN 
+   KRESPUESTA := 1;
+ END PR_SERVICIO_MED_EXAMEN2;
+ 
+
+

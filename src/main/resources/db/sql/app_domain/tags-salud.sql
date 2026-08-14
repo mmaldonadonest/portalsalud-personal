@@ -466,22 +466,18 @@ ORDER BY TOTAL_FILAS DESC;
 -- 7b. Último valor por NSS+TYPE
 --     Replica el comportamiento PHP: ORDER BY id DESC LIMIT 1
 --     Úsala desde Java en lugar de consultar directamente MED_TAG
+--     NOTA (2026-08-13): la version original usaba SELECT DISTINCT sobre una
+--     columna CLOB (CONTENT), lo cual Oracle rechaza con ORA-00932
+--     ("inconsistent datatypes: expected - got CLOB"). ROW_NUMBER()+filtro
+--     evita el DISTINCT sobre CLOB sin cambiar el resultado.
 CREATE OR REPLACE VIEW V_MED_TAG_LATEST AS
-SELECT DISTINCT
-  NSS,
-  TYPE,
-  TAG_GROUP,
-  FIRST_VALUE(CONTENT) OVER (
-    PARTITION BY NSS, TYPE
-    ORDER BY ID DESC
-    ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
-  ) AS CONTENT,
-  FIRST_VALUE(ID) OVER (
-    PARTITION BY NSS, TYPE
-    ORDER BY ID DESC
-    ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
-  ) AS LAST_ID
-FROM MED_TAG;
+SELECT NSS, TYPE, TAG_GROUP, CONTENT, ID AS LAST_ID
+FROM (
+  SELECT NSS, TYPE, TAG_GROUP, CONTENT, ID,
+         ROW_NUMBER() OVER (PARTITION BY NSS, TYPE ORDER BY ID DESC) AS RN
+  FROM MED_TAG
+)
+WHERE RN = 1;
 /
 
 -- 7c. Registros sin NSS (huérfanos del legacy)

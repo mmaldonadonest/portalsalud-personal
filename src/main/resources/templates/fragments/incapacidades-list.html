@@ -17,11 +17,23 @@
                 No se encontraron incapacidades para este NSS.
             </div>
 
-            <div th:unless="${#lists.isEmpty(incapacidades)}">
+            <div th:unless="${#lists.isEmpty(incapacidades)}"
+                 th:with="ramoLabels=${ {'enfermedad_general':'Enfermedad General','profesional':'Enfermedad profesional','rt1':'RT1','rt2':'RT2','maternidad':'Maternidad'} }">
                 <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
-                    <input type="text" class="form-control form-control-sm" style="max-width: 260px;"
-                           placeholder="Buscar..." aria-label="Buscar en incapacidades"
-                           oninput="filtrarConsultas(this);">
+                    <div class="d-flex flex-wrap gap-2">
+                        <input type="text" class="form-control form-control-sm" style="max-width: 260px;"
+                               placeholder="Buscar..." aria-label="Buscar en incapacidades"
+                               oninput="filtrarConsultas(this);">
+                        <select class="form-select form-select-sm" style="max-width: 200px;"
+                                aria-label="Filtrar por ramo" data-filtro-ramo onchange="filtrarPorRamo(this);">
+                            <option value="">Todos los ramos</option>
+                            <option value="enfermedad_general">Enfermedad General</option>
+                            <option value="profesional">Enfermedad profesional</option>
+                            <option value="rt1">RT1</option>
+                            <option value="rt2">RT2</option>
+                            <option value="maternidad">Maternidad</option>
+                        </select>
+                    </div>
                     <button type="button" class="btn btn-sm btn-success" onclick="exportarConsultasExcel(this);">
                         <i class="ri-file-excel-2-line me-1"></i> Exportar a Excel
                     </button>
@@ -43,11 +55,11 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr th:each="i : ${incapacidades}">
+                            <tr th:each="i : ${incapacidades}" th:attr="data-ramo=${i.ramo}">
                                 <td th:text="${i.fechaConsulta}">-</td>
                                 <td th:text="${i.folioIncapacidad}">-</td>
                                 <td th:text="${i.rubro}">-</td>
-                                <td th:text="${i.ramo}">-</td>
+                                <td th:text="${ramoLabels.get(i.ramo) ?: i.ramo}">-</td>
                                 <td th:text="${i.tipoIncapacidad}">-</td>
                                 <td th:text="${i.diasAutorizados}">-</td>
                                 <td th:text="${i.fechaInicio}">-</td>
@@ -66,6 +78,34 @@
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <div class="card card-one mt-3">
+        <div class="card-header">
+            <h6 class="card-title mb-0">Reporte de incapacidades por rango de fechas</h6>
+        </div>
+        <div class="card-body">
+            <p class="text-muted fs-sm mb-3">
+                Todas las incapacidades de todos los NSS en el rango indicado (para RH/contabilidad
+                - no depende del NSS de arriba).
+            </p>
+            <div class="row g-3 align-items-end mb-3">
+                <div class="col-md-4">
+                    <label class="form-label" for="reporteFechaInicial">Fecha inicial</label>
+                    <input type="date" class="form-control" id="reporteFechaInicial">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="reporteFechaFinal">Fecha final</label>
+                    <input type="date" class="form-control" id="reporteFechaFinal">
+                </div>
+                <div class="col-md-4">
+                    <button type="button" class="btn btn-primary" onclick="generarReporteIncapacidades(this);">
+                        <i class="ri-search-line me-1"></i> Generar
+                    </button>
+                </div>
+            </div>
+            <div id="reporteIncapacidadesResult"></div>
         </div>
     </div>
 </div>

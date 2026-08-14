@@ -62,6 +62,17 @@ Tabla `servicioMedico.files` en MariaDB:
 
 **Acción pendiente:** `DROP INDEX UX_FS_FILE_CHECKSUM` + recrear como índice normal, corregir `00_init`, aplicar en local + QA (igual que el reconcile). **← decidir antes de escribir el runner.**
 
+**✅ Aplicado 2026-08-13 en Oracle local (`PROYECTO_BASE_PDB`).** Verificado: `UX_FS_FILE_CHECKSUM` ahora `NONUNIQUE`/`VALID`. `00_init_oracle21c.sql` corregido para reflejar esto en instalaciones futuras. **Pendiente: aplicar el mismo `DROP`+`CREATE` en QA** cuando se decida correr la migración ahí (la corrida completa de este ETL será contra Oracle local por ahora, según decisión del 2026-08-13).
+
+---
+
+## 3.1 Verificado 2026-08-12: los links no se rompen, y `nss` sí viaja
+
+Pregunta validada antes de arrancar: ¿qué pasa con los links del portal después de migrar?
+
+- Los links "Ver/Descargar" (`FileStoreController.java`) **no son URLs fijas** — se regeneran en cada render a partir de lo que exista en `APP_FS_FILE` en ese momento. Hoy (sin migrar) las pantallas de archivos históricos simplemente se ven vacías ("sin archivos adjuntos"), no rotas. Después de migrar, aparecen en las mismas pantallas sin distinguir viejo/nuevo.
+- La pantalla U06 (Laboratorio/Histórico E.M/Nota médica/Nota incapacidad) filtra por **NSS + type**, no solo por type (`FsFileRepository.listByNssAndType`). Confirmado que `files.nss` **sí existe** como columna propia en el origen MariaDB (`varchar(50)`, ver cabecera de `files-salud.sql`) — el runner debe leerla y pasarla igual que hoy hace `FileStoreService.store(files, nss, relacion)`. No hay que resolver el NSS desde otra tabla.
+
 ---
 
 ## 4. Destino: piezas YA construidas (no reescribir)
@@ -81,7 +92,7 @@ Tabla `servicioMedico.files` en MariaDB:
 2. **Detección por magic-bytes** del binario decodificado (`%PDF`, `\x89PNG`, `\xFF\xD8\xFF`, `PK\x03\x04`) para los ~3 sin extensión y truncados. Nombre solo como referencia.
 3. **Idempotencia:** `BUSINESS_KEY = "legacy-<id de MariaDB>"`. Aprovecha el índice único `UX_APP_FS_FILE_BKEY` → re-ejecutar no duplica y permite reanudar si truena a media corrida.
 4. **Base64 limpio:** es `base64_encode()` pelón (sin prefijo `data:`, sin saltos) → `Base64.getDecoder()` directo. Validar sha256 post-decode; mandar a cuarentena lo que no decodifique en vez de abortar el lote.
-5. **Perfil `etl`** con segundo `DataSource` apuntando a MariaDB.
+5. **Perfil `etl`** con segundo `DataSource` apuntando a MariaDB. **Decidido 2026-08-12: JDBC directo** (no DB Link) — cero dependencia de DBA/redes, controlado por completo desde código. El usuario ya tiene credenciales de acceso a MariaDB (usadas para el perfilado del 2026-07-30).
 6. **Modo muestra:** aceptar una lista de ids o `LIMIT` para la prueba.
 
 ---

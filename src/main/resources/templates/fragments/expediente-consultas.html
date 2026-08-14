@@ -18,7 +18,9 @@
                 No se encontraron consultas para este NSS.
             </div>
 
-            <div th:unless="${#lists.isEmpty(consultas)}">
+            <div th:unless="${#lists.isEmpty(consultas)}"
+                 th:with="tipoLabels=${ {'enfermedad_general':'Enfermedad General','incidente_accidente':'Incidente/Accidente','pase_salida':'Pase de Salida','cronico_degenerativo':'Crónico Degenerativo','campana':'Campaña','entrega_incapacidad':'Entrega de Incapacidad','st7':'ST7','otros_consulta':'Otros','EMERGENCIA':'Emergencia','ACCIDENTE':'Accidente'} },
+                          areaLabels=${ {'oficinas':'Oficinas','patio_maniobras':'Patio de Maniobras','acceso':'Acceso','filtro':'Filtro','rampas':'Rampas','picking':'Picking','surtido':'Surtido','paletizadoras':'Paletizadoras','preparado':'Preparado','comedor':'Comedor','estacionamiento':'Estacionamiento','via_publica':'Vía Pública','trayecto_empresa':'Trayecto a Empresa','trayecto_domicilio':'Trayecto a Domicilio','comision':'En Comisión','trabajos_especiales':'En Trabajos Especiales','otros_accidente':'Otros'} }">
                 <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
                     <input type="text" class="form-control form-control-sm" style="max-width: 260px;"
                            placeholder="Buscar..." aria-label="Buscar en consultas"
@@ -34,14 +36,23 @@
                                 <th>Fecha de consulta</th>
                                 <th>Tipo de consulta</th>
                                 <th>Area de accidente</th>
+                                <th>Causa</th>
                                 <th class="text-center" data-no-export>Ver</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr th:each="c : ${consultas}">
+                            <tr th:each="c : ${consultas}"
+                                th:classappend="${c.esAccidente()} ? 'table-warning'">
                                 <td th:text="${c.fechaConsulta}">-</td>
-                                <td th:text="${c.tipoConsulta}">-</td>
-                                <td th:text="${c.areaAccidente}">-</td>
+                                <td>
+                                    <span th:text="${tipoLabels.get(c.tipoConsulta) ?: c.tipoConsulta}">-</span>
+                                    <span th:if="${c.esAccidente()}"
+                                          class="badge bg-danger ms-1">
+                                        <i class="ri-alert-line"></i> Accidente
+                                    </span>
+                                </td>
+                                <td th:text="${areaLabels.get(c.areaAccidente) ?: c.areaAccidente}">-</td>
+                                <td th:text="${c.causa}">-</td>
                                 <td class="text-center" data-no-export>
                                     <button type="button" class="btn btn-sm btn-outline-info"
                                             th:attr="data-id-consulta=${c.idConsulta}"

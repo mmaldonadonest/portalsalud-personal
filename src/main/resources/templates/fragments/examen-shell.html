@@ -12,17 +12,70 @@
             <span class="badge bg-primary" th:text="'NSS ' + ${nss}">NSS</span>
         </div>
         <div class="card-body">
-            <div class="d-flex flex-wrap gap-2 mb-3">
-                <button th:each="s : ${secciones}" type="button"
-                        class="btn btn-sm btn-outline-primary"
-                        th:text="${s}"
-                        th:attr="data-seccion=${s}, data-nss=${nss}"
-                        onclick="cargarSeccionExamen(this);">Seccion</button>
+            <div th:each="g : ${grupos}" class="mb-2">
+                <div class="text-uppercase fs-xs text-muted fw-semibold mb-1" th:text="${g.nombre}">Grupo</div>
+                <div class="d-flex flex-wrap gap-2 mb-2">
+                    <button th:each="s : ${g.secciones}" type="button"
+                            class="btn btn-sm btn-outline-primary"
+                            th:text="${s}"
+                            th:attr="data-seccion=${s}, data-nss=${nss}"
+                            onclick="cargarSeccionExamen(this);">Seccion</button>
+                </div>
             </div>
 
             <div id="examenSecciones"></div>
 
             <hr class="my-3">
+
+            <!--
+              Antecedentes laborales - trabajos previos (lista repetible, uno por empleo anterior).
+              Guardado CONFIRMADO 2026-08-13 contra el WS real (POST directo a /Servcio/Medico,
+              fila verificada en SERV_MED_DET_ANT_LABORALES con contenido real - primera vez que
+              este arreglo se guarda con datos, ni el legacy PHP lo logro). Ver el fix de payload
+              anidado en BiowsExamenClient.guardar(). Sigue SIN precargarse desde el WS al reabrir
+              el examen: el endpoint de lectura (/Servcio/consulta_examen) no expone
+              SERV_MED_DET_ANT_LABORALES en ningun path de docs/contextoWS.txt - siempre arranca
+              vacio, solo para trabajos nuevos capturados en esta sesion. Filas fuera de
+              #examenSecciones a proposito: guardarExamen() las recolecta aparte desde
+              #trabajosPrevios.
+            -->
+            <div class="card bg-light mb-3" id="trabajosPrevios">
+                <div class="card-header py-2 d-flex align-items-center justify-content-between">
+                    <strong>Antecedentes laborales &mdash; trabajos previos</strong>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="agregarTrabajoExamen();">
+                        <i class="ri-add-line me-1"></i> Agregar trabajo
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning py-2 px-3 fs-sm mb-3">
+                        <i class="ri-alert-line me-1"></i>
+                        El guardado ya está verificado contra el sistema real. Lo que sigue sin construirse:
+                        al reabrir el examen, esta lista no se precarga con trabajos capturados antes —
+                        siempre arranca vacía.
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th style="min-width:90px;">No. trabajo</th>
+                                    <th style="min-width:140px;">Giro</th>
+                                    <th style="min-width:140px;">Puesto</th>
+                                    <th style="min-width:110px;">Turno</th>
+                                    <th style="min-width:110px;">Antigüedad</th>
+                                    <th style="min-width:100px;">Año salida</th>
+                                    <th style="min-width:140px;">Riesgos</th>
+                                    <th style="min-width:140px;">EPP</th>
+                                    <th style="min-width:160px;">Descripción</th>
+                                    <th style="min-width:160px;">Observaciones</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="trabajosBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="text-muted fs-sm" id="trabajosVacio">Sin trabajos previos capturados.</div>
+                </div>
+            </div>
             <div class="row">
                 <div class="col-md-6">
                     <label class="form-label d-block">Firma del paciente</label>

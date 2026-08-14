@@ -4,9 +4,12 @@ import com.onest.app.catalog.incapacidad.client.IncapacidadClient;
 import com.onest.app.catalog.incapacidad.client.dto.BiowsIncapacidadAltaRequest;
 import com.onest.app.catalog.incapacidad.dto.IncapacidadDetalleDto;
 import com.onest.app.catalog.incapacidad.dto.IncapacidadDto;
+import com.onest.app.catalog.incapacidad.dto.IncapacidadReporteDto;
 import com.onest.app.catalog.incapacidad.web.IncapacidadAltaForm;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,6 +26,9 @@ public class IncapacidadService {
 
     private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("dd/MM/yy HH:mm:ss");
     private static final String USUARIO_FIJO = "747849849";
+    // Formato exacto que espera el WS para el reporte por fecha (anio de 2 digitos) - ver
+    // BiowsIncapacidadReporteRequest, confirmado contra php-old/rest/dashboard/generarExcelIncapa.php.
+    private static final DateTimeFormatter FECHA_REPORTE = DateTimeFormatter.ofPattern("dd/MM/yy");
 
     private final IncapacidadClient client;
 
@@ -79,6 +85,31 @@ public class IncapacidadService {
                 form.getAlta()
         );
         return client.crearIncapacidad(request);
+    }
+
+    /**
+     * Reporte administrativo por rango de fechas (todas las NSS). fechaInicial/fechaFinal llegan
+     * en formato ISO (yyyy-MM-dd, lo que manda un &lt;input type="date"&gt;) y se reformatean a
+     * "dd/MM/yy" antes de mandarlas al WS (ver FECHA_REPORTE).
+     */
+    public List<IncapacidadReporteDto> reportePorFecha(String fechaInicial, String fechaFinal) {
+        LocalDate desde = parseFechaIso(fechaInicial, "inicial");
+        LocalDate hasta = parseFechaIso(fechaFinal, "final");
+        if (desde.isAfter(hasta)) {
+            throw new IllegalArgumentException("La fecha inicial no puede ser posterior a la fecha final");
+        }
+        return client.reportePorFecha(desde.format(FECHA_REPORTE), hasta.format(FECHA_REPORTE));
+    }
+
+    private static LocalDate parseFechaIso(String valor, String etiqueta) {
+        if (valor == null || valor.isBlank()) {
+            throw new IllegalArgumentException("La fecha " + etiqueta + " es obligatoria");
+        }
+        try {
+            return LocalDate.parse(valor.trim());
+        } catch (DateTimeParseException ex) {
+            throw new IllegalArgumentException("La fecha " + etiqueta + " no es valida", ex);
+        }
     }
 
     private static String blankToNull(String value) {

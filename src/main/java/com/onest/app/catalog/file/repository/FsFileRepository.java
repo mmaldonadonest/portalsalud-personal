@@ -29,6 +29,14 @@ public class FsFileRepository {
     public long insert(String nss, String businessKey, String originalName, String extension, String mimeType,
                        long sizeBytes, String checksumSha256, String storagePath, String storageProvider,
                        String fileType, String createdBy) {
+        return insert(nss, businessKey, originalName, extension, mimeType, sizeBytes, checksumSha256, storagePath,
+                storageProvider, fileType, createdBy, LocalDateTime.now());
+    }
+
+    /** Variante con fecha de alta explicita (migraciones historicas: {@code files.date_upload} del legacy). */
+    public long insert(String nss, String businessKey, String originalName, String extension, String mimeType,
+                       long sizeBytes, String checksumSha256, String storagePath, String storageProvider,
+                       String fileType, String createdBy, LocalDateTime dateUpload) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbc.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(
@@ -48,12 +56,19 @@ public class FsFileRepository {
             ps.setString(i++, checksumSha256);
             ps.setString(i++, storagePath);
             ps.setString(i++, storageProvider);
-            ps.setTimestamp(i++, Timestamp.valueOf(LocalDateTime.now()));
+            ps.setTimestamp(i++, Timestamp.valueOf(dateUpload == null ? LocalDateTime.now() : dateUpload));
             ps.setString(i, createdBy);
             return ps;
         }, keyHolder);
         Number key = keyHolder.getKey();
         return key == null ? -1L : key.longValue();
+    }
+
+    /** Para idempotencia del ETL legacy: evita reinsertar un {@code BUSINESS_KEY} ya migrado. */
+    public boolean existsByBusinessKey(String businessKey) {
+        Integer count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM APP_FS_FILE WHERE BUSINESS_KEY = ?", Integer.class, businessKey);
+        return count != null && count > 0;
     }
 
     /** Ubicacion (nombre + mime + ruta) para descargar un archivo activo. */

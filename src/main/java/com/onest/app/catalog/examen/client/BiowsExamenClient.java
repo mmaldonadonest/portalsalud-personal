@@ -6,8 +6,13 @@ import com.onest.app.catalog.expediente.client.dto.BiowsProcesoResponse;
 import com.onest.app.config.BiowsProperties;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
@@ -26,6 +31,7 @@ public class BiowsExamenClient implements ExamenClient {
     private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("dd/MM/yy HH:mm:ss");
     private static final String PATH = "/Servcio/consulta_examen";
     private static final String PATH_SAVE = "/Servcio/Medico";
+    private static final Pattern TRABAJO_KEY = Pattern.compile("^trabajos\\[(\\d+)]\\.(.+)$");
 
     private final RestClient biowsRestClient;
     private final BiowsProperties properties;
@@ -59,8 +65,18 @@ public class BiowsExamenClient implements ExamenClient {
     public String guardar(String nss, Map<String, String> campos, String firma) {
         // Reconstruye el payload anidado: agrupa por seccion (parte antes del primer '.').
         Map<String, Map<String, Object>> secciones = new LinkedHashMap<>();
+        // trabajos[N].campo (antecedentes laborales - lista de empleos previos) se arma aparte,
+        // no es una "seccion" con nombre fijo sino un arreglo de filas. Ver comentario en guardar().
+        Map<Integer, Map<String, Object>> trabajosPorIndice = new TreeMap<>();
         for (Map.Entry<String, String> e : campos.entrySet()) {
             String key = e.getKey();
+            Matcher trabajo = TRABAJO_KEY.matcher(key);
+            if (trabajo.matches()) {
+                int idx = Integer.parseInt(trabajo.group(1));
+                trabajosPorIndice.computeIfAbsent(idx, k -> new LinkedHashMap<>())
+                        .put(trabajo.group(2), e.getValue());
+                continue;
+            }
             int dot = key.indexOf('.');
             if (dot < 0) {
                 continue;
@@ -92,6 +108,32 @@ public class BiowsExamenClient implements ExamenClient {
         payload.put("TIPO_REGISTROS", "CAMBIO");
         payload.put("USUARIO_CAMBIO", usuarioActual());
         payload.putAll(secciones);
+
+        // CONFIRMADO 2026-08-13 leyendo el PL/SQL real (docs/contextoWS.txt:4891-4900): el WS
+        // cuenta las filas con apex_json.get_count(p_path=>'SERV_ANTECEDENTESLAB.trabajos', ...)
+        // (arreglo ANIDADO dentro de la seccion) pero lee cada fila con 'trabajos[%d].campo' SIN
+        // ese prefijo (arreglo en la RAIZ). Son dos ubicaciones JSON distintas: con "trabajos"
+        // solo en la raiz (como se enviaba antes), el conteo siempre da 0 y el bloque completo
+        // se salta - por eso SERV_MED_DET_ANT_LABORALES tiene 51,730 filas historicas, todas
+        // NULL (ni el legacy PHP logro nunca guardar esto). Fix: mandar el arreglo en AMBOS
+        // lugares para satisfacer el conteo y la lectura.
+        List<Map<String, Object>> trabajos = new ArrayList<>();
+        for (Map<String, Object> fila : trabajosPorIndice.values()) {
+            boolean vacia = fila.values().stream().allMatch(v -> v == null || String.valueOf(v).isBlank());
+            if (!vacia) {
+                trabajos.add(fila);
+            }
+        }
+        if (!trabajos.isEmpty()) {
+            payload.put("trabajos", trabajos);
+            // secciones ya se copio a payload arriba (putAll); "SERV_ANTECEDENTESLAB" puede no
+            // haber existido todavia en ese momento, asi que se re-inserta explicitamente en
+            // payload (no basta con mutar el mapa de "secciones").
+            Map<String, Object> antecedentesLab =
+                    secciones.computeIfAbsent("SERV_ANTECEDENTESLAB", k -> new LinkedHashMap<>());
+            antecedentesLab.put("trabajos", trabajos);
+            payload.put("SERV_ANTECEDENTESLAB", antecedentesLab);
+        }
 
         log.info("[biows] POST {}{} NSS={} secciones={}", properties.baseUrl(), PATH_SAVE, nss, secciones.size());
         BiowsProcesoResponse response = biowsRestClient.post()

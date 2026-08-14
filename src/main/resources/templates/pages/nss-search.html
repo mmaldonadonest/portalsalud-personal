@@ -6,7 +6,20 @@
 </head>
 <body>
 
-<th:block id="pageStyles"></th:block>
+<th:block id="pageStyles">
+    <style>
+        /* Item de modulo activo en el submenu lateral: reusa el azul primario del tema. */
+        #nssModulesSub .nav-sub-link.active {
+            background-color: rgba(80, 111, 217, 0.12);
+            color: #506fd9;
+            font-weight: 600;
+            border-radius: 4px;
+        }
+        #nssModulesSub .nav-sub-link.active::before {
+            background-color: #506fd9;
+        }
+    </style>
+</th:block>
 
 <th:block th:fragment="nssContent">
     <div class="d-flex align-items-center justify-content-between mb-4">
@@ -201,6 +214,7 @@
                     return;
                 }
                 mc.innerHTML = '<div class="text-muted fs-sm">Cargando...</div>';
+                mc.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 try {
                     var body = new URLSearchParams();
                     body.append('data', nss);
@@ -230,9 +244,21 @@
                 }
             }
 
+            // Item activo del submenu: azul institucional del tema en el modulo seleccionado.
+            function marcarModuloActivo(btn) {
+                var sub = document.getElementById('nssModulesSub');
+                if (sub) {
+                    sub.querySelectorAll('.nav-sub-link.active').forEach(function (el) {
+                        el.classList.remove('active');
+                    });
+                }
+                btn.classList.add('active');
+            }
+
             // Handler de los modulos del sidebar. Despacha por data-action; los modulos
             // aun no implementados (sin action) muestran mensaje placeholder.
             window.abrirModulo = function (btn) {
+                marcarModuloActivo(btn);
                 var action = btn.getAttribute('data-action');
                 var nss = btn.getAttribute('data-nss');
                 if (action === 'expediente') {
@@ -268,13 +294,21 @@
                     ', NSS ' + nss + ') disponible en una proxima entrega.';
             };
 
-            // Busqueda ICD: inyecta los resultados bajo el input; addIcd los agrega al diagnostico.
-            window.buscarIcd = async function () {
-                var input = document.getElementById('icdConsult');
-                var out = document.getElementById('icdResult');
+            // Busqueda ICD: inyecta los resultados bajo el input; addIcd los agrega al textarea
+            // destino. Generico (ids por parametro, con default = el form de Consulta Medica)
+            // para poder reusarse tambien desde el Diagnostico del Examen Medico sin duplicar
+            // fragmento/backend - guarda el id del textarea destino en data-target del contenedor
+            // de resultados, asi addIcd() sabe donde agregar la clave sin necesitar mas parametros.
+            window.buscarIcd = async function (inputId, resultId, targetId) {
+                inputId = inputId || 'icdConsult';
+                resultId = resultId || 'icdResult';
+                targetId = targetId || 'diagnostico';
+                var input = document.getElementById(inputId);
+                var out = document.getElementById(resultId);
                 if (!input || !out) {
                     return;
                 }
+                out.setAttribute('data-target', targetId);
                 var q = (input.value || '').trim();
                 if (!q) {
                     out.innerHTML = '';
@@ -308,11 +342,12 @@
 
             window.addIcd = function (btn) {
                 var text = btn.getAttribute('data-icd');
-                var ta = document.getElementById('diagnostico');
+                var out = btn.closest('[data-target]');
+                var targetId = out ? out.getAttribute('data-target') : 'diagnostico';
+                var ta = document.getElementById(targetId);
                 if (ta) {
                     ta.value = (ta.value ? ta.value + ' ' : '') + text;
                 }
-                var out = document.getElementById('icdResult');
                 if (out) {
                     out.innerHTML = '';
                 }
@@ -453,6 +488,7 @@
                     return;
                 }
                 mc.innerHTML = '<div class="text-muted fs-sm">Cargando...</div>';
+                mc.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 try {
                     var body = new URLSearchParams();
                     body.append('data', nss);
@@ -602,6 +638,9 @@
             }
 
             // Examen medico (U07): carga una seccion en #examenSecciones sin recargar (irAContenido).
+            // Toggle real: si la seccion ya esta abierta (boton activo), el mismo boton la cierra
+            // en vez de recargarla - se pierde lo que no se haya guardado en esa seccion, igual
+            // que ocultar cualquier formulario sin guardar.
             window.cargarSeccionExamen = async function (btn) {
                 var seccion = btn.getAttribute('data-seccion');
                 var nss = btn.getAttribute('data-nss') || (input.value || '').trim();
@@ -609,6 +648,17 @@
                 if (!cont) {
                     return;
                 }
+                var abierta = cont.querySelector('[data-seccion="' + seccion.replace(/"/g, '') + '"]');
+                if (abierta && btn.classList.contains('active')) {
+                    abierta.remove();
+                    btn.classList.remove('active');
+                    return;
+                }
+                // Feedback inmediato mientras llega la respuesta del servidor (evita la sensacion
+                // de que el clic no hizo nada durante el round-trip).
+                var textoOriginal = btn.textContent;
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' + textoOriginal;
                 try {
                     var body = new URLSearchParams();
                     body.append('data', seccion);
@@ -632,26 +682,79 @@
                     if (!nuevo) {
                         return;
                     }
-                    var existente = cont.querySelector('[data-seccion="' + seccion.replace(/"/g, '') + '"]');
-                    if (existente) {
-                        existente.replaceWith(nuevo);
+                    if (abierta) {
+                        abierta.replaceWith(nuevo);
                     } else {
                         cont.appendChild(nuevo);
                         nuevo.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     }
+                    btn.classList.add('active');
                 } catch (error) {
                     status.textContent = 'Error de red al cargar la seccion.';
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = textoOriginal;
+                }
+            };
+
+            // Antecedentes laborales - trabajos previos: fila repetible dentro de #trabajosPrevios.
+            // No se precarga desde el WS (ver comentario en examen-shell.html); solo agrega/quita filas nuevas.
+            var trabajoContador = 0;
+            window.agregarTrabajoExamen = function () {
+                var body = document.getElementById('trabajosBody');
+                var vacio = document.getElementById('trabajosVacio');
+                if (!body) {
+                    return;
+                }
+                var idx = trabajoContador++;
+                var campos = ['nombre', 'giro', 'puesto', 'turno', 'antiguedad', 'salida', 'riesgos', 'epp', 'descripcion', 'observaciones'];
+                var tr = document.createElement('tr');
+                tr.setAttribute('data-trabajo-row', String(idx));
+                campos.forEach(function (campo) {
+                    var td = document.createElement('td');
+                    var inp = document.createElement('input');
+                    inp.type = 'text';
+                    inp.className = 'form-control form-control-sm';
+                    inp.name = 'trabajos[' + idx + '].' + campo;
+                    if (campo === 'nombre') {
+                        inp.value = String(idx + 1);
+                    }
+                    td.appendChild(inp);
+                    tr.appendChild(td);
+                });
+                var tdBtn = document.createElement('td');
+                var btnQuitar = document.createElement('button');
+                btnQuitar.type = 'button';
+                btnQuitar.className = 'btn btn-sm btn-outline-danger';
+                btnQuitar.innerHTML = '<i class="ri-delete-bin-line"></i>';
+                btnQuitar.onclick = function () {
+                    tr.remove();
+                    if (vacio) {
+                        vacio.style.display = body.children.length ? 'none' : '';
+                    }
+                };
+                tdBtn.appendChild(btnQuitar);
+                tr.appendChild(tdBtn);
+                body.appendChild(tr);
+                if (vacio) {
+                    vacio.style.display = 'none';
                 }
             };
 
             // Guarda el examen completo: recolecta los campos de las secciones cargadas + firma.
             window.guardarExamen = async function (btn) {
                 var cont = document.getElementById('examenSecciones');
+                var trabajos = document.getElementById('trabajosPrevios');
                 var nss = (input.value || '').trim();
                 var body = new URLSearchParams();
                 body.append('nss', nss);
                 if (cont) {
                     cont.querySelectorAll('input[name], select[name], textarea[name]').forEach(function (el) {
+                        body.append(el.name, el.value);
+                    });
+                }
+                if (trabajos) {
+                    trabajos.querySelectorAll('input[name], select[name], textarea[name]').forEach(function (el) {
                         body.append(el.name, el.value);
                     });
                 }
@@ -691,6 +794,49 @@
                 cargarDetalle('api/nss/incapacidades/detalle', btn.getAttribute('data-id-consulta'), 'Detalle de incapacidad');
             };
 
+            // Reporte de incapacidades por rango de fechas (todas las NSS, no solo la actual).
+            window.generarReporteIncapacidades = async function (btn) {
+                var ini = document.getElementById('reporteFechaInicial');
+                var fin = document.getElementById('reporteFechaFinal');
+                var out = document.getElementById('reporteIncapacidadesResult');
+                if (!ini || !fin || !out) {
+                    return;
+                }
+                if (!ini.value || !fin.value) {
+                    out.innerHTML = '<div class="alert alert-warning mb-0">Indica ambas fechas.</div>';
+                    return;
+                }
+                var textoOriginal = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Generar';
+                out.innerHTML = '';
+                try {
+                    var body = new URLSearchParams();
+                    body.append('fechaInicial', ini.value);
+                    body.append('fechaFinal', fin.value);
+                    var csrf = form.querySelector('input[type="hidden"][name]');
+                    if (csrf && csrf.name) {
+                        body.append(csrf.name, csrf.value);
+                    }
+                    var response = await fetch(contextPath + 'api/nss/incapacidades/reporte', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'text/html' },
+                        body: body.toString()
+                    });
+                    var texto = await response.text();
+                    if (!response.ok) {
+                        out.innerHTML = '<div class="alert alert-danger mb-0">' + escapeHtml(texto || ('Error HTTP ' + response.status)) + '</div>';
+                        return;
+                    }
+                    out.innerHTML = texto;
+                } catch (error) {
+                    out.innerHTML = '<div class="alert alert-danger mb-0">Error de red al generar el reporte.</div>';
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = textoOriginal;
+                }
+            };
+
             function escapeHtml(s) {
                 return (s || '').replace(/[&<>"']/g, function (ch) {
                     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
@@ -705,8 +851,33 @@
                     return;
                 }
                 var q = (input.value || '').toLowerCase();
+                // Si la misma tarjeta tiene un filtro de ramo (ej. Incapacidades), se combinan
+                // ambos filtros; en el resto de las tablas no existe el select y no cambia nada.
+                var ramoSelect = card.querySelector('[data-filtro-ramo]');
+                var ramo = ramoSelect ? ramoSelect.value : '';
                 table.querySelectorAll('tbody tr').forEach(function (tr) {
-                    tr.style.display = tr.textContent.toLowerCase().indexOf(q) >= 0 ? '' : 'none';
+                    var matchTexto = tr.textContent.toLowerCase().indexOf(q) >= 0;
+                    var matchRamo = !ramo || tr.getAttribute('data-ramo') === ramo;
+                    tr.style.display = (matchTexto && matchRamo) ? '' : 'none';
+                });
+            };
+
+            // Filtro de ramo (Incapacidades): reusa filtrarConsultas para combinarse con el
+            // buscador de texto de la misma tarjeta, si existe.
+            window.filtrarPorRamo = function (select) {
+                var card = select.closest('.card');
+                var input = card ? card.querySelector('input[oninput]') : null;
+                if (input) {
+                    window.filtrarConsultas(input);
+                    return;
+                }
+                var table = card ? card.querySelector('table') : null;
+                if (!table) {
+                    return;
+                }
+                var ramo = select.value;
+                table.querySelectorAll('tbody tr').forEach(function (tr) {
+                    tr.style.display = (!ramo || tr.getAttribute('data-ramo') === ramo) ? '' : 'none';
                 });
             };
 

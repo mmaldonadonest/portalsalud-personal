@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Narrativa Funcional de Procesos · Portal Salud</title>
+<style>
+  :root {
+    --navy:#172a45; --blue:#2563af; --light:#eef2f8; --red:#c0392b;
+    --amber:#b7791f; --green:#1e7846; --purple:#6b4c9a; --teal:#0e7c86; --grey:#5a5a5a; --border:#d9e1ec;
+  }
+  * { box-sizing:border-box; }
+  body { font-family:"Segoe UI",Arial,Helvetica,sans-serif; color:#1e1e1e; line-height:1.55; margin:0; background:#f4f6fa; }
+  .page { max-width:1080px; margin:24px auto; background:#fff; padding:40px 48px 56px; box-shadow:0 2px 14px rgba(0,0,0,.08); border-radius:6px; }
+  h1 { color:var(--navy); font-size:26px; margin:0 0 6px; }
+  .subtitle { color:var(--grey); font-size:14px; margin-bottom:4px; }
+  h2 { color:var(--blue); font-size:18px; border-bottom:2px solid var(--blue); padding-bottom:4px; margin:34px 0 14px; }
+  h3 { color:var(--navy); font-size:15.5px; margin:0 0 2px; }
+  p { margin:8px 0; }
+  ul { margin:4px 0 10px; padding-left:22px; } li { margin:3px 0; }
+  code { background:#eef1f6; padding:1px 5px; border-radius:3px; font-family:Consolas,"Courier New",monospace; font-size:12.5px; }
+  .callout { background:var(--light); border-left:4px solid var(--blue); padding:12px 16px; margin:14px 0; border-radius:0 4px 4px 0; font-size:13.5px; color:var(--navy); }
+  .callout.warn { background:#fdf6ec; border-left-color:var(--amber); color:#6b4c11; }
+  footer { margin-top:34px; padding-top:12px; border-top:1px solid var(--border); color:var(--grey); font-size:12px; font-style:italic; }
+
+  /* Tag de dominio */
+  .tag { display:inline-block; padding:1px 9px; border-radius:10px; font-size:11px; font-weight:600; color:#fff; margin-left:8px; vertical-align:middle; }
+  .tag.clinico { background:var(--green); }
+  .tag.admin { background:var(--purple); }
+  .tag.doc { background:var(--teal); }
+  .tag.seg { background:var(--red); }
+  .tag.ingreso { background:var(--amber); }
+
+  /* Mapa de procesos: flujo vertical con inicio/fin, fases numeradas y flechas, CSS puro */
+  .pm { display:flex; flex-direction:column; align-items:center; margin:16px 0 6px; }
+  .pm-endpoint { display:inline-flex; align-items:center; justify-content:center; background:var(--navy); color:#fff; font-size:11.5px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; border-radius:20px; padding:6px 24px; }
+  .pm-endpoint.end { background:var(--red); }
+  .pm-line { width:2px; background:var(--blue); height:16px; }
+  .pm-arrowhead { width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:7px solid var(--blue); margin-top:-1px; }
+  .pm-phase-label { display:flex; align-items:center; gap:8px; margin:14px 0 8px; }
+  .pm-phase-label .n { width:22px; height:22px; border-radius:50%; background:var(--blue); color:#fff; font-size:11.5px; font-weight:700; display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+  .pm-phase-label .t { font-size:12px; font-weight:700; color:var(--blue); text-transform:uppercase; letter-spacing:.5px; }
+  .pm-stage { border:1.5px solid var(--blue); background:#f4f8ff; color:var(--navy); border-radius:8px; padding:10px 18px; font-weight:600; text-align:center; min-width:220px; }
+  .pm-stage .sub { font-weight:400; font-size:11.5px; color:var(--grey); display:block; margin-top:2px; }
+  .pm-stage.alt { border-color:var(--purple); background:#f7f3fc; }
+  .pm-branch-caption { text-align:center; font-size:12px; color:var(--grey); font-style:italic; margin:0 0 10px; max-width:560px; }
+  .pm-hline { height:2px; background:var(--green); width:92%; max-width:660px; margin:0 auto; }
+  .pm-branch-row { display:flex; gap:12px; justify-content:center; width:100%; max-width:660px; margin:0 auto; flex-wrap:wrap; }
+  .pm-branch-col { flex:1 1 140px; display:flex; flex-direction:column; align-items:center; }
+  .pm-tick { width:2px; height:12px; background:var(--green); }
+  .pm-branch-col .pm-stage { border-color:var(--green); background:#f2f9f4; width:100%; min-width:0; }
+
+  /* Interno (Portal Salud) vs externo (otros sistemas/areas) */
+  .pm-legend { display:flex; gap:22px; justify-content:center; flex-wrap:wrap; margin:2px 0 16px; font-size:12px; color:var(--grey); }
+  .pm-legend-item { display:flex; align-items:center; gap:6px; }
+  .pm-swatch { width:16px; height:16px; border-radius:4px; display:inline-block; }
+  .pm-swatch.in { background:#f4f8ff; border:1.5px solid var(--blue); }
+  .pm-swatch.ext { background:#f2f2f2; border:1.5px dashed #8a8a8a; }
+  .pm-stage.ext { border:1.5px dashed #8a8a8a; background:#f2f2f2; color:#4a4a4a; }
+  .pm-ext-badge { display:block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:#767676; margin-top:3px; }
+  .pm-boundary { display:flex; align-items:center; gap:10px; width:100%; max-width:660px; margin:6px 0 10px; }
+  .pm-boundary::before, .pm-boundary::after { content:""; flex:1; height:0; border-top:2px dashed #b9b9b9; }
+  .pm-boundary span { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:#767676; white-space:nowrap; }
+  .pm-note { font-size:10.5px; color:#767676; font-style:italic; margin-top:4px; }
+
+  /* Tarjeta de proceso */
+  .proc { border:1px solid var(--border); border-radius:6px; margin:16px 0; overflow:hidden; }
+  .proc-head { background:var(--navy); color:#fff; padding:10px 16px; display:flex; align-items:center; flex-wrap:wrap; gap:4px; }
+  .proc-head .id { opacity:.65; font-size:12px; font-weight:400; margin-right:6px; }
+  .proc-body { padding:12px 16px; font-size:13.5px; }
+  .proc-grid { display:grid; grid-template-columns:110px 1fr; gap:5px 12px; margin:6px 0; }
+  .proc-grid .k { color:var(--grey); font-size:11.5px; text-transform:uppercase; letter-spacing:.3px; padding-top:2px; }
+  .proc-grid .v { }
+  .finding { border-left:3px solid var(--amber); background:#fffaf0; padding:8px 12px; margin:6px 0; font-size:13px; border-radius:0 4px 4px 0; }
+
+  .actor-row { display:flex; gap:14px; flex-wrap:wrap; margin:10px 0; }
+  .actor { flex:1 1 220px; border:1px solid var(--border); border-radius:6px; padding:12px 14px; background:#fbfcfe; }
+  .actor h4 { margin:0 0 4px; font-size:13.5px; color:var(--navy); }
+  .actor p { margin:0; font-size:12.5px; color:var(--grey); }
+
+  @media print { body { background:#fff; } .page { box-shadow:none; margin:0; max-width:none; border-radius:0; } h2{ page-break-after:avoid; } .proc{ page-break-inside:avoid; } .toc, .back-to-top { display:none; } }
+  @media (max-width:640px) { .page { padding:24px 18px 40px; } .proc-grid { grid-template-columns:1fr; } }
+
+  /* Indice de navegacion */
+  .toc { background:var(--light); border:1px solid var(--border); border-radius:6px; padding:14px 20px; margin:20px 0 6px; }
+  .toc-title { font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--navy); margin:0 0 8px; }
+  .toc ol { margin:0; padding-left:20px; columns:1; }
+  .toc > ol { padding-left:18px; }
+  .toc li { margin:4px 0; font-size:13.5px; }
+  .toc a { color:var(--blue); text-decoration:none; }
+  .toc a:hover { text-decoration:underline; }
+  .toc ol ol { margin-top:4px; padding-left:18px; }
+  .toc ol ol li { font-size:12.5px; color:var(--navy); }
+  .back-to-top { display:inline-block; font-size:11px; color:var(--blue); text-decoration:none; margin-top:6px; }
+  .back-to-top:hover { text-decoration:underline; }
+  h2 { scroll-margin-top:16px; }
+  .proc { scroll-margin-top:16px; }
+</style>
+</head>
+<body>
+<div class="page" id="top">
+
+  <h1>Portal Salud &nbsp;|&nbsp; Narrativa Funcional de Procesos</h1>
+  <div class="subtitle"><strong>Enfoque:</strong> lectura de negocio — qué procesos existen, quién los opera y qué reglas de negocio hay detrás de cada uno</div>
+  <div class="subtitle"><strong>Fuentes analizadas:</strong> revisión del sistema actual (procesos, pantallas y reglas de negocio) y de la aplicación de administración de accesos</div>
+  <div class="subtitle"><strong>Corte:</strong> 2026-08-06</div>
+
+  <nav class="toc">
+    <p class="toc-title">Índice</p>
+    <ol>
+      <li><a href="#resumen">Resumen ejecutivo</a></li>
+      <li><a href="#mapa">Mapa de procesos de extremo a extremo</a></li>
+      <li><a href="#procesos">Procesos de negocio identificados</a>
+        <ol>
+          <li><a href="#proc-01">01 · Verificación de candidato</a></li>
+          <li><a href="#proc-02">02 · Control de acceso (Rol → Menú → Aplicación)</a></li>
+          <li><a href="#proc-03">03 · Búsqueda y ficha del derechohabiente</a></li>
+          <li><a href="#proc-04">04 · Pre-Test y filtro de salud</a></li>
+          <li><a href="#proc-05">05 · Consulta médica (expediente)</a></li>
+          <li><a href="#proc-06">06 · Incapacidades médicas</a></li>
+          <li><a href="#proc-07">07 · Examen médico ocupacional</a></li>
+          <li><a href="#proc-08">08 · Documentación y archivo clínico</a></li>
+        </ol>
+      </li>
+      <li><a href="#actores">Actores identificados</a></li>
+      <li><a href="#notas">Notas del analista</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="resumen">Resumen ejecutivo</h2>
+  <p>Portal Salud es el sistema de <strong>servicio médico ocupacional</strong> de Onest Smart Logistics: administra el expediente clínico del personal desde antes de su ingreso (verificación del candidato) hasta su seguimiento médico continuo como empleado activo (consultas, incapacidades, examen médico periódico). No es un expediente clínico genérico — está construido alrededor del <strong>NSS (Número de Seguridad Social)</strong> como identificador único del derechohabiente, y varios de sus procesos (incapacidades con Rubro/Ramo/Tipo, dictamen de aptitud) están orientados a las obligaciones patronales frente al IMSS y a la gestión de riesgo de trabajo, no solo al registro clínico.</p>
+
+  <h2 id="mapa">Mapa de procesos de extremo a extremo</h2>
+  <div class="pm-legend">
+    <div class="pm-legend-item"><span class="pm-swatch in"></span> Dentro de Portal Salud</div>
+    <div class="pm-legend-item"><span class="pm-swatch ext"></span> Actor / área externa a Portal Salud</div>
+  </div>
+  <div class="pm">
+
+    <div class="pm-endpoint">Inicio</div>
+    <div class="pm-line"></div><div class="pm-arrowhead"></div>
+
+    <div class="pm-phase-label"><span class="n">1</span><span class="t">Ingreso del personal</span></div>
+    <div class="pm-stage ext">Reclutamiento<span class="sub">verificación del candidato por CURP</span><span class="pm-ext-badge">Externo · Reclutamiento</span></div>
+    <div class="pm-line"></div><div class="pm-arrowhead"></div>
+    <div class="pm-stage ext">Alta de empleado<span class="sub">se asigna el NSS</span><span class="pm-ext-badge">Externo · Recursos Humanos</span></div>
+    <div class="pm-line"></div><div class="pm-arrowhead"></div>
+
+    <div class="pm-boundary"><span>a partir de aquí, dentro de Portal Salud</span></div>
+
+    <div class="pm-phase-label"><span class="n">2</span><span class="t">Acceso al sistema</span></div>
+    <div class="pm-stage">Acceso al portal<span class="sub">login + permisos por rol</span></div>
+    <div class="pm-line"></div><div class="pm-arrowhead"></div>
+    <div class="pm-stage">Búsqueda de ficha<span class="sub">por NSS</span></div>
+    <div class="pm-note">los datos personales de la ficha provienen de Recursos Humanos (externo); Portal Salud solo los consulta</div>
+    <div class="pm-line"></div><div class="pm-arrowhead"></div>
+
+    <div class="pm-phase-label"><span class="n">3</span><span class="t">Atención clínica</span></div>
+    <div class="pm-branch-caption">según los permisos del rol, se habilita uno o varios de estos módulos — no son pasos obligatorios en secuencia, son alternativas</div>
+    <div class="pm-hline"></div>
+    <div class="pm-branch-row">
+      <div class="pm-branch-col"><div class="pm-tick"></div><div class="pm-stage">Pre-Test /<br>filtro de salud</div></div>
+      <div class="pm-branch-col"><div class="pm-tick"></div><div class="pm-stage">Consulta<br>médica</div></div>
+      <div class="pm-branch-col"><div class="pm-tick"></div><div class="pm-stage">Incapacidades</div></div>
+      <div class="pm-branch-col"><div class="pm-tick"></div><div class="pm-stage">Examen médico<br>ocupacional</div></div>
+    </div>
+    <div class="pm-hline"></div>
+    <div class="pm-line"></div><div class="pm-arrowhead"></div>
+
+    <div class="pm-phase-label"><span class="n">4</span><span class="t">Cierre y control</span></div>
+    <div class="pm-stage">Documentación<span class="sub">adjuntos y archivo</span></div>
+    <div class="pm-line"></div><div class="pm-arrowhead"></div>
+    <div class="pm-stage alt">Reportes<span class="sub">ej. incapacidades por fecha</span></div>
+    <div class="pm-note">generados por Portal Salud, pero consumidos por Recursos Humanos (externo)</div>
+    <div class="pm-line"></div><div class="pm-arrowhead"></div>
+
+    <div class="pm-endpoint end">Fin</div>
+  </div>
+  <p style="font-size:12.5px; color:var(--grey); text-align:center;"><em>Transversal a las 4 fases:</em> la administración de accesos (Rol → Menú → Aplicación) no es un paso de esta línea de tiempo, sino un proceso de soporte que habilita o restringe cada una de las cajas anteriores.</p>
+
+  <h2 id="procesos">Procesos de negocio identificados</h2>
+
+  <div class="proc" id="proc-01">
+    <div class="proc-head"><span class="id">01</span>Verificación de candidato<span class="tag ingreso">Pre-ingreso</span></div>
+    <div class="proc-body">
+      <div class="proc-grid">
+        <div class="k">Disparador</div><div class="v">Reclutamiento consulta el estatus de un candidato antes de formalizar su ingreso.</div>
+        <div class="k">Entrada</div><div class="v">CURP</div>
+        <div class="k">Regla de negocio</div><div class="v">Si el CURP no existe en el catálogo de candidatos, el sistema responde explícitamente "el curp no se encuentra registrado" (estado -200) en vez de un expediente vacío — distingue "no es candidato" de "no tiene datos".</div>
+        <div class="k">Salida</div><div class="v">Nombre, fecha de inicio de proceso y estado ("EN PROCESO")</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="proc" id="proc-02">
+    <div class="proc-head"><span class="id">02</span>Control de acceso (Rol &rarr; Menú &rarr; Aplicación)<span class="tag admin">Administrativo</span><span class="tag seg">Seguridad</span></div>
+    <div class="proc-body">
+      <div class="proc-grid">
+        <div class="k">Disparador</div><div class="v">Inicio de sesión de cualquier usuario del portal.</div>
+        <div class="k">Actor</div><div class="v">Todo usuario (login); Administrador del sistema (asignación de roles/menús)</div>
+        <div class="k">Pasos</div><div class="v">1) login valida usuario/contraseña; 2) se resuelve el rol del usuario para la aplicación (id_app=13, "servicio médico"); 3) se resuelve el menú permitido para ese rol; 4) el portal renderiza solo los módulos autorizados.</div>
+        <div class="k">Regla de negocio</div><div class="v">El modelo es genérico: el mismo esquema de roles/menús sirve para <em>cualquier</em> aplicación registrada, no solo Portal Salud — el sistema fue diseñado para dar de alta más aplicaciones bajo el mismo esquema de permisos.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="proc" id="proc-03">
+    <div class="proc-head"><span class="id">03</span>Búsqueda y ficha del derechohabiente<span class="tag clinico">Clínico</span></div>
+    <div class="proc-body">
+      <div class="proc-grid">
+        <div class="k">Disparador</div><div class="v">Punto de entrada de casi todos los procesos clínicos: cualquier atención comienza buscando al empleado por NSS.</div>
+        <div class="k">Salida</div><div class="v">Datos personales, domicilio, contacto, estado civil, cuenta/área asignada (SAP), puesto y antigüedad.</div>
+        <div class="k">Regla de negocio</div><div class="v">Si el NSS no corresponde a ningún registro, el WS igual responde con estructura válida pero campos vacíos ("Sin Registro de Usuario") — el front nunca recibe un error duro, solo datos vacíos.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="proc" id="proc-04">
+    <div class="proc-head"><span class="id">04</span>Pre-Test y filtro de salud<span class="tag clinico">Clínico</span></div>
+    <div class="proc-body">
+      <div class="proc-grid">
+        <div class="k">Disparador</div><div class="v">Cuestionario que se aplica al empleado (pantalla "Pre-test").</div>
+        <div class="k">Contenido</div><div class="v">Tarjeta de identificación (domicilio, teléfonos de emergencia y contacto), cuestionario general de salud (operaciones recientes, medicamentos, alergias, embarazo, padecimientos, consumo de sustancias) y un <strong>"Cuestionario de Síntomas Respiratorios"</strong> con sección de <strong>"Caso COVID Familiar"</strong>.</div>
+        <div class="k">Salida</div><div class="v">Ficha firmada por el propio empleado ("Declaro que la información proporcionada es verídica") — es una declaración responsiva, no solo un formulario clínico.</div>
+      </div>
+      <div class="finding">El bloque de síntomas respiratorios/COVID revela que el checklist se diseñó (o se amplió) como <strong>filtro sanitario diario</strong>, probablemente heredado del protocolo de contingencia sanitaria — sigue vigente en el flujo actual aunque su origen fue coyuntural.</div>
+      <p style="font-size:12px; color:var(--grey); margin-top:8px;">Incluye también el módulo de laboratorio ("E.Laboratorio") para subir los estudios en PDF.</p>
+    </div>
+  </div>
+
+  <div class="proc" id="proc-05">
+    <div class="proc-head"><span class="id">05</span>Consulta médica (expediente)<span class="tag clinico">Clínico</span></div>
+    <div class="proc-body">
+      <div class="proc-grid">
+        <div class="k">Disparador</div><div class="v">Atención médica puntual al empleado.</div>
+        <div class="k">Datos clave</div><div class="v">Tipo y área del accidente, causa, signos vitales (peso, talla, IMC, FC, FR, TA, temperatura), motivo, exploración física, diagnóstico (con búsqueda en catálogo CIE-10), tratamiento.</div>
+        <div class="k">Cierre</div><div class="v">Firma digital del paciente y adjuntos relacionados por un identificador común de "consulta relacionada".</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="proc" id="proc-06">
+    <div class="proc-head"><span class="id">06</span>Incapacidades médicas<span class="tag clinico">Clínico</span></div>
+    <div class="proc-body">
+      <div class="proc-grid">
+        <div class="k">Disparador</div><div class="v">Emisión de una incapacidad (IMSS o interna) al empleado.</div>
+        <div class="k">Datos clave</div><div class="v"><strong>Rubro</strong> (Interna / IMSS), <strong>Ramo</strong> (Enfermedad General, Enfermedad Profesional, RT1, RT2, Maternidad — "RT" = riesgo de trabajo), <strong>Tipo</strong> (Inicial / Subsecuente), fechas de inicio/término, días autorizados, salario integrado, costo, <strong>imputabilidad</strong> y estado del dictamen.</div>
+        <div class="k">Reporte</div><div class="v">Consulta administrativa por rango de fechas (con nombre, RFC y CURP del empleado) — pensada para RH o contabilidad, no para el médico tratante.</div>
+      </div>
+      <div class="finding">El desglose Rubro/Ramo/Tipo/Imputable conecta directamente este proceso con la <strong>obligación patronal ante el IMSS</strong> (riesgo de trabajo) — es información con impacto financiero y legal para la empresa, más allá del registro clínico del empleado.</div>
+    </div>
+  </div>
+
+  <div class="proc" id="proc-07">
+    <div class="proc-head"><span class="id">07</span>Examen médico ocupacional<span class="tag clinico">Clínico</span></div>
+    <div class="proc-body">
+      <div class="proc-grid">
+        <div class="k">Disparador</div><div class="v">Valoración médica integral del empleado (ingreso o periódica).</div>
+        <div class="k">Alcance</div><div class="v">Es, por mucho, el proceso más extenso del sistema (~43 secciones). Cubre: antecedentes heredofamiliares (10 padecimientos: neurología, cardiopatía, neumopatía, toxicológico, nefropatías, endocrinas, obesidad, mentales, generales, otras), antecedentes personales no patológicos (vivienda, hábitos, higiene, alimentación), inmunizaciones, antecedentes gineco-obstétricos, antecedentes personales patológicos (oftalmológico, digestivo, renal, sistema nervioso, músculo-esquelético, cardiovascular, toxicológico, endocrino), padecimiento actual, interrogatorio por aparatos y sistemas, y una exploración física exhaustiva (cráneo, agudeza visual, nariz, columna, boca, oídos, tórax, abdomen, genitales, urinario, extremidades, piel, cuello, dientes).</div>
+        <div class="k">Cierre</div><div class="v">Estudios realizados, diagnóstico, plan terapéutico y <strong>dictamen final</strong>: Apto / Apto condicionado / Apto restringido / No apto, con firma del paciente.</div>
+        <div class="k">Regla de negocio</div><div class="v">El guardado reemplaza el expediente completo por sección cada vez que se envía — no es un guardado incremental campo a campo, sino por bloque temático.</div>
+      </div>
+      <div class="finding">Existe un bloque adicional, <strong>independiente de las 10 secciones de heredofamiliares detalladas</strong>, que resume cada categoría con un identificador numérico (severidad o tipo, a confirmar) en vez de las respuestas booleanas — sugiere una capa de clasificación/gravedad que hoy no se refleja en la pantalla que ve el usuario.</div>
+    </div>
+  </div>
+
+  <div class="proc" id="proc-08">
+    <div class="proc-head"><span class="id">08</span>Documentación y archivo clínico<span class="tag doc">Documental</span></div>
+    <div class="proc-body">
+      <div class="proc-grid">
+        <div class="k">Disparador</div><div class="v">Cualquier estudio, nota o comprobante que deba quedar adjunto al expediente.</div>
+        <div class="k">Tipos</div><div class="v">Estudios de laboratorio, notas médicas, notas de incapacidad, histórico de exámenes médicos — todos como archivo (PDF) asociado al NSS y clasificado por tipo.</div>
+        <div class="k">Consumo</div><div class="v">Cada módulo clínico tiene su propia pantalla de "Archivo" para revisar lo ya subido, ademas del formulario de alta.</div>
+      </div>
+    </div>
+  </div>
+
+  <h2 id="actores">Actores identificados</h2>
+  <div class="actor-row">
+    <div class="actor"><h4>Personal de servicio médico</h4><p>Opera consultas, incapacidades, pre-test y el examen médico ocupacional. Es quien firma/registra el dictamen de aptitud.</p></div>
+    <div class="actor"><h4>Recursos Humanos</h4><p>Sube estudios de laboratorio ("E.Laboratorio") y es el consumidor natural del reporte de incapacidades por fecha (impacto en nómina/IMSS).</p></div>
+    <div class="actor"><h4>Administrador del sistema</h4><p>Da de alta aplicaciones, roles y menús — controla qué módulos ve cada perfil de usuario.</p></div>
+    <div class="actor"><h4>Reclutamiento</h4><p>Consulta el estatus de un candidato por CURP antes de que exista como empleado con NSS.</p></div>
+    <div class="actor"><h4>Empleado / candidato</h4><p>Sujeto de la información clínica. Se identifica por CURP antes del ingreso y por NSS una vez activo; firma digitalmente sus propias declaraciones (pre-test, consultas, examen).</p></div>
+  </div>
+
+  <h2 id="notas">Notas del analista</h2>
+  <ul>
+    <li>El sistema no modela "un expediente clínico" aislado: modela el <strong>ciclo de vida de salud ocupacional del empleado</strong> dentro de la relación laboral — desde el filtro de ingreso hasta la gestión de incapacidades con impacto en el IMSS.</li>
+    <li>El modelo de permisos (Rol → Menú → Aplicación) fue diseñado para ser reutilizable entre aplicaciones, no exclusivo de Portal Salud; eso explica por qué su administración vive en una app aparte.</li>
+    <li>Varios procesos muestran una ficha vacía en vez de un error cuando no hay datos (candidato no encontrado, empleado sin registro) — es una decisión de diseño consistente en todo el sistema, para que la pantalla nunca se rompa por falta de información.</li>
+    <li>El examen médico concentra la mayor complejidad de negocio del sistema; cualquier cambio de proceso clínico probablemente empiece ahí.</li>
+  </ul>
+  <a class="back-to-top" href="#top">&uarr; Volver al índice</a>
+
+  <footer>
+    Narrativa funcional elaborada a partir de la revisión del sistema actual · Portal Salud (Onest Smart Logistics) · No sustituye una validación con los usuarios operativos del sistema.
+  </footer>
+
+</div>
+</body>
+</html>

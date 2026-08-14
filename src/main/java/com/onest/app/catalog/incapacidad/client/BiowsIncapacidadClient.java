@@ -2,10 +2,13 @@ package com.onest.app.catalog.incapacidad.client;
 
 import com.onest.app.catalog.expediente.client.dto.BiowsProcesoResponse;
 import com.onest.app.catalog.incapacidad.client.dto.BiowsIncapacidadAltaRequest;
+import com.onest.app.catalog.incapacidad.client.dto.BiowsIncapacidadReporteRequest;
+import com.onest.app.catalog.incapacidad.client.dto.BiowsIncapacidadReporteResponse;
 import com.onest.app.catalog.incapacidad.client.dto.BiowsIncapacidadesRequest;
 import com.onest.app.catalog.incapacidad.client.dto.BiowsIncapacidadesResponse;
 import com.onest.app.catalog.incapacidad.dto.IncapacidadDetalleDto;
 import com.onest.app.catalog.incapacidad.dto.IncapacidadDto;
+import com.onest.app.catalog.incapacidad.dto.IncapacidadReporteDto;
 import com.onest.app.config.BiowsProperties;
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +27,7 @@ public class BiowsIncapacidadClient implements IncapacidadClient {
     private static final Logger log = LoggerFactory.getLogger(BiowsIncapacidadClient.class);
     private static final String PATH_INCAPACIDADES = "/Servcio/consulta_incapacidad";
     private static final String PATH_INCAPACIDAD_ALTA = "/Servcio/incapacidades";
+    private static final String PATH_REPORTE_FECHA = "/Servcio/consulta_incapacidades_fecha";
 
     private final RestClient biowsRestClient;
     private final BiowsProperties properties;
@@ -67,6 +71,28 @@ public class BiowsIncapacidadClient implements IncapacidadClient {
             return "";
         }
         return response.datos().get(0).proceso();
+    }
+
+    @Override
+    public List<IncapacidadReporteDto> reportePorFecha(String fechaInicial, String fechaFinal) {
+        log.info("[biows] POST {}{} {} - {}", properties.baseUrl(), PATH_REPORTE_FECHA, fechaInicial, fechaFinal);
+        BiowsIncapacidadReporteResponse response = biowsRestClient.post()
+                .uri(PATH_REPORTE_FECHA)
+                .body(new BiowsIncapacidadReporteRequest(fechaInicial, fechaFinal))
+                .retrieve()
+                .body(BiowsIncapacidadReporteResponse.class);
+
+        if (response == null || response.datos() == null) {
+            return List.of();
+        }
+        return response.datos().stream().map(BiowsIncapacidadClient::toReporte).toList();
+    }
+
+    private static IncapacidadReporteDto toReporte(BiowsIncapacidadReporteResponse.Dato d) {
+        return new IncapacidadReporteDto(
+                d.fechaConsulta(), d.folioIncapacidad(), d.nss(), d.nombre(), d.rfc(), d.curp(),
+                d.rubro(), d.ramo(), d.tipoIncapacidad(), d.fechaInicio(), d.fechaTermino(),
+                d.diasAutorizados(), d.salarioIntegrado(), d.costo(), d.estadoDictamen());
     }
 
     private BiowsIncapacidadesResponse fetch(String nss) {

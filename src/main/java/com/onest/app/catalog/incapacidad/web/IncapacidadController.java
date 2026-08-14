@@ -89,4 +89,27 @@ public class IncapacidadController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }
     }
+
+    /**
+     * Reporte administrativo de incapacidades por rango de fechas (todas las NSS, no solo la
+     * actual). Equivale a generarExcelIncapa.php -> traerDatosGeneralIncap. No depende del NSS
+     * en pantalla; vive bajo /api/nss por consistencia con el resto de los endpoints del modulo.
+     */
+    @PostMapping(
+            path = "/incapacidades/reporte",
+            consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+            produces = MediaType.TEXT_HTML_VALUE)
+    public String reporte(
+            @RequestParam("fechaInicial") String fechaInicial,
+            @RequestParam("fechaFinal") String fechaFinal,
+            Model model) {
+        try {
+            model.addAttribute("reporte", incapacidadService.reportePorFecha(fechaInicial, fechaFinal));
+            model.addAttribute("fechaInicial", fechaInicial);
+            model.addAttribute("fechaFinal", fechaFinal);
+            return "fragments/incapacidades-reporte :: tabla";
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        }
+    }
 }

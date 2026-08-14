@@ -45,7 +45,7 @@ public class BiowsExpedienteClient implements ExpedienteClient {
             return List.of();
         }
         return response.datos().stream()
-                .map(d -> new ConsultaDto(d.idConsulta(), d.fechaConsulta(), d.tipoConsulta(), d.areaAccidente()))
+                .map(d -> new ConsultaDto(d.idConsulta(), d.fechaConsulta(), d.tipoConsulta(), d.areaAccidente(), d.causa()))
                 .toList();
     }
 
@@ -88,9 +88,16 @@ public class BiowsExpedienteClient implements ExpedienteClient {
         if (response == null) {
             return List.of();
         }
+        // Filtra filas sin contenido real (ej. cuando el WS responde un array con un objeto de
+        // error en vez del catalogo esperado - clave_id/nombre_clave llegan null en ambos).
         return response.stream()
                 .map(i -> new IcdDto(i.claveId(), i.nombreClave()))
+                .filter(d -> hasText(d.claveId()) || hasText(d.nombreClave()))
                 .toList();
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private BiowsConsultasResponse fetchConsultas(String nss) {

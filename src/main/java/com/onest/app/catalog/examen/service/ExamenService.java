@@ -46,6 +46,17 @@ public class ExamenService {
     private static final Map<String, Seccion> CATALOGO = new LinkedHashMap<>();
 
     static {
+        // ---- Antecedentes laborales (resumen): ver docs/contextoWS.txt:4871-4889
+        // (SERV_MED_ANT_LABORALES). A diferencia del resto del catalogo, este bloque del WS
+        // lee/escribe las claves en MINUSCULA (SERV_ANTECEDENTESLAB.edad_inicio_laboral, no
+        // .EDAD_INICIO_LABORAL) - no es un typo nuestro, es el WS real. VERIFICADO 2026-08-10
+        // contra datos reales: 3208/3208 filas de SERV_MED_ANT_LABORALES tienen CANTIDAD_TRABAJOS
+        // y PENSION, 3207/3208 tienen EDAD_INICIO_LABORAL - las claves en minuscula si funcionan.
+        CATALOGO.put("Antecedentes laborales (resumen)", new Seccion("SERV_ANTECEDENTESLAB", List.of(
+                text("edad_inicio_laboral", "Edad al iniciar a laborar"),
+                text("cantidad_trabajos", "¿Cuántos trabajos ha tenido?"),
+                text("pension", "Pensión IMSS o trámite pendiente (ST2/ST3/ST4/ST7/ST9)"))));
+
         // ---- Antecedentes heredofamiliares (Slice 1): Si/No + observaciones ----
         CATALOGO.put("Neurología", new Seccion("NEUROLOGIA", List.of(
                 sino("AVC", "AVC (accidente vascular cerebral)"),
@@ -90,6 +101,22 @@ public class ExamenService {
         CATALOGO.put("Otras", new Seccion("OTRAS", List.of(
                 sino("OTRAS", "Otras"))));
 
+        // ---- Heredofamiliares (resumen por categoria): bloque separado en el WS,
+        // ver docs/contextoWS.txt:1143-1160 (tabla SERV_MED_HEREDOFAMILIAR, un *_ID por categoria).
+        // Significado exacto del valor numerico no confirmado (severidad/tipo vs. flag) - se captura
+        // como texto libre para no asumir un rango o catalogo de valores no documentado.
+        CATALOGO.put("Heredofamiliares (resumen)", new Seccion("HEREDOFAMILIARES", List.of(
+                text("NEUROLOGIA_ID", "Neurología"),
+                text("CARDIOPATIA_ID", "Cardiopatía"),
+                text("NEUMOPATICA_ID", "Neumopatía"),
+                text("TOXICOLOGICO_ID", "Toxicológico"),
+                text("NEFROPATIAS_ID", "Nefropatías"),
+                text("ENDOCRINAS_ID", "Endocrinas"),
+                text("OBESIDAD_ID", "Obesidad"),
+                text("MENTALES_ID", "Mentales"),
+                text("GENERALES_ID", "Generales"),
+                text("OTRAS_ID", "Otras"))));
+
         // ---- Antecedentes personales no patologicos (APNP): texto ----
         CATALOGO.put("APNP (no patológicos)", new Seccion("SERV_MED_ANT_PATOLOGICOS", List.of(
                 text("HABITACION", "Habitación"),
@@ -119,7 +146,7 @@ public class ExamenService {
         // ---- Inmunizaciones: vacunas Si/No + fecha ----
         CATALOGO.put("Inmunizaciones", new Seccion("SERV_MED_INMUNIZACIONES", List.of(
                 sino0("BLG", "BCG"),
-                sino0("SABIN ", "Sabin"),
+                sino0("SABIN", "Sabin"),
                 sino0("DPT", "DPT"),
                 sino0("HEPATITIS_B", "Hepatitis B"),
                 sino0("SR", "SR"),
@@ -260,7 +287,7 @@ public class ExamenService {
         CATALOGO.put("Dientes", new Seccion("SERV_MED_DIENTES", List.of(
                 text("DIENTE_11", "11"), text("DIENTE_12", "12"), text("DIENTE_13", "13"), text("DIENTE_14", "14"),
                 text("DIENTE_15", "15"), text("DIENTE_16", "16"), text("DIENTE_17", "17"), text("DIENTE_18", "18"),
-                text("DIENTE_2", "21"), text("DIENTE_22", "22"), text("DIENTE_23", "23"), text("DIENTE_24", "24"),
+                text("DIENTE_21", "21"), text("DIENTE_22", "22"), text("DIENTE_23", "23"), text("DIENTE_24", "24"),
                 text("DIENTE_25", "25"), text("DIENTE_26", "26"), text("DIENTE_27", "27"), text("DIENTE_28", "28"),
                 text("DIENTE_31", "31"), text("DIENTE_32", "32"), text("DIENTE_33", "33"), text("DIENTE_34", "34"),
                 text("DIENTE_35", "35"), text("DIENTE_36", "36"), text("DIENTE_37", "37"), text("DIENTE_38", "38"),
@@ -279,6 +306,33 @@ public class ExamenService {
                 area("OBSERVACIONES", "Observaciones"))));
     }
 
+    /** Grupo de secciones para agrupar los botones de navegacion en la UI. */
+    public record Grupo(String nombre, List<String> secciones) {
+    }
+
+    // Agrupacion puramente de UI (no afecta guardado/lectura) - un nombre de seccion que no
+    // aparezca aqui simplemente no se agrupa (no rompe el catalogo si cambia).
+    private static final List<Map.Entry<String, List<String>>> GRUPOS = List.of(
+            Map.entry("Antecedentes laborales", List.of(
+                    "Antecedentes laborales (resumen)")),
+            Map.entry("Heredofamiliares", List.of(
+                    "Neurología", "Cardiopatía", "Neumopatía", "Toxicológico", "Nefropatías",
+                    "Endocrinas", "Obesidad", "Mentales", "Generales", "Otras",
+                    "Heredofamiliares (resumen)")),
+            Map.entry("Antecedentes personales", List.of(
+                    "APNP (no patológicos)", "Inmunizaciones", "Gineco-obstétricos (AGO)",
+                    "APP: personales patológicos", "APP: oftalmológico", "APP: digestivo",
+                    "APP: renal", "APP: sistema nervioso", "APP: músculo-esquelético",
+                    "APP: cardiovascular", "APP: toxicológico", "APP: endocrino")),
+            Map.entry("Padecimiento e interrogatorio", List.of(
+                    "Padecimiento actual", "Interrogatorio por aparatos")),
+            Map.entry("Exploración física", List.of(
+                    "Exploración física", "Cráneo", "Agudeza visual", "Nariz", "Columna vertebral",
+                    "Boca", "Oídos", "Tórax", "Columna (movilidad)", "Abdomen", "Genitales",
+                    "Urinario", "Extremidades", "Piel", "Cuello", "Dientes")),
+            Map.entry("Cierre", List.of(
+                    "Estudios realizados", "Diagnóstico", "Plan terapéutico", "Resultado del examen")));
+
     private final ExamenClient client;
 
     public ExamenService(ExamenClient client) {
@@ -288,6 +342,18 @@ public class ExamenService {
     /** Nombres de las secciones (orden de navegacion). */
     public List<String> secciones() {
         return new ArrayList<>(CATALOGO.keySet());
+    }
+
+    /** Secciones agrupadas por categoria, para no mostrar ~46 botones en una sola fila. */
+    public List<Grupo> grupos() {
+        List<Grupo> out = new ArrayList<>();
+        for (Map.Entry<String, List<String>> entry : GRUPOS) {
+            List<String> presentes = entry.getValue().stream().filter(CATALOGO::containsKey).toList();
+            if (!presentes.isEmpty()) {
+                out.add(new Grupo(entry.getKey(), presentes));
+            }
+        }
+        return out;
     }
 
     public boolean existeSeccion(String seccion) {
