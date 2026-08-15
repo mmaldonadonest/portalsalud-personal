@@ -6,6 +6,9 @@ import com.onest.app.catalog.expediente.dto.ConsultaDetalleDto;
 import com.onest.app.catalog.expediente.dto.ConsultaDto;
 import com.onest.app.catalog.expediente.dto.IcdDto;
 import com.onest.app.catalog.expediente.web.ConsultaAltaForm;
+import com.onest.app.catalog.nss.dto.EmpleadoDto;
+import com.onest.app.catalog.nss.dto.NssSearchResponse;
+import com.onest.app.catalog.nss.service.NssSearchService;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -28,13 +31,27 @@ public class ExpedienteService {
     private static final String USUARIO_FIJO = "747849849";
 
     private final ExpedienteClient client;
+    private final NssSearchService nssSearchService;
 
-    public ExpedienteService(ExpedienteClient client) {
+    public ExpedienteService(ExpedienteClient client, NssSearchService nssSearchService) {
         this.client = client;
+        this.nssSearchService = nssSearchService;
     }
 
     public List<ConsultaDto> consultasByNss(String nss) {
         return client.findConsultas(normalizeNss(nss));
+    }
+
+    /**
+     * CUENTA (cliente externo) del empleado, reusando la busqueda por NSS ya conectada
+     * (Catalogo/usuario) - sin agregar ningun WS nuevo. Vacio si no es un NSS de empleado
+     * o si el WS no trae el dato.
+     */
+    public String cuentaDe(String nss) {
+        return nssSearchService.findByNss(normalizeNss(nss))
+                .map(NssSearchResponse::empleado)
+                .map(EmpleadoDto::cuenta)
+                .orElse("");
     }
 
     public Optional<ConsultaDetalleDto> consultaDetalle(String nss, String idConsulta) {

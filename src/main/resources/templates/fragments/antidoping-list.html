@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Lista de antidoping/alcoholimetria del NSS. Backend aplicado y verificado 2026-08-14
+  contra Servcio/consulta_antidoping (docs/ords-antidoping.sql).
+  Reusa el buscador/exportar-Excel globales (filtrarConsultas / exportarConsultasExcel).
+-->
+<div th:fragment="table">
+    <div class="card card-one">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h6 class="card-title mb-0">Antidoping / alcoholimetria</h6>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary" th:text="'NSS ' + ${nss}">NSS</span>
+                <button type="button" class="btn btn-sm btn-primary" th:attr="data-nss=${nss}"
+                        onclick="nuevoAntidoping(this);">
+                    <i class="ri-add-line me-1"></i> Nuevo registro
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+
+            <div th:if="${#lists.isEmpty(antidopings)}" class="alert alert-warning mb-0" role="alert">
+                No se encontraron registros de antidoping/alcoholimetria para este NSS.
+            </div>
+
+            <div th:unless="${#lists.isEmpty(antidopings)}">
+                <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+                    <input type="text" class="form-control form-control-sm" style="max-width: 260px;"
+                           placeholder="Buscar..." aria-label="Buscar en antidoping"
+                           oninput="filtrarConsultas(this);">
+                    <button type="button" class="btn btn-sm btn-success" onclick="exportarConsultasExcel(this);">
+                        <i class="ri-file-excel-2-line me-1"></i> Exportar a Excel
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" data-export-name="antidoping">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Folio</th>
+                                <th>Tipo de prueba</th>
+                                <th>Sustancia</th>
+                                <th>Resultado</th>
+                                <th>Conclusion</th>
+                                <th>Observaciones</th>
+                                <th>Usuario</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="a : ${antidopings}">
+                                <td th:text="${a.fechaRegistro}">-</td>
+                                <td th:text="${a.folio}">-</td>
+                                <td th:text="${a.tipoPrueba}">-</td>
+                                <td th:text="${a.sustancia}">-</td>
+                                <td>
+                                    <span class="badge"
+                                          th:classappend="${a.resultado == 'POSITIVO'} ? 'bg-danger' : 'bg-success'"
+                                          th:text="${a.resultado}">-</span>
+                                </td>
+                                <td th:text="${a.statusConclusion}">-</td>
+                                <td th:text="${a.observaciones}">-</td>
+                                <td th:text="${a.usuario}">-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+</body>
+</html>

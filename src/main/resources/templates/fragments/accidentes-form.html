@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Alta de accidente de trabajo. Backend aplicado y verificado 2026-08-14 contra
+  Servcio/accidente (docs/ords-accidentes.sql). Se inyecta en #moduleContent.
+  Guarda via /api/nss/accidentes/save.
+-->
+<div th:fragment="form">
+    <div class="card card-one">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h6 class="card-title mb-0">Nuevo accidente de trabajo</h6>
+            <span class="badge bg-primary" th:text="'NSS ' + ${nss}">NSS</span>
+        </div>
+        <div class="card-body">
+            <form id="accidenteAltaForm" class="row g-3" novalidate>
+                <input type="hidden" name="nss" th:value="${nss}">
+
+                <div class="col-md-6">
+                    <label class="form-label" for="accidenteFechaAccidente">Fecha del accidente</label>
+                    <input type="date" class="form-control" name="fechaAccidente" id="accidenteFechaAccidente">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="accidenteTipoRiesgo">Tipo de riesgo</label>
+                    <select class="form-select" name="tipoRiesgo" id="accidenteTipoRiesgo">
+                        <option value="">Seleccionar</option>
+                        <option value="LABORAL">Laboral</option>
+                        <option value="TRAYECTO">Trayecto</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="accidenteCausaRt">Causa RT</label>
+                    <select class="form-select" name="causaRt" id="accidenteCausaRt">
+                        <option value="">Seleccionar</option>
+                        <option value="ACCID_VIAL">Accidente vial</option>
+                        <option value="AGRESION_ASALTO">Agresion / asalto</option>
+                        <option value="CAIDA">Caida</option>
+                        <option value="GOLPE_DIRECTO">Golpe directo</option>
+                        <option value="HERIDA">Herida</option>
+                        <option value="LESION_ERGONOMICA">Lesion ergonomica</option>
+                        <option value="OTRO_IMPROCEDENTE">Otro / improcedente</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="accidenteStatusCalificacion">Status de calificacion</label>
+                    <select class="form-select" name="statusCalificacion" id="accidenteStatusCalificacion">
+                        <option value="PENDIENTE">Pendiente</option>
+                        <option value="CALIFICADO">Calificado</option>
+                        <option value="IMPROCEDENTE">Improcedente</option>
+                        <option value="BAJA_INCONCLUSO">Baja / inconcluso</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label" for="accidenteSdi">Salario diario integrado (SDI)</label>
+                    <input type="number" step="0.01" class="form-control" name="sdi" id="accidenteSdi" placeholder="SDI">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="accidenteCosto">Costo</label>
+                    <input type="number" step="0.01" class="form-control" name="costo" id="accidenteCosto" placeholder="Costo">
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label" for="accidenteDiagnostico">Diagnostico</label>
+                    <textarea class="form-control" name="diagnostico" id="accidenteDiagnostico" rows="2"
+                              placeholder="Diagnostico"></textarea>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="accidenteObservaciones">Observaciones</label>
+                    <textarea class="form-control" name="observaciones" id="accidenteObservaciones" rows="3"
+                              placeholder="Observaciones"></textarea>
+                </div>
+
+                <div class="col-12 d-flex justify-content-end">
+                    <button type="button" class="btn btn-primary" onclick="guardarAccidente(this);">
+                        <i class="ri-save-line me-1"></i> Guardar accidente
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

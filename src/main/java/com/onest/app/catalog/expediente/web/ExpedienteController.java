@@ -37,8 +37,10 @@ public class ExpedienteController {
             produces = MediaType.TEXT_HTML_VALUE)
     public String expediente(@RequestParam("data") String data, Model model) {
         try {
+            String nss = data == null ? "" : data.trim();
             model.addAttribute("consultas", expedienteService.consultasByNss(data));
-            model.addAttribute("nss", data == null ? "" : data.trim());
+            model.addAttribute("nss", nss);
+            model.addAttribute("cuenta", expedienteService.cuentaDe(nss));
             return "fragments/expediente-consultas :: table";
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);

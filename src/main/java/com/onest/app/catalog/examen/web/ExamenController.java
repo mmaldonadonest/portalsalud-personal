@@ -1,5 +1,6 @@
 package com.onest.app.catalog.examen.web;
 
+import com.onest.app.catalog.examen.service.ContactoEmergenciaService;
 import com.onest.app.catalog.examen.service.ExamenService;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -23,9 +24,11 @@ import org.springframework.web.server.ResponseStatusException;
 public class ExamenController {
 
     private final ExamenService examenService;
+    private final ContactoEmergenciaService contactoEmergenciaService;
 
-    public ExamenController(ExamenService examenService) {
+    public ExamenController(ExamenService examenService, ContactoEmergenciaService contactoEmergenciaService) {
         this.examenService = examenService;
+        this.contactoEmergenciaService = contactoEmergenciaService;
     }
 
     /** Shell del examen: navegacion de secciones + contenedor in-page. */
@@ -34,9 +37,15 @@ public class ExamenController {
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = MediaType.TEXT_HTML_VALUE)
     public String examen(@RequestParam("data") String data, Model model) {
-        model.addAttribute("nss", data == null ? "" : data.trim());
-        model.addAttribute("grupos", examenService.grupos());
-        return "fragments/examen-shell :: shell";
+        try {
+            String nss = data == null ? "" : data.trim();
+            model.addAttribute("nss", nss);
+            model.addAttribute("grupos", examenService.grupos());
+            model.addAttribute("contactos", contactoEmergenciaService.cargar(nss));
+            return "fragments/examen-shell :: shell";
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        }
     }
 
     /** Una seccion, pre-cargada (viewTypeExped). Se agrega al contenedor sin recargar. */
@@ -78,6 +87,31 @@ public class ExamenController {
             });
             String proceso = examenService.guardar(nss, campos, firma);
             return (proceso == null || proceso.isBlank()) ? "Examen guardado." : proceso;
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        }
+    }
+
+    /**
+     * Guarda los contactos de emergencia (EAV via MED_TAG, independiente del examen -> WS).
+     * Recibe los 3x5 campos (contactoEmer{campo}{indice}).
+     */
+    @PostMapping(
+            path = "/examen/contactos-emergencia/save",
+            consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+            produces = "text/plain;charset=UTF-8")
+    @ResponseBody
+    public String guardarContactosEmergencia(@RequestParam MultiValueMap<String, String> params) {
+        try {
+            String nss = params.getFirst("nss");
+            Map<String, String> campos = new LinkedHashMap<>();
+            params.forEach((key, values) -> {
+                if (!"nss".equals(key) && !"_csrf".equals(key)) {
+                    campos.put(key, (values == null || values.isEmpty()) ? "" : values.get(0));
+                }
+            });
+            contactoEmergenciaService.guardar(nss, campos);
+            return "Contactos de emergencia guardados.";
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }

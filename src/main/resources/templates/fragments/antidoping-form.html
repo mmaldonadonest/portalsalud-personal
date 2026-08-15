@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Alta de antidoping/alcoholimetria. Backend aplicado y verificado 2026-08-14 contra
+  Servcio/antidoping (docs/ords-antidoping.sql). Se inyecta en #moduleContent.
+  Guarda via /api/nss/antidoping/save.
+-->
+<div th:fragment="form">
+    <div class="card card-one">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h6 class="card-title mb-0">Nuevo registro de antidoping / alcoholimetria</h6>
+            <span class="badge bg-primary" th:text="'NSS ' + ${nss}">NSS</span>
+        </div>
+        <div class="card-body">
+            <form id="antidopingAltaForm" class="row g-3" novalidate>
+                <input type="hidden" name="nss" th:value="${nss}">
+
+                <div class="col-md-6">
+                    <label class="form-label" for="antidopingFolio">Folio</label>
+                    <input type="text" class="form-control" name="folio" id="antidopingFolio" placeholder="Folio">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="antidopingTipoPrueba">Tipo de prueba</label>
+                    <select class="form-select" name="tipoPrueba" id="antidopingTipoPrueba"
+                            onchange="toggleAntidopingSustancia();">
+                        <option value="">Seleccionar</option>
+                        <option value="ANTIDOPING">Antidoping</option>
+                        <option value="ALCOHOLEMIA">Alcoholemia</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6" id="antidopingSustanciaWrap">
+                    <label class="form-label" for="antidopingSustancia">Sustancia</label>
+                    <select class="form-select" name="sustancia" id="antidopingSustancia">
+                        <option value="">Seleccionar</option>
+                        <option value="AMF">Anfetaminas (AMF)</option>
+                        <option value="BARB">Barbituricos (BARB)</option>
+                        <option value="BENZO">Benzodiacepinas (BENZO)</option>
+                        <option value="COC">Cocaina (COC)</option>
+                        <option value="LSD">LSD</option>
+                        <option value="MET">Metanfetaminas (MET)</option>
+                        <option value="OPI">Opiaceos (OPI)</option>
+                        <option value="PVC">Fenciclidina (PVC)</option>
+                        <option value="THC">Marihuana (THC)</option>
+                        <option value="SOLVENTE">Solvente</option>
+                        <option value="OTRO">Otro</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="antidopingResultado">Resultado</label>
+                    <select class="form-select" name="resultado" id="antidopingResultado">
+                        <option value="">Seleccionar</option>
+                        <option value="NEGATIVO">Negativo</option>
+                        <option value="POSITIVO">Positivo</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="antidopingStatusConclusion">Status / conclusion</label>
+                    <select class="form-select" name="statusConclusion" id="antidopingStatusConclusion">
+                        <option value="N/A">N/A</option>
+                        <option value="CAPA">CAPA</option>
+                        <option value="LABORANDO">Laborando</option>
+                        <option value="RECAIDA">Recaida</option>
+                        <option value="NO_INTERESADO_BAJA">No interesado / Baja</option>
+                        <option value="NO_CONTRATADO">No contratado</option>
+                        <option value="BAJA_NO_APLICA">Baja / No aplica</option>
+                    </select>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label" for="antidopingObservaciones">Observaciones</label>
+                    <textarea class="form-control" name="observaciones" id="antidopingObservaciones" rows="3"
+                              placeholder="Observaciones"></textarea>
+                </div>
+
+                <div class="col-12 d-flex justify-content-end">
+                    <button type="button" class="btn btn-primary" onclick="guardarAntidoping(this);">
+                        <i class="ri-save-line me-1"></i> Guardar registro
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

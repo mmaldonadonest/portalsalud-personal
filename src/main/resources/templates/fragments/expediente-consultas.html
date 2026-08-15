@@ -10,7 +10,11 @@
     <div class="card card-one">
         <div class="card-header d-flex align-items-center justify-content-between">
             <h6 class="card-title mb-0">Archivo de consultas</h6>
-            <span class="badge bg-primary" th:text="'NSS ' + ${nss}">NSS</span>
+            <div class="d-flex align-items-center gap-2">
+                <span th:if="${cuenta != null and !#strings.isEmpty(cuenta)}"
+                      class="badge bg-info" style="font-size: 1rem;" th:text="'Cuenta ' + ${cuenta}">Cuenta</span>
+                <span class="badge bg-primary" style="font-size: 1rem;" th:text="'NSS ' + ${nss}">NSS</span>
+            </div>
         </div>
         <div class="card-body">
 

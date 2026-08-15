@@ -33,6 +33,12 @@
                             <option value="rt2">RT2</option>
                             <option value="maternidad">Maternidad</option>
                         </select>
+                        <select class="form-select form-select-sm" style="max-width: 160px;"
+                                aria-label="Filtrar por rubro" data-filtro-rubro onchange="filtrarPorRubro(this);">
+                            <option value="">Todos los rubros</option>
+                            <option value="Interna">Interna</option>
+                            <option value="IMSS">IMSS</option>
+                        </select>
                     </div>
                     <button type="button" class="btn btn-sm btn-success" onclick="exportarConsultasExcel(this);">
                         <i class="ri-file-excel-2-line me-1"></i> Exportar a Excel
@@ -55,7 +61,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr th:each="i : ${incapacidades}" th:attr="data-ramo=${i.ramo}">
+                            <tr th:each="i : ${incapacidades}" th:attr="data-ramo=${i.ramo}, data-rubro=${i.rubro}">
                                 <td th:text="${i.fechaConsulta}">-</td>
                                 <td th:text="${i.folioIncapacidad}">-</td>
                                 <td th:text="${i.rubro}">-</td>

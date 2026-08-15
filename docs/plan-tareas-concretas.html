@@ -55,6 +55,15 @@
 
   .note{border:1px solid var(--line);background:var(--paper-raised);border-radius:10px;padding:14px 18px;font-size:.85rem;color:var(--ink-muted);line-height:1.55;margin-bottom:20px;}
 
+  .po-callout{
+    border:2px solid var(--blocked); border-radius:10px; background:var(--blocked-soft);
+    padding:16px 18px; margin:20px 0 26px;
+  }
+  .po-callout .po-title{display:flex; align-items:center; gap:8px; font-size:1.05rem; font-weight:700; color:var(--blocked); margin:0 0 6px;}
+  .po-callout .po-dek{margin:0 0 14px; color:var(--ink-muted); font-size:.85rem; line-height:1.5;}
+  .po-callout .table-wrap{background:var(--paper-raised); margin:0;}
+  .po-callout table{min-width:0;}
+
   .sum-footer{
     border:1px solid var(--line); border-top:none; border-radius:0 0 10px 10px;
     background:var(--paper-raised); padding:12px 16px; margin:0 0 28px;
@@ -95,6 +104,25 @@
     Recalibrado 13 de agosto: <strong>Dev</strong> es el desarrollador senior + este agente (código + una prueba mínima de humo antes de entregar, sin coordinación entre "equipos" ya que es la misma persona en Oracle/ORDS y Java) — es la columna que se muestra por tarea. El tiempo de <strong>QA</strong> (equipo separado, formal, sobre versiones ya liberadas) ya no se desglosa por tarea — solo el total, al final de la tabla. Las filas bloqueadas muestran el tiempo estimado <strong>una vez resuelta</strong> la decisión — no es trabajo que se pueda hacer hoy.
   </div>
 
+  <div class="po-callout">
+    <p class="po-title">⚠ Para validar con Product Owner</p>
+    <p class="po-dek">Hallazgos que necesitan una decisión de negocio antes de seguir — no son bloqueadores técnicos, son preguntas que solo el dueño de producto puede responder. Se actualiza conforme aparezcan nuevos.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Tarea</th><th>Pregunta a resolver</th><th>Hallazgo</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Causa de consulta médica <span class="fs-sm" style="display:block;color:var(--ink-muted);font-weight:400;">(antes «Enriquecer causa de accidente en Consulta»)</span></td>
+            <td>¿Debe existir un catálogo cerrado de causas de consulta, o se mantiene como texto clínico libre tal como está hoy?</td>
+            <td>Investigado 14 de agosto: el campo <code>CAUSA</code> (<code>TBL_SERV_CONSULTA_MEDICA</code>) es texto clínico libre real (67 filas vacías + valores genuinos como «DOLOR DE GARGANTA», «CAÍDA EN DOMICILIO», mezclado con basura de pruebas y duplicados por mayúsculas/minúsculas). <strong>No existe</strong> un catálogo cerrado de ~26 valores como sugería (incorrectamente) el análisis de <code class="path">salud-ocupacional-v2</code> — ese repo también lo maneja como texto libre. Convertirlo a un <code>&lt;select&gt;</code> cerrado sin esta decisión inventaría un catálogo inexistente y perdería información clínica real.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <div class="table-wrap">
     <table>
       <thead>
@@ -114,33 +142,26 @@
           <td class="num">1 día</td>
           <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
-        <tr>
+        <tr class="done">
           <td>Fuente IMSS/interna en Incapacidades</td>
-          <td><code>Servcio/incapacidades</code> — verificar si ya trae campo de fuente/origen</td>
+          <td>Verificado 14 de agosto: el campo ya existe (<code>RUBRO</code> en <code>TBL_SERV_INCAPACIDAD_MEDICA</code>, valores <code>Interna</code>/<code>IMSS</code>) y ya viajaba end-to-end (WS → DTO → lista/detalle). El gap real era el filtro — agregado <code>data-filtro-rubro</code> en lista y reporte, mismo patrón que el filtro de Ramo ya existente</td>
           <td>—</td>
           <td class="num">0.5 día</td>
-          <td class="tc"><span class="badge pend">Pendiente</span></td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
-        <tr>
-          <td>Enriquecer catálogo de causa de accidente en Consulta</td>
-          <td><code>Servcio/consulta</code> — ya existe, campo <code>CAUSA</code> ya migrado</td>
-          <td>—</td>
-          <td class="num">0.5 día</td>
-          <td class="tc"><span class="badge pend">Pendiente</span></td>
-        </tr>
-        <tr>
+        <tr class="done">
           <td>Contactos de emergencia en Examen</td>
-          <td>Ninguno nuevo — patrón EAV vía <code>MED_TAG</code>, misma plomería ya construida para Pretest (<code class="path">MedTagRepository</code>). Campos reales confirmados en los datos ya migrados: <code>contactoEmer{nombre,apellido_paterno,apellido_materno,parentesco,telefono}{1,2,3}</code> — hasta 3 contactos, 1,855 personas con datos reales</td>
+          <td>Construido y verificado 14 de agosto: card nueva "Contactos de emergencia" en <code class="path">examen-shell.html</code> (hasta 3, precargados al abrir), guardado independiente vía <code class="path">ContactoEmergenciaService</code> (EAV <code>MED_TAG</code>, mismo patrón que Pretest — nuevo método <code>latestByNssAndTypePrefix</code> en <code class="path">MedTagRepository</code>). No pasa por el WS <code>Servcio/Medico</code> a propósito. Probado en navegador con NSS real (92099018118, 3 contactos completos) — precarga y guardado confirmados. De paso se corrigió feedback de guardado (botón no avisaba el resultado por estar lejos de la vista) con un parámetro genérico nuevo en el helper compartido <code>guardarRegistro()</code></td>
           <td>—</td>
           <td class="num">1 día</td>
-          <td class="tc"><span class="badge pend">Pendiente</span></td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
-        <tr>
+        <tr class="done">
           <td>Mostrar CUENTA (cliente externo) en el expediente</td>
-          <td><code>Servcio/consulta_cuestionario</code> — WS real no conectado todavía en este repo, descubierto el 13 de agosto (join real <code>bio_datos_laborales_empleados</code>+<code>biometrico_cuenta</code>, no es dato inventado). Mismo WS también trae domicilio y 2 teléfonos de emergencia adicionales — evaluar si vale la pena traerlos también</td>
+          <td>Hecho 14 de agosto, con cero WS nuevos: se descubrió que CUENTA ya se obtiene hoy vía <code>Catalogo/usuario</code> (ya en producción, usado por la búsqueda por NSS) — se reusó ese dato (<code class="path">ExpedienteService.cuentaDe()</code> inyecta <code class="path">NssSearchService</code>) en vez de conectar <code>Servcio/consulta_cuestionario</code>. Badge "Cuenta" agregado junto al de NSS en <code class="path">expediente-consultas.html</code>. Domicilio/teléfonos de <code>consulta_cuestionario</code> quedan sin conectar (decisión explícita: no valía la pena dado el riesgo de un WS nunca probado, con bugs conocidos, para un dato secundario) — retomar si se pide explícitamente</td>
           <td>—</td>
           <td class="num">0.5 día</td>
-          <td class="tc"><span class="badge pend">Pendiente</span></td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
         <tr>
           <td>Dashboard ligero de KPIs</td>
@@ -149,26 +170,19 @@
           <td class="num">2 días</td>
           <td class="tc"><span class="badge pend">Pendiente</span></td>
         </tr>
-        <tr>
+        <tr class="done">
           <td>Antidoping / alcoholimetría — backend Oracle/ORDS</td>
-          <td>
-            <ol class="tasklist">
-              <li>Crear <code>SERV_MED_ANTIDOPING_RESULTADO</code> (NSS, folio, fecha, sustancia, resultado, status) — DDL abajo en «Entidades faltantes»</li>
-              <li>Crear <code>SERV_MED_ANTIDOPING_INVENTARIO</code> (insumo, lote, cantidad) — tabla separada del resultado</li>
-              <li>Procedimiento PL/SQL de alta y consulta (mismo patrón que <code>PR_SERVICIO_MED_EXAMEN1/2</code>)</li>
-              <li>Exponer como handler ORDS: <code>POST /Servcio/antidoping</code>, <code>POST /Servcio/consulta_antidoping</code></li>
-            </ol>
-          </td>
+          <td>Aplicado y verificado 14 de agosto: tablas <code>SERV_MED_ANTIDOPING_RESULTADO</code> + <code>SERV_MED_ANTIDOPING_INVENTARIO</code>, handlers <code>POST /Servcio/antidoping</code> y <code>POST /Servcio/consulta_antidoping</code> — probados en vivo con datos reales, ver «Pasos para aplicar» abajo</td>
           <td>—</td>
           <td class="num">1 día</td>
-          <td class="tc"><span class="badge pend">Pendiente</span></td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
         <tr>
           <td>Antidoping / alcoholimetría — módulo Java</td>
-          <td><code class="path">catalog/antidoping/{client,dto,service,web}</code> + fragment + alta de menú, consumiendo el WS de la fila anterior</td>
-          <td class="blk-cell">Necesita el backend de la fila anterior primero<span class="who">Este repo</span></td>
+          <td>Construido y compilado 14 de agosto: <code class="path">catalog/antidoping/{client,dto,service,web}</code> + fragments (lista + alta), consumiendo el WS real. Falta solo registrar el <code>id_menu</code> real en Oracle (queda como placeholder id 12 en <code class="path">nss-modules.html</code>) — mientras tanto, accesible por URL directa</td>
+          <td>—</td>
           <td class="num">1.5 días</td>
-          <td class="tc"><span class="badge pend">Pendiente</span></td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
         <tr class="blocked">
           <td>Antidoping — protocolo de uso clínico</td>
@@ -177,25 +191,19 @@
           <td class="num">Sin código hasta entonces</td>
           <td class="tc"><span class="badge blk">Bloqueado</span></td>
         </tr>
-        <tr>
+        <tr class="done">
           <td>Accidentes de trabajo — backend Oracle/ORDS</td>
-          <td>
-            <ol class="tasklist">
-              <li>Crear <code>SERV_MED_ACCIDENTE</code> (NSS, fecha, tipo de riesgo LABORAL/TRAYECTO, causa RT, status de calificación, SDI, costo) — DDL abajo en «Entidades faltantes»</li>
-              <li>Procedimiento PL/SQL de alta y consulta</li>
-              <li>Exponer como handler ORDS: <code>POST /Servcio/accidente</code>, <code>POST /Servcio/consulta_accidente</code></li>
-            </ol>
-          </td>
+          <td>Aplicado y verificado 14 de agosto: tabla <code>SERV_MED_ACCIDENTE</code>, handlers <code>POST /Servcio/accidente</code> y <code>POST /Servcio/consulta_accidente</code> — probados en vivo con datos reales, ver «Pasos para aplicar» abajo</td>
           <td>—</td>
           <td class="num">1 día</td>
-          <td class="tc"><span class="badge pend">Pendiente</span></td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
         <tr>
           <td>Accidentes de trabajo — módulo Java</td>
-          <td><code class="path">catalog/accidentes/{client,dto,service,web}</code> + fragment, más allá del badge que ya existe hoy en Consulta</td>
-          <td class="blk-cell">Necesita el backend de la fila anterior primero<span class="who">Este repo</span></td>
+          <td>Construido y compilado 14 de agosto: <code class="path">catalog/accidente/{client,dto,service,web}</code> + fragments (lista + alta), consumiendo el WS real. Falta solo registrar el <code>id_menu</code> real en Oracle (queda como placeholder id 13 en <code class="path">nss-modules.html</code>) — mientras tanto, accesible por URL directa</td>
+          <td>—</td>
           <td class="num">1.5 días</td>
-          <td class="tc"><span class="badge pend">Pendiente</span></td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
         <tr class="blocked">
           <td>Accidentes — flujo de investigación</td>
@@ -264,11 +272,11 @@
     </table>
   </div>
   <div class="sum-footer">
-    <span class="pend"><b>Pendiente:</b> Dev 9.5 días + QA 1 día</span>
+    <span class="pend"><b>Pendiente:</b> Dev 2 días + QA 1 día</span>
     <span class="blk"><b>Bloqueado (una vez resuelto):</b> Dev 9.5 días + QA 1.5 días</span>
-    <span><b>Gran total:</b> Dev 19 días + QA 2.5 días</span>
+    <span><b>Gran total:</b> Dev 11.5 días + QA 2.5 días</span>
   </div>
-  <p class="dek" style="font-size:.78rem;">Excluye las 3 filas sin estimado numérico (protocolo antidoping, flujo de investigación de accidentes — 0 días de código, solo decisión; migración histórica — no estimable sin alcance) y las 2 filas ya <span class="badge ok" style="vertical-align:middle;">Hechas</span>.</p>
+  <p class="dek" style="font-size:.78rem;">Actualizado 14 de agosto: Antidoping/Accidentes (backend + Java + menú), «Fuente IMSS/interna en Incapacidades» (filtro por rubro), «Contactos de emergencia en Examen» (EAV vía MED_TAG) y «Mostrar CUENTA en el expediente» (reusando un WS ya conectado, sin integraciones nuevas) pasaron a Hecho. «Enriquecer causa de accidente en Consulta» salió de la tabla — investigación con datos reales mostró que es una pregunta de negocio, no una tarea de código; ahora vive en el recuadro «Para validar con Product Owner» arriba. Excluye las 3 filas sin estimado numérico (protocolo antidoping, flujo de investigación de accidentes — 0 días de código, solo decisión; migración histórica — no estimable sin alcance) y las 9 filas ya <span class="badge ok" style="vertical-align:middle;">Hechas</span>.</p>
 
   <h2 style="font-size:1.15rem;margin:8px 0 4px;">Entidades de base de datos faltantes</h2>
   <p class="dek" style="margin-bottom:14px;">Tablas Oracle que no existen todavía. Las de Antidoping y Accidentes ya tienen estructura confirmada (contra reportes reales, vía el análisis de <code class="path">salud-ocupacional-v2</code>) — listas para crear. Las otras dos siguen sin ningún dato fuente real que las respalde.</p>
@@ -282,19 +290,19 @@
           <td><code>SERV_MED_ANTIDOPING_RESULTADO</code></td>
           <td>Antidoping / alcoholimetría</td>
           <td>NSS, folio, fecha, sustancia (<code>AMF/BARB/BENZO/COC/LSD/MET/OPI/PVC/THC/SOLVENTE/OTRO</code>), resultado (<code>NEGATIVO/POSITIVO</code>), status de conclusión</td>
-          <td class="tc"><span class="badge pend">Lista para crear</span></td>
+          <td class="tc"><span class="badge ok">Creada y verificada</span></td>
         </tr>
         <tr>
           <td><code>SERV_MED_ANTIDOPING_INVENTARIO</code></td>
           <td>Antidoping / alcoholimetría</td>
           <td>Insumo, lote, cantidad — tabla separada del resultado de la prueba (no se mezclan)</td>
-          <td class="tc"><span class="badge pend">Lista para crear</span></td>
+          <td class="tc"><span class="badge ok">Creada</span></td>
         </tr>
         <tr>
           <td><code>SERV_MED_ACCIDENTE</code></td>
           <td>Accidentes de trabajo</td>
           <td>NSS, fecha, tipo de riesgo (<code>LABORAL/TRAYECTO</code>), causa RT (catálogo cerrado), status de calificación (<code>CALIFICADO/IMPROCEDENTE/PENDIENTE/BAJA_INCONCLUSO</code>), SDI, costo</td>
-          <td class="tc"><span class="badge pend">Lista para crear</span></td>
+          <td class="tc"><span class="badge ok">Creada y verificada</span></td>
         </tr>
         <tr class="blocked">
           <td><code>MED_RESTRICCION</code> (catálogo)</td>
@@ -312,8 +320,8 @@
     </table>
   </div>
 
-  <h2 style="font-size:1.15rem;margin:8px 0 4px;">Pasos para aplicar el backend de Antidoping y Accidentes (ORDS)</h2>
-  <p class="dek" style="margin-bottom:14px;">Scripts listos y generados el 13 de agosto (<code class="path">docs/ords-antidoping.sql</code>, <code class="path">docs/ords-accidentes.sql</code>), pendientes de aplicarse en la instancia Oracle que respalda ORDS real (<code>10.249.249.3/biows/ords/security</code> — distinta de la BD local y de <code>ONEWMS_QA</code>). El usuario los aplica directamente ahí; marcar cada paso conforme se vaya ejecutando.</p>
+  <h2 style="font-size:1.15rem;margin:8px 0 4px;">Pasos: backend ORDS + módulo Java de Antidoping y Accidentes</h2>
+  <p class="dek" style="margin-bottom:14px;">Backend (<code class="path">docs/ords-antidoping.sql</code>, <code class="path">docs/ords-accidentes.sql</code>) y módulos Java (<code class="path">catalog/antidoping/</code>, <code class="path">catalog/accidente/</code>) completos y verificados al 14 de agosto. Solo queda pendiente el registro operativo del <code>id_menu</code> en Oracle (paso 12).</p>
   <div class="table-wrap" style="margin-bottom:28px;">
     <table>
       <thead>
@@ -324,61 +332,73 @@
           <td class="num">1</td>
           <td>Crear tabla <code>SERV_MED_ANTIDOPING_RESULTADO</code> + índice + comment</td>
           <td><code class="path">docs/ords-antidoping.sql</code> BLOQUE 1</td>
-          <td class="tc"><span class="badge pend">Pendiente</span></td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
         <tr>
           <td class="num">2</td>
           <td>Crear tabla <code>SERV_MED_ANTIDOPING_INVENTARIO</code> + índice + comment</td>
           <td><code class="path">docs/ords-antidoping.sql</code> BLOQUE 2</td>
-          <td class="tc"><span class="badge pend">Pendiente</span></td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
         <tr>
           <td class="num">3</td>
           <td>Crear handler ORDS <code>POST /Servcio/antidoping</code> (alta)</td>
           <td><code class="path">docs/ords-antidoping.sql</code> BLOQUE 3</td>
-          <td class="tc"><span class="badge pend">Pendiente</span></td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
         <tr>
           <td class="num">4</td>
           <td>Crear handler ORDS <code>POST /Servcio/consulta_antidoping</code> (lista por NSS)</td>
           <td><code class="path">docs/ords-antidoping.sql</code> BLOQUE 4</td>
-          <td class="tc"><span class="badge pend">Pendiente</span></td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
         <tr>
           <td class="num">5</td>
           <td>Crear tabla <code>SERV_MED_ACCIDENTE</code> + índice + comment</td>
           <td><code class="path">docs/ords-accidentes.sql</code> BLOQUE 1</td>
-          <td class="tc"><span class="badge pend">Pendiente</span></td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
         <tr>
           <td class="num">6</td>
           <td>Crear handler ORDS <code>POST /Servcio/accidente</code> (alta)</td>
           <td><code class="path">docs/ords-accidentes.sql</code> BLOQUE 2</td>
-          <td class="tc"><span class="badge pend">Pendiente</span></td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
         <tr>
           <td class="num">7</td>
           <td>Crear handler ORDS <code>POST /Servcio/consulta_accidente</code> (lista por NSS)</td>
           <td><code class="path">docs/ords-accidentes.sql</code> BLOQUE 3</td>
-          <td class="tc"><span class="badge pend">Pendiente</span></td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
-        <tr class="blocked">
+        <tr class="done">
           <td class="num">8</td>
           <td>Verificar convención real de respuesta (<code>Estado:100</code> documentado vs. <code>Estado:0</code> visto empíricamente en <code>Servcio/Medico</code>) y ajustar los 2 handlers de alta si aplica</td>
-          <td>Ambos scripts, NOTA-2</td>
-          <td class="tc"><span class="badge pend">Pendiente</span></td>
+          <td>Probado en vivo contra <code>Servcio/antidoping</code>: respondió <code>"Estado":100</code>, coincide con lo documentado — no requirió ajuste</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
-        <tr class="blocked">
+        <tr class="done">
           <td class="num">9</td>
           <td>Confirmar formato de fecha esperado por el frontend Java (asumido <code>DD/MM/YYYY</code>) antes de conectar el módulo Java</td>
-          <td>Ambos scripts, handlers de alta</td>
-          <td class="tc"><span class="badge pend">Pendiente</span></td>
+          <td>Probado en vivo contra <code>Servcio/accidente</code> con <code>FECHA_ACCIDENTE=14/08/2026</code>: insertó sin <code>ORA-01858/01861</code> — formato correcto</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
-        <tr>
+        <tr class="done">
           <td class="num">10</td>
           <td>Probar los 4 handlers con un POST directo (mismo método usado para verificar el fix de «trabajos previos») antes de arrancar el módulo Java</td>
-          <td>—</td>
-          <td class="tc"><span class="badge pend">Pendiente</span></td>
+          <td>Los 4 respondieron correcto: alta y consulta de antidoping y de accidente, con datos reales de ida y vuelta (NSS <code>68958027838</code>)</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
+        </tr>
+        <tr class="done">
+          <td class="num">11</td>
+          <td>Construir los módulos Java (<code class="path">catalog/antidoping/</code>, <code class="path">catalog/accidente/</code>): client/dto/service/web + fragments de lista y alta, JS (<code>guardarAntidoping</code>/<code>guardarAccidente</code>), rutas en <code>abrirModulo</code></td>
+          <td><code class="path">mvn -o compile</code> exit 0, sin errores</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
+        </tr>
+        <tr class="done">
+          <td class="num">12</td>
+          <td>Dar de alta <code>id_menu</code> real de «Antidoping» y «Accidentes» en Oracle (WS legacy <code>crud_alta_app_menu</code>, <code>id_app=13</code>)</td>
+          <td>Hecho vía WS para <code>id_rol=2</code> (rol del usuario de prueba): <code>id_menu=12</code> Antidoping, <code>id_menu=13</code> Accidentes — coincide exacto con los placeholders ya puestos en <code class="path">nss-modules.html</code>, sin necesidad de ajustar. Confirmado visible en el sidebar del navegador. Si otro rol necesita verlos, hay que repetir el alta para ese <code>id_rol</code></td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
       </tbody>
     </table>

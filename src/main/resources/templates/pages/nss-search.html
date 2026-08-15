@@ -289,6 +289,14 @@
                     loadModuleView('api/nss/examen', nss);
                     return;
                 }
+                if (action === 'antidoping') {
+                    loadModuleView('api/nss/antidoping', nss);
+                    return;
+                }
+                if (action === 'accidentes') {
+                    loadModuleView('api/nss/accidentes', nss);
+                    return;
+                }
                 var idMenu = btn.getAttribute('data-id-menu');
                 status.textContent = 'Modulo "' + btn.textContent.trim() + '" (id ' + idMenu +
                     ', NSS ' + nss + ') disponible en una proxima entrega.';
@@ -415,8 +423,14 @@
                 }
             };
 
-            // Guardado generico de un alta (consulta / incapacidad) + subida de adjuntos.
+            // Guardado generico de un alta (consulta / incapacidad / antidoping / accidente) +
+            // subida de adjuntos. Bloquea doble-click (guard explicito + disabled), muestra
+            // spinner mientras esta en vuelo, y opcionalmente limpia el formulario al exito
+            // (opts.resetOnSuccess) sin tocar el comportamiento de las pantallas que no lo piden.
             async function guardarRegistro(btn, opts) {
+                if (btn.disabled) {
+                    return;
+                }
                 var formEl = document.getElementById(opts.formId);
                 if (!formEl) {
                     return;
@@ -426,8 +440,22 @@
                 if (csrf && csrf.name) {
                     body.append(csrf.name, csrf.value);
                 }
+                var originalHtml = btn.innerHTML;
+                // Resultado inline (opcional): ademas del status global de arriba (lejos de
+                // la vista si el formulario esta mas abajo en la pantalla, ej. Examen), si
+                // opts.resultElId apunta a un elemento cercano al boton, se usa para mostrar
+                // el mismo mensaje justo ahi, imposible de perder de vista.
+                var resultEl = opts.resultElId ? document.getElementById(opts.resultElId) : null;
+                function mostrarResultado(texto, esError) {
+                    status.textContent = texto;
+                    if (resultEl) {
+                        resultEl.textContent = texto;
+                        resultEl.className = 'fs-sm mt-2 ' + (esError ? 'text-danger' : 'text-success');
+                    }
+                }
                 btn.disabled = true;
-                status.textContent = 'Guardando ' + opts.label + '...';
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Guardando...';
+                mostrarResultado('Guardando ' + opts.label + '...', false);
                 try {
                     var response = await fetch(contextPath + opts.savePath, {
                         method: 'POST',
@@ -439,20 +467,24 @@
                     });
                     var txt = await response.text();
                     if (response.ok) {
-                        status.textContent = txt;
+                        mostrarResultado(txt, false);
                         var fileInput = document.getElementById(opts.fileInputId);
                         if (fileInput && fileInput.files && fileInput.files.length) {
-                            status.textContent = txt + ' Subiendo adjuntos...';
+                            mostrarResultado(txt + ' Subiendo adjuntos...', false);
                             var up = await subirAdjuntos(formEl, fileInput.files);
-                            status.textContent = txt + ' ' + up;
+                            mostrarResultado(txt + ' ' + up, false);
+                        }
+                        if (opts.resetOnSuccess) {
+                            formEl.reset();
                         }
                     } else {
-                        status.textContent = 'Error al registrar (HTTP ' + response.status + '): ' + txt;
+                        mostrarResultado('Error al registrar (HTTP ' + response.status + '): ' + txt, true);
                     }
                 } catch (error) {
-                    status.textContent = 'Error de red al registrar.';
+                    mostrarResultado('Error de red al registrar.', true);
                 } finally {
                     btn.disabled = false;
+                    btn.innerHTML = originalHtml;
                 }
             }
 
@@ -466,6 +498,84 @@
 
             window.guardarPretest = function (btn) {
                 guardarRegistro(btn, { formId: 'pretestForm', savePath: 'api/nss/pretest/save', fileInputId: '__none__', label: 'Pre-Test' });
+            };
+
+            window.guardarContactosEmergencia = function (btn) {
+                guardarRegistro(btn, { formId: 'contactosEmergenciaForm', savePath: 'api/nss/examen/contactos-emergencia/save', fileInputId: '__none__', label: 'contactos de emergencia', resultElId: 'contactosEmergenciaResult' });
+            };
+
+            // Advierte (sin bloquear) si el folio capturado ya existe para el NSS en pantalla.
+            // No hay ninguna fuente (WS real ni salud-ocupacional-v2, que ni siquiera tiene
+            // columna folio en su tabla equivalente) que confirme que deba ser unico - es solo
+            // una advertencia opcional, el usuario decide si continua.
+            async function folioYaExiste(formId, listPath) {
+                var f = document.getElementById(formId);
+                if (!f || !f.folio || !f.folio.value.trim()) {
+                    return false;
+                }
+                var folio = f.folio.value.trim().toLowerCase();
+                try {
+                    var body = new URLSearchParams();
+                    body.append('data', f.nss.value);
+                    var csrf = form.querySelector('input[type="hidden"][name]');
+                    if (csrf && csrf.name) {
+                        body.append(csrf.name, csrf.value);
+                    }
+                    var response = await fetch(contextPath + listPath, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'text/html' },
+                        body: body.toString()
+                    });
+                    if (!response.ok) {
+                        return false;
+                    }
+                    var temp = document.createElement('div');
+                    temp.innerHTML = await response.text();
+                    var folios = temp.querySelectorAll('table tbody tr td:nth-child(2)');
+                    for (var i = 0; i < folios.length; i++) {
+                        if ((folios[i].textContent || '').trim().toLowerCase() === folio) {
+                            return true;
+                        }
+                    }
+                    return false;
+                } catch (error) {
+                    return false;
+                }
+            }
+
+            window.guardarAntidoping = async function (btn) {
+                if (await folioYaExiste('antidopingAltaForm', 'api/nss/antidoping')) {
+                    if (!confirm('El folio ya existe para este NSS. ¿Guardar de todas formas?')) {
+                        return;
+                    }
+                }
+                guardarRegistro(btn, { formId: 'antidopingAltaForm', savePath: 'api/nss/antidoping/save', fileInputId: '__none__', label: 'registro de antidoping', resetOnSuccess: true });
+            };
+
+            window.guardarAccidente = function (btn) {
+                guardarRegistro(btn, { formId: 'accidenteAltaForm', savePath: 'api/nss/accidentes/save', fileInputId: '__none__', label: 'accidente', resetOnSuccess: true });
+            };
+
+            // Botones "Nuevo registro" dentro de los fragments de lista (onclick inline no
+            // puede llamar a loadModuleView directo: vive en el closure, no en window).
+            window.nuevoAntidoping = function (btn) {
+                loadModuleView('api/nss/antidoping/form', btn.getAttribute('data-nss'));
+            };
+            window.nuevoAccidente = function (btn) {
+                loadModuleView('api/nss/accidentes/form', btn.getAttribute('data-nss'));
+            };
+
+            // Muestra/oculta el select de sustancia segun el tipo de prueba (solo aplica a ANTIDOPING).
+            window.toggleAntidopingSustancia = function () {
+                var f = document.getElementById('antidopingAltaForm');
+                var wrap = document.getElementById('antidopingSustanciaWrap');
+                if (!f || !wrap) {
+                    return;
+                }
+                wrap.style.display = (f.tipoPrueba.value === 'ANTIDOPING') ? '' : 'none';
+                if (f.tipoPrueba.value !== 'ANTIDOPING') {
+                    f.sustancia.value = '';
+                }
             };
 
             // Costo = salario diario * dias autorizados (legacy calcularSalario).
@@ -851,19 +961,23 @@
                     return;
                 }
                 var q = (input.value || '').toLowerCase();
-                // Si la misma tarjeta tiene un filtro de ramo (ej. Incapacidades), se combinan
-                // ambos filtros; en el resto de las tablas no existe el select y no cambia nada.
+                // Si la misma tarjeta tiene un filtro de ramo y/o rubro (Incapacidades), se
+                // combinan con el buscador de texto; en el resto de las tablas no existen esos
+                // selects y no cambia nada.
                 var ramoSelect = card.querySelector('[data-filtro-ramo]');
                 var ramo = ramoSelect ? ramoSelect.value : '';
+                var rubroSelect = card.querySelector('[data-filtro-rubro]');
+                var rubro = rubroSelect ? rubroSelect.value.toLowerCase() : '';
                 table.querySelectorAll('tbody tr').forEach(function (tr) {
                     var matchTexto = tr.textContent.toLowerCase().indexOf(q) >= 0;
                     var matchRamo = !ramo || tr.getAttribute('data-ramo') === ramo;
-                    tr.style.display = (matchTexto && matchRamo) ? '' : 'none';
+                    var matchRubro = !rubro || (tr.getAttribute('data-rubro') || '').toLowerCase() === rubro;
+                    tr.style.display = (matchTexto && matchRamo && matchRubro) ? '' : 'none';
                 });
             };
 
             // Filtro de ramo (Incapacidades): reusa filtrarConsultas para combinarse con el
-            // buscador de texto de la misma tarjeta, si existe.
+            // buscador de texto (y el filtro de rubro) de la misma tarjeta, si existe.
             window.filtrarPorRamo = function (select) {
                 var card = select.closest('.card');
                 var input = card ? card.querySelector('input[oninput]') : null;
@@ -878,6 +992,24 @@
                 var ramo = select.value;
                 table.querySelectorAll('tbody tr').forEach(function (tr) {
                     tr.style.display = (!ramo || tr.getAttribute('data-ramo') === ramo) ? '' : 'none';
+                });
+            };
+
+            // Filtro de rubro (Interna/IMSS, Incapacidades): mismo patron que filtrarPorRamo.
+            window.filtrarPorRubro = function (select) {
+                var card = select.closest('.card');
+                var input = card ? card.querySelector('input[oninput]') : null;
+                if (input) {
+                    window.filtrarConsultas(input);
+                    return;
+                }
+                var table = card ? card.querySelector('table') : null;
+                if (!table) {
+                    return;
+                }
+                var rubro = select.value.toLowerCase();
+                table.querySelectorAll('tbody tr').forEach(function (tr) {
+                    tr.style.display = (!rubro || (tr.getAttribute('data-rubro') || '').toLowerCase() === rubro) ? '' : 'none';
                 });
             };
 

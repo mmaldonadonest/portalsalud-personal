@@ -76,6 +76,55 @@
                     <div class="text-muted fs-sm" id="trabajosVacio">Sin trabajos previos capturados.</div>
                 </div>
             </div>
+            <!--
+              Contactos de emergencia (hasta 3). EAV via MED_TAG, guardado independiente del
+              resto del examen (no va al WS Servcio/Medico) - form propio + boton propio a
+              proposito, fuera de #examenSecciones/#trabajosPrevios para que guardarExamen()
+              no los recoja por error.
+            -->
+            <div class="card bg-light mb-3" id="contactosEmergencia">
+                <div class="card-header py-2">
+                    <strong>Contactos de emergencia</strong>
+                </div>
+                <div class="card-body">
+                    <form id="contactosEmergenciaForm" class="row g-3" novalidate>
+                        <input type="hidden" name="nss" th:value="${nss}">
+                        <div th:each="c : ${contactos}" class="col-12">
+                            <div class="text-uppercase fs-xs text-muted fw-semibold mb-2"
+                                 th:text="'Contacto ' + ${c.indice}">Contacto</div>
+                            <div class="row g-2">
+                                <div class="col-md-3">
+                                    <input type="text" class="form-control form-control-sm" placeholder="Nombre"
+                                           th:name="${'contactoEmernombre' + c.indice}" th:value="${c.nombre}">
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="text" class="form-control form-control-sm" placeholder="Apellido paterno"
+                                           th:name="${'contactoEmerapellido_paterno' + c.indice}" th:value="${c.apellidoPaterno}">
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="text" class="form-control form-control-sm" placeholder="Apellido materno"
+                                           th:name="${'contactoEmerapellido_materno' + c.indice}" th:value="${c.apellidoMaterno}">
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="text" class="form-control form-control-sm" placeholder="Parentesco"
+                                           th:name="${'contactoEmerparentesco' + c.indice}" th:value="${c.parentesco}">
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="text" class="form-control form-control-sm" placeholder="Teléfono"
+                                           th:name="${'contactoEmertelefono' + c.indice}" th:value="${c.telefono}">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end align-items-center gap-3">
+                            <span id="contactosEmergenciaResult" class="fs-sm"></span>
+                            <button type="button" class="btn btn-sm btn-primary" onclick="guardarContactosEmergencia(this);">
+                                <i class="ri-save-line me-1"></i> Guardar contactos
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <div class="row">
                 <div class="col-md-6">
                     <label class="form-label d-block">Firma del paciente</label>

@@ -36,6 +36,19 @@ public class MedTagRepository {
         return map;
     }
 
+    /** Ultimo CONTENT por TYPE para un NSS, filtrando TYPE LIKE prefix%. */
+    public Map<String, String> latestByNssAndTypePrefix(String nss, String prefix) {
+        Map<String, String> map = new LinkedHashMap<>();
+        jdbc.query(
+                "SELECT TYPE, CONTENT FROM ("
+                        + "  SELECT TYPE, CONTENT, ROW_NUMBER() OVER (PARTITION BY TYPE ORDER BY ID DESC) rn"
+                        + "  FROM MED_TAG WHERE NSS = ? AND TYPE LIKE ?"
+                        + ") WHERE rn = 1",
+                (RowCallbackHandler) rs -> map.put(rs.getString("TYPE"), rs.getString("CONTENT")),
+                nss, prefix + "%");
+        return map;
+    }
+
     /** DELETE + INSERT del valor de un campo (como insertDatsExpFis). */
     public void upsert(String nss, String type, String content, String tagGroup, String createdBy) {
         jdbc.update("DELETE FROM MED_TAG WHERE NSS = ? AND TYPE = ?", nss, type);
