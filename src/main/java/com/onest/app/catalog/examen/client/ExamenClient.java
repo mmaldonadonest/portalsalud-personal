@@ -1,5 +1,7 @@
 package com.onest.app.catalog.examen.client;
 
+import com.onest.app.catalog.examen.dto.ExamenReporteDto;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -22,4 +24,11 @@ public interface ExamenClient {
      * Devuelve el mensaje Proceso del WS.
      */
     String guardar(String nss, Map<String, String> campos, String firma);
+
+    /**
+     * Reporte administrativo de dictamenes por rango de fechas (todas las NSS), para
+     * el dashboard. Backend aplicado y verificado 2026-08-17 - SIN datos retroactivos
+     * (el historial arranco vacio ese dia). fechaInicial/fechaFinal en formato "dd/MM/yy".
+     */
+    List<ExamenReporteDto> reportePorFecha(String fechaInicial, String fechaFinal);
 }

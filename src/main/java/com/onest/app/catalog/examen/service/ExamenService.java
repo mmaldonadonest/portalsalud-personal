@@ -2,6 +2,10 @@ package com.onest.app.catalog.examen.service;
 
 import com.onest.app.catalog.examen.client.ExamenClient;
 import com.onest.app.catalog.examen.dto.ExamItem;
+import com.onest.app.catalog.examen.dto.ExamenReporteDto;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -386,6 +390,33 @@ public class ExamenService {
     /** Guarda el examen (CAMBIO). campos = name->value de las secciones cargadas. */
     public String guardar(String nss, Map<String, String> campos, String firma) {
         return client.guardar(normalizeNss(nss), campos == null ? Map.of() : campos, firma);
+    }
+
+    private static final DateTimeFormatter FECHA_REPORTE = DateTimeFormatter.ofPattern("dd/MM/yy");
+
+    /**
+     * Reporte administrativo de dictamenes por rango de fechas (todas las NSS), para
+     * el dashboard. fechaInicial/fechaFinal llegan en formato ISO (yyyy-MM-dd) y se
+     * reformatean a "dd/MM/yy". SIN datos retroactivos (ver ExamenClient.reportePorFecha).
+     */
+    public List<ExamenReporteDto> reportePorFecha(String fechaInicial, String fechaFinal) {
+        LocalDate desde = parseFechaIso(fechaInicial, "inicial");
+        LocalDate hasta = parseFechaIso(fechaFinal, "final");
+        if (desde.isAfter(hasta)) {
+            throw new IllegalArgumentException("La fecha inicial no puede ser posterior a la fecha final");
+        }
+        return client.reportePorFecha(desde.format(FECHA_REPORTE), hasta.format(FECHA_REPORTE));
+    }
+
+    private static LocalDate parseFechaIso(String valor, String etiqueta) {
+        if (valor == null || valor.isBlank()) {
+            throw new IllegalArgumentException("La fecha " + etiqueta + " es obligatoria");
+        }
+        try {
+            return LocalDate.parse(valor.trim());
+        } catch (DateTimeParseException ex) {
+            throw new IllegalArgumentException("La fecha " + etiqueta + " no es valida", ex);
+        }
     }
 
     private String normalizeNss(String nss) {

@@ -3,6 +3,7 @@ package com.onest.app.catalog.accidente.service;
 import com.onest.app.catalog.accidente.client.AccidenteClient;
 import com.onest.app.catalog.accidente.client.dto.BiowsAccidenteAltaRequest;
 import com.onest.app.catalog.accidente.dto.AccidenteDto;
+import com.onest.app.catalog.accidente.dto.AccidenteReporteDto;
 import com.onest.app.catalog.accidente.web.AccidenteAltaForm;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -23,6 +24,9 @@ public class AccidenteService {
     private static final String USUARIO_FIJO = "747849849";
     // Formato confirmado en vivo el 2026-08-14 contra Servcio/accidente (ver docs/ords-accidentes.sql NOTA-2).
     private static final DateTimeFormatter FECHA_ACCIDENTE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    // Mismo formato de 2 digitos de anio que usa Incapacidad para su reporte por fecha
+    // (ver IncapacidadService.FECHA_REPORTE) - confirmado en vivo 2026-08-17.
+    private static final DateTimeFormatter FECHA_REPORTE = DateTimeFormatter.ofPattern("dd/MM/yy");
 
     private final AccidenteClient client;
 
@@ -32,6 +36,30 @@ public class AccidenteService {
 
     public List<AccidenteDto> byNss(String nss) {
         return client.findAccidentes(normalizeNss(nss));
+    }
+
+    /**
+     * Reporte administrativo por rango de fechas (todas las NSS), para el dashboard.
+     * fechaInicial/fechaFinal llegan en formato ISO (yyyy-MM-dd) y se reformatean a "dd/MM/yy".
+     */
+    public List<AccidenteReporteDto> reportePorFecha(String fechaInicial, String fechaFinal) {
+        LocalDate desde = parseFechaIso(fechaInicial, "inicial");
+        LocalDate hasta = parseFechaIso(fechaFinal, "final");
+        if (desde.isAfter(hasta)) {
+            throw new IllegalArgumentException("La fecha inicial no puede ser posterior a la fecha final");
+        }
+        return client.reportePorFecha(desde.format(FECHA_REPORTE), hasta.format(FECHA_REPORTE));
+    }
+
+    private static LocalDate parseFechaIso(String valor, String etiqueta) {
+        if (valor == null || valor.isBlank()) {
+            throw new IllegalArgumentException("La fecha " + etiqueta + " es obligatoria");
+        }
+        try {
+            return LocalDate.parse(valor.trim());
+        } catch (DateTimeParseException ex) {
+            throw new IllegalArgumentException("La fecha " + etiqueta + " no es valida", ex);
+        }
     }
 
     /** Alta de accidente (POST /Servcio/accidente). Devuelve el mensaje Proceso. */

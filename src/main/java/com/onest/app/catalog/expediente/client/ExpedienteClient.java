@@ -3,6 +3,7 @@ package com.onest.app.catalog.expediente.client;
 import com.onest.app.catalog.expediente.client.dto.BiowsConsultaAltaRequest;
 import com.onest.app.catalog.expediente.dto.ConsultaDetalleDto;
 import com.onest.app.catalog.expediente.dto.ConsultaDto;
+import com.onest.app.catalog.expediente.dto.ConsultaReporteDto;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,4 +27,10 @@ public interface ExpedienteClient {
 
     /** showICD -> POST .../Servcio/indice. Devuelve el catalogo ICD que matchea. */
     List<com.onest.app.catalog.expediente.dto.IcdDto> buscarIcd(String texto);
+
+    /**
+     * Reporte administrativo por rango de fechas (todas las NSS), para el dashboard.
+     * Backend aplicado y verificado 2026-08-17. fechaInicial/fechaFinal en formato "dd/MM/yy".
+     */
+    List<ConsultaReporteDto> reportePorFecha(String fechaInicial, String fechaFinal);
 }

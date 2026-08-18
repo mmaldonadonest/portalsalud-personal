@@ -23,6 +23,12 @@ public class PortalViewController {
         return "pages/home";
     }
 
+    /** Demo del Dashboard ligero de KPIs (Resumen General) usando ApexCharts, ya bundleado en el theme. */
+    @GetMapping("/dashboard-demo")
+    public String dashboardDemo() {
+        return "pages/dashboard-demo";
+    }
+
     /**
      * Pagina dedicada de busqueda por NSS. Acepta un NSS opcional por query param
      * (usado como shortcut desde el buscador global del header) para pre-cargar y buscar.

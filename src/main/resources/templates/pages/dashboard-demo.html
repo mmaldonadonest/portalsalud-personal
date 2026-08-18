@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: demoContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Dashboard KPIs (demo) | Portal Salud Personal</title>
+</head>
+<body>
+
+<th:block id="pageStyles"></th:block>
+
+<th:block th:fragment="demoContent">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/home}" href="/home">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">KPIs (demo)</li>
+            </ol>
+            <h4 class="main-title mb-0">Dashboard ligero de KPIs — demo</h4>
+        </div>
+    </div>
+
+    <div class="card card-one mb-3">
+        <div class="card-body d-flex flex-wrap align-items-end gap-3">
+            <div>
+                <label class="form-label fs-12 mb-1">Fecha inicial</label>
+                <input type="date" id="fFechaInicial" class="form-control form-control-sm" value="2023-01-01">
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Fecha final</label>
+                <input type="date" id="fFechaFinal" class="form-control form-control-sm" value="2026-12-31">
+            </div>
+            <button type="button" id="btnActualizar" class="btn btn-primary btn-sm">Actualizar</button>
+            <span id="estado" class="fs-12 text-muted"></span>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-1" id="kpiCards">
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one">
+                <div class="card-body">
+                    <h3 class="card-value mb-1" id="kpiIncapacidades">—</h3>
+                    <label class="card-title fw-medium text-dark mb-0">Incapacidades</label>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one">
+                <div class="card-body">
+                    <h3 class="card-value mb-1" id="kpiAccidentes">—</h3>
+                    <label class="card-title fw-medium text-dark mb-0">Accidentes</label>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one">
+                <div class="card-body">
+                    <h3 class="card-value mb-1" id="kpiConsultas">—</h3>
+                    <label class="card-title fw-medium text-dark mb-0">Consultas</label>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one">
+                <div class="card-body">
+                    <h3 class="card-value mb-1" id="kpiExamenes">—</h3>
+                    <label class="card-title fw-medium text-dark mb-0">Exámenes</label>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one" style="background:#f0f7ff;">
+                <div class="card-body">
+                    <h3 class="card-value mb-1" id="kpiTotal">—</h3>
+                    <label class="card-title fw-medium text-dark mb-0">Total general</label>
+                </div>
+            </div>
+        </div>
+    </div>
+    <p class="fs-11 text-muted mb-3" id="notaSinFecha"></p>
+
+    <div class="row g-3">
+        <div class="col-12">
+            <div class="card card-one">
+                <div class="card-header"><div class="card-title">Tendencia mensual combinada</div></div>
+                <div class="card-body"><div id="chartTendencia"></div></div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card card-one">
+                <div class="card-header"><div class="card-title">Incapacidades por Ramo</div></div>
+                <div class="card-body"><div id="chartRamo"></div></div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card card-one">
+                <div class="card-header"><div class="card-title">Resultado de exámenes</div></div>
+                <div class="card-body"><div id="chartExamen"></div></div>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block id="pageScripts">
+    <!-- Misma libreria de graficas que salud-ocupacional-v2 (recharts) - self-hosteada aqui
+         igual que chart.js/apexcharts, sin build/CDN. Recharts es un set de componentes React,
+         asi que tambien se incluyen React/ReactDOM/PropTypes (UMD) solo para esta pagina. -->
+    <script th:src="@{/theme/lib/react/react.production.min.js}" src="/theme/lib/react/react.production.min.js"></script>
+    <script th:src="@{/theme/lib/prop-types/prop-types.min.js}" src="/theme/lib/prop-types/prop-types.min.js"></script>
+    <script th:src="@{/theme/lib/react-dom/react-dom.production.min.js}" src="/theme/lib/react-dom/react-dom.production.min.js"></script>
+    <script th:src="@{/theme/lib/recharts/Recharts.js}" src="/theme/lib/recharts/Recharts.js"></script>
+    <script th:inline="javascript">
+        (function () {
+            var h = React.createElement;
+            var R = Recharts;
+            var roots = {};
+
+            function montar(id, elemento) {
+                if (!roots[id]) {
+                    roots[id] = ReactDOM.createRoot(document.getElementById(id));
+                }
+                roots[id].render(elemento);
+            }
+
+            function numero(n) {
+                return (n || 0).toLocaleString('es-MX');
+            }
+
+            async function cargar() {
+                var fechaInicial = document.getElementById('fFechaInicial').value;
+                var fechaFinal = document.getElementById('fFechaFinal').value;
+                var estado = document.getElementById('estado');
+                if (!fechaInicial || !fechaFinal) {
+                    estado.textContent = 'Selecciona ambas fechas.';
+                    return;
+                }
+                estado.textContent = 'Cargando...';
+                var qs = 'fechaInicial=' + encodeURIComponent(fechaInicial) + '&fechaFinal=' + encodeURIComponent(fechaFinal);
+                try {
+                    var [resumenRes, incapacidadesRes, examenRes] = await Promise.all([
+                        fetch(contextPath + 'api/dashboard/resumen-general?' + qs),
+                        fetch(contextPath + 'api/dashboard/incapacidades?' + qs),
+                        fetch(contextPath + 'api/dashboard/examen?' + qs)
+                    ]);
+                    if (!resumenRes.ok || !incapacidadesRes.ok || !examenRes.ok) {
+                        estado.textContent = 'Error al consultar los endpoints (HTTP ' + resumenRes.status + ').';
+                        return;
+                    }
+                    var resumen = await resumenRes.json();
+                    var incapacidades = await incapacidadesRes.json();
+                    var examen = await examenRes.json();
+
+                    pintarKpis(resumen);
+                    pintarTendencia(resumen.tendenciaMensual);
+                    pintarRamo(incapacidades.porRamo);
+                    pintarExamen(examen);
+
+                    estado.textContent = 'Actualizado.';
+                } catch (e) {
+                    estado.textContent = 'Error de red al consultar el dashboard.';
+                }
+            }
+
+            function pintarKpis(resumen) {
+                document.getElementById('kpiIncapacidades').textContent = numero(resumen.totalIncapacidades);
+                document.getElementById('kpiAccidentes').textContent = numero(resumen.totalAccidentes);
+                document.getElementById('kpiConsultas').textContent = numero(resumen.totalConsultas);
+                document.getElementById('kpiExamenes').textContent = numero(resumen.totalExamenes);
+                document.getElementById('kpiTotal').textContent = numero(resumen.totalGeneral);
+            }
+
+            function pintarTendencia(puntos) {
+                puntos = puntos || [];
+                // "Sin fecha" es un bucket combinado de registros sin fecha reconocida, no un
+                // mes real - se excluye de la linea de tiempo para no romper la continuidad,
+                // y se muestra aparte como nota (ver memoria dashboard-kpis-use-case).
+                var sinFecha = puntos.find(function (p) { return p.mes === 'Sin fecha'; });
+                var meses = puntos.filter(function (p) { return p.mes !== 'Sin fecha'; });
+                var nota = document.getElementById('notaSinFecha');
+                if (sinFecha) {
+                    var total = sinFecha.incapacidades + sinFecha.accidentes + sinFecha.consultas + sinFecha.examenes;
+                    nota.textContent = total + ' registro(s) con fecha no reconocida, no incluidos en la gráfica de tendencia.';
+                } else {
+                    nota.textContent = '';
+                }
+
+                var lineas = [
+                    { key: 'incapacidades', nombre: 'Incapacidades', color: '#0284C7' },
+                    { key: 'accidentes', nombre: 'Accidentes', color: '#DC2626' },
+                    { key: 'consultas', nombre: 'Consultas', color: '#16A34A' },
+                    { key: 'examenes', nombre: 'Exámenes', color: '#7C3AED' }
+                ];
+
+                var elemento = h(R.ResponsiveContainer, { width: '100%', height: 320 },
+                    h(R.LineChart, { data: meses },
+                        h(R.CartesianGrid, { strokeDasharray: '3 3', vertical: false }),
+                        h(R.XAxis, { dataKey: 'mes', tick: { fontSize: 11 } }),
+                        h(R.YAxis, { tick: { fontSize: 11 } }),
+                        h(R.Tooltip, null),
+                        h(R.Legend, null),
+                        lineas.map(function (l) {
+                            return h(R.Line, {
+                                key: l.key, type: 'monotone', dataKey: l.key, name: l.nombre,
+                                stroke: l.color, strokeWidth: 2, dot: false
+                            });
+                        })
+                    )
+                );
+                montar('chartTendencia', elemento);
+            }
+
+            function pintarRamo(porRamo) {
+                var data = (porRamo || []).map(function (r) {
+                    return { clave: r.clave || '(sin dato)', cantidad: r.cantidad };
+                });
+                var elemento = h(R.ResponsiveContainer, { width: '100%', height: 300 },
+                    h(R.BarChart, { data: data },
+                        h(R.CartesianGrid, { strokeDasharray: '3 3', vertical: false }),
+                        h(R.XAxis, { dataKey: 'clave', tick: { fontSize: 11 }, angle: -15, textAnchor: 'end', height: 60 }),
+                        h(R.YAxis, { tick: { fontSize: 11 } }),
+                        h(R.Tooltip, null),
+                        h(R.Bar, { dataKey: 'cantidad', name: 'Incapacidades', fill: '#0284C7', radius: [3, 3, 0, 0] })
+                    )
+                );
+                montar('chartRamo', elemento);
+            }
+
+            function pintarExamen(examen) {
+                var colores = ['#16A34A', '#DC2626', '#D97706', '#0284C7'];
+                var data = [
+                    { name: 'Apto', value: examen.totalApto },
+                    { name: 'No apto', value: examen.totalNoApto },
+                    { name: 'Apto condicionado', value: examen.totalAptoCondicionado },
+                    { name: 'Apto restringido', value: examen.totalAptoRestringido }
+                ];
+                var elemento = h(R.ResponsiveContainer, { width: '100%', height: 300 },
+                    h(R.PieChart, null,
+                        h(R.Tooltip, null),
+                        h(R.Legend, null),
+                        h(R.Pie, { data: data, dataKey: 'value', nameKey: 'name', innerRadius: 50, outerRadius: 90, paddingAngle: 2 },
+                            data.map(function (d, i) { return h(R.Cell, { key: 'c' + i, fill: colores[i] }); })
+                        )
+                    )
+                );
+                montar('chartExamen', elemento);
+            }
+
+            document.getElementById('btnActualizar').addEventListener('click', cargar);
+            cargar();
+        })();
+    </script>
+</th:block>
+</body>
+</html>

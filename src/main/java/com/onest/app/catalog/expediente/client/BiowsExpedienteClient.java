@@ -1,6 +1,8 @@
 package com.onest.app.catalog.expediente.client;
 
 import com.onest.app.catalog.expediente.client.dto.BiowsConsultaAltaRequest;
+import com.onest.app.catalog.expediente.client.dto.BiowsConsultaReporteRequest;
+import com.onest.app.catalog.expediente.client.dto.BiowsConsultaReporteResponse;
 import com.onest.app.catalog.expediente.client.dto.BiowsConsultasRequest;
 import com.onest.app.catalog.expediente.client.dto.BiowsConsultasResponse;
 import com.onest.app.catalog.expediente.client.dto.BiowsIcd;
@@ -8,6 +10,7 @@ import com.onest.app.catalog.expediente.client.dto.BiowsIcdRequest;
 import com.onest.app.catalog.expediente.client.dto.BiowsProcesoResponse;
 import com.onest.app.catalog.expediente.dto.ConsultaDetalleDto;
 import com.onest.app.catalog.expediente.dto.ConsultaDto;
+import com.onest.app.catalog.expediente.dto.ConsultaReporteDto;
 import com.onest.app.catalog.expediente.dto.IcdDto;
 import com.onest.app.config.BiowsProperties;
 import java.util.List;
@@ -29,6 +32,7 @@ public class BiowsExpedienteClient implements ExpedienteClient {
     private static final String PATH_CONSULTAS = "/Servcio/conuslta_medica_usuario";
     private static final String PATH_CONSULTA_ALTA = "/Servcio/consulta";
     private static final String PATH_ICD = "/Servcio/indice";
+    private static final String PATH_REPORTE_FECHA = "/Servcio/consulta_medica_fecha";
 
     private final RestClient biowsRestClient;
     private final BiowsProperties properties;
@@ -94,6 +98,27 @@ public class BiowsExpedienteClient implements ExpedienteClient {
                 .map(i -> new IcdDto(i.claveId(), i.nombreClave()))
                 .filter(d -> hasText(d.claveId()) || hasText(d.nombreClave()))
                 .toList();
+    }
+
+    @Override
+    public List<ConsultaReporteDto> reportePorFecha(String fechaInicial, String fechaFinal) {
+        log.info("[biows] POST {}{} {} - {}", properties.baseUrl(), PATH_REPORTE_FECHA, fechaInicial, fechaFinal);
+        BiowsConsultaReporteResponse response = biowsRestClient.post()
+                .uri(PATH_REPORTE_FECHA)
+                .body(new BiowsConsultaReporteRequest(fechaInicial, fechaFinal))
+                .retrieve()
+                .body(BiowsConsultaReporteResponse.class);
+
+        if (response == null || response.datos() == null) {
+            return List.of();
+        }
+        return response.datos().stream().map(BiowsExpedienteClient::toReporte).toList();
+    }
+
+    private static ConsultaReporteDto toReporte(BiowsConsultaReporteResponse.Dato d) {
+        return new ConsultaReporteDto(
+                d.idConsulta(), d.fechaConsulta(), d.nss(), d.nombre(), d.rfc(), d.curp(),
+                d.tipoConsulta(), d.areaAccidente(), d.areaInvolucrada(), d.causa());
     }
 
     private static boolean hasText(String value) {

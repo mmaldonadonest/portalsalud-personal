@@ -2,6 +2,7 @@ package com.onest.app.catalog.antidoping.client;
 
 import com.onest.app.catalog.antidoping.client.dto.BiowsAntidopingAltaRequest;
 import com.onest.app.catalog.antidoping.dto.AntidopingDto;
+import com.onest.app.catalog.antidoping.dto.AntidopingReporteDto;
 import java.util.List;
 
 /**
@@ -15,4 +16,10 @@ public interface AntidopingClient {
 
     /** POST .../Servcio/antidoping. Devuelve el mensaje Proceso. */
     String crearAntidoping(BiowsAntidopingAltaRequest request);
+
+    /**
+     * Reporte administrativo por rango de fechas (todas las NSS), para el dashboard.
+     * Backend aplicado y verificado 2026-08-17. fechaInicial/fechaFinal en formato "dd/MM/yy".
+     */
+    List<AntidopingReporteDto> reportePorFecha(String fechaInicial, String fechaFinal);
 }

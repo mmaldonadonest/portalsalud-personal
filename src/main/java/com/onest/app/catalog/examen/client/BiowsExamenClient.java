@@ -1,7 +1,10 @@
 package com.onest.app.catalog.examen.client;
 
+import com.onest.app.catalog.examen.client.dto.BiowsExamenReporteRequest;
+import com.onest.app.catalog.examen.client.dto.BiowsExamenReporteResponse;
 import com.onest.app.catalog.examen.client.dto.BiowsExamenRequest;
 import com.onest.app.catalog.examen.client.dto.BiowsExamenResponse;
+import com.onest.app.catalog.examen.dto.ExamenReporteDto;
 import com.onest.app.catalog.expediente.client.dto.BiowsProcesoResponse;
 import com.onest.app.config.BiowsProperties;
 import java.time.LocalDateTime;
@@ -31,6 +34,7 @@ public class BiowsExamenClient implements ExamenClient {
     private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("dd/MM/yy HH:mm:ss");
     private static final String PATH = "/Servcio/consulta_examen";
     private static final String PATH_SAVE = "/Servcio/Medico";
+    private static final String PATH_REPORTE_FECHA = "/Servcio/consulta_examen_fecha";
     private static final Pattern TRABAJO_KEY = Pattern.compile("^trabajos\\[(\\d+)]\\.(.+)$");
 
     private final RestClient biowsRestClient;
@@ -182,5 +186,26 @@ public class BiowsExamenClient implements ExamenClient {
             return "SISTEMA";
         }
         return authentication.getName();
+    }
+
+    @Override
+    public List<ExamenReporteDto> reportePorFecha(String fechaInicial, String fechaFinal) {
+        log.info("[biows] POST {}{} {} - {}", properties.baseUrl(), PATH_REPORTE_FECHA, fechaInicial, fechaFinal);
+        BiowsExamenReporteResponse response = biowsRestClient.post()
+                .uri(PATH_REPORTE_FECHA)
+                .body(new BiowsExamenReporteRequest(fechaInicial, fechaFinal))
+                .retrieve()
+                .body(BiowsExamenReporteResponse.class);
+
+        if (response == null || response.datos() == null) {
+            return List.of();
+        }
+        return response.datos().stream().map(BiowsExamenClient::toReporte).toList();
+    }
+
+    private static ExamenReporteDto toReporte(BiowsExamenReporteResponse.Dato d) {
+        return new ExamenReporteDto(
+                d.idRegistro(), d.fechaRegistro(), d.nss(), d.nombre(), d.rfc(), d.curp(),
+                d.apto(), d.noApto(), d.aptoCondicionado(), d.aptoRestringido());
     }
 }

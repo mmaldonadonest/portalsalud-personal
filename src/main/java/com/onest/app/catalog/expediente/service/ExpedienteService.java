@@ -4,13 +4,16 @@ import com.onest.app.catalog.expediente.client.ExpedienteClient;
 import com.onest.app.catalog.expediente.client.dto.BiowsConsultaAltaRequest;
 import com.onest.app.catalog.expediente.dto.ConsultaDetalleDto;
 import com.onest.app.catalog.expediente.dto.ConsultaDto;
+import com.onest.app.catalog.expediente.dto.ConsultaReporteDto;
 import com.onest.app.catalog.expediente.dto.IcdDto;
 import com.onest.app.catalog.expediente.web.ConsultaAltaForm;
 import com.onest.app.catalog.nss.dto.EmpleadoDto;
 import com.onest.app.catalog.nss.dto.NssSearchResponse;
 import com.onest.app.catalog.nss.service.NssSearchService;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,6 +32,9 @@ public class ExpedienteService {
     private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("dd/MM/yy HH:mm:ss");
     // En php-old addConsultM envia USUARIO fijo "747849849" (NOMBRE_USUARIO si es el logueado).
     private static final String USUARIO_FIJO = "747849849";
+    // Formato de 2 digitos de anio para el reporte por fecha (mismo criterio que
+    // IncapacidadService/AccidenteService.FECHA_REPORTE).
+    private static final DateTimeFormatter FECHA_REPORTE = DateTimeFormatter.ofPattern("dd/MM/yy");
 
     private final ExpedienteClient client;
     private final NssSearchService nssSearchService;
@@ -102,6 +108,30 @@ public class ExpedienteService {
             return List.of();
         }
         return client.buscarIcd(texto.trim());
+    }
+
+    /**
+     * Reporte administrativo por rango de fechas (todas las NSS), para el dashboard.
+     * fechaInicial/fechaFinal llegan en formato ISO (yyyy-MM-dd) y se reformatean a "dd/MM/yy".
+     */
+    public List<ConsultaReporteDto> reportePorFecha(String fechaInicial, String fechaFinal) {
+        LocalDate desde = parseFechaIso(fechaInicial, "inicial");
+        LocalDate hasta = parseFechaIso(fechaFinal, "final");
+        if (desde.isAfter(hasta)) {
+            throw new IllegalArgumentException("La fecha inicial no puede ser posterior a la fecha final");
+        }
+        return client.reportePorFecha(desde.format(FECHA_REPORTE), hasta.format(FECHA_REPORTE));
+    }
+
+    private static LocalDate parseFechaIso(String valor, String etiqueta) {
+        if (valor == null || valor.isBlank()) {
+            throw new IllegalArgumentException("La fecha " + etiqueta + " es obligatoria");
+        }
+        try {
+            return LocalDate.parse(valor.trim());
+        } catch (DateTimeParseException ex) {
+            throw new IllegalArgumentException("La fecha " + etiqueta + " no es valida", ex);
+        }
     }
 
     /** NOMBRE_USUARIO. En php-old era $_SESSION['nombre']; aqui el principal autenticado. */

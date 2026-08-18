@@ -2,6 +2,7 @@ package com.onest.app.catalog.accidente.client;
 
 import com.onest.app.catalog.accidente.client.dto.BiowsAccidenteAltaRequest;
 import com.onest.app.catalog.accidente.dto.AccidenteDto;
+import com.onest.app.catalog.accidente.dto.AccidenteReporteDto;
 import java.util.List;
 
 /**
@@ -15,4 +16,10 @@ public interface AccidenteClient {
 
     /** POST .../Servcio/accidente. Devuelve el mensaje Proceso. */
     String crearAccidente(BiowsAccidenteAltaRequest request);
+
+    /**
+     * Reporte administrativo por rango de fechas (todas las NSS), para el dashboard.
+     * Backend aplicado y verificado 2026-08-17. fechaInicial/fechaFinal en formato "dd/MM/yy".
+     */
+    List<AccidenteReporteDto> reportePorFecha(String fechaInicial, String fechaFinal);
 }

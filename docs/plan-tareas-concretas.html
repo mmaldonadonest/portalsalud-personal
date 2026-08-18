@@ -163,11 +163,60 @@
           <td class="num">0.5 día</td>
           <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
-        <tr>
-          <td>Dashboard ligero de KPIs</td>
-          <td>Reutiliza los WS ya conectados (Examen/Incapacidad/Consulta) — sin vistas SQL nuevas</td>
+        <tr class="done">
+          <td>Dashboard ligero de KPIs — backend (Incapacidades)</td>
+          <td>Investigado y verificado 17 de agosto: solo Incapacidades tiene un WS agregado real de "todas las NSS en un rango" (<code>consulta_incapacidades_fecha</code>) — Consulta/Examen exigen NSS individual, sin equivalente, iterar NSS por NSS no es viable. Alcance recortado explícitamente a Incapacidades. Backend construido: <code class="path">catalog/dashboard/</code> (service+DTOs+controller), <code>GET /api/dashboard/incapacidades?fechaInicial=&amp;fechaFinal=</code> devuelve JSON (total, días, costo, por ramo/rubro/estado de dictamen, tendencia mensual). Probado contra datos reales (221 incapacidades) — matemática consistente en las 4 agregaciones</td>
           <td>—</td>
-          <td class="num">2 días</td>
+          <td class="num">1 día</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
+        </tr>
+        <tr class="done">
+          <td>Dashboard ligero de KPIs — backend (Accidentabilidad)</td>
+          <td>Aplicado y verificado 17 de agosto: nuevo handler <code>POST /Servcio/consulta_accidentes_fecha</code> (<code class="path">docs/ords-accidentes-dashboard.sql</code>, sin DDL nuevo — la tabla <code>SERV_MED_ACCIDENTE</code> ya existía) + <code class="path">DashboardAccidentesService</code>, <code>GET /api/dashboard/accidentes?fechaInicial=&amp;fechaFinal=</code>. Probado contra datos reales (2 accidentes) — matemática consistente</td>
+          <td>—</td>
+          <td class="num">0.5 día</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
+        </tr>
+        <tr class="done">
+          <td>Dashboard ligero de KPIs — backend (Morbilidad / Consulta)</td>
+          <td>Aplicado y verificado 17 de agosto: nuevo handler <code>POST /Servcio/consulta_medica_fecha</code> (<code class="path">docs/ords-consulta-dashboard.sql</code>, payload liviano sin campos clínicos sensibles, sin DDL nuevo — la tabla <code>TBL_SERV_CONSULTA_MEDICA</code> ya existía) + <code class="path">DashboardConsultaService</code>, <code>GET /api/dashboard/consultas?fechaInicial=&amp;fechaFinal=</code>. Probado contra datos reales (205 consultas) — matemática consistente en las 4 agregaciones</td>
+          <td>—</td>
+          <td class="num">0.5 día</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
+        </tr>
+        <tr class="done">
+          <td>Dashboard ligero de KPIs — backend (Antidoping)</td>
+          <td>Aplicado y verificado 17 de agosto: nuevo handler <code>POST /Servcio/consulta_antidoping_fecha</code> (<code class="path">docs/ords-antidoping-dashboard.sql</code>, sin DDL nuevo — la tabla <code>SERV_MED_ANTIDOPING_RESULTADO</code> ya existía) + <code class="path">DashboardAntidopingService</code>, <code>GET /api/dashboard/antidoping?fechaInicial=&amp;fechaFinal=</code>. Probado contra datos reales (3 pruebas) — matemática consistente en las 4 agregaciones. Con esto, los 4 WS agregados "baratos" identificados el 17 de agosto ya están construidos</td>
+          <td class="blk-cell">Exámenes agregados/Consumibles (inventario)/Maternidad quedan fuera de alcance sin un WS nuevo, handler básico, o rediseño de esquema respectivamente<span class="who">Retomar si se pide explícitamente</span></td>
+          <td class="num">0.5 día</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
+        </tr>
+        <tr class="done">
+          <td>Dashboard ligero de KPIs — historial de Examen (desbloqueo estructural)</td>
+          <td>Aplicado y verificado 17 de agosto: tabla nueva <code>SERV_MED_RESULTADO_EXAMEN_HIST</code> + edición aditiva de <code>PR_SERVICIO_MED_EXAMEN2</code> (<code class="path">docs/ords-examen-historial.sql</code>) — el `INSERT` nuevo va aislado con su propio manejo de excepción, nunca puede tumbar el guardado real. Probado con éxito por 3 vías (portal Java, PHP legacy, WS directo): el examen se sigue guardando igual, y aparece fila nueva en el historial (<code>REG_ID=3</code>)</td>
+          <td class="blk-cell">Sin datos retroactivos — el historial arranca vacío el 17 de agosto, no recupera exámenes previos<span class="who">Limitación permanente, no accionable</span></td>
+          <td class="num">1 día</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
+        </tr>
+        <tr class="done">
+          <td>Dashboard ligero de KPIs — backend (Examen)</td>
+          <td>Aplicado y verificado 17 de agosto: nuevo handler <code>POST /Servcio/consulta_examen_fecha</code> (<code class="path">docs/ords-examen-dashboard.sql</code>, sobre el historial recién creado) + <code class="path">DashboardExamenService</code>, <code>GET /api/dashboard/examen?fechaInicial=&amp;fechaFinal=</code>. Probado contra datos reales (3 exámenes, 1 Apto) — matemática consistente. Con esto, <strong>las 5 tareas del "Dashboard ligero de KPIs" original quedan completas</strong> — solo falta "Resumen General" (endpoint compuesto, trabajo mecánico) y la UI</td>
+          <td>—</td>
+          <td class="num">1 día</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
+        </tr>
+        <tr class="done">
+          <td>Dashboard ligero de KPIs — Resumen General</td>
+          <td>Aplicado y verificado 17 de agosto: <code>DashboardResumenGeneralService</code> combina los 4 dashboards existentes (Incapacidades, Accidentes, Consultas, Examen) en un total y una tendencia mensual unificada, <code>GET /api/dashboard/resumen-general?fechaInicial=&amp;fechaFinal=</code>. Probado contra datos reales 2024: 221+0+83+0=304, matemática consistente. Con esto, <strong>las 6 tareas del "Dashboard ligero de KPIs" backend quedan completas</strong> — solo falta la UI</td>
+          <td class="blk-cell">Nota de diseño para la UI: la tendencia mensual combinada incluye un bucket <code>"Sin fecha"</code> (registros con fecha no parseable, agregados de los 4 dominios en una sola fila) — no graficarlo como si fuera un mes más en una línea de tiempo; mostrarlo aparte como nota/badge<span class="who">No bloquea, solo afecta cómo se dibuja la gráfica</span></td>
+          <td class="num">0.5 día</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
+        </tr>
+        <tr>
+          <td>Dashboard ligero de KPIs — UI (gráficas)</td>
+          <td>Consumir <code>GET /api/dashboard/{incapacidades,accidentes,consultas,antidoping,examen}</code> con la librería de gráficas a elegir — ver recuadro de decisión pendiente (recharts vs Chart.js/ApexCharts) más abajo en el documento de referencia</td>
+          <td>—</td>
+          <td class="num">1 día</td>
           <td class="tc"><span class="badge pend">Pendiente</span></td>
         </tr>
         <tr class="done">
@@ -272,11 +321,11 @@
     </table>
   </div>
   <div class="sum-footer">
-    <span class="pend"><b>Pendiente:</b> Dev 2 días + QA 1 día</span>
+    <span class="pend"><b>Pendiente:</b> Dev 1 día + QA 1 día</span>
     <span class="blk"><b>Bloqueado (una vez resuelto):</b> Dev 9.5 días + QA 1.5 días</span>
-    <span><b>Gran total:</b> Dev 11.5 días + QA 2.5 días</span>
+    <span><b>Gran total:</b> Dev 10.5 días + QA 2.5 días</span>
   </div>
-  <p class="dek" style="font-size:.78rem;">Actualizado 14 de agosto: Antidoping/Accidentes (backend + Java + menú), «Fuente IMSS/interna en Incapacidades» (filtro por rubro), «Contactos de emergencia en Examen» (EAV vía MED_TAG) y «Mostrar CUENTA en el expediente» (reusando un WS ya conectado, sin integraciones nuevas) pasaron a Hecho. «Enriquecer causa de accidente en Consulta» salió de la tabla — investigación con datos reales mostró que es una pregunta de negocio, no una tarea de código; ahora vive en el recuadro «Para validar con Product Owner» arriba. Excluye las 3 filas sin estimado numérico (protocolo antidoping, flujo de investigación de accidentes — 0 días de código, solo decisión; migración histórica — no estimable sin alcance) y las 9 filas ya <span class="badge ok" style="vertical-align:middle;">Hechas</span>.</p>
+  <p class="dek" style="font-size:.78rem;">Actualizado 17 de agosto: backend del Dashboard de KPIs 100% completo — los 5 dominios (Incapacidades, Accidentabilidad, Morbilidad/Consulta, Antidoping, Examen) más el endpoint compuesto "Resumen General" que los combina en un total y una tendencia mensual unificada. Incluye el desbloqueo estructural de Examen (tabla de historial + edición aditiva de <code>PR_SERVICIO_MED_EXAMEN2</code>, probado sin regresión) y su WS agregado. Solo queda pendiente la UI (gráficas) — con una nota de diseño ya registrada sobre cómo tratar el bucket "Sin fecha" en la tendencia combinada. Excluye las 3 filas sin estimado numérico (protocolo antidoping, flujo de investigación de accidentes — 0 días de código, solo decisión; migración histórica — no estimable sin alcance) y las 16 filas ya <span class="badge ok" style="vertical-align:middle;">Hechas</span>.</p>
 
   <h2 style="font-size:1.15rem;margin:8px 0 4px;">Entidades de base de datos faltantes</h2>
   <p class="dek" style="margin-bottom:14px;">Tablas Oracle que no existen todavía. Las de Antidoping y Accidentes ya tienen estructura confirmada (contra reportes reales, vía el análisis de <code class="path">salud-ocupacional-v2</code>) — listas para crear. Las otras dos siguen sin ningún dato fuente real que las respalde.</p>
@@ -404,9 +453,115 @@
     </table>
   </div>
 
+  <h2 style="font-size:1.15rem;margin:8px 0 4px;">Dashboards identificados</h2>
+  <p class="dek" style="margin-bottom:14px;">Los 6 dashboards que propone <code class="path">salud-ocupacional-v2</code> (diseñados contra archivos Excel, no contra los WS reales) evaluados uno por uno contra lo que hoy es técnicamente posible sin WS/vistas nuevas. Investigado y confirmado 17 de agosto.</p>
+  <div class="table-wrap" style="margin-bottom:28px;">
+    <table>
+      <thead>
+        <tr><th>Dashboard</th><th>Fuente que usaría</th><th>Estado</th><th>Qué falta</th></tr>
+      </thead>
+      <tbody>
+        <tr class="done">
+          <td>Incapacidades y Accidentabilidad</td>
+          <td><code>Servcio/consulta_incapacidades_fecha</code> (ya existía) + <code>Servcio/consulta_accidentes_fecha</code> (nuevo, aplicado 17 de agosto sobre <code>SERV_MED_ACCIDENTE</code>, sin DDL nuevo)</td>
+          <td class="tc"><span class="badge ok">Backend hecho</span></td>
+          <td>Ambas mitades verificadas contra datos reales: Incapacidades (221 registros) y Accidentabilidad (2 registros), matemática consistente en las 4 agregaciones de cada una. Solo falta la UI — hereda la misma decisión de librería de gráficas</td>
+        </tr>
+        <tr class="done">
+          <td>Resumen General</td>
+          <td>Compuesto: Incapacidades + Accidentabilidad + Consulta + Examen — sin WS propio, combina <code>GET /api/dashboard/{incapacidades,accidentes,consultas,examen}</code></td>
+          <td class="tc"><span class="badge ok">Backend hecho</span></td>
+          <td>Aplicado y verificado 17 de agosto: <code>DashboardResumenGeneralService</code>, <code>GET /api/dashboard/resumen-general?fechaInicial=&amp;fechaFinal=</code>. Probado contra datos reales 2024: 221+0+83+0=304, matemática consistente. Solo falta la UI — hereda la misma decisión de librería de gráficas</td>
+        </tr>
+        <tr class="done">
+          <td>Morbilidad</td>
+          <td><code>Servcio/consulta_medica_fecha</code> — nuevo, aplicado 17 de agosto sobre <code>TBL_SERV_CONSULTA_MEDICA</code>, sin DDL nuevo</td>
+          <td class="tc"><span class="badge ok">Backend hecho</span></td>
+          <td>Verificado contra datos reales (205 consultas), matemática consistente en las 4 agregaciones. <code>CAUSA</code> se trata como texto libre (top 15 + "Otras"), sin normalizar — el catálogo normalizado sigue pendiente aparte (ver recuadro "Para validar con Product Owner" arriba). Solo falta la UI</td>
+        </tr>
+        <tr class="done">
+          <td>Exámenes Médicos</td>
+          <td><code>SERV_MED_RESULTADO_EXAMEN_HIST</code> (historial nuevo, <code class="path">docs/ords-examen-historial.sql</code>) + <code>Servcio/consulta_examen_fecha</code> (<code class="path">docs/ords-examen-dashboard.sql</code>), ambos aplicados 17 de agosto</td>
+          <td class="tc"><span class="badge ok">Backend hecho</span></td>
+          <td>Verificado end-to-end: el guardado real de Examen sigue funcionando igual (Java, PHP legacy y WS directo), y <code>GET /api/dashboard/examen</code> ya devuelve datos reales (3 exámenes, 1 Apto). <strong>Sin datos retroactivos</strong> — el historial arranca vacío el 17 de agosto. Solo falta la UI</td>
+        </tr>
+        <tr class="done">
+          <td>Antidoping (resultados)</td>
+          <td><code>Servcio/consulta_antidoping_fecha</code> — nuevo, aplicado 17 de agosto sobre <code>SERV_MED_ANTIDOPING_RESULTADO</code>, sin DDL nuevo</td>
+          <td class="tc"><span class="badge ok">Backend hecho</span></td>
+          <td>Verificado contra datos reales (3 pruebas), matemática consistente en las 4 agregaciones. Solo falta la UI</td>
+        </tr>
+        <tr class="blocked">
+          <td>Consumibles (inventario antidoping)</td>
+          <td><code>SERV_MED_ANTIDOPING_INVENTARIO</code> — existe como tabla desde el 14 de agosto, sin ningún handler todavía, ni siquiera individual (no solo el agregado)</td>
+          <td class="tc"><span class="badge blk">Bloqueado</span></td>
+          <td>Falta construir el handler básico de alta/consulta primero (no hay nada que agregar todavía porque no hay forma de capturar datos)</td>
+        </tr>
+        <tr class="blocked">
+          <td>Maternidad</td>
+          <td>Ninguna tabla/WS dedicado — solo un campo Sí/No + semanas dentro de <code>Servcio/consulta_cuestionario</code></td>
+          <td class="tc"><span class="badge blk">Bloqueado</span></td>
+          <td>No es solo un WS agregado — falta la decisión de negocio del nivel de seguimiento esperado (ver fila "Maternidad — seguimiento completo" arriba, Gerente SO / Médico Jefe)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 style="font-size:1.15rem;margin:8px 0 4px;">Checklist de WS agregados (por fecha, todas las NSS)</h2>
+  <p class="dek" style="margin-bottom:14px;">Un mismo WS agregado a veces desbloquea más de un dashboard a la vez (ej. Consulta sirve tanto a Morbilidad como a Resumen General) — se trackea aquí en un solo lugar en vez de repetir el estado en cada fila de la tabla de arriba.</p>
+  <div class="table-wrap" style="margin-bottom:28px;">
+    <table>
+      <thead>
+        <tr><th>WS / tabla</th><th>Desbloquea</th><th>Estado</th></tr>
+      </thead>
+      <tbody>
+        <tr class="done">
+          <td><code>Servcio/consulta_incapacidades_fecha</code> <span class="fs-sm" style="display:block;color:var(--ink-muted);font-weight:400;">(ya existía, no se construyó en esta ronda)</span></td>
+          <td>Incapacidades y Accidentabilidad</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
+        </tr>
+        <tr class="done">
+          <td><code>Servcio/consulta_accidentes_fecha</code> <span class="fs-sm" style="display:block;color:var(--ink-muted);font-weight:400;">(<code class="path">docs/ords-accidentes-dashboard.sql</code>)</span></td>
+          <td>Incapacidades y Accidentabilidad</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
+        </tr>
+        <tr class="done">
+          <td><code>Servcio/consulta_medica_fecha</code> <span class="fs-sm" style="display:block;color:var(--ink-muted);font-weight:400;">(<code class="path">docs/ords-consulta-dashboard.sql</code>)</span></td>
+          <td>Morbilidad + Resumen General (parcial)</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
+        </tr>
+        <tr class="done">
+          <td><code>Servcio/consulta_antidoping_fecha</code> <span class="fs-sm" style="display:block;color:var(--ink-muted);font-weight:400;">(<code class="path">docs/ords-antidoping-dashboard.sql</code>)</span></td>
+          <td>Antidoping (resultados)</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
+        </tr>
+        <tr class="blocked">
+          <td>Handler básico de <code>SERV_MED_ANTIDOPING_INVENTARIO</code> (ni siquiera individual todavía)</td>
+          <td>Consumibles (inventario antidoping)</td>
+          <td class="tc"><span class="badge blk">Pendiente (no agregado — falta la base)</span></td>
+        </tr>
+        <tr class="done">
+          <td>Rediseño de esquema para Examen <span class="fs-sm" style="display:block;color:var(--ink-muted);font-weight:400;">(<code class="path">docs/ords-examen-historial.sql</code> — tabla + edición aditiva de <code>PR_SERVICIO_MED_EXAMEN2</code>)</span></td>
+          <td>Desbloquea la posibilidad de <code>consulta_examen_fecha</code> (siguiente paso)</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
+        </tr>
+        <tr class="done">
+          <td><code>Servcio/consulta_examen_fecha</code> <span class="fs-sm" style="display:block;color:var(--ink-muted);font-weight:400;">(<code class="path">docs/ords-examen-dashboard.sql</code>, sobre <code>SERV_MED_RESULTADO_EXAMEN_HIST</code>)</span></td>
+          <td>Exámenes Médicos + Resumen General</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
+        </tr>
+        <tr class="blocked">
+          <td>Maternidad (entidad no identificada)</td>
+          <td>Maternidad</td>
+          <td class="tc"><span class="badge blk">Bloqueado de negocio</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
   <footer class="colophon">
     <span>Historial completo: <span class="path">docs/plan-integracion-js-version.html</span></span>
     <span>Checklist de bloqueadores: <span class="path">docs/checklist-bloqueadores-negocio.md</span></span>
-    <span>13 de agosto de 2026</span>
+    <span>17 de agosto de 2026</span>
   </footer>
 </div>
