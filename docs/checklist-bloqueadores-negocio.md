@@ -1,5 +1,9 @@
 # Checklist de bloqueadores de negocio — Salud Ocupacional
 
+> Versión corta y lista para enviar a Product Owner: `docs/checklist-bloqueadores-negocio.html` (18 de agosto de 2026) — mismas 9 preguntas abiertas, organizadas por responsable, sin el detalle técnico de este archivo.
+>
+> Versión cuestionario, para contestar y regresar (excluye Migración histórica y lo ya resuelto): `docs/cuestionario-bloqueadores-negocio.md` (18 de agosto de 2026) — 8 preguntas con espacio de respuesta, responsable y fecha, más tabla de seguimiento al final.
+
 Consolidado a partir de `js-version/CHECKLIST_BLOQUEADORES.md` (proyecto "Salud Ocupacional V2", Node/React/Postgres, que se decidió no continuar como sistema aparte — ver plan de integración en la sesión del 2026-08-10). Ese análisis se hizo directamente sobre los 10 archivos Excel reales del área de Salud Ocupacional (`EXAMEN MEDICO.xlsx`, `REPORTE MORBILIDAD.xlsm` y sus reportes fuente), independientemente del portal legacy PHP y del portal Java actual — por eso sigue siendo válido como insumo de negocio aunque el stack técnico que lo originó ya no se use.
 
 **Propósito de este documento**: ser la fuente única de qué decisiones de negocio siguen pendientes con Médico Jefe / Gerente SO / RRHH / Admin IT antes de construir en Java cualquier funcionalidad nueva de Salud Ocupacional (dashboard de morbilidad, antidoping, accidentes de trabajo, maternidad, restricciones médicas, etc.). No se resuelve nada aquí — es un inventario, no una decisión.

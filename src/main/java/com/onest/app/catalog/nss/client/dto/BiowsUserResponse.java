@@ -33,7 +33,8 @@ public record BiowsUserResponse(
             @JsonProperty("tel_fijo") String telFijo,
             @JsonProperty("completo") String completo,
             @JsonProperty("nombre_puesto") String nombrePuesto,
-            @JsonProperty("nombre_empresa") String nombreEmpresa
+            @JsonProperty("nombre_empresa") String nombreEmpresa,
+            @JsonProperty("email") String email
     ) {
     }
 }

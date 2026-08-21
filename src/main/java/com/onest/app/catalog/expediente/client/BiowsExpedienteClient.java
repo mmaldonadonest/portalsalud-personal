@@ -118,6 +118,7 @@ public class BiowsExpedienteClient implements ExpedienteClient {
     private static ConsultaReporteDto toReporte(BiowsConsultaReporteResponse.Dato d) {
         return new ConsultaReporteDto(
                 d.idConsulta(), d.fechaConsulta(), d.nss(), d.nombre(), d.rfc(), d.curp(),
+                d.genero(), d.edad(), d.cuenta(),
                 d.tipoConsulta(), d.areaAccidente(), d.areaInvolucrada(), d.causa());
     }
 

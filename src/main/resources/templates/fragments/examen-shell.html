@@ -124,6 +124,48 @@
                     </form>
                 </div>
             </div>
+            <!--
+              Diagnosticos secundarios (hasta 3). EAV via MED_TAG, mismo patron que Contactos
+              de emergencia - guardado independiente del resto del examen. Cada slot es de solo
+              lectura, se llena con el mismo buscador ICD ya usado en el diagnostico principal
+              (buscarIcd/addIcd generalizados), no texto libre.
+            -->
+            <div class="card bg-light mb-3" id="diagnosticosSecundarios">
+                <div class="card-header py-2">
+                    <strong>Diagnósticos secundarios</strong>
+                </div>
+                <div class="card-body">
+                    <form id="diagnosticosSecundariosForm" class="row g-3" novalidate>
+                        <input type="hidden" name="nss" th:value="${nss}">
+                        <div th:each="d : ${diagnosticosSecundarios}" class="col-12">
+                            <label class="form-label mb-1" th:text="'Diagnóstico secundario ' + ${d.indice}">Diagnóstico secundario</label>
+                            <div class="row g-2">
+                                <div class="col-md-7">
+                                    <input type="text" class="form-control form-control-sm" readonly
+                                           placeholder="Selecciona una clave del buscador ICD..."
+                                           th:id="|diagSec${d.indice}|"
+                                           th:name="|diagnosticoSecundario${d.indice}|"
+                                           th:value="${d.valor}">
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label mb-1 fs-xs text-muted" th:for="|diagSec${d.indice}IcdConsult|">Buscar diagnóstico secundario (catálogo ICD/CIE)</label>
+                                    <input type="text" class="form-control form-control-sm" autocomplete="off"
+                                           placeholder="Escribe al menos 3 letras (autocompleta)..."
+                                           th:id="|diagSec${d.indice}IcdConsult|"
+                                           th:oninput="|buscarIcdDebounced('diagSec${d.indice}IcdConsult','diagSec${d.indice}IcdResult','diagSec${d.indice}');|">
+                                    <div th:id="|diagSec${d.indice}IcdResult|" class="mt-1"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end align-items-center gap-3">
+                            <span id="diagnosticosSecundariosResult" class="fs-sm"></span>
+                            <button type="button" class="btn btn-sm btn-primary" onclick="guardarDiagnosticosSecundarios(this);">
+                                <i class="ri-save-line me-1"></i> Guardar diagnósticos secundarios
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
 
             <div class="row">
                 <div class="col-md-6">

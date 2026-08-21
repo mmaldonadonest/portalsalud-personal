@@ -44,7 +44,7 @@ class PortalViewControllerTest {
     void shouldRenderHomePage() throws Exception {
         mockMvc.perform(get("/home"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("pages/home"))
-                .andExpect(content().string(containsString("Website Analytics")));
+                .andExpect(view().name("pages/dashboard-demo-apex"))
+                .andExpect(content().string(containsString("Dashboard ligero de KPIs")));
     }
 }

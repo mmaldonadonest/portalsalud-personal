@@ -149,8 +149,17 @@ public class BiowsNssSearchClient implements NssSearchClient {
                 dato.completo(),
                 dato.nombrePuesto(),
                 dato.nombreEmpresa(),
-                calcularEdad(dato.rfc())
+                calcularEdad(dato.rfc()),
+                normalizarEmail(dato.email())
         );
+    }
+
+    /** Mismo convenio "0"=sin dato ya usado en Examen/Antidoping/Consumibles. */
+    private static String normalizarEmail(String email) {
+        if (email == null || email.isBlank() || "0".equals(email.trim())) {
+            return null;
+        }
+        return email.trim();
     }
 
     private static CandidatoDto toCandidato(BiowsProspectoResponse.Dato dato) {

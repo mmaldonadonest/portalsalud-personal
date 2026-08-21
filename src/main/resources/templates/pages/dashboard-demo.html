@@ -6,7 +6,49 @@
 </head>
 <body>
 
-<th:block id="pageStyles"></th:block>
+<th:block id="pageStyles">
+    <style>
+        .chart-card .card-header { border-bottom: none; padding-bottom: 0; display: block; }
+        .chart-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        .chart-eyebrow::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+        }
+        .chart-eyebrow--tendencia { color: #2563EB; }
+        .chart-eyebrow--ramo { color: #0EA5E9; }
+        .chart-eyebrow--examen { color: #16A34A; }
+        .chart-card .card-title-lg {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .recharts-tooltip-modern {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px 12px;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, .10);
+            font-size: 12px;
+            min-width: 140px;
+        }
+        .recharts-tooltip-modern .tt-title { font-weight: 700; margin-bottom: 4px; color: #1e293b; }
+        .recharts-tooltip-modern .tt-row { display: flex; align-items: center; gap: 6px; color: #475569; }
+        .recharts-tooltip-modern .tt-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: 0 0 auto; }
+    </style>
+</th:block>
 
 <th:block th:fragment="demoContent">
     <div class="d-flex align-items-center justify-content-between mb-4">
@@ -15,8 +57,9 @@
                 <li class="breadcrumb-item"><a th:href="@{/home}" href="/home">Dashboard</a></li>
                 <li class="breadcrumb-item active" aria-current="page">KPIs (demo)</li>
             </ol>
-            <h4 class="main-title mb-0">Dashboard ligero de KPIs — demo</h4>
+            <h4 class="main-title mb-0">Dashboard ligero de KPIs — demo (Recharts)</h4>
         </div>
+        <a th:href="@{/dashboard-demo-apex}" href="/dashboard-demo-apex" class="btn btn-outline-primary btn-sm">Ver versión ApexCharts</a>
     </div>
 
     <div class="card card-one mb-3">
@@ -80,20 +123,29 @@
 
     <div class="row g-3">
         <div class="col-12">
-            <div class="card card-one">
-                <div class="card-header"><div class="card-title">Tendencia mensual combinada</div></div>
+            <div class="card card-one chart-card">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--tendencia">KPIs · Portal Salud</span>
+                    <div class="card-title-lg">Tendencia mensual combinada</div>
+                </div>
                 <div class="card-body"><div id="chartTendencia"></div></div>
             </div>
         </div>
         <div class="col-md-6">
-            <div class="card card-one">
-                <div class="card-header"><div class="card-title">Incapacidades por Ramo</div></div>
+            <div class="card card-one chart-card">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--ramo">Incapacidades</span>
+                    <div class="card-title-lg">Por Ramo</div>
+                </div>
                 <div class="card-body"><div id="chartRamo"></div></div>
             </div>
         </div>
         <div class="col-md-6">
-            <div class="card card-one">
-                <div class="card-header"><div class="card-title">Resultado de exámenes</div></div>
+            <div class="card card-one chart-card">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--examen">Examen médico</span>
+                    <div class="card-title-lg">Resultado</div>
+                </div>
                 <div class="card-body"><div id="chartExamen"></div></div>
             </div>
         </div>
@@ -123,6 +175,19 @@
 
             function numero(n) {
                 return (n || 0).toLocaleString('es-MX');
+            }
+
+            function tooltipModern(props) {
+                if (!props.active || !props.payload || !props.payload.length) return null;
+                return h('div', { className: 'recharts-tooltip-modern' },
+                    h('div', { className: 'tt-title' }, props.label),
+                    props.payload.map(function (p, i) {
+                        return h('div', { key: i, className: 'tt-row' },
+                            h('span', { className: 'tt-dot', style: { background: p.color || p.fill } }),
+                            h('span', null, p.name + ': ' + numero(p.value))
+                        );
+                    })
+                );
             }
 
             async function cargar() {
@@ -168,6 +233,99 @@
                 document.getElementById('kpiTotal').textContent = numero(resumen.totalGeneral);
             }
 
+            var LINEAS_TENDENCIA = [
+                { key: 'incapacidades', nombre: 'Incapacidades', color: '#0284C7' },
+                { key: 'accidentes', nombre: 'Accidentes', color: '#DC2626' },
+                { key: 'consultas', nombre: 'Consultas', color: '#16A34A' },
+                { key: 'examenes', nombre: 'Exámenes', color: '#7C3AED' }
+            ];
+
+            // Recharts no trae zoom con drag del mouse (solo el Brush, un slider aparte) -
+            // se implementa a mano con el patron oficial "Highlight and zoom": se capturan
+            // los eventos de mouse del propio AreaChart, se dibuja un ReferenceArea mientras
+            // se arrastra, y al soltar se recorta el arreglo de datos al rango seleccionado.
+            function TendenciaChart(props) {
+                var todos = props.data;
+                var zoomState = React.useState(todos);
+                var zoomData = zoomState[0], setZoomData = zoomState[1];
+                var leftState = React.useState(''); var left = leftState[0], setLeft = leftState[1];
+                var rightState = React.useState(''); var right = rightState[0], setRight = rightState[1];
+                var draggingState = React.useState(false); var arrastrando = draggingState[0], setArrastrando = draggingState[1];
+
+                React.useEffect(function () {
+                    setZoomData(todos);
+                    setLeft('');
+                    setRight('');
+                    setArrastrando(false);
+                }, [todos]);
+
+                function onMouseDown(e) {
+                    if (!e || !e.activeLabel) return;
+                    setLeft(e.activeLabel);
+                    setRight(e.activeLabel);
+                    setArrastrando(true);
+                }
+                function onMouseMove(e) {
+                    if (!arrastrando || !e || !e.activeLabel) return;
+                    setRight(e.activeLabel);
+                }
+                function onMouseUp() {
+                    if (!arrastrando) return;
+                    setArrastrando(false);
+                    if (!left || !right || left === right) { setLeft(''); setRight(''); return; }
+                    var i1 = todos.findIndex(function (d) { return d.mes === left; });
+                    var i2 = todos.findIndex(function (d) { return d.mes === right; });
+                    var lo = Math.min(i1, i2), hi = Math.max(i1, i2);
+                    setZoomData(todos.slice(lo, hi + 1));
+                    setLeft('');
+                    setRight('');
+                }
+                function resetZoom() {
+                    setZoomData(todos);
+                }
+
+                var haySeleccion = zoomData.length !== todos.length;
+
+                return h('div', null,
+                    h('div', { style: { minHeight: 26 } },
+                        haySeleccion ? h('button', {
+                            type: 'button', className: 'btn btn-sm btn-outline-secondary', onClick: resetZoom
+                        }, 'Reset zoom') : h('span', { className: 'fs-11 text-muted' }, 'Arrastra sobre la gráfica para hacer zoom')
+                    ),
+                    h(R.ResponsiveContainer, { width: '100%', height: 320 },
+                        h(R.AreaChart, {
+                                data: zoomData, margin: { top: 10, right: 10, left: 0, bottom: 0 },
+                                onMouseDown: onMouseDown, onMouseMove: onMouseMove, onMouseUp: onMouseUp
+                            },
+                            h('defs', null,
+                                LINEAS_TENDENCIA.map(function (l) {
+                                    return h('linearGradient', { key: 'grad-' + l.key, id: 'grad-' + l.key, x1: 0, y1: 0, x2: 0, y2: 1 },
+                                        h('stop', { offset: '5%', stopColor: l.color, stopOpacity: 0.35 }),
+                                        h('stop', { offset: '95%', stopColor: l.color, stopOpacity: 0.02 })
+                                    );
+                                })
+                            ),
+                            h(R.CartesianGrid, { strokeDasharray: '3 3', vertical: false, stroke: '#e5e9f2' }),
+                            h(R.XAxis, { dataKey: 'mes', tick: { fontSize: 11, fill: '#94a3b8' }, axisLine: { stroke: '#e5e9f2' }, tickLine: false, allowDataOverflow: true }),
+                            h(R.YAxis, { tick: { fontSize: 11, fill: '#94a3b8' }, axisLine: false, tickLine: false, width: 34 }),
+                            h(R.Tooltip, { content: tooltipModern }),
+                            h(R.Legend, { iconType: 'circle', wrapperStyle: { fontSize: 12 } }),
+                            LINEAS_TENDENCIA.map(function (l) {
+                                return h(R.Area, {
+                                    key: l.key, type: 'monotone', dataKey: l.key, name: l.nombre,
+                                    stroke: l.color, strokeWidth: 2, fill: 'url(#grad-' + l.key + ')',
+                                    dot: { r: 3, strokeWidth: 0, fill: l.color },
+                                    activeDot: { r: 5 }
+                                });
+                            }),
+                            (left && right && left !== right) ? h(R.ReferenceArea, {
+                                x1: left, x2: right, strokeOpacity: 0.3, fill: '#2563EB', fillOpacity: 0.15
+                            }) : null
+                        )
+                    )
+                );
+            }
+
             function pintarTendencia(puntos) {
                 puntos = puntos || [];
                 // "Sin fecha" es un bucket combinado de registros sin fecha reconocida, no un
@@ -183,29 +341,7 @@
                     nota.textContent = '';
                 }
 
-                var lineas = [
-                    { key: 'incapacidades', nombre: 'Incapacidades', color: '#0284C7' },
-                    { key: 'accidentes', nombre: 'Accidentes', color: '#DC2626' },
-                    { key: 'consultas', nombre: 'Consultas', color: '#16A34A' },
-                    { key: 'examenes', nombre: 'Exámenes', color: '#7C3AED' }
-                ];
-
-                var elemento = h(R.ResponsiveContainer, { width: '100%', height: 320 },
-                    h(R.LineChart, { data: meses },
-                        h(R.CartesianGrid, { strokeDasharray: '3 3', vertical: false }),
-                        h(R.XAxis, { dataKey: 'mes', tick: { fontSize: 11 } }),
-                        h(R.YAxis, { tick: { fontSize: 11 } }),
-                        h(R.Tooltip, null),
-                        h(R.Legend, null),
-                        lineas.map(function (l) {
-                            return h(R.Line, {
-                                key: l.key, type: 'monotone', dataKey: l.key, name: l.nombre,
-                                stroke: l.color, strokeWidth: 2, dot: false
-                            });
-                        })
-                    )
-                );
-                montar('chartTendencia', elemento);
+                montar('chartTendencia', h(TendenciaChart, { data: meses }));
             }
 
             function pintarRamo(porRamo) {
@@ -213,12 +349,18 @@
                     return { clave: r.clave || '(sin dato)', cantidad: r.cantidad };
                 });
                 var elemento = h(R.ResponsiveContainer, { width: '100%', height: 300 },
-                    h(R.BarChart, { data: data },
-                        h(R.CartesianGrid, { strokeDasharray: '3 3', vertical: false }),
-                        h(R.XAxis, { dataKey: 'clave', tick: { fontSize: 11 }, angle: -15, textAnchor: 'end', height: 60 }),
-                        h(R.YAxis, { tick: { fontSize: 11 } }),
-                        h(R.Tooltip, null),
-                        h(R.Bar, { dataKey: 'cantidad', name: 'Incapacidades', fill: '#0284C7', radius: [3, 3, 0, 0] })
+                    h(R.BarChart, { data: data, margin: { top: 10, right: 10, left: 0, bottom: 0 } },
+                        h('defs', null,
+                            h('linearGradient', { id: 'grad-ramo', x1: 0, y1: 0, x2: 0, y2: 1 },
+                                h('stop', { offset: '5%', stopColor: '#0284C7', stopOpacity: 0.95 }),
+                                h('stop', { offset: '95%', stopColor: '#0284C7', stopOpacity: 0.55 })
+                            )
+                        ),
+                        h(R.CartesianGrid, { strokeDasharray: '3 3', vertical: false, stroke: '#e5e9f2' }),
+                        h(R.XAxis, { dataKey: 'clave', tick: { fontSize: 11, fill: '#94a3b8' }, axisLine: { stroke: '#e5e9f2' }, tickLine: false, angle: -15, textAnchor: 'end', height: 60 }),
+                        h(R.YAxis, { tick: { fontSize: 11, fill: '#94a3b8' }, axisLine: false, tickLine: false, width: 34 }),
+                        h(R.Tooltip, { content: tooltipModern, cursor: { fill: '#f1f5f9' } }),
+                        h(R.Bar, { dataKey: 'cantidad', name: 'Incapacidades', fill: 'url(#grad-ramo)', radius: [6, 6, 0, 0] })
                     )
                 );
                 montar('chartRamo', elemento);
@@ -232,12 +374,24 @@
                     { name: 'Apto condicionado', value: examen.totalAptoCondicionado },
                     { name: 'Apto restringido', value: examen.totalAptoRestringido }
                 ];
+                var total = examen.totalExamenes || 0;
+                var centro = h(R.Label, {
+                    position: 'center',
+                    content: function (props) {
+                        var cx = props.viewBox.cx, cy = props.viewBox.cy;
+                        return h('g', null,
+                            h('text', { x: cx, y: cy - 4, textAnchor: 'middle', fontSize: 22, fontWeight: 700, fill: '#1e293b' }, numero(total)),
+                            h('text', { x: cx, y: cy + 16, textAnchor: 'middle', fontSize: 11, fill: '#94a3b8' }, 'Total')
+                        );
+                    }
+                });
                 var elemento = h(R.ResponsiveContainer, { width: '100%', height: 300 },
                     h(R.PieChart, null,
-                        h(R.Tooltip, null),
-                        h(R.Legend, null),
-                        h(R.Pie, { data: data, dataKey: 'value', nameKey: 'name', innerRadius: 50, outerRadius: 90, paddingAngle: 2 },
-                            data.map(function (d, i) { return h(R.Cell, { key: 'c' + i, fill: colores[i] }); })
+                        h(R.Tooltip, { content: tooltipModern }),
+                        h(R.Legend, { iconType: 'circle', wrapperStyle: { fontSize: 12 } }),
+                        h(R.Pie, { data: data, dataKey: 'value', nameKey: 'name', innerRadius: 55, outerRadius: 90, paddingAngle: 3, cornerRadius: 6 },
+                            data.map(function (d, i) { return h(R.Cell, { key: 'c' + i, fill: colores[i], stroke: 'none' }); }),
+                            centro
                         )
                     )
                 );

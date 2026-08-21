@@ -22,6 +22,7 @@ public record EmpleadoDto(
         String completo,
         String nombrePuesto,
         String nombreEmpresa,
-        Integer edad
+        Integer edad,
+        String email
 ) {
 }

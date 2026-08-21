@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: demoContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Dashboard KPIs | Portal Salud Personal</title>
+</head>
+<body>
+
+<th:block id="pageStyles">
+    <link rel="stylesheet" th:href="@{/theme/lib/apexcharts/apexcharts.css}" href="/theme/lib/apexcharts/apexcharts.css">
+    <style>
+        .chart-card .card-header { border-bottom: none; padding-bottom: 0; display: block; }
+        .chart-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        .chart-eyebrow::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+        }
+        .chart-eyebrow--tendencia { color: #2563EB; }
+        .chart-eyebrow--ramo { color: #0EA5E9; }
+        .chart-eyebrow--examen { color: #16A34A; }
+        .chart-eyebrow--accidentes { color: #DC2626; }
+        .chart-eyebrow--consultas { color: #16A34A; }
+        .chart-eyebrow--antidoping { color: #7C3AED; }
+        .chart-eyebrow--total { color: #1d5fa8; }
+
+        .kpi-card { border-left: 4px solid transparent; transition: transform .15s, box-shadow .15s; }
+        .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15, 23, 42, .08); }
+        .kpi-card--incapacidades { border-left-color: #0EA5E9; }
+        .kpi-card--accidentes { border-left-color: #DC2626; }
+        .kpi-card--consultas { border-left-color: #16A34A; }
+        .kpi-card--examen { border-left-color: #16A34A; }
+        .kpi-card--antidoping { border-left-color: #7C3AED; }
+        .kpi-card--total { border-left-color: #1d5fa8; }
+
+        .kpi-value { font-size: 1.9rem; font-weight: 800; color: #1e293b; }
+        .kpi-card--incapacidades .kpi-value { color: #0EA5E9; }
+        .kpi-card--accidentes .kpi-value { color: #DC2626; }
+        .kpi-card--consultas .kpi-value { color: #16A34A; }
+        .kpi-card--examen .kpi-value { color: #16A34A; }
+        .kpi-card--antidoping .kpi-value { color: #7C3AED; }
+        .kpi-card--total .kpi-value { color: #1d5fa8; }
+
+        @keyframes kpiPop {
+            0% { transform: scale(.8); opacity: 0; }
+            60% { transform: scale(1.08); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .kpi-animar { animation: kpiPop .5s cubic-bezier(.34, 1.56, .64, 1); }
+
+        .chart-card .card-title-lg {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .apex-tooltip-modern {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px 12px;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, .10);
+            font-size: 12px;
+            min-width: 140px;
+        }
+        .apex-tooltip-modern .tt-title { font-weight: 700; margin-bottom: 4px; color: #1e293b; }
+        .apex-tooltip-modern .tt-row { display: flex; align-items: center; gap: 6px; color: #475569; }
+        .apex-tooltip-modern .tt-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: 0 0 auto; }
+    </style>
+</th:block>
+
+<th:block th:fragment="demoContent">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/home}" href="/home">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">KPIs</li>
+            </ol>
+            <h4 class="main-title mb-0">Dashboard ligero de KPIs</h4>
+        </div>
+        <a th:href="@{/dashboard-demo}" href="/dashboard-demo" class="btn btn-outline-primary btn-sm">Ver versión Recharts</a>
+    </div>
+
+    <div class="card card-one mb-3">
+        <div class="card-body d-flex flex-wrap align-items-end gap-3">
+            <div>
+                <label class="form-label fs-12 mb-1">Fecha inicial</label>
+                <input type="date" id="fFechaInicial" class="form-control form-control-sm" value="2023-01-01">
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Fecha final</label>
+                <input type="date" id="fFechaFinal" class="form-control form-control-sm" value="2026-12-31">
+            </div>
+            <button type="button" id="btnActualizar" class="btn btn-primary btn-sm">Actualizar</button>
+            <span id="estado" class="fs-12 text-muted"></span>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-1" id="kpiCards">
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--incapacidades">
+                <div class="card-body">
+                    <span class="chart-eyebrow chart-eyebrow--ramo">Incapacidades</span>
+                    <h3 class="card-value mb-0 kpi-value" id="kpiIncapacidades">—</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--accidentes">
+                <div class="card-body">
+                    <span class="chart-eyebrow chart-eyebrow--accidentes">Accidentes</span>
+                    <h3 class="card-value mb-0 kpi-value" id="kpiAccidentes">—</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--consultas">
+                <div class="card-body">
+                    <span class="chart-eyebrow chart-eyebrow--consultas">Consultas</span>
+                    <h3 class="card-value mb-0 kpi-value" id="kpiConsultas">—</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--examen">
+                <div class="card-body">
+                    <span class="chart-eyebrow chart-eyebrow--examen">Exámenes</span>
+                    <h3 class="card-value mb-0 kpi-value" id="kpiExamenes">—</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--antidoping">
+                <div class="card-body">
+                    <span class="chart-eyebrow chart-eyebrow--antidoping">Antidoping</span>
+                    <h3 class="card-value mb-0 kpi-value" id="kpiAntidoping">—</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--total" style="background:#f0f7ff;">
+                <div class="card-body">
+                    <span class="chart-eyebrow chart-eyebrow--total">Total general</span>
+                    <h3 class="card-value mb-0 kpi-value" id="kpiTotal">—</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <p class="fs-11 text-muted mb-3" id="notaSinFecha"></p>
+
+    <div class="row g-3">
+        <div class="col-12">
+            <div class="card card-one chart-card">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--tendencia">KPIs · Portal Salud</span>
+                    <div class="card-title-lg">Tendencia mensual combinada</div>
+                </div>
+                <div class="card-body"><div id="chartTendencia"></div></div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card card-one chart-card">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--ramo">Incapacidades</span>
+                    <div class="card-title-lg">Por Ramo</div>
+                </div>
+                <div class="card-body"><div id="chartRamo"></div></div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card card-one chart-card">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--examen">Examen médico</span>
+                    <div class="card-title-lg">Resultado</div>
+                </div>
+                <div class="card-body"><div id="chartExamen"></div></div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-one chart-card">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--accidentes">Accidentes</span>
+                    <div class="card-title-lg">Por causa RT</div>
+                </div>
+                <div class="card-body"><div id="chartAccidentes"></div></div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-one chart-card">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--consultas">Consultas</span>
+                    <div class="card-title-lg">Por tipo</div>
+                </div>
+                <div class="card-body"><div id="chartConsultas"></div></div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-one chart-card">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--antidoping">Antidoping</span>
+                    <div class="card-title-lg">Por resultado</div>
+                </div>
+                <div class="card-body"><div id="chartAntidoping"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <p class="fs-11 text-muted mt-4 mb-2">Demográficos de Consultas — mismo alcance que <code>salud-ocupacional-v2</code> (solo Morbilidad, no se repite en los otros dominios)</p>
+    <div class="row g-3 mb-3">
+        <div class="col-12">
+            <div class="card card-one chart-card">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--consultas">Consultas</span>
+                    <div class="card-title-lg">Por cuenta</div>
+                </div>
+                <div class="card-body"><div id="chartConsultaCuenta"></div></div>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card card-one chart-card">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--consultas">Consultas</span>
+                    <div class="card-title-lg">Por edad</div>
+                </div>
+                <div class="card-body"><div id="chartConsultaEdad"></div></div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card card-one chart-card">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--consultas">Consultas</span>
+                    <div class="card-title-lg">Por género</div>
+                </div>
+                <div class="card-body"><div id="chartConsultaGenero"></div></div>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:src="@{/theme/lib/apexcharts/apexcharts.min.js}" src="/theme/lib/apexcharts/apexcharts.min.js"></script>
+    <script th:inline="javascript">
+        (function () {
+            var chartTendencia = null, chartRamo = null, chartExamen = null,
+                chartAccidentes = null, chartConsultas = null, chartAntidoping = null,
+                chartConsultaEdad = null, chartConsultaGenero = null;
+
+            function numero(n) {
+                return (n || 0).toLocaleString('es-MX');
+            }
+
+            // Anima el numero de una KPI card: cuenta de 0 al valor final (~600ms) y
+            // dispara un pequeno "pop" de entrada (ver .kpi-animar / @keyframes kpiPop).
+            function animarNumero(el, valorFinal) {
+                valorFinal = valorFinal || 0;
+                el.classList.remove('kpi-animar');
+                void el.offsetWidth; // fuerza reflow para poder re-disparar la animacion CSS
+                el.classList.add('kpi-animar');
+
+                if (valorFinal === 0) {
+                    el.textContent = '0';
+                    return;
+                }
+                var duracion = 600;
+                var t0 = null;
+                function paso(t) {
+                    if (t0 === null) { t0 = t; }
+                    var progreso = Math.min((t - t0) / duracion, 1);
+                    var suavizado = 1 - Math.pow(1 - progreso, 3); // ease-out cubico
+                    el.textContent = numero(Math.round(suavizado * valorFinal));
+                    if (progreso < 1) {
+                        requestAnimationFrame(paso);
+                    }
+                }
+                requestAnimationFrame(paso);
+            }
+
+            // El backend ya devuelve estas listas ordenadas por cantidad descendente,
+            // pero se re-ordena aqui tambien por seguridad (no depender de que la libreria
+            // de graficas respete el orden de entrada en la leyenda).
+            function ordenarDesc(lista) {
+                return (lista || []).slice().sort(function (a, b) { return b.cantidad - a.cantidad; });
+            }
+
+            function escapeHtml(valor) {
+                if (valor === null || valor === undefined) { return ''; }
+                return String(valor).replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+
+            // Paleta categorica compartida por las barras "distributed" (una categoria = un
+            // color) y su leyenda con marcador - mismo criterio visual que las donas.
+            var PALETA_CATEGORICA = ['#16A34A', '#0EA5E9', '#D97706', '#7C3AED', '#DC2626', '#2563EB', '#0F766E', '#DB2777'];
+
+            function tooltipModern(categoria, nombres, colores, valores) {
+                var filas = nombres.map(function (nombre, i) {
+                    return '<div class="tt-row"><span class="tt-dot" style="background:' + colores[i] + '"></span>'
+                        + '<span>' + nombre + ': ' + numero(valores[i]) + '</span></div>';
+                }).join('');
+                return '<div class="apex-tooltip-modern"><div class="tt-title">' + categoria + '</div>' + filas + '</div>';
+            }
+
+            async function cargar() {
+                var fechaInicial = document.getElementById('fFechaInicial').value;
+                var fechaFinal = document.getElementById('fFechaFinal').value;
+                var estado = document.getElementById('estado');
+                if (!fechaInicial || !fechaFinal) {
+                    estado.textContent = 'Selecciona ambas fechas.';
+                    return;
+                }
+                estado.textContent = 'Cargando...';
+                var qs = 'fechaInicial=' + encodeURIComponent(fechaInicial) + '&fechaFinal=' + encodeURIComponent(fechaFinal);
+                try {
+                    var [resumenRes, incapacidadesRes, examenRes, accidentesRes, consultasRes, antidopingRes] = await Promise.all([
+                        fetch(contextPath + 'api/dashboard/resumen-general?' + qs),
+                        fetch(contextPath + 'api/dashboard/incapacidades?' + qs),
+                        fetch(contextPath + 'api/dashboard/examen?' + qs),
+                        fetch(contextPath + 'api/dashboard/accidentes?' + qs),
+                        fetch(contextPath + 'api/dashboard/consultas?' + qs),
+                        fetch(contextPath + 'api/dashboard/antidoping?' + qs)
+                    ]);
+                    if (!resumenRes.ok || !incapacidadesRes.ok || !examenRes.ok || !accidentesRes.ok || !consultasRes.ok || !antidopingRes.ok) {
+                        estado.textContent = 'Error al consultar los endpoints (HTTP ' + resumenRes.status + ').';
+                        return;
+                    }
+                    var resumen = await resumenRes.json();
+                    var incapacidades = await incapacidadesRes.json();
+                    var examen = await examenRes.json();
+                    var accidentes = await accidentesRes.json();
+                    var consultas = await consultasRes.json();
+                    var antidoping = await antidopingRes.json();
+
+                    pintarKpis(resumen, antidoping);
+                    pintarTendencia(resumen.tendenciaMensual);
+                    pintarRamo(incapacidades.porRamo);
+                    pintarExamen(examen);
+                    pintarAccidentes(accidentes);
+                    pintarConsultas(consultas);
+                    pintarConsultaCuenta(consultas);
+                    pintarConsultaEdad(consultas);
+                    pintarConsultaGenero(consultas);
+                    pintarAntidoping(antidoping);
+
+                    estado.textContent = 'Actualizado.';
+                } catch (e) {
+                    console.error('[dashboard] error en cargar():', e);
+                    estado.textContent = 'Error de red al consultar el dashboard: ' + e.message;
+                }
+            }
+
+            function pintarKpis(resumen, antidoping) {
+                animarNumero(document.getElementById('kpiIncapacidades'), resumen.totalIncapacidades);
+                animarNumero(document.getElementById('kpiAccidentes'), resumen.totalAccidentes);
+                animarNumero(document.getElementById('kpiConsultas'), resumen.totalConsultas);
+                animarNumero(document.getElementById('kpiExamenes'), resumen.totalExamenes);
+                animarNumero(document.getElementById('kpiAntidoping'), antidoping.totalPruebas);
+                animarNumero(document.getElementById('kpiTotal'), resumen.totalGeneral);
+            }
+
+            function pintarTendencia(puntos) {
+                puntos = puntos || [];
+                // "Sin fecha" es un bucket combinado de registros sin fecha reconocida, no un
+                // mes real - se excluye de la linea de tiempo para no romper la continuidad,
+                // y se muestra aparte como nota (ver memoria dashboard-kpis-use-case).
+                var sinFecha = puntos.find(function (p) { return p.mes === 'Sin fecha'; });
+                var meses = puntos.filter(function (p) { return p.mes !== 'Sin fecha'; });
+                var nota = document.getElementById('notaSinFecha');
+                if (sinFecha) {
+                    var total = sinFecha.incapacidades + sinFecha.accidentes + sinFecha.consultas + sinFecha.examenes;
+                    nota.textContent = total + ' registro(s) con fecha no reconocida, no incluidos en la gráfica de tendencia.';
+                } else {
+                    nota.textContent = '';
+                }
+
+                var nombres = ['Incapacidades', 'Accidentes', 'Consultas', 'Exámenes'];
+                var colores = ['#2563EB', '#DC2626', '#16A34A', '#7C3AED'];
+
+                var options = {
+                    chart: {
+                        type: 'area', height: 320,
+                        zoom: { enabled: true, type: 'x', autoScaleYaxis: true },
+                        toolbar: { show: true, tools: { download: false, selection: false, zoom: true, zoomin: true, zoomout: true, pan: true, reset: true } }
+                    },
+                    series: [
+                        { name: nombres[0], data: meses.map(function (p) { return p.incapacidades; }) },
+                        { name: nombres[1], data: meses.map(function (p) { return p.accidentes; }) },
+                        { name: nombres[2], data: meses.map(function (p) { return p.consultas; }) },
+                        { name: nombres[3], data: meses.map(function (p) { return p.examenes; }) }
+                    ],
+                    xaxis: {
+                        categories: meses.map(function (p) { return p.mes; }),
+                        axisBorder: { color: '#e5e9f2' }, axisTicks: { show: false },
+                        labels: { style: { colors: '#94a3b8', fontSize: '11px' } }
+                    },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    colors: colores,
+                    stroke: { curve: 'smooth', width: 2 },
+                    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.35, opacityTo: 0.02, stops: [0, 95, 100] } },
+                    markers: { size: 3, strokeWidth: 0 },
+                    dataLabels: { enabled: false },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 },
+                    legend: { position: 'top', fontSize: '12px', markers: { radius: 12 } },
+                    tooltip: {
+                        custom: function (opts) {
+                            var categoria = opts.w.globals.categoryLabels[opts.dataPointIndex];
+                            var valores = nombres.map(function (n, i) { return opts.series[i][opts.dataPointIndex]; });
+                            return tooltipModern(categoria, nombres, colores, valores);
+                        }
+                    }
+                };
+                if (chartTendencia) { chartTendencia.updateOptions(options); return; }
+                chartTendencia = new ApexCharts(document.querySelector('#chartTendencia'), options);
+                chartTendencia.render();
+            }
+
+            function pintarRamo(porRamo) {
+                var lista = ordenarDesc(porRamo);
+                var claves = lista.map(function (r) { return r.clave || '(sin dato)'; });
+                var cantidades = lista.map(function (r) { return r.cantidad; });
+                var colores = claves.map(function (c, i) { return PALETA_CATEGORICA[i % PALETA_CATEGORICA.length]; });
+                var options = {
+                    chart: { type: 'bar', height: 380, toolbar: { show: false } },
+                    series: [{ name: 'Incapacidades', data: cantidades }],
+                    xaxis: {
+                        categories: claves,
+                        labels: { style: { colors: '#94a3b8', fontSize: '11px' }, rotate: -45, trim: false, hideOverlappingLabels: false },
+                        axisBorder: { color: '#e5e9f2' }, axisTicks: { show: false }
+                    },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    colors: colores,
+                    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.95, opacityTo: 0.55, stops: [0, 100] } },
+                    plotOptions: { bar: { distributed: true, borderRadius: 6, columnWidth: '55%' } },
+                    legend: { show: true, position: 'bottom', fontSize: '12px', markers: { radius: 12 }, showForSingleSeries: true, showForZeroSeries: true },
+                    dataLabels: {
+                        enabled: true, offsetY: -20,
+                        style: { fontSize: '11px', fontWeight: 700, colors: ['#1e293b'] },
+                        formatter: function (v) { return numero(v); }
+                    },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3, padding: { top: 20 } },
+                    tooltip: {
+                        custom: function (opts) {
+                            var categoria = claves[opts.dataPointIndex];
+                            return tooltipModern(categoria, ['Incapacidades'], [colores[opts.dataPointIndex]], [cantidades[opts.dataPointIndex]]);
+                        }
+                    }
+                };
+                if (chartRamo) { chartRamo.updateOptions(options, true, true); return; }
+                chartRamo = new ApexCharts(document.querySelector('#chartRamo'), options);
+                chartRamo.render();
+            }
+
+            function pintarExamen(examen) {
+                var nombres = ['Apto', 'No apto', 'Apto condicionado', 'Apto restringido'];
+                var colores = ['#16A34A', '#DC2626', '#D97706', '#0284C7'];
+                var valores = [examen.totalApto, examen.totalNoApto, examen.totalAptoCondicionado, examen.totalAptoRestringido];
+                var options = {
+                    chart: { type: 'donut', height: 300 },
+                    series: valores,
+                    labels: nombres,
+                    colors: colores,
+                    fill: { type: 'gradient', gradient: { shade: 'light', shadeIntensity: 0.6, opacityFrom: 1, opacityTo: 0.75, stops: [0, 100] } },
+                    stroke: { width: 0 },
+                    dataLabels: { enabled: false },
+                    legend: { position: 'bottom', fontSize: '12px', markers: { radius: 12 } },
+                    plotOptions: {
+                        pie: {
+                            donut: {
+                                size: '62%',
+                                labels: {
+                                    show: true,
+                                    value: { fontSize: '22px', fontWeight: 700, color: '#1e293b', formatter: function (v) { return numero(v); } },
+                                    total: {
+                                        show: true, label: 'Total', color: '#94a3b8', fontSize: '11px',
+                                        formatter: function () { return numero(examen.totalExamenes); }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    tooltip: {
+                        custom: function (opts) {
+                            var i = opts.seriesIndex;
+                            return tooltipModern(nombres[i], [nombres[i]], [colores[i]], [valores[i]]);
+                        }
+                    }
+                };
+                if (chartExamen) { chartExamen.updateOptions(options); return; }
+                chartExamen = new ApexCharts(document.querySelector('#chartExamen'), options);
+                chartExamen.render();
+            }
+
+            function pintarAccidentes(accidentes) {
+                var lista = ordenarDesc(accidentes.porCausaRt);
+                var claves = lista.map(function (r) { return r.clave || '(sin dato)'; });
+                var cantidades = lista.map(function (r) { return r.cantidad; });
+                var colores = claves.map(function (c, i) { return PALETA_CATEGORICA[i % PALETA_CATEGORICA.length]; });
+                var options = {
+                    chart: { type: 'bar', height: 380, toolbar: { show: false } },
+                    series: [{ name: 'Accidentes', data: cantidades }],
+                    xaxis: {
+                        categories: claves,
+                        labels: { style: { colors: '#94a3b8', fontSize: '11px' }, rotate: -45, trim: false, hideOverlappingLabels: false },
+                        axisBorder: { color: '#e5e9f2' }, axisTicks: { show: false }
+                    },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    colors: colores,
+                    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.95, opacityTo: 0.55, stops: [0, 100] } },
+                    plotOptions: { bar: { distributed: true, borderRadius: 6, columnWidth: '55%' } },
+                    legend: { show: true, position: 'bottom', fontSize: '12px', markers: { radius: 12 }, showForSingleSeries: true, showForZeroSeries: true },
+                    dataLabels: {
+                        enabled: true, offsetY: -20,
+                        style: { fontSize: '11px', fontWeight: 700, colors: ['#1e293b'] },
+                        formatter: function (v) { return numero(v); }
+                    },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3, padding: { top: 20 } },
+                    tooltip: {
+                        custom: function (opts) {
+                            var categoria = claves[opts.dataPointIndex];
+                            return tooltipModern(categoria, ['Accidentes'], [colores[opts.dataPointIndex]], [cantidades[opts.dataPointIndex]]);
+                        }
+                    }
+                };
+                if (chartAccidentes) { chartAccidentes.updateOptions(options, true, true); return; }
+                chartAccidentes = new ApexCharts(document.querySelector('#chartAccidentes'), options);
+                chartAccidentes.render();
+            }
+
+            function pintarConsultas(consultas) {
+                var lista = ordenarDesc(consultas.porTipoConsulta);
+                var nombres = lista.map(function (r) { return r.clave || '(sin dato)'; });
+                var valores = lista.map(function (r) { return r.cantidad; });
+                var colores = ['#16A34A', '#0EA5E9', '#D97706', '#7C3AED', '#DC2626', '#2563EB', '#0F766E'];
+                var options = {
+                    chart: { type: 'donut', height: 300 },
+                    series: valores,
+                    labels: nombres,
+                    colors: colores,
+                    fill: { type: 'gradient', gradient: { shade: 'light', shadeIntensity: 0.6, opacityFrom: 1, opacityTo: 0.75, stops: [0, 100] } },
+                    stroke: { width: 0 },
+                    dataLabels: { enabled: false },
+                    legend: { position: 'bottom', fontSize: '12px', markers: { radius: 12 } },
+                    plotOptions: {
+                        pie: {
+                            donut: {
+                                size: '62%',
+                                labels: {
+                                    show: true,
+                                    value: { fontSize: '22px', fontWeight: 700, color: '#1e293b', formatter: function (v) { return numero(v); } },
+                                    total: {
+                                        show: true, label: 'Total', color: '#94a3b8', fontSize: '11px',
+                                        formatter: function () { return numero(consultas.totalConsultas); }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    tooltip: {
+                        custom: function (opts) {
+                            var i = opts.seriesIndex;
+                            return tooltipModern(nombres[i], [nombres[i]], [colores[i % colores.length]], [valores[i]]);
+                        }
+                    }
+                };
+                if (chartConsultas) { chartConsultas.updateOptions(options, true, true); return; }
+                chartConsultas = new ApexCharts(document.querySelector('#chartConsultas'), options);
+                chartConsultas.render();
+            }
+
+            // "Por cuenta" NO usa ApexCharts - es una mini-lista de barras en HTML/CSS
+            // plano (mismo patron que el componente MiniBarList de salud-ocupacional-v2
+            // para este mismo desglose). Nombres largos + barras muy cortas (valores
+            // chicos) no se llevan bien con los ejes de una libreria de graficas -
+            // aqui el nombre y el numero SIEMPRE se ven, sin importar el tamano de la barra.
+            function pintarConsultaCuenta(consultas) {
+                var lista = ordenarDesc(consultas.porCuenta);
+                var maximo = lista.length ? lista[0].cantidad : 0;
+                var contenedor = document.getElementById('chartConsultaCuenta');
+                contenedor.innerHTML = lista.map(function (r, i) {
+                    var color = PALETA_CATEGORICA[i % PALETA_CATEGORICA.length];
+                    var porcentaje = maximo > 0 ? Math.round((r.cantidad / maximo) * 100) : 0;
+                    var nombre = escapeHtml(r.clave || '(sin dato)');
+                    return '' +
+                        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px;">' +
+                            '<div style="width:150px;flex:0 0 150px;font-size:11.5px;color:#334155;' +
+                                'text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + nombre + '">' + nombre + '</div>' +
+                            '<div style="flex:1;background:#f1f5f9;border-radius:5px;height:20px;position:relative;overflow:hidden;">' +
+                                '<div style="width:' + Math.max(porcentaje, 4) + '%;height:100%;border-radius:5px;' +
+                                    'background:' + color + ';"></div>' +
+                            '</div>' +
+                            '<div style="width:34px;flex:0 0 34px;font-size:12px;font-weight:700;color:#1e293b;">' + numero(r.cantidad) + '</div>' +
+                        '</div>';
+                }).join('');
+                if (!lista.length) {
+                    contenedor.innerHTML = '<p class="fs-12 text-muted mb-0">Sin datos.</p>';
+                }
+            }
+
+            function pintarConsultaEdad(consultas) {
+                // NO se reordena por cantidad - el backend ya regresa los rangos en orden
+                // cronologico (18-25, 26-35, ..., Sin dato), que es el orden que importa aqui.
+                var lista = consultas.porEdad || [];
+                var claves = lista.map(function (r) { return r.clave; });
+                var cantidades = lista.map(function (r) { return r.cantidad; });
+                var options = {
+                    chart: { type: 'bar', height: 300, toolbar: { show: false } },
+                    series: [{ name: 'Consultas', data: cantidades }],
+                    xaxis: {
+                        categories: claves,
+                        labels: { style: { colors: '#94a3b8', fontSize: '11px' } },
+                        axisBorder: { color: '#e5e9f2' }, axisTicks: { show: false }
+                    },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    colors: ['#2563EB'],
+                    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.95, opacityTo: 0.55, stops: [0, 100] } },
+                    plotOptions: { bar: { borderRadius: 6, columnWidth: '55%' } },
+                    dataLabels: { enabled: false },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 },
+                    tooltip: {
+                        custom: function (opts) {
+                            var categoria = claves[opts.dataPointIndex];
+                            return tooltipModern(categoria, ['Consultas'], ['#2563EB'], [cantidades[opts.dataPointIndex]]);
+                        }
+                    }
+                };
+                if (chartConsultaEdad) { chartConsultaEdad.updateOptions(options, true, true); return; }
+                chartConsultaEdad = new ApexCharts(document.querySelector('#chartConsultaEdad'), options);
+                chartConsultaEdad.render();
+            }
+
+            function pintarConsultaGenero(consultas) {
+                var lista = ordenarDesc(consultas.porGenero);
+                var nombres = lista.map(function (r) { return r.clave || '(sin dato)'; });
+                var valores = lista.map(function (r) { return r.cantidad; });
+                var colores = nombres.map(function (n, i) { return PALETA_CATEGORICA[i % PALETA_CATEGORICA.length]; });
+                var total = valores.reduce(function (a, b) { return a + b; }, 0);
+                var options = {
+                    chart: { type: 'donut', height: 300 },
+                    series: valores,
+                    labels: nombres,
+                    colors: colores,
+                    stroke: { width: 0 },
+                    fill: { type: 'gradient', gradient: { shade: 'light', shadeIntensity: 0.6, opacityFrom: 1, opacityTo: 0.75, stops: [0, 100] } },
+                    dataLabels: { enabled: false },
+                    legend: { position: 'bottom', fontSize: '12px', markers: { radius: 12 } },
+                    plotOptions: {
+                        pie: {
+                            donut: {
+                                size: '62%',
+                                labels: {
+                                    show: true,
+                                    value: { fontSize: '22px', fontWeight: 700, color: '#1e293b', formatter: function (v) { return numero(v); } },
+                                    total: {
+                                        show: true, label: 'Total', color: '#94a3b8', fontSize: '11px',
+                                        formatter: function () { return numero(total); }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    tooltip: {
+                        custom: function (opts) {
+                            var i = opts.seriesIndex;
+                            return tooltipModern(nombres[i], [nombres[i]], [colores[i]], [valores[i]]);
+                        }
+                    }
+                };
+                if (chartConsultaGenero) { chartConsultaGenero.updateOptions(options, true, true); return; }
+                chartConsultaGenero = new ApexCharts(document.querySelector('#chartConsultaGenero'), options);
+                chartConsultaGenero.render();
+            }
+
+            function pintarAntidoping(antidoping) {
+                var lista = ordenarDesc(antidoping.porResultado);
+                var nombres = lista.map(function (r) { return r.clave || '(sin dato)'; });
+                var valores = lista.map(function (r) { return r.cantidad; });
+                var colores = nombres.map(function (n) {
+                    return /positivo/i.test(n) ? '#DC2626' : '#16A34A';
+                });
+                var options = {
+                    chart: { type: 'donut', height: 300 },
+                    series: valores,
+                    labels: nombres,
+                    colors: colores,
+                    fill: { type: 'gradient', gradient: { shade: 'light', shadeIntensity: 0.6, opacityFrom: 1, opacityTo: 0.75, stops: [0, 100] } },
+                    stroke: { width: 0 },
+                    dataLabels: { enabled: false },
+                    legend: { position: 'bottom', fontSize: '12px', markers: { radius: 12 } },
+                    plotOptions: {
+                        pie: {
+                            donut: {
+                                size: '62%',
+                                labels: {
+                                    show: true,
+                                    value: { fontSize: '22px', fontWeight: 700, color: '#1e293b', formatter: function (v) { return numero(v); } },
+                                    total: {
+                                        show: true, label: 'Total', color: '#94a3b8', fontSize: '11px',
+                                        formatter: function () { return numero(antidoping.totalPruebas); }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    tooltip: {
+                        custom: function (opts) {
+                            var i = opts.seriesIndex;
+                            return tooltipModern(nombres[i], [nombres[i]], [colores[i]], [valores[i]]);
+                        }
+                    }
+                };
+                if (chartAntidoping) { chartAntidoping.updateOptions(options, true, true); return; }
+                chartAntidoping = new ApexCharts(document.querySelector('#chartAntidoping'), options);
+                chartAntidoping.render();
+            }
+
+            document.getElementById('btnActualizar').addEventListener('click', cargar);
+            cargar();
+        })();
+    </script>
+</th:block>
+</body>
+</html>

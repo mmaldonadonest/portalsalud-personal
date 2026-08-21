@@ -1,0 +1,146 @@
+<title>Portal Salud — Resumen ejecutivo de tareas</title>
+<style>
+  :root{
+    --paper:#fbfaf7; --paper-raised:#ffffff; --ink:#1e1b16; --ink-muted:#655f54;
+    --line:#e4ddd0; --accent:#0f6e5c; --accent-soft:#e7f3ee; --accent-strong:#0a4f42;
+    --ready:#1a7a3c; --ready-soft:#e7f5ea; --blocked:#a9430f; --blocked-soft:#fbeee4;
+    --pending:#1d5fa8; --pending-soft:#e8f1fb;
+    --font: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box;}
+  body{background:var(--paper);color:var(--ink);font-family:var(--font);margin:0;}
+  .page{max-width:900px;margin:0 auto;padding:0 24px 64px;}
+  header.masthead{padding:40px 0 26px;border-bottom:1px solid var(--line);}
+  .eyebrow{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-strong);margin:0 0 8px;}
+  h1{font-size:1.6rem;line-height:1.25;margin:0 0 10px;}
+  .dek{color:var(--ink-muted);font-size:.92rem;line-height:1.55;max-width:74ch;margin:0 0 14px;}
+  .meta-row{display:flex;flex-wrap:wrap;gap:6px 14px;font-family:var(--font-mono);font-size:.75rem;color:var(--ink-muted);align-items:center;}
+  .meta-row .sep{opacity:.5;}
+  code{font-family:var(--font-mono);font-size:.85em;background:var(--accent-soft);color:var(--accent-strong);padding:.05em .4em;border-radius:5px;}
+
+  .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin:18px 0 0;background:var(--paper-raised);}
+  table{width:100%;border-collapse:collapse;font-size:.85rem;min-width:600px;}
+  th,td{text-align:left;padding:10px 14px;vertical-align:top;}
+  thead th{
+    font-family:var(--font-mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--ink-muted);font-weight:600;border-bottom:1px solid var(--line);white-space:nowrap;
+  }
+  tbody tr+tr td{border-top:1px solid var(--line);}
+  tbody td:first-child{font-weight:600;}
+  td.tc{white-space:nowrap;}
+  td.num{white-space:nowrap;font-family:var(--font-mono);font-size:.82rem;}
+  tbody tr.done{background:var(--ready-soft);}
+  tbody tr.blocked td{color:var(--ink-muted);}
+
+  .badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:.68rem;font-weight:600;
+    text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:999px;white-space:nowrap;}
+  .badge.ok{background:var(--ready-soft);color:var(--ready);}
+  .badge.pend{background:var(--pending-soft);color:var(--pending);}
+  .badge.blk{background:var(--blocked-soft);color:var(--blocked);}
+  .badge.dim{background:var(--blocked-soft);color:var(--blocked);}
+
+  .dimensionar-box{border:1px solid var(--blocked);background:var(--blocked-soft);border-radius:8px;
+    padding:10px 14px;margin:10px 0 14px;font-size:.82rem;line-height:1.5;color:var(--ink);}
+  .dimensionar-box b{color:var(--blocked);}
+
+  .sum-footer{
+    border:1px solid var(--line); border-top:none; border-radius:0 0 10px 10px;
+    background:var(--paper-raised); padding:12px 16px; margin:0 0 14px;
+    display:flex; flex-wrap:wrap; gap:6px 22px; font-family:var(--font-mono); font-size:.8rem;
+  }
+  .sum-footer b{font-weight:700;}
+  .sum-footer .pend{color:var(--pending);}
+  .sum-footer .blk{color:var(--blocked);}
+
+  .progress-box{border:1px solid var(--line);border-radius:10px;background:var(--paper-raised);padding:16px 18px;margin-bottom:28px;}
+
+  footer.colophon{margin-top:28px;padding-top:16px;border-top:1px solid var(--line);
+    display:flex;flex-wrap:wrap;gap:6px 20px;justify-content:space-between;
+    font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted);}
+
+  @media (max-width:640px){ .page{padding:0 16px 48px;} header.masthead{padding:28px 0 20px;} }
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">Portal Salud · Salud Ocupacional</p>
+    <h1>Resumen ejecutivo — lista de tareas (horas)</h1>
+    <p class="dek">Solo tarea, tipo, horas y estado — fuente lista para pasar a un plan de trabajo. Detalle completo (WS, bloqueadores, hallazgos) en <code class="path">docs/plan-tareas-concretas.html</code>. Actualizado con la propuesta formal de decisiones de negocio (<code class="path">docs/ONEST_Proyecto_Salud_Ocupacional_Decisiones.pdf</code>) y el entregable de liberación de stoppers (<code class="path">docs/entregable-liberacion-stoppers-salud.html</code>): ya no queda ninguna tarea Bloqueada ni sin dimensionar.</p>
+    <div class="meta-row">
+      <span>20 de agosto de 2026</span>
+      <span class="sep">·</span>
+      <span>Repositorio <code>portalsalud-personal</code></span>
+    </div>
+  </header>
+
+  <div class="table-wrap" style="margin-bottom:0;">
+    <table>
+      <thead>
+        <tr><th>#</th><th>Tarea</th><th>Tipo</th><th>Horas</th><th>Estado</th></tr>
+      </thead>
+      <tbody>
+        <tr class="done"><td class="num">1</td><td>Cerrar «trabajos previos» en Examen</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">2</td><td>Fuente IMSS/interna en Incapacidades</td><td>Programación</td><td class="num">4h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">3</td><td>Contactos de emergencia en Examen</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">4</td><td>Mostrar CUENTA en el expediente</td><td>Programación</td><td class="num">4h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">5</td><td>Dashboard KPIs — backend Incapacidades</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">6</td><td>Dashboard KPIs — backend Accidentabilidad</td><td>Programación</td><td class="num">4h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">7</td><td>Dashboard KPIs — backend Morbilidad/Consulta</td><td>Programación</td><td class="num">4h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">8</td><td>Dashboard KPIs — backend Antidoping</td><td>Programación</td><td class="num">4h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">9</td><td>Dashboard KPIs — historial de Examen</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">10</td><td>Dashboard KPIs — backend Examen</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">11</td><td>Dashboard KPIs — Resumen General</td><td>Programación</td><td class="num">4h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">12</td><td>Dashboard KPIs — UI (gráficas)</td><td>Programación</td><td class="num">4h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">13</td><td>Consumibles (antidoping) — backend + módulo Java</td><td>Programación</td><td class="num">12h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">14</td><td>Dashboard — desglose por Género</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">15</td><td>Dashboard — desglose por Edad</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">16</td><td>Dashboard — desglose por Cuenta</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">17</td><td>Antidoping — backend Oracle/ORDS</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">18</td><td>Antidoping — módulo Java</td><td>Programación</td><td class="num">12h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr><td class="num">19</td><td>Antidoping — selección aleatoria</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+        <tr class="done"><td class="num">20</td><td>Accidentes de trabajo — backend Oracle/ORDS</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">21</td><td>Accidentes de trabajo — módulo Java</td><td>Programación</td><td class="num">12h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr><td class="num">22</td><td>Accidentes — seguimiento de casos</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+        <tr><td class="num">23</td><td>Maternidad — seguimiento completo</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+        <tr class="done"><td class="num">24</td><td>Catálogo de diagnósticos normalizado</td><td>Programación</td><td class="num">6h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr><td class="num">25</td><td>Reglas de NSS (persona multipredio)</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+        <tr><td class="num">26</td><td>Catálogo de restricciones médicas</td><td>Programación</td><td class="num">11h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+        <tr><td class="num">27</td><td>Matriz de permisos y confidencialidad</td><td>Programación</td><td class="num">18h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+        <tr class="done"><td class="num">28</td><td>Migración histórica — local</td><td>Programación</td><td class="num">—</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr><td class="num">29</td><td>Migración histórica — con ETL Oracle (equipo externo)</td><td>Proceso lógico</td><td class="num">—</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+        <tr class="done"><td class="num">30</td><td>Numeración de carta dental</td><td>Proceso lógico</td><td class="num">—</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">31</td><td>Diccionario de siglas del Pretest</td><td>Programación</td><td class="num">—</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr><td class="num">32</td><td>Generación de ambiente de QA (server web, JDK, WAR, dominio)</td><td>Programación</td><td class="num">5h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+        <tr><td class="num">33</td><td>Causa de consulta médica — catálogo cerrado (revertido)</td><td>Programación</td><td class="num">10h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="dimensionar-box" style="border-color:var(--ready);background:var(--ready-soft);"><b style="color:var(--ready);">✓ Ya todo dimensionado:</b> <code class="path">docs/entregable-liberacion-stoppers-salud.html</code> (20 de agosto) redujo y dimensionó Antidoping (selección aleatoria, sin protocolo clínico complejo), Accidentes (solo seguimiento, sin motor de investigación) y Reglas de NSS (persona multipredio) en 8h cada una — se construyen sobre módulos ya existentes, no son dominio nuevo. Ya no queda ninguna fila sin estimar en este documento</div>
+
+  <div class="sum-footer" style="margin-bottom:14px;">
+    <span class="pend"><b>Pendiente:</b> 76h — todo dimensionado (9.5 días)</span>
+    <span class="blk"><b>Bloqueada:</b> 0h (0 días)</span>
+    <span style="color:var(--ready);"><b>Hecho:</b> 150h (18.75 días)</span>
+    <span><b>Suma total:</b> 226h ÷ 8h/día = <b>28.25 días</b></span>
+  </div>
+
+  <div class="progress-box">
+    <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted);margin-bottom:6px;">
+      <span>Día 1 <span style="color:var(--ink-muted);font-family:var(--font);">(13 ago, llega <code class="path" style="background:none;padding:0;">salud-ocupacional-v2</code>)</span></span>
+      <span><b style="color:var(--ready);font-family:var(--font);">7 días reales</b></span>
+      <span>Día 18 <span style="color:var(--ink-muted);font-family:var(--font);">(estimado Hecho)</span></span>
+    </div>
+    <div style="position:relative;height:14px;background:var(--pending-soft);border-radius:7px;overflow:hidden;">
+      <div style="position:absolute;left:0;top:0;height:100%;width:38.9%;background:var(--ready);"></div>
+      <div style="position:absolute;left:38.9%;top:-3px;bottom:-3px;width:2px;background:var(--accent-strong);"></div>
+    </div>
+    <p class="dek" style="margin:8px 0 0;font-size:.78rem;">18 días de trabajo estimado (144h) se completaron en solo <b>7 días reales de calendario</b> (13–20 de agosto) — ritmo ≈2.6× más rápido que el estimado por jornada, gracias a 1 desarrollador Java senior + este agente de IA trabajando en paralelo.</p>
+  </div>
+
+  <footer class="colophon">
+    <span>Detalle completo: <span class="path">docs/plan-tareas-concretas.html</span></span>
+    <span>20 de agosto de 2026</span>
+  </footer>
+</div>

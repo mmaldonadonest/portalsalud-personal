@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Entregable — Liberación de Stoppers | Portal Salud</title>
+  <style>
+    :root{
+      --paper:#fbfaf7; --paper-raised:#ffffff; --ink:#1e1b16; --ink-muted:#655f54;
+      --line:#e4ddd0; --accent:#0f6e5c; --accent-soft:#e7f3ee; --accent-strong:#0a4f42;
+      --ready:#1a7a3c; --ready-soft:#e7f5ea; --pending:#1d5fa8; --pending-soft:#e8f1fb;
+      --external:#7a5d13; --external-soft:#f8f1d8;
+      --font:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+      --font-mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);line-height:1.55}
+    .page{max-width:980px;margin:0 auto;padding:0 28px 64px}
+    header{padding:42px 0 28px;border-bottom:1px solid var(--line)}
+    .eyebrow{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-strong);margin:0 0 8px}
+    h1{font-size:1.85rem;line-height:1.2;margin:0 0 10px}
+    .dek{color:var(--ink-muted);font-size:.95rem;max-width:80ch;margin:0 0 14px}
+    .meta{display:flex;flex-wrap:wrap;gap:8px 16px;color:var(--ink-muted);font-family:var(--font-mono);font-size:.76rem}
+    main{padding-top:26px}
+    section{margin:0 0 28px}
+    h2{font-size:1.16rem;margin:0 0 12px;padding-bottom:7px;border-bottom:1px solid var(--line)}
+    h3{font-size:1rem;margin:20px 0 8px;color:var(--accent-strong)}
+    p{margin:8px 0}
+    .card{background:var(--paper-raised);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:14px 0}
+    .status-row{display:flex;flex-wrap:wrap;gap:8px 10px;margin:10px 0 0}
+    .badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;font-family:var(--font-mono);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+    .badge.ok{background:var(--ready-soft);color:var(--ready)}
+    .badge.plan{background:var(--pending-soft);color:var(--pending)}
+    .badge.ext{background:var(--external-soft);color:var(--external)}
+    ul{margin:8px 0 8px 20px;padding:0}
+    li{margin:4px 0}
+    .flow{font-family:var(--font-mono);background:var(--accent-soft);color:var(--accent-strong);border:1px solid #cfe5dc;border-radius:8px;padding:10px 12px;margin:10px 0;overflow-x:auto}
+    .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--paper-raised);margin:14px 0}
+    table{width:100%;border-collapse:collapse;font-size:.86rem;min-width:700px}
+    th,td{text-align:left;padding:11px 14px;vertical-align:top}
+    thead th{font-family:var(--font-mono);font-size:.69rem;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-muted);border-bottom:1px solid var(--line);white-space:nowrap}
+    tbody tr+tr td{border-top:1px solid var(--line)}
+    td.num{font-family:var(--font-mono);white-space:nowrap}
+    .highlight{background:var(--accent-soft);border:1px solid #cfe5dc;border-radius:10px;padding:14px 16px;margin:14px 0}
+    .summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}
+    .metric{background:var(--paper-raised);border:1px solid var(--line);border-radius:10px;padding:14px}
+    .metric b{display:block;font-size:1.3rem;color:var(--accent-strong)}
+    .metric span{font-size:.78rem;color:var(--ink-muted)}
+    code{font-family:var(--font-mono);font-size:.85em;background:var(--accent-soft);color:var(--accent-strong);padding:.05em .38em;border-radius:5px}
+    footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;color:var(--ink-muted);font-family:var(--font-mono);font-size:.72rem}
+    @media(max-width:720px){.page{padding:0 16px 44px}.summary{grid-template-columns:1fr}header{padding:30px 0 22px}h1{font-size:1.55rem}}
+    @media print{body{background:#fff}.page{max-width:none;padding:0 16mm 12mm}.card,.metric,.table-wrap{break-inside:avoid}}
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <p class="eyebrow">Portal Salud · Salud Ocupacional</p>
+      <h1>Entregable — Liberación de Stoppers Funcionales</h1>
+      <p class="dek">Definición funcional y dimensionamiento de los puntos pendientes de Antidoping, Accidentes de Trabajo y NSS multipredio para su incorporación directa al plan de ejecución.</p>
+      <div class="meta">
+        <span>Fecha de corte: 20 de agosto de 2026</span>
+        <span>Proyecto: Portal Salud</span>
+        <span>Estatus: stoppers funcionales liberados</span>
+      </div>
+    </header>
+
+    <main>
+      <section>
+        <h2>1. Objetivo</h2>
+        <p>Documentar las definiciones funcionales necesarias para liberar los puntos que permanecían sin dimensionar dentro del Portal de Salud Ocupacional y convertirlos en actividades ejecutables dentro del cronograma.</p>
+        <div class="summary">
+          <div class="metric"><b>3</b><span>stoppers funcionales liberados</span></div>
+          <div class="metric"><b>36 h</b><span>trabajo dimensionado</span></div>
+          <div class="metric"><b>4.5 días</b><span>jornadas estimadas de 8 h</span></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>2. Antidoping — Selección aleatoria</h2>
+        <div class="card">
+          <h3>Definición funcional aprobada</h3>
+          <p>Los antidoping se realizan de manera <b>aleatoria</b>. No se requiere implementar un protocolo clínico complejo adicional para liberar esta funcionalidad.</p>
+          <div class="flow">Selección aleatoria → Aplicación → Captura de resultado → Historial</div>
+
+          <h3>Requerimientos</h3>
+          <ul>
+            <li>Permitir la selección aleatoria de personal para aplicación de antidoping.</li>
+            <li>Registrar a la persona seleccionada y la fecha de aplicación.</li>
+            <li>Capturar el resultado correspondiente.</li>
+            <li>Conservar historial y trazabilidad de las aplicaciones.</li>
+            <li>Permitir consulta posterior de resultados de acuerdo con los permisos definidos.</li>
+            <li>Evitar que nuevas selecciones modifiquen o eliminen registros históricos.</li>
+          </ul>
+
+          <div class="status-row">
+            <span class="badge plan">Programado</span>
+            <span class="badge ok">Stopper liberado</span>
+            <span class="badge plan">12 horas</span>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>3. Accidentes de Trabajo — Seguimiento</h2>
+        <div class="card">
+          <h3>Definición funcional aprobada</h3>
+          <p>El módulo de Accidentes de Trabajo será utilizado para <b>dar seguimiento a los casos</b>. Dentro de este alcance no se requiere desarrollar un proceso adicional de investigación de accidentes.</p>
+          <div class="flow">Registro del accidente → Seguimiento → Actualización → Evidencias / observaciones → Cierre</div>
+
+          <h3>Requerimientos</h3>
+          <ul>
+            <li>Registrar el accidente y al colaborador involucrado.</li>
+            <li>Registrar fecha del evento y estado del caso.</li>
+            <li>Permitir seguimiento mediante observaciones y actualizaciones.</li>
+            <li>Incorporar evidencias cuando corresponda.</li>
+            <li>Conservar historial de seguimiento.</li>
+            <li>Identificar casos abiertos y cerrados.</li>
+            <li>Registrar el cierre del seguimiento.</li>
+          </ul>
+
+          <h3>Fuera del alcance</h3>
+          <ul>
+            <li>Motor de investigación de accidentes.</li>
+            <li>Workflow independiente de investigación.</li>
+            <li>Expediente adicional de investigación.</li>
+            <li>Automatización de metodologías de causa raíz.</li>
+          </ul>
+
+          <div class="status-row">
+            <span class="badge plan">Programado</span>
+            <span class="badge ok">Stopper liberado</span>
+            <span class="badge plan">12 horas</span>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>4. NSS — Asociación con diferentes predios</h2>
+        <div class="card">
+          <h3>Definición funcional aprobada</h3>
+          <p>Una misma persona identificada mediante NSS puede estar asociada a <b>diferentes predios</b>. La existencia del mismo NSS en más de un predio no deberá interpretarse automáticamente como duplicidad o error.</p>
+          <div class="flow">Persona / NSS → uno o múltiples predios</div>
+
+          <h3>Regla de negocio</h3>
+          <pre class="flow">NSS: 12345678901
+        │
+        ├── Predio A
+        ├── Predio B
+        └── Predio C</pre>
+
+          <h3>Requerimientos</h3>
+          <ul>
+            <li>Permitir que un mismo NSS tenga relación con diferentes predios.</li>
+            <li>Mantener una única identificación de la persona.</li>
+            <li>Evitar bloqueos cuando el NSS ya se encuentre asociado a otro predio.</li>
+            <li>Recuperar correctamente las relaciones existentes.</li>
+            <li>Permitir identificar en qué predio o predios existe relación.</li>
+            <li>Evitar duplicidades innecesarias del expediente.</li>
+            <li>Ajustar validaciones relacionadas con NSS.</li>
+            <li>Revisar el comportamiento de <code>NssSearchService</code>.</li>
+            <li>Ejecutar pruebas de regresión sobre las búsquedas existentes.</li>
+          </ul>
+
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Caso de prueba</th><th>Resultado esperado</th></tr></thead>
+              <tbody>
+                <tr><td>NSS existe en un predio</td><td>Recuperar normalmente.</td></tr>
+                <tr><td>NSS existe en varios predios</td><td>Recuperar la persona y sus asociaciones.</td></tr>
+                <tr><td>NSS existe y se requiere asociar a otro predio</td><td>Permitir la nueva relación.</td></tr>
+                <tr><td>NSS no existe</td><td>Continuar con el alta correspondiente.</td></tr>
+                <tr><td>Búsqueda desde diferentes predios</td><td>Recuperar información de manera consistente.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="status-row">
+            <span class="badge plan">Programado</span>
+            <span class="badge ok">Stopper liberado</span>
+            <span class="badge plan">12 horas</span>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>5. Dimensionamiento actualizado</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Componente</th><th>Definición final</th><th>Estado</th><th>Horas</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Antidoping</td><td>Selección aleatoria, aplicación, resultado e historial</td><td><span class="badge plan">Programado</span></td><td class="num">12 h</td></tr>
+              <tr><td>Accidentes</td><td>Registro y seguimiento hasta cierre</td><td><span class="badge plan">Programado</span></td><td class="num">12 h</td></tr>
+              <tr><td>NSS multipredio</td><td>Una persona / NSS puede estar asociada a diferentes predios</td><td><span class="badge plan">Programado</span></td><td class="num">12 h</td></tr>
+              <tr><td><b>Total</b></td><td><b>Trabajo funcionalmente liberado</b></td><td><span class="badge ok">Liberado</span></td><td class="num"><b>36 h</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="highlight"><b>Impacto en planeación:</b> 36 horas equivalen a 4.5 jornadas de 8 horas y ya pueden incorporarse directamente al cronograma y al Gantt del proyecto.</div>
+      </section>
+
+      <section>
+        <h2>6. Clasificación operativa recomendada</h2>
+        <p>Para el seguimiento ejecutivo del proyecto se recomienda utilizar únicamente las siguientes categorías:</p>
+        <ul>
+          <li><b>Hecho:</b> funcionalidad terminada.</li>
+          <li><b>En desarrollo:</b> actividad actualmente en ejecución.</li>
+          <li><b>Programado:</b> alcance definido y listo para ejecución.</li>
+          <li><b>Dependencia externa:</b> actividad cuyo cumplimiento depende de otro equipo.</li>
+        </ul>
+        <p>La migración histórica con ETL Oracle deberá mantenerse como <span class="badge ext">Dependencia externa</span>, no como stopper funcional del desarrollo interno.</p>
+      </section>
+
+      <section>
+        <h2>7. Criterio de liberación</h2>
+        <div class="card">
+          <p><b>Antidoping:</b> selección aleatoria de personal, aplicación, captura de resultado e historial.</p>
+          <p><b>Accidentes:</b> registro y seguimiento del caso hasta su cierre, sin incorporar un proceso adicional de investigación.</p>
+          <p><b>NSS:</b> una misma persona puede encontrarse asociada a diferentes predios sin que esto represente por sí mismo una duplicidad.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>8. Conclusión ejecutiva</h2>
+        <div class="highlight">
+          Con las definiciones anteriores, los tres elementos cuentan con una regla funcional y un alcance concreto. Se liberan <b>36 horas de trabajo</b>, equivalentes a <b>4.5 jornadas estimadas</b>. Antidoping, Seguimiento de Accidentes y NSS multipredio dejan de ser stoppers funcionales y pueden incorporarse directamente al plan de ejecución del Portal de Salud Ocupacional.
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>Portal Salud · Entregable de liberación funcional</span>
+      <span>20 de agosto de 2026</span>
+    </footer>
+  </div>
+</body>
+</html>

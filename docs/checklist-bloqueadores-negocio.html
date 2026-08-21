@@ -1,0 +1,185 @@
+<title>Decisiones de negocio pendientes — Salud Ocupacional</title>
+<style>
+  :root{
+    --paper:#fbfaf7; --paper-raised:#ffffff; --ink:#1e1b16; --ink-muted:#655f54;
+    --line:#e4ddd0; --accent:#0f6e5c; --accent-soft:#e7f3ee; --accent-strong:#0a4f42;
+    --ready:#1a7a3c; --ready-soft:#e7f5ea; --blocked:#a9430f; --blocked-soft:#fbeee4;
+    --pending:#1d5fa8; --pending-soft:#e8f1fb;
+    --font: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box;}
+  body{background:var(--paper);color:var(--ink);font-family:var(--font);margin:0;}
+  .page{max-width:1080px;margin:0 auto;padding:0 24px 64px;}
+  header.masthead{padding:40px 0 26px;border-bottom:1px solid var(--line);}
+  .eyebrow{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-strong);margin:0 0 8px;}
+  h1{font-size:1.7rem;line-height:1.25;margin:0 0 10px;}
+  .dek{color:var(--ink-muted);font-size:.95rem;line-height:1.6;max-width:76ch;margin:0 0 14px;}
+  .meta-row{display:flex;flex-wrap:wrap;gap:6px 14px;font-family:var(--font-mono);font-size:.75rem;color:var(--ink-muted);align-items:center;}
+  .meta-row .sep{opacity:.5;}
+  code{font-family:var(--font-mono);font-size:.85em;background:var(--accent-soft);color:var(--accent-strong);padding:.05em .4em;border-radius:5px;}
+
+  h2.group{font-size:1.05rem;margin:34px 0 4px;display:flex;align-items:center;gap:10px;}
+  h2.group .who{font-family:var(--font-mono);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+    padding:4px 10px;border-radius:999px;background:var(--pending-soft);color:var(--pending);white-space:nowrap;}
+  p.group-note{color:var(--ink-muted);font-size:.85rem;margin:0 0 14px;max-width:76ch;}
+
+  .resuelto-hero{border:1px solid var(--line);background:var(--ready-soft);border-radius:10px;padding:16px 18px;margin-bottom:24px;}
+  .resuelto-hero p{margin:0;font-size:.9rem;line-height:1.6;color:var(--ink);}
+  .resuelto-hero p+p{margin-top:8px;}
+
+  .decision{border:1px solid var(--line);background:var(--paper-raised);border-radius:10px;padding:16px 18px;margin-bottom:12px;}
+  .decision .num{font-family:var(--font-mono);font-size:.7rem;color:var(--ink-muted);}
+  .decision h3{font-size:1rem;margin:2px 0 8px;}
+  .decision p{margin:0 0 8px;font-size:.88rem;line-height:1.55;color:var(--ink);}
+  .decision p.contexto{color:var(--ink-muted);}
+  .decision .impacto{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);
+    font-family:var(--font-mono);font-size:.75rem;color:var(--ink-muted);}
+  .decision .impacto b{color:var(--ink);font-family:var(--font);font-weight:600;}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:.7rem;font-weight:600;
+    padding:3px 9px;border-radius:999px;white-space:nowrap;background:var(--ready-soft);color:var(--ready);}
+  .chip.warn{background:var(--blocked-soft);color:var(--blocked);}
+
+  .resuelto-wrap{border:1px solid var(--line);background:var(--ready-soft);border-radius:10px;padding:16px 18px;margin:12px 0 8px;}
+  .resuelto-wrap h2{font-size:1rem;margin:0 0 10px;color:var(--ready);}
+  .resuelto-wrap ul{margin:0;padding-left:1.1em;}
+  .resuelto-wrap li{margin-bottom:9px;font-size:.85rem;line-height:1.55;color:var(--ink);}
+  .resuelto-wrap li:last-child{margin-bottom:0;}
+
+  .revertido-wrap{border:1px solid var(--blocked);background:var(--blocked-soft);border-radius:10px;padding:16px 18px;margin:12px 0 24px;}
+  .revertido-wrap h2{font-size:1rem;margin:0 0 10px;color:var(--blocked);}
+  .revertido-wrap p{margin:0 0 8px;font-size:.87rem;line-height:1.6;color:var(--ink);}
+  .revertido-wrap p:last-child{margin-bottom:0;}
+
+  .baja-wrap{border:1px solid var(--line);background:var(--paper-raised);border-radius:10px;padding:16px 18px;margin:12px 0 8px;}
+  .baja-wrap h2{font-size:1rem;margin:0 0 10px;color:var(--ink-muted);}
+  .baja-wrap ul{margin:0;padding-left:1.1em;}
+  .baja-wrap li{margin-bottom:9px;font-size:.85rem;line-height:1.55;color:var(--ink-muted);}
+  .baja-wrap li:last-child{margin-bottom:0;}
+  .baja-wrap strong{color:var(--ink);}
+
+  footer.colophon{margin-top:36px;padding-top:16px;border-top:1px solid var(--line);
+    display:flex;flex-wrap:wrap;gap:6px 20px;justify-content:space-between;
+    font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted);}
+
+  @media (max-width:640px){ .page{padding:0 16px 48px;} header.masthead{padding:28px 0 20px;} }
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">Portal Salud · Salud Ocupacional</p>
+    <h1>Decisiones de negocio pendientes</h1>
+    <p class="dek">Las 7 preguntas que bloqueaban funcionalidad específica en el portal quedaron resueltas el 20 de agosto de 2026 mediante una propuesta formal de ONEST Logistics. Ninguna implica código ya construido — cada una define el modelo/workflow para empezar a programar. Debajo: el detalle de cada una, lo que ya estaba resuelto antes, y una decisión que se <strong>revirtió</strong> el mismo día.</p>
+    <div class="meta-row">
+      <span>20 de agosto de 2026</span>
+      <span class="sep">·</span>
+      <span>Fuente: <code>docs/ONEST_Proyecto_Salud_Ocupacional_Decisiones.pdf</code></span>
+    </div>
+  </header>
+
+  <div class="resuelto-hero">
+    <p><strong>Estado:</strong> las 7 decisiones de abajo están definidas a nivel de modelo de datos/workflow, pero <strong>no están construidas todavía</strong> — pasan de "bloqueadas" a "listas para programar". Actualizado de nuevo el 20 de agosto: <code>docs/entregable-liberacion-stoppers-salud.html</code> redujo y dimensionó las 3 que habían quedado sin estimar (protocolo antidoping → selección aleatoria, flujo de accidentes → solo seguimiento, reglas de NSS → confirmado), 1 día cada una — se construyen sobre módulos ya existentes, no son dominio nuevo. Ya no queda ninguna sin dimensionar.</p>
+    <p>Un punto sigue sin <strong>aprobación formal</strong> antes de pasar a producción: la matriz de permisos. La estructura ya se puede construir; la liberación a producción no.</p>
+  </div>
+
+  <h2 class="group">Médico Jefe <span class="who">Resuelto</span></h2>
+
+  <div class="decision">
+    <span class="num">1</span>
+    <h3>Catálogo de diagnósticos: normalizar contra ICD</h3>
+    <p class="contexto">El catálogo ICD/CIE (<code>Servcio/indice</code>) ya existe y ya está conectado en Consulta y Examen.</p>
+    <p><strong>Decisión:</strong> el diagnóstico principal debe seleccionarse obligatoriamente del catálogo ICD/CIE. El texto libre queda como información clínica complementaria, no como sustituto. Se agrega también un campo de <strong>diagnósticos secundarios</strong> (no contemplado antes).</p>
+    <div class="impacto"><span class="chip">Reportes de diagnóstico</span><b>0.75 día de desarrollo</b><span style="margin-left:auto">Pendiente de validación del Médico Jefe antes de producción</span></div>
+  </div>
+
+  <div class="decision">
+    <span class="num">2</span>
+    <h3>Catálogo de restricciones médicas</h3>
+    <p class="contexto">Ningún reporte real traía hoy un catálogo de restricciones (ej. «no cargar más de X kg»).</p>
+    <p><strong>Decisión:</strong> catálogo administrable de 16 restricciones (RES-01…RES-16 — no cargar peso, límite de carga, no trabajo en alturas, no operar maquinaria, no conducir, evitar movimientos repetitivos, ruido, sustancias, temperaturas extremas, esfuerzo físico intenso, trabajo administrativo, pausas periódicas, restricción de horario, restricción temporal, uso de equipo específico, otra). Cada una con tipo, descripción, valor límite, unidad, fecha de inicio/fin/revaloración, temporalidad, observaciones, médico responsable y estatus.</p>
+    <div class="impacto"><span class="chip">Dictamen de examen médico</span><b>1.4 días de desarrollo</b><span style="margin-left:auto">Pendiente de validación del Médico Jefe antes de producción</span></div>
+  </div>
+
+  <h2 class="group">Gerente de Salud Ocupacional <span class="who">Resuelto</span></h2>
+
+  <div class="decision">
+    <span class="num">3</span>
+    <h3>Antidoping — selección aleatoria</h3>
+    <p class="contexto">La captura básica (alta y consulta de resultados) ya está construida y en funcionamiento.</p>
+    <p><strong>Decisión — dimensionada 20 de agosto, sustituye al workflow clínico</strong> (<code>docs/entregable-liberacion-stoppers-salud.html</code> §2): alcance reducido y aprobado, sin protocolo clínico complejo — <strong>Selección aleatoria → Aplicación → Captura de resultado → Historial</strong>, con trazabilidad y sin permitir editar/borrar registros históricos.</p>
+    <div class="impacto"><span class="chip">Sin aprobación pendiente</span><b>1 día de desarrollo</b></div>
+  </div>
+
+  <div class="decision">
+    <span class="num">4</span>
+    <h3>Accidentes — seguimiento de casos</h3>
+    <p class="contexto">La captura básica (alta y consulta) ya está construida y en funcionamiento.</p>
+    <p><strong>Decisión — dimensionada 20 de agosto, sustituye al workflow de investigación</strong> (<code>docs/entregable-liberacion-stoppers-salud.html</code> §3): alcance reducido y aprobado — solo seguimiento (Registro → Seguimiento → Actualización → Evidencias/observaciones → Cierre). Explícitamente fuera de alcance: motor de investigación, workflow independiente, expediente adicional, automatización de causa raíz.</p>
+    <div class="impacto"><span class="chip">Reglas de proceso definidas</span><b>1 día de desarrollo</b></div>
+  </div>
+
+  <div class="decision">
+    <span class="num">5</span>
+    <h3>Maternidad: nivel de seguimiento esperado</h3>
+    <p class="contexto">Hoy solo existe un campo «¿está embarazada?» Sí/No + tiempo de embarazo.</p>
+    <p><strong>Decisión:</strong> evolucionar hacia un módulo de seguimiento de Salud Ocupacional (no un expediente obstétrico completo) con fecha de registro, semanas de gestación, fecha probable de parto, restricciones laborales, próxima revisión, observaciones, estatus, incapacidad y reincorporación.</p>
+    <div class="impacto"><span class="chip">Módulo de Maternidad</span><b>1 día de desarrollo</b><span style="margin-left:auto">Pendiente de validación de Médico Jefe / Gerencia SO</span></div>
+  </div>
+
+  <h2 class="group">RRHH <span class="who">Resuelto</span></h2>
+
+  <div class="decision">
+    <span class="num">6</span>
+    <h3>Reglas de NSS: persona multipredio</h3>
+    <p class="contexto">Sin confirmar si un mismo NSS puede repetirse cuando un empleado trabaja en más de un predio/empresa del grupo.</p>
+    <p><strong>Decisión:</strong> el NSS se asocia a la <strong>persona</strong>, no a una asignación de predio. Una persona puede mantener varias relaciones laborales (empresa/cuenta/predio/puesto) sin duplicar su expediente. <strong>Dimensionada 20 de agosto</strong> (<code>docs/entregable-liberacion-stoppers-salud.html</code> §4) con requerimientos y 5 casos de prueba de regresión concretos sobre <code>NssSearchService</code>.</p>
+    <div class="impacto"><span class="chip">Búsqueda por NSS</span><b>1 día de desarrollo</b></div>
+  </div>
+
+  <h2 class="group">Admin IT + Médico Jefe <span class="who">Resuelto</span></h2>
+
+  <div class="decision">
+    <span class="num">7</span>
+    <h3>Matriz de permisos y confidencialidad</h3>
+    <p class="contexto">Sin definir el corte de acceso por rol (médico / gerente / auditor).</p>
+    <p><strong>Decisión:</strong> RBAC + alcance organizacional — <strong>Rol + Empresa + Cuenta + Predio + Tipo de información</strong>. Los datos clínicos deben tener permisos independientes de los técnicos/administrativos: un administrador de TI no obtiene acceso automático al contenido clínico solo por administrar el sistema.</p>
+    <div class="impacto"><span class="chip warn">Requiere aprobación formal</span><b>2.25 días de desarrollo — el más costoso de la lista</b></div>
+  </div>
+
+  <div class="revertido-wrap">
+    <h2>⚠ Decisión revertida el mismo día</h2>
+    <p><strong>Causa de consulta médica:</strong> el 20 de agosto, primero el Product Owner había respondido que <strong>NO</strong> debía existir catálogo cerrado (texto libre, sin cambio de código). Horas después, la propuesta formal (<code>ONEST_Proyecto_Salud_Ocupacional_Decisiones.pdf</code> §2) exige exactamente lo contrario.</p>
+    <p><strong>Decisión final (la propuesta gana):</strong> catálogo normalizado de 23 causas (enfermedad general, dolor de cabeza, problema gastrointestinal, problema respiratorio, dolor muscular, dolor de espalda, lesión musculoesquelética, caída, golpe/contusión, herida/cortadura, quemadura, problema ocular, reacción alérgica, mareo, presión arterial, accidente de trabajo, accidente en trayecto, accidente no laboral, seguimiento médico, examen médico, maternidad/embarazo, curación, valoración preventiva) + opción "Otro" con descripción libre. Administrable (altas, bajas, activación/desactivación, histórico, control de duplicados).</p>
+    <p>Habilita: top de causas, morbilidad por predio/cuenta, tendencias mensuales, comparativos, recurrencias, dashboard ejecutivo. Pendiente sin definir: el mapeo de los valores de texto libre ya guardados hoy en <code>CAUSA</code> hacia el catálogo nuevo — no viene especificado en el documento.</p>
+    <div class="decision" style="margin-top:6px;">
+      <div class="impacto" style="border-top:none;padding-top:0;margin-top:0;"><span class="chip">Catálogo + reportes</span><b>1.25 días de desarrollo (sin contar migración de datos históricos)</b><span style="margin-left:auto">Pendiente de validación médica</span></div>
+    </div>
+  </div>
+
+  <div class="resuelto-wrap">
+    <h2>✓ Ya resuelto antes de esta propuesta</h2>
+    <ul>
+      <li><strong>Migración histórica:</strong> respondido 20 de agosto — SÍ entra en el alcance. La ejecuta un equipo externo con ETL en Oracle (no este equipo de desarrollo). Especificación técnica completa entregada: <code>docs/etl-migracion-historica-especificacion.md</code> (mapeo de tablas, conexiones a completar, hallazgos de calidad de datos ya conocidos).</li>
+      <li><strong>Numeración de carta dental:</strong> confirmado con datos reales (3,208 registros) que el sistema usa numeración FDI/ISO de dos dígitos por pieza, y que nunca implementó una clasificación de daño (caries/amalgama/endodoncia/etc.) pese a que la plantilla Excel la sugería — nadie la usó nunca en producción. El catálogo se queda como texto libre por diente, fiel al sistema real. No hace falta construir un selector nuevo.</li>
+      <li><strong>Definición de «Inclusión» en resultado de examen:</strong> confirmado que es una 4ª clave numérica propia (60), distinta de «Apto condicionado» (45).</li>
+      <li><strong>CUENTA vs. ÁREA:</strong> son catálogos independientes por diseño (cliente externo vs. departamento interno de Onest) — no se fusionan aunque algunos nombres coincidan.</li>
+      <li><strong>Alcance de inventario médico general:</strong> descartado explícitamente — solo se mantiene el inventario de insumos de antidoping.</li>
+      <li><strong>Diccionario de siglas del Pretest:</strong> no aplica a este sistema — el módulo ya usa las etiquetas reales en español del formulario legacy, no las siglas sin diccionario que bloqueaban al análisis anterior.</li>
+    </ul>
+  </div>
+
+  <div class="baja-wrap">
+    <h2>Baja prioridad — no bloquea nada activo hoy</h2>
+    <ul>
+      <li><strong>Origen de datos de incapacidades:</strong> ¿hay integración automatizada con IMSS, o la captura sigue siendo manual? El módulo ya funciona hoy sin esta respuesta — es una mejora futura, no un bloqueo.</li>
+      <li><strong>Typo «APTO 1945»</strong> en la plantilla Excel base de referencia (debería decir «APTO 45»): ¿error de plantilla, o indicio de una quinta clave de resultado? Curiosidad a confirmar, no bloquea código.</li>
+      <li><strong>Componentes tipo heatmap/banda de control</strong> en un futuro dashboard de morbilidad: el dashboard de KPIs ya construido usa gráficas numéricas estándar (línea, barra, dona) — esto solo aplicaría si más adelante se pide una variante visual distinta.</li>
+    </ul>
+  </div>
+
+  <footer class="colophon">
+    <span>Detalle completo: <span style="font-family:var(--font-mono);">docs/ONEST_Proyecto_Salud_Ocupacional_Decisiones.pdf</span></span>
+    <span>Costos de desarrollo: <span style="font-family:var(--font-mono);">docs/plan-tareas-concretas.html</span></span>
+    <span>20 de agosto de 2026</span>
+  </footer>
+</div>

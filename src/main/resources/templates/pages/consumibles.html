@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: consumiblesContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Consumibles de antidoping | Portal Salud Personal</title>
+</head>
+<body>
+
+<th:block id="pageStyles"></th:block>
+
+<th:block th:fragment="consumiblesContent">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/home}" href="/home">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Consumibles de antidoping</li>
+            </ol>
+            <h4 class="main-title mb-0">Consumibles de antidoping</h4>
+        </div>
+    </div>
+
+    <div class="card card-one mb-3">
+        <div class="card-header">
+            <h6 class="card-title mb-0">Registrar inventario del mes</h6>
+        </div>
+        <div class="card-body">
+            <form id="formConsumible" class="row g-2" novalidate>
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="col-md-3">
+                    <label class="form-label" for="predio">Predio</label>
+                    <input id="predio" name="predio" type="text" class="form-control" required>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="anio">Año</label>
+                    <input id="anio" name="anio" type="number" class="form-control" min="2000" required>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="mes">Mes</label>
+                    <select id="mes" name="mes" class="form-select" required>
+                        <option value="">Selecciona...</option>
+                        <option value="1">Enero</option>
+                        <option value="2">Febrero</option>
+                        <option value="3">Marzo</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Mayo</option>
+                        <option value="6">Junio</option>
+                        <option value="7">Julio</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="cantidadInicial">Cantidad inicial</label>
+                    <input id="cantidadInicial" name="cantidadInicial" type="number" class="form-control" min="0">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="entregaMensual">Entrega mensual</label>
+                    <input id="entregaMensual" name="entregaMensual" type="number" class="form-control" min="0">
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label" for="consumoMensual">Consumo</label>
+                    <input id="consumoMensual" name="consumoMensual" type="number" class="form-control" min="0">
+                </div>
+                <div class="col-md-10">
+                    <label class="form-label" for="observaciones">Observaciones</label>
+                    <input id="observaciones" name="observaciones" type="text" class="form-control" maxlength="500">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Guardar</button>
+                </div>
+            </form>
+            <p class="fs-12 mt-2 mb-0" id="estadoGuardar"></p>
+        </div>
+    </div>
+
+    <div class="card card-one">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h6 class="card-title mb-0">Inventario registrado</h6>
+            <div class="d-flex align-items-center gap-2">
+                <input type="text" id="filtroPredio" class="form-control form-control-sm" style="max-width: 200px;"
+                       placeholder="Filtrar por predio..." autocomplete="off">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnVerTodos">Ver todos</button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="estadoLista" class="fs-12 text-muted mb-2"></div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="thead-onest">
+                        <tr>
+                            <th>Predio</th>
+                            <th>Año</th>
+                            <th>Mes</th>
+                            <th>Cant. inicial</th>
+                            <th>Entrega mensual</th>
+                            <th>Consumo mensual</th>
+                            <th>Observaciones</th>
+                            <th>Registrado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="filasConsumibles"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:inline="javascript">
+        (function () {
+            var NOMBRES_MES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+            // El filtro por predio es LIKE %texto% e insensible a mayus/minus, aplicado
+            // aqui en la vista - se trae la lista completa una sola vez (son pocos
+            // predios) y se filtra en memoria, sin volver a pedirle nada al backend
+            // (que hace match exacto, ver docs/ords-antidoping-consumibles.sql).
+            var todosLosRegistros = [];
+
+            async function cargarLista() {
+                var estado = document.getElementById('estadoLista');
+                estado.textContent = 'Cargando...';
+                try {
+                    var response = await fetch(contextPath + 'api/consumibles');
+                    if (!response.ok) {
+                        estado.textContent = 'Error al consultar (HTTP ' + response.status + ').';
+                        return;
+                    }
+                    todosLosRegistros = await response.json();
+                    aplicarFiltro();
+                } catch (e) {
+                    estado.textContent = 'Error de red al consultar el inventario.';
+                }
+            }
+
+            function aplicarFiltro() {
+                var texto = document.getElementById('filtroPredio').value.trim().toLowerCase();
+                var filtrados = texto
+                    ? todosLosRegistros.filter(function (d) {
+                        return (d.predio || '').toLowerCase().indexOf(texto) !== -1;
+                    })
+                    : todosLosRegistros;
+                pintarTabla(filtrados);
+                var estado = document.getElementById('estadoLista');
+                estado.textContent = filtrados.length + ' de ' + todosLosRegistros.length + ' registro(s)'
+                    + (texto ? (' — filtro: "' + texto + '"') : '') + '.';
+            }
+
+            function pintarTabla(datos) {
+                var tbody = document.getElementById('filasConsumibles');
+                tbody.innerHTML = '';
+                if (!datos || datos.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Sin registros.</td></tr>';
+                    return;
+                }
+                datos.forEach(function (d) {
+                    var tr = document.createElement('tr');
+                    tr.innerHTML =
+                        '<td>' + escapeHtml(d.predio) + '</td>' +
+                        '<td>' + d.anio + '</td>' +
+                        '<td>' + (NOMBRES_MES[d.mes] || d.mes) + '</td>' +
+                        '<td>' + d.cantidadInicial + '</td>' +
+                        '<td>' + d.entregaMensual + '</td>' +
+                        '<td>' + d.consumoMensual + '</td>' +
+                        '<td>' + escapeHtml(d.observaciones) + '</td>' +
+                        '<td>' + escapeHtml(d.fechaRegistro) + '</td>';
+                    tbody.appendChild(tr);
+                });
+            }
+
+            function escapeHtml(valor) {
+                if (valor === null || valor === undefined) { return ''; }
+                return String(valor).replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+
+            document.getElementById('formConsumible').addEventListener('submit', async function (e) {
+                e.preventDefault();
+                var form = e.target;
+                var estado = document.getElementById('estadoGuardar');
+                var body = new URLSearchParams(new FormData(form));
+                var boton = form.querySelector('button[type="submit"]');
+                boton.disabled = true;
+                estado.textContent = 'Guardando...';
+                try {
+                    var response = await fetch(contextPath + 'api/consumibles', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: body.toString()
+                    });
+                    var texto = await response.text();
+                    if (!response.ok) {
+                        estado.textContent = 'Error: ' + texto;
+                        return;
+                    }
+                    estado.textContent = texto;
+                    form.reset();
+                    cargarLista();
+                } catch (e2) {
+                    estado.textContent = 'Error de red al guardar.';
+                } finally {
+                    boton.disabled = false;
+                }
+            });
+
+            document.getElementById('filtroPredio').addEventListener('input', aplicarFiltro);
+            document.getElementById('btnVerTodos').addEventListener('click', function () {
+                document.getElementById('filtroPredio').value = '';
+                aplicarFiltro();
+            });
+
+            cargarLista();
+        })();
+    </script>
+</th:block>
+</body>
+</html>

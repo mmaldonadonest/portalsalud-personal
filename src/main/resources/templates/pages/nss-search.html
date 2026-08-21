@@ -348,6 +348,32 @@
                 }
             };
 
+            // Autocompleta desde 3 letras, con debounce (300ms) para no disparar una peticion
+            // por cada tecla. Un timer por inputId (independiente entre los distintos buscadores
+            // ICD: Consulta, Diagnostico del Examen, y cada slot de Diagnosticos secundarios).
+            var icdDebounceTimers = {};
+            window.buscarIcdDebounced = function (inputId, resultId, targetId) {
+                inputId = inputId || 'icdConsult';
+                resultId = resultId || 'icdResult';
+                targetId = targetId || 'diagnostico';
+                var input = document.getElementById(inputId);
+                var out = document.getElementById(resultId);
+                if (!input || !out) {
+                    return;
+                }
+                if (icdDebounceTimers[inputId]) {
+                    clearTimeout(icdDebounceTimers[inputId]);
+                }
+                var q = (input.value || '').trim();
+                if (q.length < 3) {
+                    out.innerHTML = '';
+                    return;
+                }
+                icdDebounceTimers[inputId] = setTimeout(function () {
+                    buscarIcd(inputId, resultId, targetId);
+                }, 300);
+            };
+
             window.addIcd = function (btn) {
                 var text = btn.getAttribute('data-icd');
                 var out = btn.closest('[data-target]');
@@ -489,6 +515,11 @@
             }
 
             window.guardarConsulta = function (btn) {
+                var diagnostico = document.getElementById('diagnostico');
+                if (diagnostico && !diagnostico.value.trim()) {
+                    status.textContent = 'Selecciona al menos un diagnóstico del catálogo ICD antes de guardar.';
+                    return;
+                }
                 guardarRegistro(btn, { formId: 'consultaAltaForm', savePath: 'api/nss/consulta', fileInputId: 'consultaFiles', label: 'consulta' });
             };
 
@@ -502,6 +533,10 @@
 
             window.guardarContactosEmergencia = function (btn) {
                 guardarRegistro(btn, { formId: 'contactosEmergenciaForm', savePath: 'api/nss/examen/contactos-emergencia/save', fileInputId: '__none__', label: 'contactos de emergencia', resultElId: 'contactosEmergenciaResult' });
+            };
+
+            window.guardarDiagnosticosSecundarios = function (btn) {
+                guardarRegistro(btn, { formId: 'diagnosticosSecundariosForm', savePath: 'api/nss/examen/diagnosticos-secundarios/save', fileInputId: '__none__', label: 'diagnósticos secundarios', resultElId: 'diagnosticosSecundariosResult' });
             };
 
             // Advierte (sin bloquear) si el folio capturado ya existe para el NSS en pantalla.
@@ -855,6 +890,14 @@
             window.guardarExamen = async function (btn) {
                 var cont = document.getElementById('examenSecciones');
                 var trabajos = document.getElementById('trabajosPrevios');
+                // Diagnostico solo es obligatorio si esa seccion esta abierta - las secciones no
+                // cargadas no se mandan (evita clobber), asi que no tiene sentido exigirlo si el
+                // usuario esta guardando otras secciones sin haber tocado Diagnostico esta vez.
+                var diagEl = document.getElementById('examenDiagnostico');
+                if (diagEl && !diagEl.value.trim()) {
+                    status.textContent = 'Selecciona al menos un diagnóstico del catálogo ICD antes de guardar.';
+                    return;
+                }
                 var nss = (input.value || '').trim();
                 var body = new URLSearchParams();
                 body.append('nss', nss);

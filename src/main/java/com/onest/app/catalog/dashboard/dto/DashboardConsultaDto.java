@@ -17,6 +17,9 @@ public record DashboardConsultaDto(
         List<ConteoSimpleDto> porTipoConsulta,
         List<ConteoSimpleDto> porAreaAccidente,
         List<ConteoSimpleDto> porCausa,
+        List<ConteoSimpleDto> porGenero,
+        List<ConteoSimpleDto> porEdad,
+        List<ConteoSimpleDto> porCuenta,
         List<PuntoMensualDto> tendenciaMensual
 ) {
 }

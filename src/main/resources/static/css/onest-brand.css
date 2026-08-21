@@ -7,6 +7,22 @@
     --onest-blue-focus-shadow: rgba(0, 87, 168, 0.25);
 }
 
+/* Encabezado de tabla con azul corporativo - alternativa a Bootstrap .table-dark
+   (que usa el gris generico del theme, #212830, no el azul institucional) */
+.thead-onest {
+    --bs-table-color: #fff;
+    --bs-table-bg: var(--onest-blue);
+    --bs-table-border-color: var(--onest-blue-dark);
+    --bs-table-striped-bg: var(--onest-blue-light);
+    --bs-table-striped-color: #fff;
+    --bs-table-active-bg: var(--onest-blue-dark);
+    --bs-table-active-color: #fff;
+    --bs-table-hover-bg: var(--onest-blue-light);
+    --bs-table-hover-color: #fff;
+    color: #fff;
+    background-color: var(--onest-blue);
+}
+
 /* Override btn-primary con azul corporativo */
 .btn-primary {
     background-color: var(--onest-blue);

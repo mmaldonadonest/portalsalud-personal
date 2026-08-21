@@ -32,6 +32,11 @@ public class DashboardConsultaService {
     // frecuentes para no devolver un payload gigante; el resto se agrupa en "Otras".
     private static final int MAX_CAUSAS = 15;
 
+    // Mismo criterio que MAX_CAUSAS: CUENTA puede tener muchos valores distintos
+    // (18 en la prueba real) - top N + "Otras" para que la grafica sea legible.
+    // salud-ocupacional-v2 hace lo mismo (ATTENTIONS_BY_ACCOUNT: top 4 + "Otras cuentas").
+    private static final int MAX_CUENTAS = 8;
+
     private static final int ANIO_MINIMO = 2000;
     private static final int ANIO_MAXIMO = LocalDate.now().getYear() + 1;
 
@@ -52,6 +57,9 @@ public class DashboardConsultaService {
         Map<String, Long> porTipoConsulta = new LinkedHashMap<>();
         Map<String, Long> porAreaAccidente = new LinkedHashMap<>();
         Map<String, Long> porCausa = new LinkedHashMap<>();
+        Map<String, Long> porGenero = new LinkedHashMap<>();
+        Map<String, Long> porEdad = new LinkedHashMap<>();
+        Map<String, Long> porCuenta = new LinkedHashMap<>();
         Map<String, Long> porMes = new TreeMap<>();
         long sinFecha = 0;
 
@@ -62,6 +70,9 @@ public class DashboardConsultaService {
             incrementar(porTipoConsulta, etiqueta(fila.tipoConsulta()));
             incrementar(porAreaAccidente, etiqueta(fila.areaAccidente()));
             incrementar(porCausa, etiqueta(fila.causa()));
+            incrementar(porGenero, etiqueta(fila.genero()));
+            incrementar(porEdad, rangoEdad(fila.edad()));
+            incrementar(porCuenta, etiqueta(fila.cuenta()));
 
             Optional<YearMonth> mes = mesDe(fila.fechaConsulta());
             if (mes.isPresent()) {
@@ -83,7 +94,48 @@ public class DashboardConsultaService {
                 aConteo(porTipoConsulta, Integer.MAX_VALUE),
                 aConteo(porAreaAccidente, Integer.MAX_VALUE),
                 aConteo(porCausa, MAX_CAUSAS),
+                aConteo(porGenero, Integer.MAX_VALUE),
+                aConteoPorRangoEdad(porEdad),
+                aConteo(porCuenta, MAX_CUENTAS),
                 tendencia);
+    }
+
+    /**
+     * Mismos rangos que salud-ocupacional-v2 (dashboard/Morbilidad.jsx, fuente hoja
+     * ACUMULADO "RANGO DE EDAD"). Edad calculada contra SYSDATE en el WS (edad actual,
+     * no edad al momento de la consulta), ver docs/ords-consulta-dashboard-genero-edad-cuenta.sql.
+     */
+    private static String rangoEdad(int edad) {
+        if (edad <= 0) {
+            return "Sin dato";
+        }
+        if (edad <= 25) {
+            return "18-25";
+        }
+        if (edad <= 35) {
+            return "26-35";
+        }
+        if (edad <= 45) {
+            return "36-45";
+        }
+        if (edad <= 55) {
+            return "46-55";
+        }
+        return "55+";
+    }
+
+    private static final List<String> ORDEN_RANGOS_EDAD = List.of("18-25", "26-35", "36-45", "46-55", "55+", "Sin dato");
+
+    /** A diferencia de aConteo() (ordenado por cantidad), los rangos de edad se muestran en orden cronologico. */
+    private static List<ConteoSimpleDto> aConteoPorRangoEdad(Map<String, Long> porEdad) {
+        List<ConteoSimpleDto> resultado = new ArrayList<>();
+        for (String rango : ORDEN_RANGOS_EDAD) {
+            Long cantidad = porEdad.get(rango);
+            if (cantidad != null) {
+                resultado.add(new ConteoSimpleDto(rango, cantidad));
+            }
+        }
+        return resultado;
     }
 
     private static void incrementar(Map<String, Long> mapa, String clave) {

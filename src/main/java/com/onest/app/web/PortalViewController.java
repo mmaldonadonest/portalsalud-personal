@@ -18,15 +18,23 @@ public class PortalViewController {
         return "auth/login";
     }
 
+    /** Home = el dashboard de KPIs (ApexCharts), decision del 18 de agosto. La ruta /dashboard-demo-apex
+     * se conserva aparte (mismo template) para no perderla como URL independiente. */
     @GetMapping("/home")
     public String home() {
-        return "pages/home";
+        return "pages/dashboard-demo-apex";
     }
 
-    /** Demo del Dashboard ligero de KPIs (Resumen General) usando ApexCharts, ya bundleado en el theme. */
+    /** Demo del Dashboard ligero de KPIs (Resumen General) usando Recharts (igual que salud-ocupacional-v2). */
     @GetMapping("/dashboard-demo")
     public String dashboardDemo() {
         return "pages/dashboard-demo";
+    }
+
+    /** Misma demo, usando ApexCharts (ya bundleado en el theme) en vez de Recharts, para comparar. */
+    @GetMapping("/dashboard-demo-apex")
+    public String dashboardDemoApex() {
+        return "pages/dashboard-demo-apex";
     }
 
     /**
@@ -37,5 +45,15 @@ public class PortalViewController {
     public String nssSearch(@RequestParam(name = "nss", required = false) String nss, Model model) {
         model.addAttribute("nssQuery", nss == null ? "" : nss.trim());
         return "pages/nss-search";
+    }
+
+    /**
+     * Consumibles de antidoping (inventario por PREDIO/mes). NO forma parte del flujo de
+     * busqueda por NSS - pagina standalone, accesible por URL directa (sin id_menu registrado
+     * todavia, mismo patron que Antidoping/Accidentes al lanzarse).
+     */
+    @GetMapping("/consumibles")
+    public String consumibles() {
+        return "pages/consumibles";
     }
 }

@@ -114,13 +114,14 @@
                     <textarea class="form-control" name="exploracion" id="exploracion" rows="3"></textarea>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label" for="diagnostico">Diagnostico</label>
-                    <textarea class="form-control" name="diagnostico" id="diagnostico" rows="3"></textarea>
+                    <label class="form-label" for="diagnostico">Diagnostico (catálogo ICD/CIE)</label>
+                    <textarea class="form-control" name="diagnostico" id="diagnostico" rows="3" readonly
+                              placeholder="Selecciona una o mas claves del buscador ICD de abajo..."></textarea>
                 </div>
                 <div class="col-12">
-                    <label class="form-label" for="icdConsult">Consultar ICD (la clave se agrega al diagnostico)</label>
-                    <input type="text" class="form-control" id="icdConsult"
-                           placeholder="Buscar clave ICD y presiona Enter/Tab..." onchange="buscarIcd();">
+                    <label class="form-label" for="icdConsult">Buscar diagnóstico (obligatorio, catálogo ICD/CIE)</label>
+                    <input type="text" class="form-control" id="icdConsult" autocomplete="off"
+                           placeholder="Escribe al menos 3 letras (autocompleta)..." oninput="buscarIcdDebounced();">
                     <div id="icdResult" class="mt-2"></div>
                 </div>
 

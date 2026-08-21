@@ -110,13 +110,14 @@
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Tarea</th><th>Pregunta a resolver</th><th>Hallazgo</th></tr>
+          <tr><th>Tarea</th><th>Pregunta a resolver</th><th>Hallazgo</th><th>Respuesta PO</th></tr>
         </thead>
         <tbody>
           <tr>
             <td>Causa de consulta médica <span class="fs-sm" style="display:block;color:var(--ink-muted);font-weight:400;">(antes «Enriquecer causa de accidente en Consulta»)</span></td>
             <td>¿Debe existir un catálogo cerrado de causas de consulta, o se mantiene como texto clínico libre tal como está hoy?</td>
-            <td>Investigado 14 de agosto: el campo <code>CAUSA</code> (<code>TBL_SERV_CONSULTA_MEDICA</code>) es texto clínico libre real (67 filas vacías + valores genuinos como «DOLOR DE GARGANTA», «CAÍDA EN DOMICILIO», mezclado con basura de pruebas y duplicados por mayúsculas/minúsculas). <strong>No existe</strong> un catálogo cerrado de ~26 valores como sugería (incorrectamente) el análisis de <code class="path">salud-ocupacional-v2</code> — ese repo también lo maneja como texto libre. Convertirlo a un <code>&lt;select&gt;</code> cerrado sin esta decisión inventaría un catálogo inexistente y perdería información clínica real.</td>
+            <td>Investigado 14 de agosto: el campo <code>CAUSA</code> (<code>TBL_SERV_CONSULTA_MEDICA</code>) es texto clínico libre real (67 filas vacías + valores genuinos como «DOLOR DE GARGANTA», «CAÍDA EN DOMICILIO», mezclado con basura de pruebas y duplicados por mayúsculas/minúsculas). El PO había respondido el 20 de agosto que se mantenía como texto libre — esa respuesta quedó <strong>revertida el mismo día</strong> por una propuesta formal (<code class="path">docs/ONEST_Proyecto_Salud_Ocupacional_Decisiones.pdf</code>) que sí exige un catálogo cerrado.</td>
+            <td><span class="badge pend">Revertido 20 ago</span> Ahora SÍ debe existir catálogo cerrado (23 causas + "Otro" + descripción libre), administrable. Ver fila "Causa de consulta médica — catálogo cerrado" en la tabla de abajo.</td>
           </tr>
         </tbody>
       </table>
@@ -212,12 +213,40 @@
           <td class="num">0.5 día</td>
           <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
-        <tr>
+        <tr class="done">
           <td>Dashboard ligero de KPIs — UI (gráficas)</td>
-          <td>Consumir <code>GET /api/dashboard/{incapacidades,accidentes,consultas,antidoping,examen}</code> con la librería de gráficas a elegir — ver recuadro de decisión pendiente (recharts vs Chart.js/ApexCharts) más abajo en el documento de referencia</td>
+          <td>Decisión de librería tomada 18 de agosto: <strong>ApexCharts</strong> (ya bundleado en el theme, sin dependencia nueva). <strong>Completado 18 de agosto</strong>: <code class="path">/home</code> (post-login, misma ruta que <code class="path">/dashboard-demo-apex</code>) ya consume los <strong>6 endpoints completos</strong> — 6 KPI cards, tendencia mensual combinada (línea/área con zoom por mouse), Incapacidades por Ramo, Examen por resultado, Accidentes por causa RT, Consultas por tipo, Antidoping por resultado. Se quitó el rótulo "(demo)" del título/breadcrumb ya que es la página real. Recharts <strong>no se descarta</strong>, se conserva como referencia en <code class="path">/dashboard-demo</code> (misma librería que <code class="path">salud-ocupacional-v2</code>) pero deliberadamente sin entrada de menú ni paridad de features — solo consume 3 endpoints, no se extendió</td>
+          <td class="blk-cell">Registrar el <code>id_menu</code> real en Oracle (<code>crud_alta_app_menu</code>) si se quiere una entrada de sidebar explícita — hoy no es estrictamente necesario porque ya es la home<span class="who">No bloquea nada</span></td>
+          <td class="num">0.5 día</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
+        </tr>
+        <tr class="done">
+          <td>Consumibles (antidoping) — backend + módulo Java</td>
+          <td>Aplicado y verificado 18 de agosto: 2 handlers nuevos sobre <code>SERV_MED_ANTIDOPING_INVENTARIO</code> (sin DDL, la tabla ya existía) — <code>POST /Servcio/consumibles</code> (alta) y <code>POST /Servcio/consulta_consumibles</code> (lista, <code>PREDIO</code> opcional), ver <code class="path">docs/ords-antidoping-consumibles.sql</code>. Paquete Java nuevo <code class="path">catalog/consumible/{client,dto,service,web}</code> (separado de <code class="path">catalog/antidoping/</code> a propósito — no está asociado a NSS/empleado). Página standalone <code class="path">/consumibles</code> (fuera del flujo de búsqueda por NSS), JSON puro vía <code>GET/POST /api/consumibles</code>. Probado end-to-end vía curl con login+CSRF real: alta insertó (<code>REG_ID=1</code>) y la consulta por predio lo devolvió con todos los campos correctos</td>
+          <td class="blk-cell"><strong>Deuda técnica anotada 19 de agosto:</strong> solo alta + consulta, sin edición ni borrado (decisión deliberada — mismo criterio "aterrizaje fiel" que el resto del sistema, corregir es agregar un registro nuevo, no editar el viejo). Si los typos resultan frecuentes en uso real, la corrección más barata es agregar <code>DELETE /Servcio/consumibles/{id}</code>, no un formulario de edición completo<span class="who">Retomar si se pide explícitamente</span></td>
+          <td class="num">1.5 días</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
+        </tr>
+        <tr class="done">
+          <td>Dashboard — desglose por Género</td>
+          <td>Aplicado y verificado 19 de agosto: <code>bio_empleado.emp_sexo</code> agregado al <code>JOIN</code> de <code>consulta_medica_fecha</code> (<code class="path">docs/ords-consulta-dashboard-genero-edad-cuenta.sql</code>) + <code>porGenero</code> en <code class="path">DashboardConsultaService</code> + gráfica de dona. <strong>Alcance ajustado tras revisar <code class="path">salud-ocupacional-v2</code></strong> (<code class="path">dashboard/Morbilidad.jsx</code>): ese dashboard de referencia solo muestra género/edad/cuenta para Morbilidad, no lo repite en los otros 4 dominios — se replicó el mismo alcance aquí en vez de los 5 handlers originalmente estimados</td>
+          <td class="blk-cell"><code>emp_sexo</code> sin catálogo consistente en los datos reales — mezcla <code>1</code>(111)/<code>0</code> sin dato(47)/<code>2</code>(24) con texto suelto <code>M</code>/<code>H</code>/<code>X</code>/<code>O</code>/<code>HOMBRE</code>/<code>MUJER</code>. No se inventó un mapeo, se muestra tal cual<span class="who">Candidato a agregar al cuestionario de PO si se quiere normalizar</span></td>
+          <td class="num">1 día</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
+        </tr>
+        <tr class="done">
+          <td>Dashboard — desglose por Edad</td>
+          <td>Aplicado y verificado 19 de agosto: edad calculada en SQL desde <code>bio_empleado.emp_fechan</code> (contra SYSDATE) + <code>porEdad</code> en <code class="path">DashboardConsultaService</code>, rangos 18-25/26-35/36-45/46-55/55+ (mismos que <code class="path">salud-ocupacional-v2</code>), en orden cronológico (no por frecuencia) + gráfica de barras. Mismo ajuste de alcance que Género — solo Consultas</td>
           <td>—</td>
           <td class="num">1 día</td>
-          <td class="tc"><span class="badge pend">Pendiente</span></td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
+        </tr>
+        <tr class="done">
+          <td>Dashboard — desglose por Cuenta</td>
+          <td>Aplicado y verificado 19 de agosto: mismo <code>JOIN</code> que <code class="path">ExpedienteService.cuentaDe()</code> (<code>bio_datos_laborales_empleados</code> + <code>biometrico_cuenta</code>) agregado directo al handler <code>consulta_medica_fecha</code> (sin N+1 desde Java) + <code>porCuenta</code> + gráfica de barras. Verificado con datos reales: 18 cuentas distintas, <code>porGenero</code>/<code>porEdad</code>/<code>porCuenta</code> suman 205 cada uno — matemática consistente con <code>totalConsultas</code></td>
+          <td>—</td>
+          <td class="num">1 día</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
         <tr class="done">
           <td>Antidoping / alcoholimetría — backend Oracle/ORDS</td>
@@ -233,12 +262,12 @@
           <td class="num">1.5 días</td>
           <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
-        <tr class="blocked">
-          <td>Antidoping — protocolo de uso clínico</td>
-          <td>No es código: define cuándo se aplica una prueba, a quién y el manejo de un positivo. No bloquea construir la captura básica (fila de arriba) — sí define reglas de validación/flujo que se agregan después</td>
-          <td class="blk-cell">Protocolo clínico (cuándo, a quién, manejo de positivos)<span class="who">Gerente SO</span></td>
-          <td class="num">Sin código hasta entonces</td>
-          <td class="tc"><span class="badge blk">Bloqueado</span></td>
+        <tr>
+          <td>Antidoping — selección aleatoria</td>
+          <td><strong>Dimensionado 20 de agosto</strong> (<code class="path">docs/entregable-liberacion-stoppers-salud.html</code> §2, sustituye al workflow clínico del PDF anterior): alcance reducido y aprobado — <strong>Selección aleatoria → Aplicación → Captura de resultado → Historial</strong>, sin protocolo clínico complejo. Se construye sobre la captura ya existente (alta+consulta+resultado ya hechas) — solo agrega: listado de personal activo + algoritmo de selección aleatoria (2h) + pantalla que dispara la selección y enlaza al alta ya existente (3h) + registro/trazabilidad de la selección (2h) + prueba de humo (1h)</td>
+          <td>—</td>
+          <td class="num">1 día</td>
+          <td class="tc"><span class="badge pend">Pendiente</span></td>
         </tr>
         <tr class="done">
           <td>Accidentes de trabajo — backend Oracle/ORDS</td>
@@ -254,61 +283,68 @@
           <td class="num">1.5 días</td>
           <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
-        <tr class="blocked">
-          <td>Accidentes — flujo de investigación</td>
-          <td>No es código: define quién califica el accidente, con qué criterio y en qué plazos. No bloquea construir alta/consulta básica (filas de arriba) — define reglas de proceso que se agregan después</td>
-          <td class="blk-cell">Flujo de investigación (quién califica, criterio, plazos)<span class="who">Gerente SO</span></td>
-          <td class="num">Sin código hasta entonces</td>
-          <td class="tc"><span class="badge blk">Bloqueado</span></td>
+        <tr>
+          <td>Accidentes — seguimiento de casos</td>
+          <td><strong>Dimensionado 20 de agosto</strong> (<code class="path">docs/entregable-liberacion-stoppers-salud.html</code> §3, sustituye al workflow de investigación del PDF anterior): alcance reducido y aprobado — solo <strong>seguimiento</strong> (Registro → Seguimiento → Actualización → Evidencias/observaciones → Cierre), sin motor de investigación. Se construye sobre el alta ya existente — agrega: campo estado + acción de cierre (2h) + seguimiento como sub-lista de actualizaciones/observaciones, mismo patrón EAV que Contactos de emergencia (4h) + reusar el patrón de adjuntos ya existente (<code>MED_FILE</code>) para evidencias (1h) + prueba de humo (1h). Explícitamente fuera de alcance: workflow de investigación independiente, expediente adicional, automatización de causa raíz</td>
+          <td>—</td>
+          <td class="num">1 día</td>
+          <td class="tc"><span class="badge pend">Pendiente</span></td>
         </tr>
-        <tr class="blocked">
+        <tr>
           <td>Maternidad — seguimiento completo</td>
-          <td>No existe — requiere WS nuevo. Hallazgo 13 de agosto: <code>Servcio/consulta_cuestionario</code> (<code>SERV_MED_CUEST_INFO_GENERAL</code>) ya trae un campo real «¿Está embarazada?» Sí/No + tiempo de embarazo — no es seguimiento prenatal, pero es más que «nada»; se puede mostrar junto con la tarea de CUENTA de arriba, sin esperar esta decisión</td>
-          <td class="blk-cell">Nivel de seguimiento esperado (más allá del dato Sí/No + semanas)<span class="who">Gerente SO / Médico Jefe</span></td>
-          <td class="num">0.5 (spike) + 2 días</td>
-          <td class="tc"><span class="badge blk">Bloqueado</span></td>
+          <td>Definido 20 de agosto (§7): módulo de seguimiento (no expediente obstétrico completo) con fecha de registro, semanas de gestación, fecha probable de parto, restricciones laborales, próxima revisión, observaciones, estatus, incapacidad y reincorporación. <code>Servcio/consulta_cuestionario</code> (<code>SERV_MED_CUEST_INFO_GENERAL</code>) ya trae «¿Está embarazada?» Sí/No + tiempo de embarazo como base. <strong>Re-estimado 20 de agosto</strong> anclado al precedente real más parecido — Contactos de emergencia (EAV sobre <code>MED_TAG</code>, arreglo de 3 registros, tomó 8h completas) — asumiendo el mismo patrón EAV en vez de tabla Oracle dedicada: spike 1h + servicio/fragment 5h + ajuste por 2 campos de referencia extra 1h + prueba de humo 1h. Si más adelante se pide reportería/dashboard propio de Maternidad, sí se justificaría tabla nueva y el costo sube</td>
+          <td>—</td>
+          <td class="num">1 día</td>
+          <td class="tc"><span class="badge pend">Pendiente</span></td>
         </tr>
-        <tr class="blocked">
+        <tr class="done">
           <td>Catálogo de diagnósticos normalizado</td>
-          <td><code>Servcio/indice</code> (ICD) — ya existe y ya está conectado en Consulta/Examen</td>
-          <td class="blk-cell">¿Normalizar el texto libre contra el catálogo?<span class="who">Médico Jefe</span></td>
+          <td><strong>Construido y probado 20 de agosto</strong> (ver sub-tareas 1.1-1.5 en "Plan de ejecución" abajo): diagnóstico principal forzado desde ICD/CIE (readonly + validación) en Consulta y Examen; Diagnósticos secundarios nuevo (EAV <code>MED_TAG</code>, solo Examen, 3 slots); buscador ICD mejorado a autocompletado real (antes Enter/Tab). Prueba de humo en navegador confirmada por el usuario. Detalle completo en memoria <code class="path">examen-use-case.md</code></td>
+          <td>—</td>
+          <td class="num">0.75 día</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
+        </tr>
+        <tr>
+          <td>Reglas de NSS (persona multipredio)</td>
+          <td><strong>Dimensionado 20 de agosto</strong> (<code class="path">docs/entregable-liberacion-stoppers-salud.html</code> §4, confirma el modelo del PDF anterior con requerimientos y casos de prueba concretos): un mismo NSS asociado a varios predios NO es duplicidad. No es una entidad nueva — reusa el mismo <code>JOIN bio_datos_laborales_empleados</code>+<code>biometrico_cuenta</code> ya construido para CUENTA/dashboard: ajustar validación en <code class="path">NssSearchService</code> para no bloquear (2h) + mostrar predio(s) múltiples reusando ese JOIN (2h) + 5 casos de prueba de regresión ya definidos (2h) + prueba de humo (1h)</td>
+          <td>—</td>
           <td class="num">1 día</td>
-          <td class="tc"><span class="badge blk">Bloqueado</span></td>
+          <td class="tc"><span class="badge pend">Pendiente</span></td>
         </tr>
-        <tr class="blocked">
-          <td>Reglas de NSS (único / repetible entre predios)</td>
-          <td>Ajuste interno en <code class="path">NssSearchService</code> — sin WS nuevo</td>
-          <td class="blk-cell">Confirmar manejo de NSS duplicado / multi-predio<span class="who">RRHH</span></td>
-          <td class="num">0.5 día</td>
-          <td class="tc"><span class="badge blk">Bloqueado</span></td>
-        </tr>
-        <tr class="blocked">
+        <tr>
           <td>Catálogo de restricciones médicas</td>
-          <td>No existe — requiere WS nuevo (catálogo + asignación al dictamen)</td>
-          <td class="blk-cell">Entregar catálogo real de restricciones<span class="who">Médico Jefe</span></td>
-          <td class="num">1 día</td>
-          <td class="tc"><span class="badge blk">Bloqueado</span></td>
+          <td>Definido 20 de agosto (§4): catálogo administrable de 16 restricciones (RES-01…RES-16 — no cargar peso, límite de carga, no trabajo en alturas, no operar maquinaria, no conducir, movimientos repetitivos, ruido, sustancias, temperaturas extremas, esfuerzo físico, trabajo administrativo, pausas periódicas, horario, temporalidad, equipo específico, otra), cada una con tipo/descripción/valor límite/unidad/fecha inicio/fin/revaloración/temporalidad/observaciones/médico responsable/estatus. <strong>Re-estimado 20 de agosto</strong> anclado a Consumibles (dominio nuevo completo — 2 handlers ORDS + módulo Java + página + prueba E2E — tomó 12h): handler ORDS de alta+consulta del catálogo (3h, publica en minutos) + módulo Java admin (4h) + asignación de restricciones en el dictamen de Examen (3h) + prueba de humo (1h)</td>
+          <td>—</td>
+          <td class="num">1.4 días</td>
+          <td class="tc"><span class="badge pend">Pendiente</span></td>
         </tr>
-        <tr class="blocked">
+        <tr>
           <td>Matriz de permisos y confidencialidad</td>
-          <td>Por definir — RLS en Oracle o filtro por WS, toca varios servicios</td>
-          <td class="blk-cell">¿Corte por cuenta, predio, o ambos?<span class="who">Admin + Médico</span></td>
-          <td class="num">3 días</td>
-          <td class="tc"><span class="badge blk">Bloqueado</span></td>
+          <td>Definido 20 de agosto (§9): RBAC + alcance organizacional — <strong>Rol + Empresa + Cuenta + Predio + Tipo de información</strong>. Los datos clínicos requieren permisos independientes de los administrativos/técnicos (un admin de TI no debe ver contenido clínico solo por administrar el sistema). <strong>Re-estimado 20 de agosto:</strong> no depende de ORDS (es Spring Security del lado Java, publicar WS no acelera esto) — diseño del modelo + resolver de alcance (4h) + wiring en los ~10 paquetes <code class="path">catalog/*</code> existentes (8h) + filtro adicional de datos clínicos vs. administrativos (4h) + prueba de humo con 2-3 roles distintos (2h)</td>
+          <td class="blk-cell">El propio documento marca «Requiere aprobación formal» — la estructura ya se puede diseñar/construir, pero no debe liberarse a producción sin esa aprobación<span class="who">Admin IT + Médico Jefe</span></td>
+          <td class="num">2.25 días</td>
+          <td class="tc"><span class="badge pend">Pendiente</span></td>
         </tr>
-        <tr class="blocked">
+        <tr>
+          <td>Causa de consulta médica — catálogo cerrado</td>
+          <td><strong>Decisión revertida 20 de agosto:</strong> la propuesta formal (§2) reemplaza la respuesta anterior del PO («texto libre») por un <strong>catálogo normalizado de 23 causas + opción «Otro» con descripción libre</strong> (enfermedad general, dolor de cabeza, problema gastrointestinal … hasta valoración preventiva), administrable (altas, bajas, activación/desactivación, histórico, control de duplicados). Habilita: top de causas, morbilidad por predio/cuenta, tendencias, comparativos, recurrencias, dashboard ejecutivo. <strong>Re-estimado 20 de agosto</strong> anclado a Consumibles (dominio nuevo completo, 12h): handlers ORDS de alta+consulta del catálogo (2h, publica en minutos) + módulo Java admin (4h) + reusar el <code>&lt;select&gt;</code> en la captura de Consulta EXISTENTE, sin página nueva (2h) + prueba de humo (1h)</td>
+          <td class="blk-cell">El mapeo de los valores de texto libre ya guardados en <code>CAUSA</code> hacia el catálogo nuevo no viene definido en el documento<span class="who">Sugerir a Médico Jefe / PO antes de programar la migración de datos</span></td>
+          <td class="num">1.25 días (sin contar migración de datos históricos)</td>
+          <td class="tc"><span class="badge pend">Pendiente</span></td>
+        </tr>
+        <tr class="done">
           <td>Migración histórica</td>
-          <td>Por definir — depende del alcance/volumen que se apruebe</td>
-          <td class="blk-cell">¿Entra en el alcance inicial?<span class="who">Stakeholder</span></td>
-          <td class="num">No estimable</td>
-          <td class="tc"><span class="badge blk">Bloqueado</span></td>
+          <td><strong>Decisión tomada 20 de agosto: SÍ entra en el alcance.</strong> Se ejecutará con ETL en Oracle, a cargo de un equipo externo (no de este repo Java). Especificación técnica completa entregada en <code class="path">docs/etl-migracion-historica-especificacion.md</code> — mapeo de tablas, metodología, hallazgos de calidad de datos ya conocidos, y espacio para las conexiones de origen (MariaDB) y destino (Oracle). Verificado por consulta directa: la BD origen <code>servicioMedico</code> solo tiene 2 tablas (<code>files</code>/<code>tags</code>), ambas ya migradas y verificadas por este equipo en agosto (ver <code class="path">docs/plan-etl-migracion-files.md</code>)</td>
+          <td class="blk-cell">Confirmar con el equipo externo si el alcance es exactamente files+tags (ya hecho) o hay otro origen de datos sin identificar aún<span class="who">Pregunta abierta en la especificación, no bloquea la entrega del documento</span></td>
+          <td class="num">—</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
-        <tr class="blocked">
+        <tr class="done">
           <td>Numeración de carta dental (selector estructurado)</td>
-          <td>Cambio de catálogo/UI — odontograma de 32 piezas, sin WS nuevo</td>
-          <td class="blk-cell">Sistema de numeración (Universal/FDI/Palmer)<span class="who">Médico Jefe</span></td>
-          <td class="num">1.5 días</td>
-          <td class="tc"><span class="badge blk">Bloqueado</span></td>
+          <td><strong>Corregido 18 de agosto</strong> — esta fila estaba desactualizada: el sistema de numeración YA se confirmó como FDI/ISO de dos dígitos desde el 10 de agosto (<code class="path">docs/checklist-bloqueadores-negocio.md</code> #15, verificado contra 3,208 registros reales de <code>SERV_MED_DIENTES</code>). También se confirmó que el sistema real nunca implementó una clasificación de daño por diente (C/A/E/P/X) pese a que la plantilla Excel la sugería — nadie la usó nunca en producción. <strong>Decisión ya tomada</strong>: no se construye un selector nuevo, el catálogo se queda como texto libre por diente, fiel al sistema real</td>
+          <td>—</td>
+          <td class="num">—</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
         <tr class="done">
           <td>Diccionario de siglas del Pretest</td>
@@ -317,15 +353,22 @@
           <td class="num">—</td>
           <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
+        <tr>
+          <td>Generación de ambiente de QA</td>
+          <td>Instalar servidor web (Tomcat) + JDK, desplegar el WAR y solicitar el dominio/URL del ambiente de pruebas</td>
+          <td>—</td>
+          <td class="num">0.6 día</td>
+          <td class="tc"><span class="badge pend">Pendiente</span></td>
+        </tr>
       </tbody>
     </table>
   </div>
   <div class="sum-footer">
-    <span class="pend"><b>Pendiente:</b> Dev 1 día + QA 1 día</span>
-    <span class="blk"><b>Bloqueado (una vez resuelto):</b> Dev 9.5 días + QA 1.5 días</span>
-    <span><b>Gran total:</b> Dev 10.5 días + QA 2.5 días</span>
+    <span class="pend"><b>Pendiente (Dev, todo dimensionado):</b> 9.5 días (QA env 0.6 + Causa de consulta 1.25 + Catálogo restricciones 1.4 + Maternidad 1 + Matriz de permisos 2.25 + Antidoping 1 + Accidentes 1 + NSS 1) — Catálogo de diagnósticos ya Hecho, ver abajo</span>
+    <span class="blk"><b>Bloqueado:</b> nada — las 7 decisiones de negocio pendientes se resolvieron el 20 de agosto</span>
+    <span><b>QA (total, aparte):</b> 1.5 días</span>
   </div>
-  <p class="dek" style="font-size:.78rem;">Actualizado 17 de agosto: backend del Dashboard de KPIs 100% completo — los 5 dominios (Incapacidades, Accidentabilidad, Morbilidad/Consulta, Antidoping, Examen) más el endpoint compuesto "Resumen General" que los combina en un total y una tendencia mensual unificada. Incluye el desbloqueo estructural de Examen (tabla de historial + edición aditiva de <code>PR_SERVICIO_MED_EXAMEN2</code>, probado sin regresión) y su WS agregado. Solo queda pendiente la UI (gráficas) — con una nota de diseño ya registrada sobre cómo tratar el bucket "Sin fecha" en la tendencia combinada. Excluye las 3 filas sin estimado numérico (protocolo antidoping, flujo de investigación de accidentes — 0 días de código, solo decisión; migración histórica — no estimable sin alcance) y las 16 filas ya <span class="badge ok" style="vertical-align:middle;">Hechas</span>.</p>
+  <p class="dek" style="font-size:.78rem;">Actualizado 20 de agosto: llegó <strong><code class="path">docs/ONEST_Proyecto_Salud_Ocupacional_Decisiones.pdf</code></strong>, una propuesta formal que resuelve <strong>las 7 decisiones de negocio</strong> que quedaban pendientes en <code class="path">docs/checklist-bloqueadores-negocio.html</code>/<code class="path">docs/cuestionario-bloqueadores-negocio.md</code> (catálogo de diagnósticos ICD obligatorio, catálogo de restricciones de 16 códigos, workflow de antidoping, workflow de investigación de accidentes, módulo de maternidad, modelo persona-multipredio para NSS, y matriz de permisos RBAC) — y <strong>revierte</strong> la respuesta previa del PO sobre «Causa de consulta médica»: ya no es texto libre, ahora exige un catálogo cerrado de 23 causas + «Otro». Ninguna de estas 7 tareas está construida todavía — pasan de <span class="badge blk" style="vertical-align:middle;">Bloqueado</span> a <span class="badge pend" style="vertical-align:middle;">Pendiente</span>, ya con diseño de datos/workflow definido. <strong>Actualizado de nuevo el mismo día:</strong> llegó <code class="path">docs/entregable-liberacion-stoppers-salud.html</code>, que redujo y dimensionó las 3 tareas que habían quedado «por re-estimar» (protocolo antidoping → selección aleatoria sin protocolo clínico complejo; flujo de accidentes → solo seguimiento, sin motor de investigación; reglas de NSS → confirmado con casos de prueba concretos) — las 3 quedan en 1 día cada una (se construyen sobre módulos ya existentes, no son dominio nuevo), ya no hay ninguna tarea sin dimensionar en todo el documento. «Migración histórica» sigue igual — sí entra en el alcance, la ejecuta un equipo externo con ETL en Oracle, especificación en <code class="path">docs/etl-migracion-historica-especificacion.md</code>. Dashboard ligero de KPIs 100% completo — backend (5 dominios + Resumen General), UI (ApexCharts, los 6 endpoints, en <code class="path">/home</code>), Consumibles de antidoping y los 3 desgloses de Consultas (Género/Edad/Cuenta) — todos probados end-to-end con curl real. Nota aparte: se buscó un desglose «por sitio/predio» (como en la referencia de <code class="path">salud-ocupacional-v2</code>) y <strong>no existe ese campo en ningún lado</strong> de <code>bio_empleado</code> ni tablas relacionadas — no es bloqueo de negocio, es que el dato no existe hoy; el modelo persona-multipredio de la propuesta podría cubrir esto a futuro. Excluye las 23 filas ya <span class="badge ok" style="vertical-align:middle;">Hechas</span> (ya no hay filas sin estimar).</p>
 
   <h2 style="font-size:1.15rem;margin:8px 0 4px;">Entidades de base de datos faltantes</h2>
   <p class="dek" style="margin-bottom:14px;">Tablas Oracle que no existen todavía. Las de Antidoping y Accidentes ya tienen estructura confirmada (contra reportes reales, vía el análisis de <code class="path">salud-ocupacional-v2</code>) — listas para crear. Las otras dos siguen sin ningún dato fuente real que las respalde.</p>
@@ -353,17 +396,17 @@
           <td>NSS, fecha, tipo de riesgo (<code>LABORAL/TRAYECTO</code>), causa RT (catálogo cerrado), status de calificación (<code>CALIFICADO/IMPROCEDENTE/PENDIENTE/BAJA_INCONCLUSO</code>), SDI, costo</td>
           <td class="tc"><span class="badge ok">Creada y verificada</span></td>
         </tr>
-        <tr class="blocked">
+        <tr>
           <td><code>MED_RESTRICCION</code> (catálogo)</td>
           <td>Restricciones médicas / dictamen del examen</td>
-          <td class="blk-cell">Código, descripción — sin definir<span class="who">Ningún reporte real trae este catálogo; falta que Médico Jefe lo entregue</span></td>
-          <td class="tc"><span class="badge blk">Sin estructura</span></td>
+          <td>Definido 20 de agosto (<code class="path">docs/ONEST_Proyecto_Salud_Ocupacional_Decisiones.pdf</code> §4): 16 códigos RES-01…RES-16 + tipo/valor límite/unidad/fechas/temporalidad/médico responsable/estatus. Ver fila "Catálogo de restricciones médicas" en la tabla de tareas (11h)</td>
+          <td class="tc"><span class="badge pend">Definida, falta crear</span></td>
         </tr>
-        <tr class="blocked">
+        <tr>
           <td><code>MED_MATERNIDAD_SEGUIMIENTO</code></td>
           <td>Maternidad</td>
-          <td class="blk-cell">Propuesta sin validar: semanas de gestación, controles prenatales, fecha probable de parto<span class="who">Hoy solo existe Sí/No + tiempo de embarazo (<code>SERV_MED_CUEST_INFO_GENERAL</code>); falta definir alcance de seguimiento con Gerente SO / Médico Jefe</span></td>
-          <td class="tc"><span class="badge blk">Sin estructura</span></td>
+          <td><strong>Decisión 20 de agosto: no se crea tabla nueva.</strong> Se usa EAV sobre <code>MED_TAG</code>, mismo patrón que Contactos de emergencia (más barato, reusa plomería ya probada) — semanas de gestación, fecha probable de parto, restricciones laborales, próxima revisión, observaciones, estatus, incapacidad, reincorporación. Ver fila "Maternidad — seguimiento completo" en la tabla de tareas (8h)</td>
+          <td class="tc"><span class="badge ok">Resuelto — no requiere tabla</span></td>
         </tr>
       </tbody>
     </table>
@@ -491,17 +534,17 @@
           <td class="tc"><span class="badge ok">Backend hecho</span></td>
           <td>Verificado contra datos reales (3 pruebas), matemática consistente en las 4 agregaciones. Solo falta la UI</td>
         </tr>
-        <tr class="blocked">
+        <tr class="done">
           <td>Consumibles (inventario antidoping)</td>
-          <td><code>SERV_MED_ANTIDOPING_INVENTARIO</code> — existe como tabla desde el 14 de agosto, sin ningún handler todavía, ni siquiera individual (no solo el agregado)</td>
-          <td class="tc"><span class="badge blk">Bloqueado</span></td>
-          <td>Falta construir el handler básico de alta/consulta primero (no hay nada que agregar todavía porque no hay forma de capturar datos)</td>
+          <td><code>Servcio/consulta_consumibles</code> — nuevo, aplicado y verificado 18 de agosto sobre <code>SERV_MED_ANTIDOPING_INVENTARIO</code>, sin DDL nuevo</td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
+          <td>Backend + módulo Java + página <code class="path">/consumibles</code> completos, probado end-to-end vía curl (alta + consulta por predio). No es un dashboard de KPIs con gráficas — es captura/consulta directa de inventario</td>
         </tr>
-        <tr class="blocked">
-          <td>Maternidad</td>
-          <td>Ninguna tabla/WS dedicado — solo un campo Sí/No + semanas dentro de <code>Servcio/consulta_cuestionario</code></td>
-          <td class="tc"><span class="badge blk">Bloqueado</span></td>
-          <td>No es solo un WS agregado — falta la decisión de negocio del nivel de seguimiento esperado (ver fila "Maternidad — seguimiento completo" arriba, Gerente SO / Médico Jefe)</td>
+        <tr>
+          <td>Maternidad (dashboard)</td>
+          <td>Base ya definida (EAV <code>MED_TAG</code>, ver tabla de entidades arriba) — un dashboard agregado sobre eso no está en el alcance actual (los 5 dashboards ya construidos son Incapacidades/Accidentes/Consulta/Examen/Antidoping)</td>
+          <td class="tc"><span class="badge pend">Fuera de alcance actual</span></td>
+          <td>No bloqueado — simplemente no se ha pedido. Retomar si se prioriza explícitamente, una vez construido el módulo base de Maternidad</td>
         </tr>
       </tbody>
     </table>
@@ -535,10 +578,10 @@
           <td>Antidoping (resultados)</td>
           <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
-        <tr class="blocked">
-          <td>Handler básico de <code>SERV_MED_ANTIDOPING_INVENTARIO</code> (ni siquiera individual todavía)</td>
+        <tr class="done">
+          <td><code>Servcio/consumibles</code> + <code>Servcio/consulta_consumibles</code> <span class="fs-sm" style="display:block;color:var(--ink-muted);font-weight:400;">(<code class="path">docs/ords-antidoping-consumibles.sql</code>)</span></td>
           <td>Consumibles (inventario antidoping)</td>
-          <td class="tc"><span class="badge blk">Pendiente (no agregado — falta la base)</span></td>
+          <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
         <tr class="done">
           <td>Rediseño de esquema para Examen <span class="fs-sm" style="display:block;color:var(--ink-muted);font-weight:400;">(<code class="path">docs/ords-examen-historial.sql</code> — tabla + edición aditiva de <code>PR_SERVICIO_MED_EXAMEN2</code>)</span></td>
@@ -550,18 +593,130 @@
           <td>Exámenes Médicos + Resumen General</td>
           <td class="tc"><span class="badge ok">Hecho</span></td>
         </tr>
-        <tr class="blocked">
-          <td>Maternidad (entidad no identificada)</td>
+        <tr>
+          <td>Maternidad (dashboard agregado)</td>
           <td>Maternidad</td>
-          <td class="tc"><span class="badge blk">Bloqueado de negocio</span></td>
+          <td class="tc"><span class="badge pend">Fuera de alcance actual</span></td>
         </tr>
       </tbody>
     </table>
   </div>
 
+  <h2 style="font-size:1.15rem;margin:8px 0 4px;">Resumen ejecutivo — lista de tareas (horas)</h2>
+  <p class="dek" style="margin-bottom:14px;">Misma información de la tabla principal, sin explicaciones — solo tarea, tipo, horas y estado, para pasar directo a un plan de trabajo.</p>
+  <div class="table-wrap" style="margin-bottom:0;">
+    <table>
+      <thead>
+        <tr><th>#</th><th>Tarea</th><th>Tipo</th><th>Horas</th><th>Estado</th></tr>
+      </thead>
+      <tbody>
+        <tr class="done"><td class="num">1</td><td>Cerrar «trabajos previos» en Examen</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">2</td><td>Fuente IMSS/interna en Incapacidades</td><td>Programación</td><td class="num">4h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">3</td><td>Contactos de emergencia en Examen</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">4</td><td>Mostrar CUENTA en el expediente</td><td>Programación</td><td class="num">4h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">5</td><td>Dashboard KPIs — backend Incapacidades</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">6</td><td>Dashboard KPIs — backend Accidentabilidad</td><td>Programación</td><td class="num">4h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">7</td><td>Dashboard KPIs — backend Morbilidad/Consulta</td><td>Programación</td><td class="num">4h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">8</td><td>Dashboard KPIs — backend Antidoping</td><td>Programación</td><td class="num">4h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">9</td><td>Dashboard KPIs — historial de Examen</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">10</td><td>Dashboard KPIs — backend Examen</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">11</td><td>Dashboard KPIs — Resumen General</td><td>Programación</td><td class="num">4h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">12</td><td>Dashboard KPIs — UI (gráficas)</td><td>Programación</td><td class="num">4h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">13</td><td>Consumibles (antidoping) — backend + módulo Java</td><td>Programación</td><td class="num">12h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">14</td><td>Dashboard — desglose por Género</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">15</td><td>Dashboard — desglose por Edad</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">16</td><td>Dashboard — desglose por Cuenta</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">17</td><td>Antidoping — backend Oracle/ORDS</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">18</td><td>Antidoping — módulo Java</td><td>Programación</td><td class="num">12h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr><td class="num">19</td><td>Antidoping — selección aleatoria</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+        <tr class="done"><td class="num">20</td><td>Accidentes de trabajo — backend Oracle/ORDS</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">21</td><td>Accidentes de trabajo — módulo Java</td><td>Programación</td><td class="num">12h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr><td class="num">22</td><td>Accidentes — seguimiento de casos</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+        <tr><td class="num">23</td><td>Maternidad — seguimiento completo</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+        <tr class="done"><td class="num">24</td><td>Catálogo de diagnósticos normalizado</td><td>Programación</td><td class="num">6h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr><td class="num">25</td><td>Reglas de NSS (persona multipredio)</td><td>Programación</td><td class="num">8h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+        <tr><td class="num">26</td><td>Catálogo de restricciones médicas</td><td>Programación</td><td class="num">11h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+        <tr><td class="num">27</td><td>Matriz de permisos y confidencialidad</td><td>Programación</td><td class="num">18h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+        <tr class="done"><td class="num">28</td><td>Migración histórica — local</td><td>Programación</td><td class="num">—</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr><td class="num">29</td><td>Migración histórica — con ETL Oracle (equipo externo)</td><td>Proceso lógico</td><td class="num">—</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+        <tr class="done"><td class="num">30</td><td>Numeración de carta dental</td><td>Proceso lógico</td><td class="num">—</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">31</td><td>Diccionario de siglas del Pretest</td><td>Programación</td><td class="num">—</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr><td class="num">32</td><td>Generación de ambiente de QA (server web, JDK, WAR, dominio)</td><td>Programación</td><td class="num">5h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+        <tr><td class="num">33</td><td>Causa de consulta médica — catálogo cerrado (revertido)</td><td>Programación</td><td class="num">10h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="sum-footer" style="margin-bottom:14px;">
+    <span class="pend"><b>Pendiente:</b> 76h — todo dimensionado (9.5 días)</span>
+    <span class="blk"><b>Bloqueada:</b> 0h (0 días)</span>
+    <span style="color:var(--ready);"><b>Hecho:</b> 150h (18.75 días)</span>
+    <span><b>Suma total:</b> 226h ÷ 8h/día = <b>28.25 días</b></span>
+  </div>
+  <div class="table-wrap" style="margin-bottom:28px;padding:16px 18px;">
+    <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted);margin-bottom:6px;">
+      <span>Día 1 <span style="color:var(--ink-muted);font-family:var(--font);">(13 ago, llega <code class="path" style="background:none;padding:0;">salud-ocupacional-v2</code>)</span></span>
+      <span><b style="color:var(--ready);font-family:var(--font);">7 días reales</b></span>
+      <span>Día 18 <span style="color:var(--ink-muted);font-family:var(--font);">(estimado Hecho)</span></span>
+    </div>
+    <div style="position:relative;height:14px;background:var(--pending-soft);border-radius:7px;overflow:hidden;">
+      <div style="position:absolute;left:0;top:0;height:100%;width:38.9%;background:var(--ready);"></div>
+      <div style="position:absolute;left:38.9%;top:-3px;bottom:-3px;width:2px;background:var(--ready-strong,var(--accent-strong));"></div>
+    </div>
+    <p class="dek" style="margin:8px 0 0;font-size:.78rem;">18 días de trabajo estimado (144h) se completaron en solo <b>7 días reales de calendario</b> (13–20 de agosto) — ritmo ≈2.6× más rápido que el estimado por jornada, gracias a 1 desarrollador Java senior + este agente de IA trabajando en paralelo.</p>
+  </div>
+
+  <h2 style="font-size:1.15rem;margin:8px 0 4px;">Plan de ejecución — próximas 2 tareas</h2>
+  <p class="dek" style="margin-bottom:14px;">Desglose a nivel de sub-tarea de las 2 tareas Pendientes más chicas, para arrancar. Se actualiza conforme se completa cada sub-tarea; el resto de las tareas se desglosan igual cuando les toque turno.</p>
+
+  <div class="table-wrap" style="margin-bottom:14px;padding:14px 18px;">
+    <strong class="fs-sm">Datos de prueba</strong>
+    <ul class="fs-sm mb-0 mt-2">
+      <li><b>Login:</b> <code>68958027838</code> / <code>admin</code> (ROLE_ADMIN)</li>
+      <li><b>NSS con examen completo capturado</b> (útil para Diagnóstico/Diagnósticos secundarios, ya tiene todas las secciones con datos reales): <code>30048315698</code> — verificado 20 de agosto con <code class="path">docs/query-descarga-examen-nss.sql</code></li>
+      <li><b>NSS con Contactos de emergencia completos</b> (referencia del mismo patrón EAV que usan los Diagnósticos secundarios): <code>92099018118</code></li>
+      <li><b>Términos de búsqueda ICD que sí dan resultados</b> (verificado 20 de agosto): <code>pulmonar</code> (trae B37.1 Candidiasis pulmonar, B38.0-B38.2 Coccidioidomicosis pulmonar aguda/crónica/sin especificación). Es <strong>solo por descripción</strong> (<code>clave_nombre</code>), nunca por código (<code>clave_id</code>) — confirmado contra el PL/SQL real de <code>Servcio/indice</code>, buscar "B38" o similar no traerá nada, es el diseño del WS, no un bug. <code>diabetes</code> NO dio resultados — probablemente hueco real del catálogo en este ambiente, pendiente de confirmar con <code>SELECT COUNT(*) FROM SERV_MED_CAT_INDICE_IDC10 WHERE UPPER(clave_nombre) LIKE '%DIABETES%'</code></li>
+      <li><b>Query para bajar el examen completo de un NSS</b> (para comparar antes/después de guardar): <code class="path">docs/query-descarga-examen-nss.sql</code></li>
+    </ul>
+  </div>
+
+  <div class="table-wrap" style="margin-bottom:14px;">
+    <table>
+      <thead>
+        <tr><th>#</th><th>Sub-tarea</th><th>Archivo(s)</th><th>Horas</th><th>Estado</th></tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="5" style="background:var(--accent-soft);font-weight:600;color:var(--accent-strong);">Catálogo de diagnósticos normalizado — 6h</td></tr>
+        <tr class="done"><td class="num">1.1</td><td>Forzar captura del diagnóstico principal desde el catálogo ICD/CIE en Consulta: textarea <code>diagnostico</code> pasó a <code>readonly</code> (solo se llena vía <code>addIcd()</code>) + validación en <code class="path">guardarConsulta()</code> que bloquea guardar sin al menos una clave ICD seleccionada. Sin cambios de backend/WS — <code class="path">ConsultaAltaForm</code> es un DTO fijo sin campo para texto complementario, así que NO se agregó "observaciones clínicas" (se habría perdido en silencio) — queda para cuando exista un campo real en el WS</td><td class="path">consulta-form.html / nss-search.html</td><td class="num">1h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">1.2</td><td>Forzar captura del diagnóstico principal desde ICD/CIE en Examen: el textarea AREA de la sección "Diagnóstico" pasó a <code>readonly</code> (mismo mecanismo condicional que ya usaba <code>th:id="examenDiagnostico"</code>) + validación en <code class="path">guardarExamen()</code>. La validación solo aplica <strong>si la sección está abierta</strong> — consistente con el patrón existente de "solo se envían las secciones cargadas" (no se puede exigir un campo que el usuario no eligió tocar en ese guardado)</td><td class="path">examen-seccion.html / nss-search.html</td><td class="num">1h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">1.3</td><td>Servicio nuevo para «Diagnósticos secundarios» — EAV sobre <code>MED_TAG</code>, mismo patrón que <code class="path">ContactoEmergenciaService</code> (3 slots, <code>TAG_GROUP='DIAGNOSTICO_SECUNDARIO'</code>). <strong>Decisión de alcance:</strong> solo Examen (Consulta no tiene un flujo de precarga/edición equivalente hoy — es alta directa, no editable). Wireado en <code class="path">ExamenController</code>: precarga en el shell (<code>model.diagnosticosSecundarios</code>) + endpoint <code>POST /api/nss/examen/diagnosticos-secundarios/save</code>. Falta la UI (1.4)</td><td class="path">catalog/examen/{dto,service}/, ExamenController.java</td><td class="num">2h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">1.4</td><td>UI de diagnósticos secundarios en Examen: card nueva "Diagnósticos secundarios" (3 slots de solo lectura, cada uno con su propio buscador ICD, mismo patrón que Contactos de emergencia — form propio, guardado independiente, fuera de <code>#examenSecciones</code>). Solo Examen (ver alcance decidido en 1.3)</td><td class="path">examen-shell.html / nss-search.html</td><td class="num">1h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+        <tr class="done"><td class="num">1.5</td><td>Prueba de humo end-to-end con NSS real (diagnóstico principal + secundarios, guardado y recarga) — probada en navegador por el usuario 20 de agosto (de paso se encontró y corrigió el mecanismo del buscador ICD, ver examen-use-case)</td><td>—</td><td class="num">1h</td><td class="tc"><span class="badge ok">Hecho</span></td></tr>
+
+        <tr><td colspan="5" style="background:var(--accent-soft);font-weight:600;color:var(--accent-strong);">Maternidad — seguimiento completo — 8h</td></tr>
+        <tr><td class="num">2.1</td><td>Spike: confirmar estructura final de campos sobre <code>MED_TAG</code> (nombres de tag, formato de fechas)</td><td>—</td><td class="num">1h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+        <tr><td class="num">2.2</td><td><code>MaternidadService</code> nuevo — EAV sobre <code>MED_TAG</code>, mismo patrón que <code class="path">ContactoEmergenciaService</code> (cargar/guardar)</td><td class="path">catalog/examen/service/ (o catalog/maternidad/)</td><td class="num">2h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+        <tr><td class="num">2.3</td><td>Campos principales: fecha de registro, semanas de gestación, fecha probable de parto, próxima revisión, observaciones, estatus</td><td class="path">MaternidadService</td><td class="num">2h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+        <tr><td class="num">2.4</td><td>Card UI independiente (patrón Contactos de emergencia — form propio, botón propio, precarga automática al abrir)</td><td class="path">examen-shell.html</td><td class="num">1h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+        <tr><td class="num">2.5</td><td>Campos de referencia: restricciones laborales (texto libre hasta que exista el catálogo de restricciones) e incapacidad (referencia al módulo ya existente)</td><td class="path">MaternidadService</td><td class="num">1h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+        <tr><td class="num">2.6</td><td>Prueba de humo end-to-end con NSS real (precarga + guardado)</td><td>—</td><td class="num">1h</td><td class="tc"><span class="badge pend">Pendiente</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-wrap" style="margin-bottom:28px;padding:16px 18px;" id="planEjecucionProgreso">
+    <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted);margin-bottom:6px;">
+      <span>Avance del Plan de ejecución</span>
+      <span><b style="color:var(--ready);font-family:var(--font);" id="planEjecucionTexto">5 de 11 sub-tareas (45%)</b></span>
+      <span>Bloque 1 <span style="color:var(--ready);">5/5</span> · Bloque 2 <span style="color:var(--ink-muted);">0/6</span></span>
+    </div>
+    <div style="position:relative;height:14px;background:var(--pending-soft);border-radius:7px;overflow:hidden;">
+      <div style="position:absolute;left:0;top:0;height:100%;width:45%;background:var(--ready);" id="planEjecucionBarra"></div>
+    </div>
+  </div>
+
   <footer class="colophon">
     <span>Historial completo: <span class="path">docs/plan-integracion-js-version.html</span></span>
     <span>Checklist de bloqueadores: <span class="path">docs/checklist-bloqueadores-negocio.md</span></span>
-    <span>17 de agosto de 2026</span>
+    <span>20 de agosto de 2026</span>
   </footer>
 </div>
