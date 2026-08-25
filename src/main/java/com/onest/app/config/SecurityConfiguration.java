@@ -1,6 +1,8 @@
 package com.onest.app.config;
 
 import com.onest.app.security.legacy.LegacyPhpAuthenticationProvider;
+import com.onest.app.security.permission.ClinicalAccessFilter;
+import com.onest.app.security.permission.PermissionService;
 import com.onest.app.security.service.PortalUserDetailsService;
 import java.util.List;
 import org.slf4j.Logger;
@@ -16,6 +18,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
@@ -29,12 +32,19 @@ public class SecurityConfiguration {
     private static final Logger log = LoggerFactory.getLogger(SecurityConfiguration.class);
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationManager authenticationManager) throws Exception {
+    SecurityFilterChain securityFilterChain(
+            HttpSecurity http, AuthenticationManager authenticationManager, PermissionService permissionService)
+            throws Exception {
         http
                 .authenticationManager(authenticationManager)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/theme/**", "/css/**", "/js/**", "/img/**", "/login", "/error", "/actuator/health", "/actuator/info").permitAll()
                         .anyRequest().authenticated())
+                // Matriz de permisos - Rol + Tipo de informacion (docs/checklist-bloqueadores-negocio.html #7):
+                // bloquea con 403 real el acceso a rutas clinicas si el rol no tiene el id_menu
+                // correspondiente. Se instancia a mano (no @Component) para que corra UNA sola vez,
+                // ya dentro de la cadena de Spring Security, despues de que exista Authentication.
+                .addFilterAfter(new ClinicalAccessFilter(permissionService), AuthorizationFilter.class)
                 .formLogin(form -> form
                         .loginPage("/login")
                         .loginProcessingUrl("/login")

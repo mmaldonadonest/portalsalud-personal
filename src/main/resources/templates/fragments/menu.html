@@ -17,6 +17,17 @@
                     <a href="javascript:void(0)" class="nav-link has-sub"><i class="ri-booklet-line"></i> <span>Expediente General</span></a>
                     <nav class="nav nav-sub" id="nssModulesSub"></nav>
                 </li>
+                <!-- Paginas standalone (fuera del flujo de NSS, administrativas -
+                     sin restriccion de rol clinico, ver matriz de permisos). -->
+                <li class="nav-item">
+                    <a th:href="@{/antidoping-seleccion}" href="/antidoping-seleccion" class="nav-link" th:classappend="${currentPath == '/antidoping-seleccion'} ? ' active' : ''"><i class="ri-shuffle-line"></i> <span>Antidoping - Seleccion</span></a>
+                </li>
+                <li class="nav-item">
+                    <a th:href="@{/consumibles}" href="/consumibles" class="nav-link" th:classappend="${currentPath == '/consumibles'} ? ' active' : ''"><i class="ri-archive-2-line"></i> <span>Consumibles</span></a>
+                </li>
+                <li class="nav-item">
+                    <a th:href="@{/causas-consulta}" href="/causas-consulta" class="nav-link" th:classappend="${currentPath == '/causas-consulta'} ? ' active' : ''"><i class="ri-file-list-3-line"></i> <span>Causas de consulta</span></a>
+                </li>
             </ul>
         </div>      
     </div>

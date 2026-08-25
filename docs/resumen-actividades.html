@@ -1,0 +1,106 @@
+<title>Portal Salud — Resumen ejecutivo de actividades</title>
+<style>
+  :root{
+    --paper:#fbfaf7; --paper-raised:#ffffff; --ink:#1e1b16; --ink-muted:#655f54;
+    --line:#e4ddd0; --accent:#0f6e5c; --accent-soft:#e7f3ee; --accent-strong:#0a4f42;
+    --ready:#1a7a3c; --ready-soft:#e7f5ea; --pending:#1d5fa8; --pending-soft:#e8f1fb;
+    --font: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box;}
+  body{background:var(--paper);color:var(--ink);font-family:var(--font);margin:0;}
+  .page{max-width:920px;margin:0 auto;padding:0 24px 64px;}
+  header.masthead{padding:40px 0 22px;border-bottom:1px solid var(--line);}
+  .eyebrow{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-strong);margin:0 0 8px;}
+  h1{font-size:1.6rem;line-height:1.25;margin:0 0 10px;}
+  .dek{color:var(--ink-muted);font-size:.92rem;line-height:1.55;max-width:70ch;margin:0;}
+  .meta-row{display:flex;flex-wrap:wrap;gap:6px 14px;font-family:var(--font-mono);font-size:.75rem;color:var(--ink-muted);align-items:center;margin-top:10px;}
+  .meta-row .sep{opacity:.5;}
+  code{font-family:var(--font-mono);font-size:.85em;background:var(--accent-soft);color:var(--accent-strong);padding:.05em .4em;border-radius:5px;}
+
+  h2{font-size:.95rem;margin:30px 0 4px;color:var(--accent-strong);}
+  h2.pend{color:var(--pending);}
+  ul.act{list-style:none;margin:0 0 4px;padding:0;border-top:1px solid var(--line);}
+  ul.act li{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid var(--line);font-size:.86rem;}
+  ul.act li .h{font-family:var(--font-mono);font-size:.78rem;color:var(--ink-muted);white-space:nowrap;flex:none;}
+  ul.act.pend{background:var(--pending-soft);border-radius:8px;border-top:none;padding:2px 12px;}
+  ul.act.pend li{border-bottom-color:#c9dcf2;}
+  ul.act.pend li:last-child{border-bottom:none;}
+
+  .total{display:flex;flex-wrap:wrap;gap:6px 22px;font-family:var(--font-mono);font-size:.85rem;
+    border:1px solid var(--line);border-radius:10px;background:var(--paper-raised);padding:14px 18px;margin:32px 0 0;}
+  .total b{color:var(--ready);}
+
+  footer.colophon{margin-top:26px;padding-top:14px;border-top:1px solid var(--line);
+    font-family:var(--font-mono);font-size:.72rem;color:var(--ink-muted);}
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">Portal Salud · Salud Ocupacional</p>
+    <h1>Resumen ejecutivo — Actividades realizadas</h1>
+    <p class="dek">Trabajo entregado a partir del análisis de <code>salud-ocupacional-v2</code> (13 de agosto) hasta hoy.</p>
+    <div class="meta-row">
+      <span>13–24 de agosto de 2026</span>
+      <span class="sep">·</span>
+      <span>30 de 33 tareas cerradas</span>
+      <span class="sep">·</span>
+      <span>204h (25.5 días) de desarrollo</span>
+    </div>
+  </header>
+
+  <h2>Dashboard ejecutivo de KPIs</h2>
+  <ul class="act">
+    <li><span>Backend: Incapacidades, Accidentabilidad, Morbilidad/Consulta, Antidoping, Examen + historial, Resumen General</span><span class="h">44h</span></li>
+    <li><span>UI con gráficas (ApexCharts) + desgloses por Género, Edad y Cuenta</span><span class="h">20h</span></li>
+  </ul>
+
+  <h2>Expediente clínico</h2>
+  <ul class="act">
+    <li><span>Trabajos previos en Examen, fuente IMSS/interna en Incapacidades, CUENTA visible en expediente</span><span class="h">16h</span></li>
+    <li><span>Contactos de emergencia en Examen</span><span class="h">8h</span></li>
+    <li><span>Catálogo de diagnósticos normalizado (ICD/CIE obligatorio + diagnósticos secundarios)</span><span class="h">6h</span></li>
+    <li><span>Catálogo de restricciones médicas (16 códigos fijos + historial de asignaciones por NSS)</span><span class="h">11h</span></li>
+    <li><span>Causa de consulta médica — catálogo cerrado de 23 causas + "Otro", administrable</span><span class="h">9h</span></li>
+  </ul>
+
+  <h2>Antidoping</h2>
+  <ul class="act">
+    <li><span>Backend Oracle/ORDS + módulo Java</span><span class="h">20h</span></li>
+    <li><span>Consumibles (inventario por predio/mes)</span><span class="h">12h</span></li>
+    <li><span>Selección aleatoria de personal + historial persistido</span><span class="h">11h</span></li>
+  </ul>
+
+  <h2>Accidentes de trabajo</h2>
+  <ul class="act">
+    <li><span>Backend Oracle/ORDS + módulo Java</span><span class="h">20h</span></li>
+    <li><span>Seguimiento de casos (historial, cierre, evidencias)</span><span class="h">9h</span></li>
+  </ul>
+
+  <h2>Maternidad y reglas de NSS</h2>
+  <ul class="act">
+    <li><span>Maternidad — seguimiento completo con validación de sexo</span><span class="h">8h</span></li>
+    <li><span>Reglas de NSS — persona asociada a varios predios (multipredio)</span><span class="h">6h</span></li>
+  </ul>
+
+  <h2>Datos y catálogos técnicos</h2>
+  <ul class="act">
+    <li><span>Migración histórica local (21,448 archivos + 550,560 registros EAV)</span><span class="h">—</span></li>
+    <li><span>Numeración de carta dental y diccionario de siglas del Pretest, confirmados fieles al sistema real</span><span class="h">—</span></li>
+  </ul>
+
+  <h2 class="pend">Pendiente</h2>
+  <ul class="act pend">
+    <li><span>Matriz de permisos y confidencialidad — código construido, falta confirmar prueba de humo</span><span class="h">18h</span></li>
+    <li><span>Generación de ambiente de QA (server web, JDK, WAR, dominio) — sin iniciar</span><span class="h">5h</span></li>
+    <li><span>Migración histórica — ETL Oracle, a cargo de equipo externo</span><span class="h">—</span></li>
+  </ul>
+
+  <div class="total">
+    <span>Hecho: <b>204h (25.5 días)</b></span>
+    <span>Pendiente: 23h (2.875 días)</span>
+    <span>Suma total: 227h (28.375 días)</span>
+  </div>
+
+  <footer class="colophon">Detalle completo: <code>docs/plan-tareas-concretas.html</code></footer>
+</div>
