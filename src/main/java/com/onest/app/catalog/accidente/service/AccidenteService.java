@@ -2,14 +2,17 @@ package com.onest.app.catalog.accidente.service;
 
 import com.onest.app.catalog.accidente.client.AccidenteClient;
 import com.onest.app.catalog.accidente.client.dto.BiowsAccidenteAltaRequest;
+import com.onest.app.catalog.accidente.client.dto.BiowsAccidenteSeguimientoAltaRequest;
 import com.onest.app.catalog.accidente.dto.AccidenteDto;
 import com.onest.app.catalog.accidente.dto.AccidenteReporteDto;
+import com.onest.app.catalog.accidente.dto.AccidenteSeguimientoDto;
 import com.onest.app.catalog.accidente.web.AccidenteAltaForm;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Set;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -22,6 +25,7 @@ import org.springframework.stereotype.Service;
 public class AccidenteService {
 
     private static final String USUARIO_FIJO = "747849849";
+    private static final Set<String> TIPOS_SEGUIMIENTO = Set.of("SEGUIMIENTO", "CIERRE");
     // Formato confirmado en vivo el 2026-08-14 contra Servcio/accidente (ver docs/ords-accidentes.sql NOTA-2).
     private static final DateTimeFormatter FECHA_ACCIDENTE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     // Mismo formato de 2 digitos de anio que usa Incapacidad para su reporte por fecha
@@ -36,6 +40,52 @@ public class AccidenteService {
 
     public List<AccidenteDto> byNss(String nss) {
         return client.findAccidentes(normalizeNss(nss));
+    }
+
+    /** Igual que {@link #byNss(String)} pero con el estado de seguimiento calculado por caso. */
+    public List<AccidenteDto> byNssConEstado(String nss) {
+        return byNss(nss).stream()
+                .map(a -> a.withEstado(estadoDe(seguimientos(a.idRegistro()))))
+                .toList();
+    }
+
+    /** Historial de seguimiento de un caso especifico, mas reciente primero. */
+    public List<AccidenteSeguimientoDto> seguimientos(String accidenteRegId) {
+        return client.findSeguimientos(parseAccidenteRegId(accidenteRegId));
+    }
+
+    /** "CERRADO" si existe al menos un seguimiento TIPO=CIERRE, "ABIERTO" si no. */
+    public String estadoDe(List<AccidenteSeguimientoDto> historial) {
+        boolean cerrado = historial.stream().anyMatch(s -> "CIERRE".equals(s.tipo()));
+        return cerrado ? "CERRADO" : "ABIERTO";
+    }
+
+    /** Alta de un seguimiento sobre un caso ya registrado (docs/ords-accidentes-seguimiento.sql). */
+    public String crearSeguimiento(String accidenteRegId, String tipo, String observaciones) {
+        long regId = parseAccidenteRegId(accidenteRegId);
+        if (tipo == null || !TIPOS_SEGUIMIENTO.contains(tipo.trim().toUpperCase())) {
+            throw new IllegalArgumentException("El tipo de seguimiento debe ser SEGUIMIENTO o CIERRE");
+        }
+        if (observaciones == null || observaciones.isBlank()) {
+            throw new IllegalArgumentException("Las observaciones son obligatorias");
+        }
+        if (estadoDe(seguimientos(accidenteRegId)).equals("CERRADO")) {
+            throw new IllegalArgumentException("El caso ya esta cerrado, no admite mas seguimiento");
+        }
+        BiowsAccidenteSeguimientoAltaRequest request = new BiowsAccidenteSeguimientoAltaRequest(
+                regId, tipo.trim().toUpperCase(), observaciones.trim(), USUARIO_FIJO, usuarioActual());
+        return client.registrarSeguimiento(request);
+    }
+
+    private static long parseAccidenteRegId(String accidenteRegId) {
+        if (accidenteRegId == null || accidenteRegId.isBlank()) {
+            throw new IllegalArgumentException("El caso de accidente es obligatorio");
+        }
+        try {
+            return Long.parseLong(accidenteRegId.trim());
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("El identificador del caso no es valido", ex);
+        }
     }
 
     /**

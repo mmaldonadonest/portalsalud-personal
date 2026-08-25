@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: causasContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Causas de consulta | Portal Salud Personal</title>
+</head>
+<body>
+
+<th:block id="pageStyles"></th:block>
+
+<th:block th:fragment="causasContent">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/home}" href="/home">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Causas de consulta</li>
+            </ol>
+            <h4 class="main-title mb-0">Catálogo de causas de consulta</h4>
+        </div>
+    </div>
+
+    <div class="alert alert-info fs-sm" role="alert">
+        <i class="ri-information-line me-1"></i>
+        Catálogo administrable que alimenta el campo "Causa" al capturar una consulta médica.
+        Desactivar una causa la oculta del formulario de captura, pero <strong>no la borra</strong>
+        (se conserva el histórico) — se puede reactivar en cualquier momento.
+    </div>
+
+    <div class="card card-one mb-3">
+        <div class="card-header">
+            <h6 class="card-title mb-0">Agregar causa nueva</h6>
+        </div>
+        <div class="card-body">
+            <form id="formCausa" class="row g-2" novalidate>
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="col-md-8">
+                    <label class="form-label" for="nombre">Nombre</label>
+                    <input id="nombre" name="nombre" type="text" class="form-control" maxlength="200" required>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Guardar</button>
+                </div>
+            </form>
+            <p class="fs-12 mt-2 mb-0" id="estadoGuardar"></p>
+        </div>
+    </div>
+
+    <div class="card card-one">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h6 class="card-title mb-0">Catálogo</h6>
+            <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" id="verInactivas">
+                <label class="form-check-label fs-sm" for="verInactivas">Mostrar inactivas</label>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="estadoLista" class="fs-12 text-muted mb-2"></div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="thead-onest">
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Estado</th>
+                            <th>Alta</th>
+                            <th>Baja</th>
+                            <th>Usuario</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="filasCausas"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:inline="javascript">
+        (function () {
+            function escapeHtml(valor) {
+                if (valor === null || valor === undefined) { return ''; }
+                return String(valor).replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+
+            function csrfBody() {
+                var body = new URLSearchParams();
+                var input = document.querySelector('#formCausa input[type="hidden"][name]');
+                if (input && input.name) {
+                    body.append(input.name, input.value);
+                }
+                return body;
+            }
+
+            async function cargarLista() {
+                var estado = document.getElementById('estadoLista');
+                var soloActivos = !document.getElementById('verInactivas').checked;
+                estado.textContent = 'Cargando...';
+                try {
+                    var response = await fetch(contextPath + 'api/causas-consulta?soloActivos=' + soloActivos);
+                    if (!response.ok) {
+                        estado.textContent = 'Error al consultar (HTTP ' + response.status + ').';
+                        return;
+                    }
+                    var datos = await response.json();
+                    pintarTabla(datos);
+                    estado.textContent = datos.length + ' causa(s)' + (soloActivos ? ' activas.' : ' (incluye inactivas).');
+                } catch (e) {
+                    estado.textContent = 'Error de red al consultar el catálogo.';
+                }
+            }
+
+            function pintarTabla(datos) {
+                var tbody = document.getElementById('filasCausas');
+                tbody.innerHTML = '';
+                if (!datos || datos.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Sin causas.</td></tr>';
+                    return;
+                }
+                datos.forEach(function (d) {
+                    var activa = d.activo === 'Y';
+                    var tr = document.createElement('tr');
+                    tr.innerHTML =
+                        '<td>' + escapeHtml(d.nombre) + '</td>' +
+                        '<td><span class="badge ' + (activa ? 'bg-success' : 'bg-secondary') + '">' +
+                            (activa ? 'Activa' : 'Inactiva') + '</span></td>' +
+                        '<td>' + escapeHtml(d.fechaAlta) + '</td>' +
+                        '<td>' + escapeHtml(d.fechaBaja) + '</td>' +
+                        '<td>' + escapeHtml(d.usuario) + '</td>' +
+                        '<td></td>';
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'btn btn-sm ' + (activa ? 'btn-outline-secondary' : 'btn-outline-success');
+                    btn.textContent = activa ? 'Desactivar' : 'Activar';
+                    btn.addEventListener('click', function () { cambiarEstado(d.idRegistro, !activa, btn); });
+                    tr.lastElementChild.appendChild(btn);
+                    tbody.appendChild(tr);
+                });
+            }
+
+            async function cambiarEstado(id, activar, btn) {
+                btn.disabled = true;
+                var body = csrfBody();
+                body.append('activo', activar);
+                try {
+                    var response = await fetch(contextPath + 'api/causas-consulta/' + encodeURIComponent(id) + '/estado', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: body.toString()
+                    });
+                    if (response.ok) {
+                        cargarLista();
+                    } else {
+                        btn.disabled = false;
+                    }
+                } catch (e) {
+                    btn.disabled = false;
+                }
+            }
+
+            document.getElementById('formCausa').addEventListener('submit', async function (e) {
+                e.preventDefault();
+                var form = e.target;
+                var estado = document.getElementById('estadoGuardar');
+                var body = new URLSearchParams(new FormData(form));
+                var boton = form.querySelector('button[type="submit"]');
+                boton.disabled = true;
+                estado.textContent = 'Guardando...';
+                try {
+                    var response = await fetch(contextPath + 'api/causas-consulta', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: body.toString()
+                    });
+                    var texto = await response.text();
+                    if (!response.ok) {
+                        estado.textContent = 'Error: ' + texto;
+                        return;
+                    }
+                    estado.textContent = texto;
+                    form.reset();
+                    cargarLista();
+                } catch (e2) {
+                    estado.textContent = 'Error de red al guardar.';
+                } finally {
+                    boton.disabled = false;
+                }
+            });
+
+            document.getElementById('verInactivas').addEventListener('change', cargarLista);
+
+            cargarLista();
+        })();
+    </script>
+</th:block>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Alta de un chequeo de seguimiento de maternidad. Backend en docs/ords-maternidad.sql,
+  aplicado 2026-08-21 (POST Servcio/maternidad). Se inyecta en #moduleContent.
+  Guarda via /api/nss/maternidad/save. Solo NSS es obligatorio - las 3 fechas son opcionales
+  (un chequeo temprano puede no tenerlas definidas aun).
+-->
+<div th:fragment="form">
+    <div class="card card-one">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h6 class="card-title mb-0">Nuevo chequeo — seguimiento de maternidad</h6>
+            <span class="badge bg-primary" th:text="'NSS ' + ${nss}">NSS</span>
+        </div>
+        <div class="card-body">
+            <div th:if="${sexoHombre}" class="alert alert-warning" role="alert">
+                <i class="ri-error-warning-line me-1"></i> No se le puede asociar un seguimiento de maternidad.
+            </div>
+            <form id="maternidadAltaForm" class="row g-3" novalidate th:unless="${sexoHombre}">
+                <input type="hidden" name="nss" th:value="${nss}">
+
+                <div class="col-md-4">
+                    <label class="form-label" for="maternidadSemanasGestacion">Semanas de gestación</label>
+                    <input type="number" min="0" max="45" class="form-control" name="semanasGestacion"
+                           id="maternidadSemanasGestacion" placeholder="Semanas">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="maternidadFechaProbableParto">Fecha probable de parto</label>
+                    <input type="date" class="form-control" name="fechaProbableParto" id="maternidadFechaProbableParto">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="maternidadProximaRevision">Próxima revisión</label>
+                    <input type="date" class="form-control" name="proximaRevision" id="maternidadProximaRevision">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="maternidadEstatus">Estatus</label>
+                    <input type="text" class="form-control" name="estatus" id="maternidadEstatus" placeholder="Estatus">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="maternidadReincorporacion">Fecha de reincorporación</label>
+                    <input type="date" class="form-control" name="reincorporacion" id="maternidadReincorporacion">
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label" for="maternidadRestricciones">Restricciones laborales</label>
+                    <textarea class="form-control" name="restriccionesLaborales" id="maternidadRestricciones" rows="2"
+                              placeholder="Restricciones laborales"></textarea>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="maternidadIncapacidad">Incapacidad (referencia)</label>
+                    <input type="text" class="form-control" name="incapacidad" id="maternidadIncapacidad"
+                           placeholder="Folio o nota de referencia, si aplica">
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="maternidadObservaciones">Observaciones</label>
+                    <textarea class="form-control" name="observaciones" id="maternidadObservaciones" rows="3"
+                              placeholder="Observaciones"></textarea>
+                </div>
+
+                <div class="col-12 d-flex justify-content-end align-items-center gap-3">
+                    <span id="maternidadResult" class="fs-sm"></span>
+                    <button type="button" class="btn btn-primary" onclick="guardarMaternidad(this);">
+                        <i class="ri-save-line me-1"></i> Guardar chequeo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

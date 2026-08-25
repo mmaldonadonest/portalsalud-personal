@@ -2,6 +2,7 @@ package com.onest.app.catalog.nss.client;
 
 import com.onest.app.catalog.nss.dto.CandidatoDto;
 import com.onest.app.catalog.nss.dto.EmpleadoDto;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -11,8 +12,16 @@ import java.util.Optional;
  */
 public interface NssSearchClient {
 
-    /** searchUser -> POST .../Catalogo/usuario. */
+    /** searchUser -> POST .../Catalogo/usuario. Solo la PRIMERA fila (usado por login/email). */
     Optional<EmpleadoDto> findUsuario(String nss, String usuarioConsulta);
+
+    /**
+     * Igual que {@link #findUsuario} pero SIN truncar a la primera fila. El WS ya regresa
+     * una fila por cada relacion laboral del NSS (join BIO_EMPLEADO -> BIO_DATOS_LABORALES_EMPLEADOS
+     * -> biometrico_cuenta_SAP, ver docs/contextoWS.txt security/Catalogo/usuario) - si el NSS
+     * esta asociado a varios predios/cuentas, esto regresa una fila por cada uno.
+     */
+    List<EmpleadoDto> findAsociaciones(String nss, String usuarioConsulta);
 
     /**
      * CheckEmploye -> POST .../Servcio/consulta_examen y, si Estado != 0,

@@ -1,8 +1,10 @@
 package com.onest.app.catalog.antidoping.client;
 
 import com.onest.app.catalog.antidoping.client.dto.BiowsAntidopingAltaRequest;
+import com.onest.app.catalog.antidoping.client.dto.BiowsAntidopingSeleccionAltaRequest;
 import com.onest.app.catalog.antidoping.dto.AntidopingDto;
 import com.onest.app.catalog.antidoping.dto.AntidopingReporteDto;
+import com.onest.app.catalog.antidoping.dto.AntidopingSeleccionDto;
 import java.util.List;
 
 /**
@@ -22,4 +24,13 @@ public interface AntidopingClient {
      * Backend aplicado y verificado 2026-08-17. fechaInicial/fechaFinal en formato "dd/MM/yy".
      */
     List<AntidopingReporteDto> reportePorFecha(String fechaInicial, String fechaFinal);
+
+    /**
+     * POST .../Servcio/antidoping_seleccion. Traza de la ronda de seleccion aleatoria
+     * (docs/ords-antidoping-seleccion.sql), separada del resultado real de la prueba.
+     */
+    String registrarSeleccion(BiowsAntidopingSeleccionAltaRequest request);
+
+    /** POST .../Servcio/consulta_antidoping_seleccion. nss null = todo el historial. */
+    List<AntidopingSeleccionDto> findSelecciones(String nss);
 }

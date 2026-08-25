@@ -113,7 +113,7 @@ Explícitamente fuera de alcance: motor de investigación de accidentes, workflo
 
 **Respuesta:** evolucionar hacia un módulo de seguimiento de Salud Ocupacional (sin convertirlo en un expediente obstétrico completo), con: fecha de registro, semanas de gestación, fecha probable de parto, restricciones laborales, próxima revisión, observaciones, estatus, incapacidad y reincorporación.
 
-**Desbloquea:** módulo de Maternidad. **Costo:** 1 día de desarrollo (8h) — anclado al precedente real más parecido en este repo, Contactos de emergencia (EAV sobre `MED_TAG`, arreglo de 3 registros, tomó 8h completas), asumiendo el mismo patrón EAV en vez de tabla Oracle dedicada: spike 1h + servicio/fragment 5h + ajuste por 2 campos de referencia extra (restricciones, incapacidad) 1h + prueba de humo 1h. Si más adelante se pide reportería/dashboard propio de Maternidad, se justificaría tabla nueva y el costo subiría.
+**Desbloquea:** módulo de Maternidad. **Costo:** 1 día de desarrollo (8h). **Re-diseñado 21 de agosto:** "seguimiento" implica historial de varios chequeos a lo largo del embarazo — se descartó EAV sobre `MED_TAG` (solo guarda el último valor por campo, pierde ese historial) a favor de una **tabla Oracle dedicada** (`SERV_MED_MATERNIDAD_SEGUIMIENTO`, mismo patrón que `SERV_MED_ACCIDENTE` — cada alta es un registro nuevo), con su propio WS ORDS (`docs/ords-maternidad.sql`, ya generado). Se mantiene el mismo presupuesto de 8h porque publicar ORDS ahora es barato (minutos) y se reusa el patrón ya construido para Accidentes/Incapacidad.
 
 **Contestó:** ONEST Logistics (propuesta formal) **Fecha:** 20 de agosto de 2026 **Estado:** pendiente de validación del Médico Jefe / Gerencia de Salud Ocupacional antes de producción
 
@@ -147,6 +147,24 @@ Explícitamente fuera de alcance: motor de investigación de accidentes, workflo
 
 ---
 
+## RRHH / Médico Jefe — parcialmente respondida
+
+### 8. Catálogo de sexo (`emp_sexo`): ¿cuál es el mapeo real?
+
+**Contexto:** `bio_empleado.emp_sexo` no tiene catálogo consistente en los datos reales. **Valores distintos confirmados 21 de agosto** (consulta directa a la tabla): `M`, `m`, `F`, `f`, `H`, `HOMBRE`, `MUJER`, `O`, `X`, `1`, `2`, y vacío (`""`). No es solo un tema de "1 vs 2" — hay mayúsculas/minúsculas tratadas como valores distintos (`M`≠`m`, `F`≠`f`) además de texto completo, códigos numéricos, y registros vacíos. Hallazgo de calidad de datos detectado primero el 19 de agosto en el desglose de Género del Dashboard.
+
+**Respuesta parcial — confirmada 21 de agosto:** `1` = Hombre, `2` = Mujer. Con eso, y las variantes de texto que ya son inequívocas por sí mismas (`M`/`m`/`H`/`HOMBRE` = Hombre; `F`/`f`/`MUJER` = Mujer), quedan **8 de los 12 valores resueltos**. Implementado ya en `MaternidadService.validarSexoNoHombre()`: bloquea el alta de un seguimiento si el sexo del NSS cae en `{1, M, H, HOMBRE}` (case-insensitive).
+
+**Sigue sin confirmar:** `O`, `X` y vacío (`""`) — 3 valores genuinamente ambiguos (¿"Otro"? ¿"No binario"? ¿realmente sin capturar?). **No se bloquean** hasta tener una respuesta — bloquear sin saber qué significan inventaría una regla de negocio.
+
+**Pregunta que queda abierta:** ¿qué representan `O`/`X`/vacío? ¿Debe normalizarse la captura a futuro (ej. un `<select>` cerrado) para que no siga creciendo la lista de variantes?
+
+**Desbloquea:** el resto de la cobertura de la validación en Maternidad (hoy cubre 8/12 valores) + catálogo correcto para el desglose de Género del Dashboard.
+
+**Contestó:** Usuario (Onest), confirmación parcial 1=Hombre/2=Mujer **Fecha:** 21 de agosto de 2026 — **`O`/`X`/vacío siguen pendientes de RRHH/Médico Jefe**
+
+---
+
 ## Resumen de seguimiento
 
 | # | Pregunta | Responsable | Estado |
@@ -160,3 +178,4 @@ Explícitamente fuera de alcance: motor de investigación de accidentes, workflo
 | 5 | Maternidad — nivel de seguimiento | Gerente SO / Médico Jefe | ✅ Respondida 20 ago — pendiente validación formal |
 | 6 | Reglas de NSS | RRHH | ✅ Respondida y dimensionada 20 ago — 1 día |
 | 7 | Matriz de permisos y confidencialidad | Admin IT + Médico Jefe | ✅ Respondida 20 ago — pendiente aprobación formal |
+| 8 | Catálogo de sexo (`emp_sexo`) | RRHH / Médico Jefe | 🟡 Parcial 21 ago — 8/12 valores resueltos, `O`/`X`/vacío pendientes |

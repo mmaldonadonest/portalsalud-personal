@@ -46,6 +46,23 @@
                         <p class="mb-2"><strong>Telefono Fijo:</strong> <span th:text="${e.telFijo}">-</span></p>
                     </div>
                 </div>
+
+                <!-- NSS multipredio (docs/entregable-liberacion-stoppers-salud.html §4): mas de
+                     una asociacion laboral no es duplicidad, es una persona con varios
+                     predios/cuentas. Solo se muestra si de verdad hay mas de una - el caso
+                     normal (una sola cuenta) no cambia nada visualmente. -->
+                <div th:if="${result.asociaciones != null and #lists.size(result.asociaciones) > 1}"
+                     class="alert alert-info mt-3 mb-0" role="alert">
+                    <i class="ri-map-pin-2-line me-1"></i>
+                    Este NSS está asociado a <strong th:text="${#lists.size(result.asociaciones)}">2</strong>
+                    predios/cuentas distintas:
+                    <ul class="mb-0 mt-1">
+                        <li th:each="a : ${result.asociaciones}"
+                            th:text="${a.cuenta + (a.nombrePuesto != null ? ' — ' + a.nombrePuesto : '')}">
+                            Cuenta — Puesto
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
         <!-- Marcador: indica al front que es un empleado -> debe cargar el menu

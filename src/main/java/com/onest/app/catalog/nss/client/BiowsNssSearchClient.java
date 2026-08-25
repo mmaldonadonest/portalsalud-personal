@@ -68,6 +68,29 @@ public class BiowsNssSearchClient implements NssSearchClient {
     }
 
     @Override
+    public List<EmpleadoDto> findAsociaciones(String nss, String usuarioConsulta) {
+        BiowsUserSearchRequest request = new BiowsUserSearchRequest(
+                nss,
+                ahora(),
+                usuarioConsulta,
+                properties.aplicacionId(),
+                properties.idAplicacion()
+        );
+
+        log.info("[biows] POST {}{} Nss={} (todas las asociaciones)", properties.baseUrl(), PATH_USUARIO, nss);
+        BiowsUserResponse response = biowsRestClient.post()
+                .uri(PATH_USUARIO)
+                .body(request)
+                .retrieve()
+                .body(BiowsUserResponse.class);
+
+        if (response == null || response.datos() == null) {
+            return List.of();
+        }
+        return response.datos().stream().map(BiowsNssSearchClient::toEmpleado).toList();
+    }
+
+    @Override
     public void checkEmploye(String nss, String tipoUsuario, String usuarioConsulta) {
         BiowsConsultaExamenResponse response = biowsRestClient.post()
                 .uri(PATH_CONSULTA_EXAMEN)

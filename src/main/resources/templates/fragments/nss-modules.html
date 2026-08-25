@@ -11,11 +11,15 @@
   via security/info/crud_alta_app_menu (servicio=MENU, tipo_mov=ALTA), para id_app=13.
   Verificados en el rol id_rol=2 - si otro rol necesita verlos, hay que repetir el alta para
   ese id_rol tambien (la tabla TBL_APPS_ROL_MENU asigna por combinacion app+rol+menu).
+
+  Maternidad (id_menu=14) dado de alta en Oracle el 2026-08-21 via security/info/crud_alta_app_menu
+  (servicio=MENU, tipo_mov=ALTA), para id_app=13, id_rol=2 (rol del usuario de pruebas).
+  Si otro rol necesita verlo, hay que repetir el alta para ese id_rol.
 -->
 <th:block th:fragment="modules"
-          th:with="icons=${ {1:'ri-booklet-line',2:'ri-flask-line',3:'ri-history-line',4:'ri-file-text-line',5:'ri-file-paper-2-line',6:'ri-book-2-line',7:'ri-health-book-line',8:'ri-first-aid-kit-line',9:'ri-archive-line',10:'ri-heart-pulse-line',11:'ri-survey-line',12:'ri-test-tube-line',13:'ri-alarm-warning-line'} },
-                   labels=${ {1:'Expediente General',2:'E. Laboratorio',3:'Historico E.M',4:'Nota Medica',5:'Nota Incapacidad',6:'Archivo de Consultas',7:'Consulta Medica',8:'Incapacidades',9:'Archivo Incapacidades',10:'Examen Medico',11:'Pre-Test',12:'Antidoping',13:'Accidentes'} },
-                   actions=${ {2:'archivos', 3:'archivos', 4:'archivos', 5:'archivos', 6:'expediente', 7:'consulta-form', 8:'incapacidad-form', 9:'incapacidades', 10:'examen', 11:'pretest', 12:'antidoping', 13:'accidentes'} },
+          th:with="icons=${ {1:'ri-booklet-line',2:'ri-flask-line',3:'ri-history-line',4:'ri-file-text-line',5:'ri-file-paper-2-line',6:'ri-book-2-line',7:'ri-health-book-line',8:'ri-first-aid-kit-line',9:'ri-archive-line',10:'ri-heart-pulse-line',11:'ri-survey-line',12:'ri-test-tube-line',13:'ri-alarm-warning-line',14:'ri-women-line'} },
+                   labels=${ {1:'Expediente General',2:'E. Laboratorio',3:'Historico E.M',4:'Nota Medica',5:'Nota Incapacidad',6:'Archivo de Consultas',7:'Consulta Medica',8:'Incapacidades',9:'Archivo Incapacidades',10:'Examen Medico',11:'Pre-Test',12:'Antidoping',13:'Accidentes',14:'Maternidad'} },
+                   actions=${ {2:'archivos', 3:'archivos', 4:'archivos', 5:'archivos', 6:'expediente', 7:'consulta-form', 8:'incapacidad-form', 9:'incapacidades', 10:'examen', 11:'pretest', 12:'antidoping', 13:'accidentes', 14:'maternidad'} },
                    tipos=${ {2:'laboratorio', 3:'examen_medico', 4:'nota_medica', 5:'nota_incapacidad'} }">
     <a th:each="m : ${modulos}"
        href="javascript:void(0)"

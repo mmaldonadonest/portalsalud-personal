@@ -24,21 +24,21 @@ Solo tarea, tipo, horas y estado — fuente lista para pasar a un plan de trabaj
 | 16 | Dashboard — desglose por Cuenta | Programación | 8h | ✅ Hecho |
 | 17 | Antidoping — backend Oracle/ORDS | Programación | 8h | ✅ Hecho |
 | 18 | Antidoping — módulo Java | Programación | 12h | ✅ Hecho |
-| 19 | Antidoping — selección aleatoria | Programación | 8h | ⏳ Pendiente |
+| 19 | Antidoping — selección aleatoria | Programación | 11h | ✅ Hecho |
 | 20 | Accidentes de trabajo — backend Oracle/ORDS | Programación | 8h | ✅ Hecho |
 | 21 | Accidentes de trabajo — módulo Java | Programación | 12h | ✅ Hecho |
-| 22 | Accidentes — seguimiento de casos | Programación | 8h | ⏳ Pendiente |
-| 23 | Maternidad — seguimiento completo | Programación | 8h | ⏳ Pendiente |
+| 22 | Accidentes — seguimiento de casos | Programación | 9h | ✅ Hecho |
+| 23 | Maternidad — seguimiento completo | Programación | 8h | ✅ Hecho |
 | 24 | Catálogo de diagnósticos normalizado | Programación | 6h | ✅ Hecho |
-| 25 | Reglas de NSS (persona multipredio) | Programación | 8h | ⏳ Pendiente |
-| 26 | Catálogo de restricciones médicas | Programación | 11h | ⏳ Pendiente |
+| 25 | Reglas de NSS (persona multipredio) | Programación | 6h | ✅ Hecho |
+| 26 | Catálogo de restricciones médicas | Programación | 11h | ✅ Hecho |
 | 27 | Matriz de permisos y confidencialidad | Programación | 18h | ⏳ Pendiente |
 | 28 | Migración histórica — local | Programación | — | ✅ Hecho |
 | 29 | Migración histórica — con ETL Oracle (equipo externo) | Proceso lógico | — | ⏳ Pendiente |
 | 30 | Numeración de carta dental | Proceso lógico | — | ✅ Hecho |
 | 31 | Diccionario de siglas del Pretest | Programación | — | ✅ Hecho |
 | 32 | Generación de ambiente de QA (server web, JDK, WAR, dominio) | Programación | 5h | ⏳ Pendiente |
-| 33 | Causa de consulta médica — catálogo cerrado (revertido) | Programación | 10h | ⏳ Pendiente |
+| 33 | Causa de consulta médica — catálogo cerrado (revertido) | Programación | 9h | ✅ Hecho |
 
 ## ✓ Ya todo dimensionado
 
@@ -46,10 +46,10 @@ Solo tarea, tipo, horas y estado — fuente lista para pasar a un plan de trabaj
 
 ## Totales
 
-- **Pendiente:** 76h — todo dimensionado (9.5 días)
+- **Pendiente:** 23h — todo dimensionado (2.875 días)
 - **Bloqueada:** 0h (0 días)
-- **Hecho:** 150h (18.75 días)
-- **Suma total:** 226h ÷ 8h/día = **28.25 días**
+- **Hecho:** 204h (25.5 días)
+- **Suma total:** 227h ÷ 8h/día = **28.375 días**
 
 ## Avance real vs. estimado
 

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: seleccionContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Antidoping — Selección aleatoria | Portal Salud Personal</title>
+</head>
+<body>
+
+<th:block id="pageStyles"></th:block>
+
+<th:block th:fragment="seleccionContent">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/home}" href="/home">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Antidoping — Selección aleatoria</li>
+            </ol>
+            <h4 class="main-title mb-0">Antidoping — Selección aleatoria</h4>
+        </div>
+    </div>
+
+    <!-- CSRF a nivel de pagina (no atado a un form especifico) - las tarjetas de captura se
+         generan dinamicamente por JS, una por cada NSS elegido, y todas reusan este mismo token. -->
+    <input type="hidden" id="pageCsrfName" th:value="${_csrf.parameterName}">
+    <input type="hidden" id="pageCsrfValue" th:value="${_csrf.token}">
+
+    <div class="alert alert-info fs-sm" role="alert">
+        <i class="ri-information-line me-1"></i>
+        No existe un listado de "todo el personal activo" en el sistema, así que <strong>tú capturas
+        la lista completa de NSS candidatos</strong> para esta ronda (uno por línea o separados por
+        coma) — la herramienta <strong>no agrega NSS de ningún otro lado</strong>, solo elige al azar
+        uno o varios <em>de los que tú pegaste</em>. Después de elegir, captura aquí mismo la
+        aplicación y el resultado de cada uno — sin salir de esta página.
+    </div>
+
+    <div class="card card-one mb-3">
+        <div class="card-header">
+            <h6 class="card-title mb-0">Pool de candidatos</h6>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-9">
+                    <label class="form-label" for="poolNss">Lista completa de NSS candidatos (captúrala tú)</label>
+                    <textarea id="poolNss" class="form-control" rows="6"
+                              placeholder="Un NSS por línea o separados por coma..."></textarea>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="cantidadSeleccionar">Cuántos elegir de esa lista</label>
+                    <input type="number" id="cantidadSeleccionar" class="form-control" min="1" value="1">
+                    <button type="button" id="btnSeleccionar" class="btn btn-primary w-100 mt-3">
+                        <i class="ri-shuffle-line me-1"></i> Seleccionar aleatoriamente
+                    </button>
+                    <button type="button" id="btnLimpiar" class="btn btn-outline-secondary w-100 mt-2">
+                        <i class="ri-refresh-line me-1"></i> Limpiar / reiniciar flujo
+                    </button>
+                </div>
+            </div>
+            <div id="resultadoSeleccion" class="mt-3"></div>
+        </div>
+    </div>
+
+    <div class="card card-one">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h6 class="card-title mb-0">Historial de selecciones</h6>
+            <a th:href="@{/nss}" href="/nss" class="btn btn-sm btn-outline-primary">
+                <i class="ri-search-line me-1"></i> Buscar un NSS para consultar sus resultados
+            </a>
+        </div>
+        <div class="card-body">
+            <p class="fs-sm text-muted mb-3">
+                Esta tabla es la traza de <strong>quién fue elegido y cuándo</strong> (persistida, no se
+                pierde al recargar). El <strong>resultado</strong> de cada prueba (positivo/negativo, etc.)
+                se consulta por NSS en el módulo Antidoping normal — usa el botón de arriba para buscarlo.
+            </p>
+            <div id="historialVacio" class="text-muted fs-sm">Cargando historial...</div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="tablaHistorial" style="display:none;">
+                    <thead class="thead-onest">
+                        <tr>
+                            <th>Fecha y hora</th>
+                            <th>NSS seleccionado</th>
+                            <th>Tamaño del pool</th>
+                            <th>Usuario</th>
+                        </tr>
+                    </thead>
+                    <tbody id="filasHistorial"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:inline="javascript">
+        (function () {
+            // Historial de SELECCIONES (quien fue elegido y cuando) - persistido via
+            // /api/antidoping-seleccion (docs/ords-antidoping-seleccion.sql), separado del
+            // resultado real de la prueba (que sigue viviendo en SERV_MED_ANTIDOPING_RESULTADO,
+            // consultable por NSS en el modulo Antidoping normal). Un INSERT por cada NSS
+            // elegido en la ronda.
+            async function cargarHistorial() {
+                var vacio = document.getElementById('historialVacio');
+                var tabla = document.getElementById('tablaHistorial');
+                var filas = document.getElementById('filasHistorial');
+                try {
+                    var response = await fetch(contextPath + 'api/antidoping-seleccion');
+                    if (!response.ok) {
+                        vacio.textContent = 'Error al consultar el historial (HTTP ' + response.status + ').';
+                        vacio.style.display = '';
+                        tabla.style.display = 'none';
+                        return;
+                    }
+                    var datos = await response.json();
+                    if (!datos || datos.length === 0) {
+                        vacio.textContent = 'Sin selecciones todavía.';
+                        vacio.style.display = '';
+                        tabla.style.display = 'none';
+                        return;
+                    }
+                    vacio.style.display = 'none';
+                    tabla.style.display = '';
+                    filas.innerHTML = '';
+                    datos.forEach(function (d) {
+                        var tr = document.createElement('tr');
+                        var tdFecha = document.createElement('td');
+                        tdFecha.textContent = d.fechaSeleccion;
+                        var tdNss = document.createElement('td');
+                        tdNss.textContent = d.nss;
+                        var tdPool = document.createElement('td');
+                        tdPool.textContent = d.tamanoPool;
+                        var tdUsuario = document.createElement('td');
+                        tdUsuario.textContent = d.usuario;
+                        tr.appendChild(tdFecha);
+                        tr.appendChild(tdNss);
+                        tr.appendChild(tdPool);
+                        tr.appendChild(tdUsuario);
+                        filas.appendChild(tr);
+                    });
+                } catch (error) {
+                    vacio.textContent = 'Error de red al consultar el historial.';
+                    vacio.style.display = '';
+                    tabla.style.display = 'none';
+                }
+            }
+
+            async function registrarSeleccionBackend(nss, tamanoPool) {
+                var body = new URLSearchParams();
+                body.append('nss', nss);
+                body.append('tamanoPool', tamanoPool);
+                var csrfName = document.getElementById('pageCsrfName').value;
+                var csrfValue = document.getElementById('pageCsrfValue').value;
+                if (csrfName) {
+                    body.append(csrfName, csrfValue);
+                }
+                try {
+                    await fetch(contextPath + 'api/antidoping-seleccion', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: body.toString()
+                    });
+                } catch (error) {
+                    // No bloquea el flujo de captura si falla el registro de la traza -
+                    // lo importante (el resultado real) se guarda aparte, por tarjeta.
+                }
+            }
+
+            cargarHistorial();
+
+            // OJO: cada arreglo abre en su propia linea, separado del corchete que le sigue -
+            // th:inline="javascript" interpreta dos corchetes de apertura pegados (o dos de
+            // cierre pegados) como una expresion de servidor (Thymeleaf natural templating) y
+            // rompe el JS en silencio al procesar la plantilla (nunca llega al navegador, por
+            // eso no sale error en consola). Confirmado 2026-08-21: escribir los arreglos
+            // anidados en una sola linea causaba justo eso - se separaron en variables propias
+            // y en varias lineas para evitar corchetes adyacentes.
+            var CATALOGO_SUSTANCIA = [
+                ['AMF', 'Anfetaminas (AMF)'], ['BARB', 'Barbituricos (BARB)'], ['BENZO', 'Benzodiacepinas (BENZO)'],
+                ['COC', 'Cocaina (COC)'], ['LSD', 'LSD'], ['MET', 'Metanfetaminas (MET)'],
+                ['OPI', 'Opiaceos (OPI)'], ['PVC', 'Fenciclidina (PVC)'], ['THC', 'Marihuana (THC)'],
+                ['SOLVENTE', 'Solvente'], ['OTRO', 'Otro']
+            ];
+            var CATALOGO_STATUS = [
+                ['N/A', 'N/A'], ['CAPA', 'CAPA'], ['LABORANDO', 'Laborando'], ['RECAIDA', 'Recaida'],
+                ['NO_INTERESADO_BAJA', 'No interesado / Baja'], ['NO_CONTRATADO', 'No contratado'],
+                ['BAJA_NO_APLICA', 'Baja / No aplica']
+            ];
+            var CATALOGO_TIPO_PRUEBA = [
+                ['ANTIDOPING', 'Antidoping'], ['ALCOHOLEMIA', 'Alcoholemia']
+            ];
+            var CATALOGO_RESULTADO = [
+                ['NEGATIVO', 'Negativo'], ['POSITIVO', 'Positivo']
+            ];
+
+            function opciones(pares, vacioLabel) {
+                var out = vacioLabel ? '<option value="">' + vacioLabel + '</option>' : '';
+                pares.forEach(function (p) {
+                    out += '<option value="' + p[0] + '">' + p[1] + '</option>';
+                });
+                return out;
+            }
+
+            function parsearPool(texto) {
+                return texto.split(/[\n,]/)
+                    .map(function (s) { return s.trim(); })
+                    .filter(function (s) { return s.length > 0; });
+            }
+
+            function elegirAleatorios(lista, cantidad) {
+                var copia = lista.slice();
+                var elegidos = [];
+                cantidad = Math.min(cantidad, copia.length);
+                for (var i = 0; i < cantidad; i++) {
+                    var idx = Math.floor(Math.random() * copia.length);
+                    elegidos.push(copia.splice(idx, 1)[0]);
+                }
+                return elegidos;
+            }
+
+            function tarjetaCaptura(nss, indice) {
+                return '' +
+                    '<div class="card bg-light mb-3 antidoping-card" data-nss="' + nss + '">' +
+                    '  <div class="card-header d-flex align-items-center justify-content-between">' +
+                    '    <strong>NSS ' + nss + '</strong>' +
+                    '    <span class="fs-sm resultado-guardado"></span>' +
+                    '  </div>' +
+                    '  <div class="card-body">' +
+                    '    <div class="row g-3">' +
+                    '      <div class="col-md-6">' +
+                    '        <label class="form-label">Folio</label>' +
+                    '        <input type="text" class="form-control campo-folio" placeholder="Folio">' +
+                    '      </div>' +
+                    '      <div class="col-md-6">' +
+                    '        <label class="form-label">Tipo de prueba</label>' +
+                    '        <select class="form-select campo-tipo-prueba">' + opciones(CATALOGO_TIPO_PRUEBA, 'Seleccionar') + '</select>' +
+                    '      </div>' +
+                    '      <div class="col-md-6 campo-sustancia-wrap" style="display:none;">' +
+                    '        <label class="form-label">Sustancia</label>' +
+                    '        <select class="form-select campo-sustancia">' + opciones(CATALOGO_SUSTANCIA, 'Seleccionar') + '</select>' +
+                    '      </div>' +
+                    '      <div class="col-md-6">' +
+                    '        <label class="form-label">Resultado</label>' +
+                    '        <select class="form-select campo-resultado">' + opciones(CATALOGO_RESULTADO, 'Seleccionar') + '</select>' +
+                    '      </div>' +
+                    '      <div class="col-md-6">' +
+                    '        <label class="form-label">Status / conclusión</label>' +
+                    '        <select class="form-select campo-status">' + opciones(CATALOGO_STATUS, null) + '</select>' +
+                    '      </div>' +
+                    '      <div class="col-12">' +
+                    '        <label class="form-label">Observaciones</label>' +
+                    '        <textarea class="form-control campo-observaciones" rows="2" placeholder="Observaciones"></textarea>' +
+                    '      </div>' +
+                    '    </div>' +
+                    '    <div class="d-flex justify-content-end mt-3">' +
+                    '      <button type="button" class="btn btn-primary btn-guardar-tarjeta">' +
+                    '        <i class="ri-save-line me-1"></i> Guardar registro' +
+                    '      </button>' +
+                    '    </div>' +
+                    '  </div>' +
+                    '</div>';
+            }
+
+            // Una tarjeta de captura sin la clase border-success (puesta al guardar con exito) es
+            // captura pendiente/sin guardar. La seleccion (quien fue elegido) ya quedo registrada
+            // en el historial en cuanto se elige, asi que descartar la tarjeta NO pierde esa traza -
+            // solo pierde el resultado que todavia no se habia guardado, por eso se confirma antes.
+            function tarjetasSinGuardar() {
+                return document.querySelectorAll('#resultadoSeleccion .antidoping-card:not(.border-success)').length;
+            }
+
+            function confirmarDescarteSiHaceFalta() {
+                var pendientes = tarjetasSinGuardar();
+                if (pendientes === 0) {
+                    return true;
+                }
+                return window.confirm(
+                    'Hay ' + pendientes + ' tarjeta(s) sin guardar de la selección anterior. La selección ya ' +
+                    'quedó registrada en el historial, pero si continúas se descarta el resultado sin capturar. ' +
+                    '¿Continuar?');
+            }
+
+            document.getElementById('btnLimpiar').addEventListener('click', function () {
+                if (!confirmarDescarteSiHaceFalta()) {
+                    return;
+                }
+                document.getElementById('poolNss').value = '';
+                document.getElementById('cantidadSeleccionar').value = '1';
+                document.getElementById('resultadoSeleccion').innerHTML = '';
+            });
+
+            document.getElementById('btnSeleccionar').addEventListener('click', async function () {
+                if (!confirmarDescarteSiHaceFalta()) {
+                    return;
+                }
+                var btnSel = this;
+                var resultadoEl = document.getElementById('resultadoSeleccion');
+                var pool = parsearPool(document.getElementById('poolNss').value);
+                var cantidad = parseInt(document.getElementById('cantidadSeleccionar').value, 10) || 1;
+
+                if (pool.length === 0) {
+                    resultadoEl.innerHTML = '<div class="alert alert-warning mb-0">Captura al menos un NSS en el pool.</div>';
+                    return;
+                }
+
+                var elegidos = elegirAleatorios(pool, cantidad);
+                var fecha = new Date().toLocaleString('es-MX');
+
+                btnSel.disabled = true;
+                for (var i = 0; i < elegidos.length; i++) {
+                    await registrarSeleccionBackend(elegidos[i], pool.length);
+                }
+                btnSel.disabled = false;
+                cargarHistorial();
+
+                var tarjetas = elegidos.map(function (nss, i) { return tarjetaCaptura(nss, i); }).join('');
+                resultadoEl.innerHTML =
+                    '<div class="fw-semibold mb-2">Seleccionado el ' + fecha + ' (pool de ' + pool.length + ') — captura el resultado de cada uno:</div>' +
+                    tarjetas;
+            });
+
+            // Delegado: toggle de sustancia y guardado, para cualquier tarjeta generada dinamicamente.
+            document.getElementById('resultadoSeleccion').addEventListener('change', function (event) {
+                if (!event.target.classList.contains('campo-tipo-prueba')) {
+                    return;
+                }
+                var card = event.target.closest('.antidoping-card');
+                var wrap = card.querySelector('.campo-sustancia-wrap');
+                var esAntidoping = event.target.value === 'ANTIDOPING';
+                wrap.style.display = esAntidoping ? '' : 'none';
+                if (!esAntidoping) {
+                    card.querySelector('.campo-sustancia').value = '';
+                }
+            });
+
+            document.getElementById('resultadoSeleccion').addEventListener('click', async function (event) {
+                var btn = event.target.closest('.btn-guardar-tarjeta');
+                if (!btn) {
+                    return;
+                }
+                var card = btn.closest('.antidoping-card');
+                var nss = card.getAttribute('data-nss');
+                var estado = card.querySelector('.resultado-guardado');
+
+                var body = new URLSearchParams();
+                body.append('nss', nss);
+                body.append('folio', card.querySelector('.campo-folio').value);
+                body.append('tipoPrueba', card.querySelector('.campo-tipo-prueba').value);
+                body.append('sustancia', card.querySelector('.campo-sustancia').value);
+                body.append('resultado', card.querySelector('.campo-resultado').value);
+                body.append('statusConclusion', card.querySelector('.campo-status').value);
+                body.append('observaciones', card.querySelector('.campo-observaciones').value);
+                var csrfName = document.getElementById('pageCsrfName').value;
+                var csrfValue = document.getElementById('pageCsrfValue').value;
+                if (csrfName) {
+                    body.append(csrfName, csrfValue);
+                }
+
+                btn.disabled = true;
+                var originalHtml = btn.innerHTML;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Guardando...';
+                estado.textContent = '';
+
+                try {
+                    var response = await fetch(contextPath + 'api/nss/antidoping/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'text/plain' },
+                        body: body.toString()
+                    });
+                    var txt = await response.text();
+                    if (response.ok) {
+                        estado.innerHTML = '<span class="text-success"><i class="ri-check-line me-1"></i>' + txt + '</span>';
+                        card.classList.add('border', 'border-success');
+                        btn.innerHTML = '<i class="ri-check-line me-1"></i> Guardado';
+                    } else {
+                        estado.innerHTML = '<span class="text-danger">' + (txt || ('Error HTTP ' + response.status)) + '</span>';
+                        btn.disabled = false;
+                        btn.innerHTML = originalHtml;
+                    }
+                } catch (error) {
+                    estado.innerHTML = '<span class="text-danger">Error de red al guardar.</span>';
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
+            });
+        })();
+    </script>
+</th:block>
+
+</body>
+</html>

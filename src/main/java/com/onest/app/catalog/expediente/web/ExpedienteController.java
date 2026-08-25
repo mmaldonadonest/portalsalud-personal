@@ -1,5 +1,6 @@
 package com.onest.app.catalog.expediente.web;
 
+import com.onest.app.catalog.causaconsulta.service.CausaConsultaService;
 import com.onest.app.catalog.expediente.service.ExpedienteService;
 import com.onest.app.catalog.file.service.FileStoreService;
 import java.util.UUID;
@@ -25,10 +26,14 @@ public class ExpedienteController {
 
     private final ExpedienteService expedienteService;
     private final FileStoreService fileStoreService;
+    private final CausaConsultaService causaConsultaService;
 
-    public ExpedienteController(ExpedienteService expedienteService, FileStoreService fileStoreService) {
+    public ExpedienteController(
+            ExpedienteService expedienteService, FileStoreService fileStoreService,
+            CausaConsultaService causaConsultaService) {
         this.expedienteService = expedienteService;
         this.fileStoreService = fileStoreService;
+        this.causaConsultaService = causaConsultaService;
     }
 
     @PostMapping(
@@ -80,6 +85,7 @@ public class ExpedienteController {
     public String consultaForm(@RequestParam("data") String data, Model model) {
         model.addAttribute("nss", data == null ? "" : data.trim());
         model.addAttribute("idArchivoRel", UUID.randomUUID().toString().replace("-", ""));
+        model.addAttribute("causas", causaConsultaService.listar(true));
         return "fragments/consulta-form :: form";
     }
 

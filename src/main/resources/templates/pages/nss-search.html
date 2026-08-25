@@ -297,6 +297,10 @@
                     loadModuleView('api/nss/accidentes', nss);
                     return;
                 }
+                if (action === 'maternidad') {
+                    loadModuleView('api/nss/maternidad', nss);
+                    return;
+                }
                 var idMenu = btn.getAttribute('data-id-menu');
                 status.textContent = 'Modulo "' + btn.textContent.trim() + '" (id ' + idMenu +
                     ', NSS ' + nss + ') disponible en una proxima entrega.';
@@ -452,7 +456,8 @@
             // Guardado generico de un alta (consulta / incapacidad / antidoping / accidente) +
             // subida de adjuntos. Bloquea doble-click (guard explicito + disabled), muestra
             // spinner mientras esta en vuelo, y opcionalmente limpia el formulario al exito
-            // (opts.resetOnSuccess) sin tocar el comportamiento de las pantallas que no lo piden.
+            // (opts.resetOnSuccess) u ejecuta un callback (opts.onSuccess) - ej. volver a la
+            // lista - sin tocar el comportamiento de las pantallas que no los piden.
             async function guardarRegistro(btn, opts) {
                 if (btn.disabled) {
                     return;
@@ -502,6 +507,9 @@
                         }
                         if (opts.resetOnSuccess) {
                             formEl.reset();
+                        }
+                        if (typeof opts.onSuccess === 'function') {
+                            opts.onSuccess();
                         }
                     } else {
                         mostrarResultado('Error al registrar (HTTP ' + response.status + '): ' + txt, true);
@@ -584,11 +592,39 @@
                         return;
                     }
                 }
-                guardarRegistro(btn, { formId: 'antidopingAltaForm', savePath: 'api/nss/antidoping/save', fileInputId: '__none__', label: 'registro de antidoping', resetOnSuccess: true });
+                var formEl = document.getElementById('antidopingAltaForm');
+                var nss = formEl ? formEl.nss.value : null;
+                guardarRegistro(btn, {
+                    formId: 'antidopingAltaForm', savePath: 'api/nss/antidoping/save', fileInputId: '__none__',
+                    label: 'registro de antidoping', resetOnSuccess: true,
+                    // Vuelve a la lista tras guardar, mismo motivo que guardarMaternidad -
+                    // si no, el formulario se queda en pantalla (limpio) y parece que la
+                    // lista "desaparecio".
+                    onSuccess: function () { loadModuleView('api/nss/antidoping', nss); }
+                });
             };
 
             window.guardarAccidente = function (btn) {
-                guardarRegistro(btn, { formId: 'accidenteAltaForm', savePath: 'api/nss/accidentes/save', fileInputId: '__none__', label: 'accidente', resetOnSuccess: true });
+                var formEl = document.getElementById('accidenteAltaForm');
+                var nss = formEl ? formEl.nss.value : null;
+                guardarRegistro(btn, {
+                    formId: 'accidenteAltaForm', savePath: 'api/nss/accidentes/save', fileInputId: '__none__',
+                    label: 'accidente', resetOnSuccess: true,
+                    onSuccess: function () { loadModuleView('api/nss/accidentes', nss); }
+                });
+            };
+
+            window.guardarMaternidad = function (btn) {
+                var formEl = document.getElementById('maternidadAltaForm');
+                var nss = formEl ? formEl.nss.value : null;
+                guardarRegistro(btn, {
+                    formId: 'maternidadAltaForm', savePath: 'api/nss/maternidad/save', fileInputId: '__none__',
+                    label: 'chequeo de maternidad', resetOnSuccess: true, resultElId: 'maternidadResult',
+                    // Vuelve a la lista tras guardar - si no, el formulario se queda en pantalla
+                    // (limpio) y no hay forma de ver el registro recien guardado sin volver a
+                    // hacer clic en "Maternidad" del menu lateral.
+                    onSuccess: function () { loadModuleView('api/nss/maternidad', nss); }
+                });
             };
 
             // Botones "Nuevo registro" dentro de los fragments de lista (onclick inline no
@@ -596,8 +632,56 @@
             window.nuevoAntidoping = function (btn) {
                 loadModuleView('api/nss/antidoping/form', btn.getAttribute('data-nss'));
             };
+            // Causa de consulta: el <select> (catalogo administrable, docs/ords-causa-consulta.sql)
+            // solo es una ayuda visual - el campo que de verdad se manda al guardar es el input
+            // de texto oculto, con name="causa" (unico campo con ese name en el form). Si se
+            // elige "Otro" se revela para texto libre; en cualquier otro caso el input queda
+            // oculto pero sincronizado con el nombre elegido.
+            window.onCausaConsultaChange = function (select) {
+                var texto = document.getElementById('causaOtroTexto');
+                if (!texto) {
+                    return;
+                }
+                if (select.value === 'Otro') {
+                    texto.value = '';
+                    texto.style.display = '';
+                    texto.focus();
+                } else {
+                    texto.value = select.value;
+                    texto.style.display = 'none';
+                }
+            };
+
+            // Restricciones medicas (dentro del dictamen de Examen): el select de codigo
+            // solo pre-llena la descripcion como ayuda - el campo queda editable (ej. para
+            // "RES-16 Otra restriccion" el medico escribe la restriccion real).
+            window.onRestriccionCodigoChange = function (select) {
+                var descripcion = document.getElementById('restriccionDescripcion');
+                if (!descripcion) {
+                    return;
+                }
+                var opcion = select.options[select.selectedIndex];
+                descripcion.value = opcion ? (opcion.getAttribute('data-etiqueta') || '') : '';
+            };
+
+            window.guardarRestriccion = function (btn) {
+                var formEl = document.getElementById('restriccionesForm');
+                var nss = formEl ? formEl.nss.value : null;
+                guardarRegistro(btn, {
+                    formId: 'restriccionesForm', savePath: 'api/nss/restricciones/save', fileInputId: '__none__',
+                    label: 'restricción médica', resultElId: 'restriccionesResult',
+                    // Recarga el examen completo (misma logica que guardarMaternidad/guardarAccidente):
+                    // la lista de restricciones ya asignadas vive en el shell del examen, no hay
+                    // forma de refrescar solo esa tarjeta sin recargar todo.
+                    onSuccess: function () { loadModuleView('api/nss/examen', nss); }
+                });
+            };
+
             window.nuevoAccidente = function (btn) {
                 loadModuleView('api/nss/accidentes/form', btn.getAttribute('data-nss'));
+            };
+            window.nuevoMaternidad = function (btn) {
+                loadModuleView('api/nss/maternidad/form', btn.getAttribute('data-nss'));
             };
 
             // Muestra/oculta el select de sustancia segun el tipo de prueba (solo aplica a ANTIDOPING).
@@ -945,6 +1029,115 @@
             // Detalle de una incapacidad (viewIncapDetails) en el modal.
             window.verIncapacidad = function (btn) {
                 cargarDetalle('api/nss/incapacidades/detalle', btn.getAttribute('data-id-consulta'), 'Detalle de incapacidad');
+            };
+
+            // Seguimiento de un caso de accidente (historial + evidencias) en el modal.
+            window.verSeguimientoAccidente = function (btn) {
+                cargarDetalle('api/nss/accidentes/detalle', btn.getAttribute('data-id-accidente'), 'Seguimiento de accidente');
+            };
+
+            // Agrega una entrada de seguimiento (o cierra el caso) y refresca el modal.
+            window.guardarSeguimientoAccidente = async function (btn) {
+                var regId = btn.getAttribute('data-accidente-regid');
+                var tipo = btn.getAttribute('data-tipo');
+                var obsEl = document.getElementById('accSeguimientoObs');
+                var statusEl = document.getElementById('accSeguimientoStatus');
+                var observaciones = obsEl ? obsEl.value.trim() : '';
+                if (!observaciones) {
+                    if (statusEl) {
+                        statusEl.innerHTML = '<span class="text-danger">Escribe una observacion.</span>';
+                    }
+                    return;
+                }
+                var body = new URLSearchParams();
+                body.append('accidenteRegId', regId);
+                body.append('tipo', tipo);
+                body.append('observaciones', observaciones);
+                var csrf = form.querySelector('input[type="hidden"][name]');
+                if (csrf && csrf.name) {
+                    body.append(csrf.name, csrf.value);
+                }
+                btn.disabled = true;
+                try {
+                    var response = await fetch(contextPath + 'api/nss/accidentes/seguimiento/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'text/plain' },
+                        body: body.toString()
+                    });
+                    var txt = await response.text();
+                    if (response.ok) {
+                        await cargarDetalle('api/nss/accidentes/detalle', regId, 'Seguimiento de accidente');
+                        // El modal ya se refresco, pero la lista de accidentes de #moduleContent
+                        // (detras del modal) se cargo ANTES de este cambio - su badge de Estado
+                        // se queda desactualizado (ej. sigue en ABIERTO tras cerrar el caso) hasta
+                        // que se refresque tambien.
+                        loadModuleView('api/nss/accidentes', (input.value || '').trim());
+                    } else if (statusEl) {
+                        statusEl.innerHTML = '<span class="text-danger">' + (txt || ('Error HTTP ' + response.status)) + '</span>';
+                    }
+                } catch (error) {
+                    if (statusEl) {
+                        statusEl.innerHTML = '<span class="text-danger">Error de red al guardar el seguimiento.</span>';
+                    }
+                } finally {
+                    btn.disabled = false;
+                }
+            };
+
+            // Sube evidencias (mismo endpoint/mecanismo que los adjuntos de Consulta,
+            // relacion = "accidente-<id>") y refresca el modal.
+            window.subirEvidenciaAccidente = async function (btn) {
+                var nss = btn.getAttribute('data-nss');
+                var relacion = btn.getAttribute('data-relacion');
+                var regId = btn.getAttribute('data-accidente-regid');
+                var fileInput = document.getElementById('accEvidenciaFiles');
+                if (!fileInput || !fileInput.files || !fileInput.files.length) {
+                    return;
+                }
+                var fd = new FormData();
+                fd.append('nss', nss);
+                fd.append('relacion', relacion);
+                for (var i = 0; i < fileInput.files.length; i++) {
+                    fd.append('file', fileInput.files[i]);
+                }
+                var headers = {};
+                var csrf = form.querySelector('input[type="hidden"][name]');
+                if (csrf) {
+                    headers['X-CSRF-TOKEN'] = csrf.value;
+                }
+                btn.disabled = true;
+                try {
+                    var response = await fetch(contextPath + 'api/nss/consulta/file', {
+                        method: 'POST', headers: headers, body: fd
+                    });
+                    if (response.ok) {
+                        await cargarDetalle('api/nss/accidentes/detalle', regId, 'Seguimiento de accidente');
+                    }
+                } catch (error) {
+                    // silencioso, igual que subirArchivo - el usuario ve que la lista no cambio
+                } finally {
+                    btn.disabled = false;
+                }
+            };
+
+            window.borrarEvidenciaAccidente = async function (btn) {
+                var id = btn.getAttribute('data-id');
+                var regId = btn.getAttribute('data-accidente-regid');
+                var headers = {};
+                var csrf = form.querySelector('input[type="hidden"][name]');
+                if (csrf) {
+                    headers['X-CSRF-TOKEN'] = csrf.value;
+                }
+                try {
+                    var response = await fetch(contextPath + 'api/nss/consulta/file/' + encodeURIComponent(id) + '/delete', {
+                        method: 'POST', headers: headers
+                    });
+                    if (response.ok) {
+                        await cargarDetalle('api/nss/accidentes/detalle', regId, 'Seguimiento de accidente');
+                    }
+                } catch (error) {
+                    // silencioso, igual que borrarArchivo
+                }
             };
 
             // Reporte de incapacidades por rango de fechas (todas las NSS, no solo la actual).

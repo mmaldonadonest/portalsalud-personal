@@ -69,8 +69,13 @@
                     </select>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label" for="causa">Causa</label>
-                    <input type="text" class="form-control" name="causa" id="causa" placeholder="Causa">
+                    <label class="form-label" for="causaSelect">Causa</label>
+                    <select class="form-select" id="causaSelect" onchange="onCausaConsultaChange(this);">
+                        <option value="">Seleccionar...</option>
+                        <option th:each="c : ${causas}" th:value="${c.nombre}" th:text="${c.nombre}">Causa</option>
+                    </select>
+                    <input type="text" class="form-control mt-2" name="causa" id="causaOtroTexto"
+                           placeholder="Describe la causa..." style="display:none;">
                 </div>
 
                 <div class="col-md-4">

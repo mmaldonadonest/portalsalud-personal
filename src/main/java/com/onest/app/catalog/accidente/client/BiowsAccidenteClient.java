@@ -5,8 +5,12 @@ import com.onest.app.catalog.accidente.client.dto.BiowsAccidenteReporteRequest;
 import com.onest.app.catalog.accidente.client.dto.BiowsAccidenteReporteResponse;
 import com.onest.app.catalog.accidente.client.dto.BiowsAccidenteRequest;
 import com.onest.app.catalog.accidente.client.dto.BiowsAccidenteResponse;
+import com.onest.app.catalog.accidente.client.dto.BiowsAccidenteSeguimientoAltaRequest;
+import com.onest.app.catalog.accidente.client.dto.BiowsAccidenteSeguimientoRequest;
+import com.onest.app.catalog.accidente.client.dto.BiowsAccidenteSeguimientoResponse;
 import com.onest.app.catalog.accidente.dto.AccidenteDto;
 import com.onest.app.catalog.accidente.dto.AccidenteReporteDto;
+import com.onest.app.catalog.accidente.dto.AccidenteSeguimientoDto;
 import com.onest.app.catalog.expediente.client.dto.BiowsProcesoResponse;
 import com.onest.app.config.BiowsProperties;
 import java.util.List;
@@ -26,6 +30,8 @@ public class BiowsAccidenteClient implements AccidenteClient {
     private static final String PATH_ACCIDENTE = "/Servcio/accidente";
     private static final String PATH_CONSULTA_ACCIDENTE = "/Servcio/consulta_accidente";
     private static final String PATH_REPORTE_FECHA = "/Servcio/consulta_accidentes_fecha";
+    private static final String PATH_SEGUIMIENTO = "/Servcio/accidente_seguimiento";
+    private static final String PATH_CONSULTA_SEGUIMIENTO = "/Servcio/consulta_accidente_seguimiento";
 
     private final RestClient biowsRestClient;
     private final BiowsProperties properties;
@@ -47,7 +53,13 @@ public class BiowsAccidenteClient implements AccidenteClient {
         if (response == null || response.datos() == null) {
             return List.of();
         }
-        return response.datos().stream().map(BiowsAccidenteClient::toDto).toList();
+        // Cuando no hay filas, el WS regresa un objeto "sin datos" DENTRO del arreglo Datos
+        // (Proceso/Estado/Mensaje/Data) en vez de un arreglo vacio - sin id_registro, se
+        // mapearia como un AccidenteDto fantasma con todos los campos null. Filtrarlo.
+        return response.datos().stream()
+                .filter(d -> d.idRegistro() != null)
+                .map(BiowsAccidenteClient::toDto)
+                .toList();
     }
 
     @Override
@@ -80,10 +92,49 @@ public class BiowsAccidenteClient implements AccidenteClient {
         return response.datos().stream().map(BiowsAccidenteClient::toReporte).toList();
     }
 
+    @Override
+    public String registrarSeguimiento(BiowsAccidenteSeguimientoAltaRequest request) {
+        log.info("[biows] POST {}{} ACCIDENTE_REG_ID={}", properties.baseUrl(), PATH_SEGUIMIENTO,
+                request.accidenteRegId());
+        BiowsProcesoResponse response = biowsRestClient.post()
+                .uri(PATH_SEGUIMIENTO)
+                .body(request)
+                .retrieve()
+                .body(BiowsProcesoResponse.class);
+
+        if (response == null || response.datos() == null || response.datos().isEmpty()) {
+            return "";
+        }
+        return response.datos().get(0).proceso();
+    }
+
+    @Override
+    public List<AccidenteSeguimientoDto> findSeguimientos(long accidenteRegId) {
+        log.info("[biows] POST {}{} ACCIDENTE_REG_ID={}", properties.baseUrl(), PATH_CONSULTA_SEGUIMIENTO,
+                accidenteRegId);
+        BiowsAccidenteSeguimientoResponse response = biowsRestClient.post()
+                .uri(PATH_CONSULTA_SEGUIMIENTO)
+                .body(new BiowsAccidenteSeguimientoRequest(accidenteRegId))
+                .retrieve()
+                .body(BiowsAccidenteSeguimientoResponse.class);
+
+        if (response == null || response.datos() == null) {
+            return List.of();
+        }
+        return response.datos().stream()
+                .filter(d -> d.idRegistro() != null)
+                .map(BiowsAccidenteClient::toSeguimientoDto)
+                .toList();
+    }
+
+    private static AccidenteSeguimientoDto toSeguimientoDto(BiowsAccidenteSeguimientoResponse.Dato d) {
+        return new AccidenteSeguimientoDto(d.idRegistro(), d.tipo(), d.fechaSeguimiento(), d.observaciones(), d.usuario());
+    }
+
     private static AccidenteDto toDto(BiowsAccidenteResponse.Dato d) {
         return new AccidenteDto(
                 d.idRegistro(), d.fechaRegistro(), d.fechaAccidente(), d.tipoRiesgo(), d.causaRt(),
-                d.diagnostico(), d.sdi(), d.statusCalificacion(), d.costo(), d.observaciones(), d.usuario());
+                d.diagnostico(), d.sdi(), d.statusCalificacion(), d.costo(), d.observaciones(), d.usuario(), null);
     }
 
     private static AccidenteReporteDto toReporte(BiowsAccidenteReporteResponse.Dato d) {

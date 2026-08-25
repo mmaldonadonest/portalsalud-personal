@@ -4,6 +4,7 @@ import com.onest.app.catalog.nss.client.NssSearchClient;
 import com.onest.app.catalog.nss.dto.CandidatoDto;
 import com.onest.app.catalog.nss.dto.EmpleadoDto;
 import com.onest.app.catalog.nss.dto.NssSearchResponse;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -33,12 +34,14 @@ public class NssSearchService {
         String normalizedNss = normalizeNss(nss);
         String usuarioConsulta = usuarioConsulta();
 
-        Optional<EmpleadoDto> usuario = client.findUsuario(normalizedNss, usuarioConsulta);
-        if (usuario.isEmpty()) {
+        // Todas las asociaciones (predio/cuenta) del NSS, no solo la primera - un NSS
+        // multipredio trae mas de una fila (ver docs/entregable-liberacion-stoppers-salud.html §4).
+        List<EmpleadoDto> asociaciones = client.findAsociaciones(normalizedNss, usuarioConsulta);
+        if (asociaciones.isEmpty()) {
             return Optional.empty();
         }
 
-        EmpleadoDto empleado = usuario.get();
+        EmpleadoDto empleado = asociaciones.get(0);
         boolean sinRegistro = SIN_REGISTRO.equals(trim(empleado.completo()));
         String tipoUsuario = sinRegistro ? TIPO_CANDIDATO : TIPO_EMPLEADO;
 
@@ -51,7 +54,7 @@ public class NssSearchService {
             return Optional.of(NssSearchResponse.candidato(candidato));
         }
 
-        return Optional.of(NssSearchResponse.empleado(empleado));
+        return Optional.of(NssSearchResponse.empleado(empleado, asociaciones));
     }
 
     private String normalizeNss(String nss) {

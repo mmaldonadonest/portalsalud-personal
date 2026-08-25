@@ -3,6 +3,7 @@ package com.onest.app.catalog.examen.web;
 import com.onest.app.catalog.examen.service.ContactoEmergenciaService;
 import com.onest.app.catalog.examen.service.DiagnosticoSecundarioService;
 import com.onest.app.catalog.examen.service.ExamenService;
+import com.onest.app.catalog.restriccion.service.RestriccionService;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -27,14 +28,17 @@ public class ExamenController {
     private final ExamenService examenService;
     private final ContactoEmergenciaService contactoEmergenciaService;
     private final DiagnosticoSecundarioService diagnosticoSecundarioService;
+    private final RestriccionService restriccionService;
 
     public ExamenController(
             ExamenService examenService,
             ContactoEmergenciaService contactoEmergenciaService,
-            DiagnosticoSecundarioService diagnosticoSecundarioService) {
+            DiagnosticoSecundarioService diagnosticoSecundarioService,
+            RestriccionService restriccionService) {
         this.examenService = examenService;
         this.contactoEmergenciaService = contactoEmergenciaService;
         this.diagnosticoSecundarioService = diagnosticoSecundarioService;
+        this.restriccionService = restriccionService;
     }
 
     /** Shell del examen: navegacion de secciones + contenedor in-page. */
@@ -49,6 +53,8 @@ public class ExamenController {
             model.addAttribute("grupos", examenService.grupos());
             model.addAttribute("contactos", contactoEmergenciaService.cargar(nss));
             model.addAttribute("diagnosticosSecundarios", diagnosticoSecundarioService.cargar(nss));
+            model.addAttribute("catalogoRestricciones", restriccionService.catalogo());
+            model.addAttribute("restricciones", restriccionService.byNss(nss));
             return "fragments/examen-shell :: shell";
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);

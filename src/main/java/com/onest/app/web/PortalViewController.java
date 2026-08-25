@@ -56,4 +56,25 @@ public class PortalViewController {
     public String consumibles() {
         return "pages/consumibles";
     }
+
+    /**
+     * Antidoping - seleccion aleatoria de personal (docs/entregable-liberacion-stoppers-salud.html
+     * paragrafo 2). Standalone, 100% cliente - no existe ningun WS que liste "todo el personal
+     * activo" (confirmado contra docs/contextoWS.txt), asi que el pool se pega manualmente cada
+     * vez (decision confirmada con el usuario 2026-08-21), no se inventa una fuente de datos.
+     */
+    @GetMapping("/antidoping-seleccion")
+    public String antidopingSeleccion() {
+        return "pages/antidoping-seleccion";
+    }
+
+    /**
+     * Catálogo administrable de causas de consulta - pagina standalone, accesible por URL
+     * directa (sin id_menu registrado todavia, mismo patron que Consumibles/Antidoping al
+     * lanzarse). docs/ords-causa-consulta.sql.
+     */
+    @GetMapping("/causas-consulta")
+    public String causasConsulta() {
+        return "pages/causas-consulta";
+    }
 }

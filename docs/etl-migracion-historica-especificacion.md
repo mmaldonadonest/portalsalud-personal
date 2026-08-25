@@ -28,19 +28,44 @@
 | Password | `_______________________` |
 | **¿Cuál instancia?** | `_______________________` — este proyecto tiene 3 instancias Oracle distintas con distinto grado de avance (local `PROYECTO_BASE_PDB`, QA `ONEWMS_QA` en `200.94.116.132`, y la instancia real que respalda el WS ORDS en `10.249.249.3`). **Confirmar explícitamente cuál es el destino real antes de correr nada** — no son intercambiables, cada una tiene datos distintos hoy. |
 
+### Pre-requisito: el esquema Oracle destino ya debe existir
+
+Este ETL **no crea las tablas destino** — asume que `APP_FS_FILE` y `MED_TAG` ya existen en el schema elegido, con el DDL exacto que usa el portal Java. Confirmado que existen (vacías, listas para carga) en local y en QA (`ONEWMS_QA`) al 2026-07-30; **no confirmado** en la instancia real de `10.249.249.3`. Si el destino termina siendo esa instancia (o cualquier otra sin el esquema aplicado), correr primero, en este orden, los scripts del repositorio del portal Java:
+
+1. `src/main/resources/db/sql/00_init_oracle21c.sql` — crea `APP_FS_FILE` (script autoritativo) + tablas satélite/FKs.
+2. `src/main/resources/db/sql/app_domain/app-fs-file.sql` y `app-fs-file-reconcile.sql` — reconcilian columnas si `APP_FS_FILE` ya existe con una forma distinta (hay un antecedente real de esto: bug `ORA-00904 FILE_TYPE` por dos `CREATE TABLE` con formas distintas corriendo en el mismo destino).
+3. `src/main/resources/db/sql/app_domain/tags-salud.sql` — crea `MED_TAG` + funciones/vistas auxiliares (`FN_MED_TAG_GROUP`, etc.).
+
+Confirmar con el equipo del portal Java que estos scripts ya corrieron en el destino elegido antes de intentar cualquier `INSERT` de este ETL.
+
+### Filesystem destino para binarios (`files` → disco, no va a Oracle)
+
+El binario decodificado de `files` (ver sección 3) **no se guarda en Oracle** — va al filesystem del servidor donde corre el portal Java, bajo la ruta configurada en la propiedad `portal.files.root`. Hoy esa propiedad es un **valor único y fijo**, no varía por ambiente/perfil:
+
+| Valor | Estado |
+|---|---|
+| `C:/portal-salud/files` | **Activo hoy** — ruta de la máquina de desarrollo local (Windows), usada en la corrida de prueba del 2026-08-13 |
+| `/home/onedev/apps/exec/apache11_app_jdk21/filessalud` | Comentado/inactivo en el código — parece ser la ruta real de despliegue (Linux), **sin confirmar** |
+
+**Confirmar explícitamente, junto con el destino Oracle de arriba, la ruta de filesystem real donde este ETL debe escribir los binarios** — no asumir ninguna de las dos rutas de la tabla sin validarlo con el equipo del portal. El proceso ETL (del lado de Oracle) necesita acceso de escritura a esa ruta/mount antes de correr.
+
 ---
 
 ## 2. Alcance de datos — lo único confirmado hoy
 
 **Verificado por consulta directa el 20 de agosto de 2026** (`SHOW TABLES FROM servicioMedico`): la base MariaDB `servicioMedico` **solo tiene 2 tablas**. No hay ninguna otra tabla de datos históricos en este origen.
 
-| Tabla MariaDB | Filas | Tamaño | Destino Oracle | Estado |
+| Tabla MariaDB | Filas (snapshot 2026-08-13) | Tamaño | Destino Oracle | Estado |
 |---|---|---|---|---|
-| `files` | 21,475 (origen real; el snapshot local usado para pruebas tiene 18,912) | ~18 GB (base64) | Metadatos → `APP_FS_FILE`; binario → filesystem (`portal.files.root`) | ✅ **YA MIGRADO Y VERIFICADO** (21,448 filas, 2026-08-13) — ver `docs/plan-etl-migracion-files.md` |
-| `tags` | 551,258 (snapshot local); 550,560 migradas en la corrida real | ~52 MB | `MED_TAG` (patrón EAV) | ✅ **YA MIGRADO Y VERIFICADO** (550,560 filas, 2026-08-13) — ver memoria `u09-etl` |
+| `files` | 21,475 (`COUNT(*)` real) | ~18 GB (base64) | Metadatos → `APP_FS_FILE`; binario → filesystem (`portal.files.root`, ver sección 1) | Migrado y verificado contra **Oracle LOCAL de desarrollo** (`PROYECTO_BASE_PDB`, 21,448 filas, 2026-08-13) — ver `docs/plan-etl-migracion-files.md` |
+| `tags` | 550,560 (`COUNT(*)` real) | ~52 MB | `MED_TAG` (patrón EAV) | Migrado y verificado contra **Oracle LOCAL de desarrollo** (mismo alcance, 550,560 filas, 2026-08-13) — ver memoria interna `u09-etl` |
+
+**⚠️ MariaDB de origen es una base productiva y sigue creciendo con el tiempo.** Los conteos de arriba son un snapshot puntual al 2026-08-13 (`COUNT(*)` directo, no el estimado de `information_schema.TABLES`, que en InnoDB no es confiable). **No usar estos números como cifra fija de verificación.** Antes de la carga real, el equipo ejecutor debe correr `SELECT COUNT(*) FROM files` / `SELECT COUNT(*) FROM tags` contra el origen **en el momento de la ejecución**, y usar ese número (menos los huérfanos documentados en la sección 5) como base real para el checklist de verificación de la sección 6 — no los números de esta tabla.
+
+**⚠️ La corrida "migrado y verificado" de arriba fue contra Oracle LOCAL de desarrollo, NO contra QA ni contra la instancia real detrás del WS ORDS.** Sirvió para validar que el mapeo/proceso funciona end-to-end (conteos exactos, checksums, muestreo de archivos abiertos y validados — detalle en `u09-etl`), pero **no reemplaza la migración final**. Falta ejecutar (o re-ejecutar) formalmente contra el destino Oracle que se confirme en la sección 1, con el conteo de origen re-tomado en ese momento.
 
 **⚠️ Pregunta abierta para confirmar con el equipo externo / stakeholder que autorizó esta migración:**
-¿El alcance de "migración histórica" es exactamente este (`files` + `tags`, ya migrados por este equipo en agosto) — en cuyo caso lo que falta es solo **validar/reejecutar formalmente contra el destino Oracle real** — o existe otro origen de datos (otra base, otro sistema, un dump distinto) que todavía no se ha identificado? No se debe asumir que hay más tablas de las que aquí se documentan sin confirmarlo.
+¿El alcance de "migración histórica" es exactamente este (`files` + `tags`) — en cuyo caso lo que falta es correr formalmente esta misma carga contra el destino Oracle real — o existe otro origen de datos (otra base, otro sistema, un dump distinto) que todavía no se ha identificado? No se debe asumir que hay más tablas de las que aquí se documentan sin confirmarlo.
 
 ### Esquema de origen (referencia exacta, `SHOW CREATE TABLE`)
 
@@ -86,7 +111,7 @@ CREATE TABLE `tags` (
 4. **Base64 limpio**, sin prefijo `data:` ni saltos de línea — decodificación directa.
 5. **Commits por lote, no todo en una transacción** — el volumen de `files` es grande (~18GB), evitar un solo `INSERT` masivo.
 6. **Modo de muestra antes de la corrida completa** — validar ~50-60 filas representativas (de cada `type`, incluyendo duplicados y casos límite) antes de correr el total.
-7. **No usar un índice único de checksum** sobre el contenido de `files` — hay contenido duplicado legítimo (mismo PDF adjuntado a varios NSS/consultas), no es basura a deduplicar.
+7. **Verificar/alterar el índice de checksum ANTES de cargar `files`.** El DDL de origen (`00_init_oracle21c.sql`) crea `UX_FS_FILE_CHECKSUM` como **UNIQUE** sobre `APP_FS_FILE.CHECKSUM_SHA256`. Hay contenido duplicado legítimo (mismo PDF adjuntado a varios NSS/consultas — 261 casos conocidos al 2026-08-13), no es basura a deduplicar; con el índice UNIQUE, la segunda copia de cada duplicado falla con `ORA-00001`. Ya se cambió a NONUNIQUE en Oracle LOCAL de desarrollo; **sigue pendiente en QA**, y se desconoce su estado en la instancia real de `10.249.249.3`. Confirmar el estado de este índice en el destino elegido (sección 1) y alterarlo a NONUNIQUE si sigue como UNIQUE, antes de correr la carga completa.
 
 ---
 

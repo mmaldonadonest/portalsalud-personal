@@ -35,7 +35,7 @@
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0" data-export-name="accidentes">
-                        <thead class="table-dark">
+                        <thead class="thead-onest">
                             <tr>
                                 <th>Fecha del accidente</th>
                                 <th>Tipo de riesgo</th>
@@ -46,6 +46,7 @@
                                 <th>Costo</th>
                                 <th>Observaciones</th>
                                 <th>Usuario</th>
+                                <th>Seguimiento</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -59,6 +60,16 @@
                                 <td th:text="${a.costo}">-</td>
                                 <td th:text="${a.observaciones}">-</td>
                                 <td th:text="${a.usuario}">-</td>
+                                <td>
+                                    <span class="badge"
+                                          th:classappend="${a.estado == 'CERRADO'} ? 'bg-secondary' : 'bg-success'"
+                                          th:text="${a.estado}">ABIERTO</span>
+                                    <button type="button" class="btn btn-sm btn-outline-primary ms-1"
+                                            title="Ver seguimiento" th:attr="data-id-accidente=${a.idRegistro}"
+                                            onclick="verSeguimientoAccidente(this);">
+                                        <i class="ri-file-list-3-line"></i>
+                                    </button>
+                                </td>
                             </tr>
                         </tbody>
                     </table>

@@ -167,6 +167,112 @@
                 </div>
             </div>
 
+            <!--
+              Restricciones medicas (docs/checklist-bloqueadores-negocio.html #2, Medico Jefe).
+              Catalogo RES-01..RES-16 fijo (no administrable, vive en RestriccionService),
+              tabla dedicada insert-only (cada asignacion/revaloracion es un registro nuevo,
+              conserva historico) - mismo patron que Accidentes/Maternidad, no EAV.
+            -->
+            <div class="card bg-light mb-3" id="restriccionesMedicas">
+                <div class="card-header py-2">
+                    <strong>Restricciones médicas</strong>
+                </div>
+                <div class="card-body">
+                    <div th:if="${#lists.isEmpty(restricciones)}" class="text-muted fs-sm mb-3">Sin restricciones registradas.</div>
+                    <ul th:unless="${#lists.isEmpty(restricciones)}" class="list-group mb-3">
+                        <li th:each="r : ${restricciones}" class="list-group-item"
+                            th:classappend="${r.estatus == 'ACTIVA'} ? 'border-start border-4 border-warning' : ''">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i th:if="${r.estatus == 'ACTIVA'}" class="ri-alert-line text-warning me-1" title="Restricción activa"></i>
+                                    <strong th:text="${r.codigoRestriccion}">RES-01</strong>
+                                    <span th:text="'— ' + ${r.descripcion}">Descripción</span>
+                                    <span class="badge ms-1"
+                                          th:classappend="${r.estatus == 'ACTIVA'} ? 'bg-warning text-dark' : 'bg-secondary'"
+                                          th:text="${r.estatus}">ACTIVA</span>
+                                </span>
+                                <small class="text-muted" th:text="${r.fechaRegistro}">fecha</small>
+                            </div>
+                            <div class="fs-sm text-muted mt-1">
+                                <span th:if="${r.valorLimite != null and !r.valorLimite.isEmpty()}" th:text="'Límite: ' + ${r.valorLimite} + ' ' + ${r.unidad} + ' · '">Límite</span>
+                                <span th:if="${r.fechaInicio != null and !r.fechaInicio.isEmpty()}" th:text="'Inicio: ' + ${r.fechaInicio} + ' · '">Inicio</span>
+                                <span th:if="${r.fechaFin != null and !r.fechaFin.isEmpty()}" th:text="'Fin: ' + ${r.fechaFin} + ' · '">Fin</span>
+                                <span th:if="${r.medicoResponsable != null and !r.medicoResponsable.isEmpty()}" th:text="'Médico: ' + ${r.medicoResponsable}">Médico</span>
+                            </div>
+                            <div class="fs-sm mt-1" th:if="${r.observaciones != null and !r.observaciones.isEmpty()}" th:text="${r.observaciones}">Observaciones</div>
+                        </li>
+                    </ul>
+
+                    <form id="restriccionesForm" class="row g-2" novalidate>
+                        <input type="hidden" name="nss" th:value="${nss}">
+                        <div class="col-md-6">
+                            <label class="form-label mb-1 fs-sm" for="restriccionCodigo">Código</label>
+                            <select class="form-select form-select-sm" id="restriccionCodigo" name="codigoRestriccion"
+                                    onchange="onRestriccionCodigoChange(this);">
+                                <option value="">Seleccionar...</option>
+                                <option th:each="r : ${catalogoRestricciones}" th:value="${r.codigo}"
+                                        th:attr="data-etiqueta=${r.etiqueta}"
+                                        th:text="${r.codigo} + ' — ' + ${r.etiqueta}">RES-01 — Etiqueta</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label mb-1 fs-sm" for="restriccionDescripcion">Descripción (editable)</label>
+                            <input type="text" class="form-control form-control-sm" name="descripcion" id="restriccionDescripcion">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label mb-1 fs-sm" for="restriccionValorLimite">Valor límite</label>
+                            <input type="number" step="0.01" class="form-control form-control-sm" name="valorLimite" id="restriccionValorLimite">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label mb-1 fs-sm" for="restriccionUnidad">Unidad</label>
+                            <input type="text" class="form-control form-control-sm" name="unidad" id="restriccionUnidad" placeholder="kg, hrs, etc.">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label mb-1 fs-sm" for="restriccionTemporalidad">Temporalidad</label>
+                            <select class="form-select form-select-sm" name="temporalidad" id="restriccionTemporalidad">
+                                <option value="">Seleccionar...</option>
+                                <option value="PERMANENTE">Permanente</option>
+                                <option value="TEMPORAL">Temporal</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label mb-1 fs-sm" for="restriccionEstatus">Estatus</label>
+                            <select class="form-select form-select-sm" name="estatus" id="restriccionEstatus">
+                                <option value="ACTIVA">Activa</option>
+                                <option value="VENCIDA">Vencida</option>
+                                <option value="CANCELADA">Cancelada</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label mb-1 fs-sm" for="restriccionFechaInicio">Fecha inicio</label>
+                            <input type="date" class="form-control form-control-sm" name="fechaInicio" id="restriccionFechaInicio">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label mb-1 fs-sm" for="restriccionFechaFin">Fecha fin</label>
+                            <input type="date" class="form-control form-control-sm" name="fechaFin" id="restriccionFechaFin">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label mb-1 fs-sm" for="restriccionFechaRevaloracion">Fecha revaloración</label>
+                            <input type="date" class="form-control form-control-sm" name="fechaRevaloracion" id="restriccionFechaRevaloracion">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label mb-1 fs-sm" for="restriccionMedicoResponsable">Médico responsable</label>
+                            <input type="text" class="form-control form-control-sm" name="medicoResponsable" id="restriccionMedicoResponsable">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label mb-1 fs-sm" for="restriccionObservaciones">Observaciones</label>
+                            <input type="text" class="form-control form-control-sm" name="observaciones" id="restriccionObservaciones">
+                        </div>
+                        <div class="col-12 d-flex justify-content-end align-items-center gap-3">
+                            <span id="restriccionesResult" class="fs-sm"></span>
+                            <button type="button" class="btn btn-sm btn-primary" onclick="guardarRestriccion(this);">
+                                <i class="ri-save-line me-1"></i> Guardar restricción
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <div class="row">
                 <div class="col-md-6">
                     <label class="form-label d-block">Firma del paciente</label>

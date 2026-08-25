@@ -5,8 +5,12 @@ import com.onest.app.catalog.antidoping.client.dto.BiowsAntidopingReporteRequest
 import com.onest.app.catalog.antidoping.client.dto.BiowsAntidopingReporteResponse;
 import com.onest.app.catalog.antidoping.client.dto.BiowsAntidopingRequest;
 import com.onest.app.catalog.antidoping.client.dto.BiowsAntidopingResponse;
+import com.onest.app.catalog.antidoping.client.dto.BiowsAntidopingSeleccionAltaRequest;
+import com.onest.app.catalog.antidoping.client.dto.BiowsAntidopingSeleccionRequest;
+import com.onest.app.catalog.antidoping.client.dto.BiowsAntidopingSeleccionResponse;
 import com.onest.app.catalog.antidoping.dto.AntidopingDto;
 import com.onest.app.catalog.antidoping.dto.AntidopingReporteDto;
+import com.onest.app.catalog.antidoping.dto.AntidopingSeleccionDto;
 import com.onest.app.catalog.expediente.client.dto.BiowsProcesoResponse;
 import com.onest.app.config.BiowsProperties;
 import java.util.List;
@@ -26,6 +30,8 @@ public class BiowsAntidopingClient implements AntidopingClient {
     private static final String PATH_ANTIDOPING = "/Servcio/antidoping";
     private static final String PATH_CONSULTA_ANTIDOPING = "/Servcio/consulta_antidoping";
     private static final String PATH_REPORTE_FECHA = "/Servcio/consulta_antidoping_fecha";
+    private static final String PATH_SELECCION = "/Servcio/antidoping_seleccion";
+    private static final String PATH_CONSULTA_SELECCION = "/Servcio/consulta_antidoping_seleccion";
 
     private final RestClient biowsRestClient;
     private final BiowsProperties properties;
@@ -47,7 +53,12 @@ public class BiowsAntidopingClient implements AntidopingClient {
         if (response == null || response.datos() == null) {
             return List.of();
         }
-        return response.datos().stream().map(BiowsAntidopingClient::toDto).toList();
+        // "Sin datos" llega como un objeto sentinel dentro de Datos (Proceso/Estado/Mensaje/Data),
+        // no como arreglo vacio - sin id_registro, se mapearia como una fila fantasma con todo null.
+        return response.datos().stream()
+                .filter(d -> d.idRegistro() != null)
+                .map(BiowsAntidopingClient::toDto)
+                .toList();
     }
 
     @Override
@@ -78,6 +89,43 @@ public class BiowsAntidopingClient implements AntidopingClient {
             return List.of();
         }
         return response.datos().stream().map(BiowsAntidopingClient::toReporte).toList();
+    }
+
+    @Override
+    public String registrarSeleccion(BiowsAntidopingSeleccionAltaRequest request) {
+        log.info("[biows] POST {}{} NSS={}", properties.baseUrl(), PATH_SELECCION, request.nss());
+        BiowsProcesoResponse response = biowsRestClient.post()
+                .uri(PATH_SELECCION)
+                .body(request)
+                .retrieve()
+                .body(BiowsProcesoResponse.class);
+
+        if (response == null || response.datos() == null || response.datos().isEmpty()) {
+            return "";
+        }
+        return response.datos().get(0).proceso();
+    }
+
+    @Override
+    public List<AntidopingSeleccionDto> findSelecciones(String nss) {
+        log.info("[biows] POST {}{} NSS={}", properties.baseUrl(), PATH_CONSULTA_SELECCION, nss);
+        BiowsAntidopingSeleccionResponse response = biowsRestClient.post()
+                .uri(PATH_CONSULTA_SELECCION)
+                .body(new BiowsAntidopingSeleccionRequest(nss))
+                .retrieve()
+                .body(BiowsAntidopingSeleccionResponse.class);
+
+        if (response == null || response.datos() == null) {
+            return List.of();
+        }
+        return response.datos().stream()
+                .filter(d -> d.idRegistro() != null)
+                .map(BiowsAntidopingClient::toSeleccionDto)
+                .toList();
+    }
+
+    private static AntidopingSeleccionDto toSeleccionDto(BiowsAntidopingSeleccionResponse.Dato d) {
+        return new AntidopingSeleccionDto(d.idRegistro(), d.fechaSeleccion(), d.nss(), d.tamanoPool(), d.usuario());
     }
 
     private static AntidopingDto toDto(BiowsAntidopingResponse.Dato d) {

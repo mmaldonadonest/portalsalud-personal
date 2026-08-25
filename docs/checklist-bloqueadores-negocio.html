@@ -69,7 +69,7 @@
   <header class="masthead">
     <p class="eyebrow">Portal Salud · Salud Ocupacional</p>
     <h1>Decisiones de negocio pendientes</h1>
-    <p class="dek">Las 7 preguntas que bloqueaban funcionalidad específica en el portal quedaron resueltas el 20 de agosto de 2026 mediante una propuesta formal de ONEST Logistics. Ninguna implica código ya construido — cada una define el modelo/workflow para empezar a programar. Debajo: el detalle de cada una, lo que ya estaba resuelto antes, y una decisión que se <strong>revirtió</strong> el mismo día.</p>
+    <p class="dek">Las 7 preguntas que bloqueaban funcionalidad específica en el portal quedaron resueltas el 20 de agosto de 2026 mediante una propuesta formal de ONEST Logistics. Ninguna implica código ya construido — cada una define el modelo/workflow para empezar a programar. Debajo: el detalle de cada una, lo que ya estaba resuelto antes, una decisión que se <strong>revirtió</strong> el mismo día, y <strong>1 pregunta nueva</strong> encontrada el 21 de agosto (catálogo de sexo).</p>
     <div class="meta-row">
       <span>20 de agosto de 2026</span>
       <span class="sep">·</span>
@@ -144,6 +144,17 @@
     <p class="contexto">Sin definir el corte de acceso por rol (médico / gerente / auditor).</p>
     <p><strong>Decisión:</strong> RBAC + alcance organizacional — <strong>Rol + Empresa + Cuenta + Predio + Tipo de información</strong>. Los datos clínicos deben tener permisos independientes de los técnicos/administrativos: un administrador de TI no obtiene acceso automático al contenido clínico solo por administrar el sistema.</p>
     <div class="impacto"><span class="chip warn">Requiere aprobación formal</span><b>2.25 días de desarrollo — el más costoso de la lista</b></div>
+  </div>
+
+  <h2 class="group">RRHH / Médico Jefe <span class="who">Parcial</span></h2>
+
+  <div class="decision">
+    <span class="num">8</span>
+    <h3>Catálogo de sexo (<code>emp_sexo</code>): ¿cuál es el mapeo real?</h3>
+    <p class="contexto"><code>bio_empleado.emp_sexo</code> no tiene catálogo consistente. <strong>Valores distintos confirmados 21 de agosto</strong>: <code>M</code>, <code>m</code>, <code>F</code>, <code>f</code>, <code>H</code>, <code>HOMBRE</code>, <code>MUJER</code>, <code>O</code>, <code>X</code>, <code>1</code>, <code>2</code>, y vacío — 12 variantes, incluyendo mayúscula/minúscula tratadas como valores distintos.</p>
+    <p><strong>Respuesta parcial confirmada 21 de agosto:</strong> <code>1</code>=Hombre, <code>2</code>=Mujer. Junto con las variantes de texto inequívocas (<code>M</code>/<code>m</code>/<code>H</code>/<code>HOMBRE</code>=Hombre; <code>F</code>/<code>f</code>/<code>MUJER</code>=Mujer), quedan <strong>8 de 12 valores resueltos</strong> — ya implementado: el alta de Maternidad se bloquea si el sexo del NSS cae en esos 4 valores de Hombre.</p>
+    <p><strong>Sigue sin responder:</strong> <code>O</code>, <code>X</code> y vacío — no se bloquean hasta saber qué representan (bloquear sin saber inventaría una regla).</p>
+    <div class="impacto"><span class="chip warn">3 de 12 sin responder</span><b>Ya implementado para 8/12 valores</b><span style="margin-left:auto">RRHH / Médico Jefe</span></div>
   </div>
 
   <div class="revertido-wrap">

@@ -2,8 +2,10 @@ package com.onest.app.catalog.antidoping.service;
 
 import com.onest.app.catalog.antidoping.client.AntidopingClient;
 import com.onest.app.catalog.antidoping.client.dto.BiowsAntidopingAltaRequest;
+import com.onest.app.catalog.antidoping.client.dto.BiowsAntidopingSeleccionAltaRequest;
 import com.onest.app.catalog.antidoping.dto.AntidopingDto;
 import com.onest.app.catalog.antidoping.dto.AntidopingReporteDto;
+import com.onest.app.catalog.antidoping.dto.AntidopingSeleccionDto;
 import com.onest.app.catalog.antidoping.web.AntidopingAltaForm;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -80,6 +82,22 @@ public class AntidopingService {
                 USUARIO_FIJO,
                 usuarioActual());
         return client.crearAntidoping(request);
+    }
+
+    /**
+     * Registra la traza de la ronda de seleccion aleatoria (docs/ords-antidoping-seleccion.sql) -
+     * se llama una vez por cada NSS elegido. Separado del resultado real de la prueba.
+     */
+    public String registrarSeleccion(String nss, Integer tamanoPool) {
+        String normalized = normalizeNss(nss);
+        BiowsAntidopingSeleccionAltaRequest request = new BiowsAntidopingSeleccionAltaRequest(
+                normalized, tamanoPool, USUARIO_FIJO, usuarioActual());
+        return client.registrarSeleccion(request);
+    }
+
+    /** Historial de selecciones aleatorias - sin NSS regresa TODO el historial. */
+    public List<AntidopingSeleccionDto> historialSelecciones() {
+        return client.findSelecciones(null);
     }
 
     private String usuarioActual() {
