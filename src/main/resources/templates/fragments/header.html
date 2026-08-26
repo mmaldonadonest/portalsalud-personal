@@ -18,22 +18,13 @@
         <a href="javascript:void(0)" class="dropdown-link" data-bs-toggle="dropdown" data-bs-auto-close="outside"><i class="ri-settings-3-line"></i></a>
         <div class="dropdown-menu dropdown-menu-end mt-10-f">
             <label>Skin Mode</label>
+            <!-- "Onest" (vista previa del ONEST Digital Design System) es un 3er modo,
+                 mutuamente excluyente con Light/Dark - no existe una variante oscura del
+                 skin ONEST todavia, ver static/css/onest-skin.css / static/js/onest-skin.js. -->
             <nav id="skinMode" class="nav nav-skin">
-                <a href="javascript:void(0)" class="nav-link active">Light</a>
-                <a href="javascript:void(0)" class="nav-link">Dark</a>
-            </nav>
-            <hr>
-            <label>Sidebar Skin</label>
-            <nav id="sidebarSkin" class="nav nav-skin">
-                <a href="javascript:void(0)" class="nav-link active">Default</a>
-                <a href="javascript:void(0)" class="nav-link">Prime</a>
-                <a href="javascript:void(0)" class="nav-link">Dark</a>
-            </nav>
-            <hr>
-            <label>Direction</label>
-            <nav id="layoutDirection" class="nav nav-skin">
-                <a href="javascript:void(0)" class="nav-link active">LTR</a>
-                <a href="javascript:void(0)" class="nav-link">RTL</a>
+                <a href="javascript:void(0)" class="nav-link active" data-mode="light">Light</a>
+                <a href="javascript:void(0)" class="nav-link" data-mode="dark">Dark</a>
+                <a href="javascript:void(0)" class="nav-link" data-mode="onest">Onest</a>
             </nav>
         </div>
     </div>

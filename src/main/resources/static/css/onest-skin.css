@@ -1,0 +1,324 @@
+/* =============================================================================
+   ONEST Digital Design System v1.0 - capa de PREVIEW, activable/desactivable.
+   Fuente: ONEST Digital Design System v1.0.md (25-ago-2026).
+   Todo vive bajo html[data-brand="onest"] - si ese atributo no esta puesto, este
+   archivo no cambia nada (el skin actual queda intacto). Se activa/persiste desde
+   el dropdown "Skin Mode" del header (ver fragments/header.html + theme/assets/js
+   /onest-skin.js), independiente del toggle de Light/Dark ya existente del template.
+   ============================================================================= */
+
+html[data-brand="onest"] {
+  --onest-blue-900: #003E75;
+  --onest-blue-700: #00549E;
+  --onest-blue-500: #1677BD;
+  --onest-blue-300: #4FA8E0;
+  --onest-blue-100: #EAF3FA;
+
+  --onest-green-700: #2B9138;
+  --onest-green-500: #39B54A;
+  --onest-green-100: #EAF7EC;
+
+  --onest-gray-950: #20252B;
+  --onest-gray-700: #475467;
+  --onest-gray-500: #667085;
+  --onest-gray-300: #D0D5DD;
+  --onest-gray-200: #E1E6EB;
+  --onest-gray-100: #F2F4F7;
+  --onest-gray-50: #F8FAFC;
+
+  --onest-radius-sm: 6px;
+  --onest-radius-md: 8px;
+  --onest-radius-lg: 12px;
+
+  /* Re-mapea los tokens de Bootstrap que ya consume el template (doc §5) */
+  --bs-body-font-family: "Inter", "Arial", sans-serif;
+  --bs-body-bg: #F5F7F9;
+  --bs-body-color: var(--onest-gray-950);
+  --bs-border-color: var(--onest-gray-200);
+  --bs-border-radius: var(--onest-radius-md);
+  --bs-primary: var(--onest-blue-700);
+  --bs-primary-rgb: 0, 84, 158;
+  --bs-success: #22A447;
+  --bs-warning: #F59E0B;
+  --bs-danger: #D92D20;
+  --bs-info: var(--onest-blue-500);
+}
+
+html[data-brand="onest"] body {
+  background: var(--bs-body-bg);
+  font-family: var(--bs-body-font-family);
+  color: var(--onest-gray-950);
+}
+
+/* Tipografia: Montserrat para titulos/branding, Inter para el resto (doc §10-11) */
+html[data-brand="onest"] h1,
+html[data-brand="onest"] h2,
+html[data-brand="onest"] h3,
+html[data-brand="onest"] .main-title,
+html[data-brand="onest"] .card-title,
+html[data-brand="onest"] .sidebar-logo {
+  font-family: "Montserrat", "Arial", sans-serif;
+}
+
+/* Sidebar: tratamiento "ejecutivo" - degradado grafito-navy sutil (no un bloque
+   plano de azul corporativo, se ve mas plano/generico), azul ONEST reservado para
+   el estado activo (uso como acento, no como relleno - mismo espiritu que doc §6:
+   "indicadores activos"), verde SOLO como detalle minimo en el activo (doc §18). */
+html[data-brand="onest"] .sidebar {
+  /* Base (abajo, casi negra) -> hasta la base del logo (arriba, azul del sidebar
+     que pide el doc §9/§17, --onest-blue-900 = #003E75). */
+  background: linear-gradient(0deg, #050d1a 0%, var(--onest-blue-900) 100%);
+}
+html[data-brand="onest"] .sidebar .nav-label,
+html[data-brand="onest"][data-skin="dark"] .sidebar:not(.sidebar-prime) .sidebar-body .nav-label {
+  color: #fff;
+  letter-spacing: .08em;
+}
+html[data-brand="onest"] .sidebar .nav-link {
+  color: #fff;
+  border-radius: var(--onest-radius-sm);
+  margin: 1px 10px;
+  transition: background-color .15s ease, color .15s ease;
+}
+html[data-brand="onest"] .sidebar .nav-link:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, .06);
+}
+html[data-brand="onest"] .sidebar .nav-link i {
+  color: inherit;
+  opacity: .95;
+}
+/* Linea horizontal del theme entre grupos de nav (border-bottom: 1px solid #f3f5f9,
+   pensada para sidebar claro) - se ve como una raya blanca brillante sobre el
+   degradado oscuro sin esto. */
+html[data-brand="onest"] .sidebar-body .nav-group {
+  border-bottom-color: rgba(255, 255, 255, .08);
+}
+html[data-brand="onest"] .sidebar .nav-link.active,
+html[data-brand="onest"] .sidebar .nav-item.show > .nav-link {
+  color: #fff;
+  background: linear-gradient(90deg, rgba(22, 119, 189, .35) 0%, rgba(22, 119, 189, .12) 100%);
+  box-shadow: inset 2px 0 0 var(--onest-green-500);
+}
+html[data-brand="onest"] .sidebar .nav-link.active i {
+  opacity: 1;
+}
+/* Sub-items del submenu dinamico (Expediente General -> E. Laboratorio, Nota
+   Medica, etc. - fragments/nss-modules.html, clase .nav-sub-link, DISTINTA de
+   .nav-link) - el theme los trae en gris (#6e7985 / activo #212830), pensados
+   para fondo claro. */
+html[data-brand="onest"] .sidebar .nav-sub-link,
+html[data-brand="onest"][data-skin="dark"] .sidebar:not(.sidebar-prime) .nav-sidebar .nav-sub-link {
+  color: #fff;
+}
+html[data-brand="onest"] .sidebar .nav-sub-link::before,
+html[data-brand="onest"][data-skin="dark"] .sidebar:not(.sidebar-prime) .nav-sidebar .nav-sub-link::before {
+  background-color: rgba(255, 255, 255, .5);
+}
+html[data-brand="onest"] .sidebar .nav-sub-link:hover,
+html[data-brand="onest"] .sidebar .nav-sub-link:focus {
+  color: #fff;
+}
+/* Respaldo por si queda "data-skin=dark" pegado de una sesion anterior (ver el
+   mismo caso ya corregido en .nav-label) - el theme trae reglas mas especificas
+   bajo [data-skin=dark] que ganarian sobre las de arriba y dejarian el texto/
+   linea en blanco/azul en vez del verde que pide el skin para el item activo. */
+html[data-brand="onest"] .sidebar .nav-sub-link.active,
+html[data-brand="onest"][data-skin="dark"] .sidebar:not(.sidebar-prime) .nav-sidebar .nav-sub-link.active {
+  background-image: linear-gradient(90deg, rgba(255, 255, 255, .14) 0%, rgba(255, 255, 255, 0) 100%);
+  color: var(--onest-green-700);
+  font-weight: 500;
+}
+html[data-brand="onest"] .sidebar .nav-sub-link.active i {
+  color: var(--onest-green-700);
+}
+html[data-brand="onest"] .sidebar .nav-sub-link.active::before,
+html[data-brand="onest"][data-skin="dark"] .sidebar:not(.sidebar-prime) .nav-sidebar .nav-sub-link.active::before {
+  background-color: var(--onest-green-700);
+}
+/* pages/nss-search.html trae un <style> propio con "#nssModulesSub .nav-sub-link.active"
+   (selector por ID, azul #506fd9 hardcodeado) - un ID le gana a cualquier combinacion
+   de clases de arriba sin importar el orden en la cascada, por eso el activo seguia
+   viendose azul pese a los overrides anteriores. Se iguala la especificidad por ID
+   y se agrega el atributo del skin para ganar tambien ahi. */
+html[data-brand="onest"] #nssModulesSub .nav-sub-link.active {
+  background-color: transparent;
+  background-image: linear-gradient(90deg, rgba(255, 255, 255, .14) 0%, rgba(255, 255, 255, 0) 100%);
+  color: var(--onest-green-700);
+}
+html[data-brand="onest"] #nssModulesSub .nav-sub-link.active i {
+  color: var(--onest-green-700);
+}
+html[data-brand="onest"] #nssModulesSub .nav-sub-link.active::before {
+  background-color: var(--onest-green-700);
+}
+html[data-brand="onest"] .sidebar-footer,
+html[data-brand="onest"] .sidebar-footer-menu {
+  background: #0b1c30;
+  border-color: rgba(255, 255, 255, .1);
+  /* El theme trae "box-shadow: -20px -20px 20px #fff" en .sidebar-footer (pensado
+     para que se mezcle con un sidebar CLARO) - sin anularlo se ve como una nube
+     blanca flotando encima del navy oscuro. */
+  box-shadow: none;
+}
+html[data-brand="onest"] .sidebar-footer-body h6 a,
+html[data-brand="onest"] .sidebar-footer-body p {
+  color: #fff;
+}
+/* Links del menu del footer (Edit Profile/Help Center/Log Out/etc.) - el theme
+   los trae en gris oscuro (#41505f), pensado para fondo claro; ilegibles sobre
+   el navy oscuro sin este override. */
+html[data-brand="onest"] .sidebar-footer-menu a {
+  color: #fff;
+}
+html[data-brand="onest"] .sidebar-footer-menu a:hover,
+html[data-brand="onest"] .sidebar-footer-menu a:focus {
+  background-color: rgba(255, 255, 255, .1);
+  color: #fff;
+}
+html[data-brand="onest"] .sidebar-footer-menu hr {
+  border-color: rgba(255, 255, 255, .15);
+  opacity: 1;
+}
+html[data-brand="onest"] .sidebar-footer .dropdown-link {
+  color: #fff;
+}
+html[data-brand="onest"] .sidebar-footer .dropdown-link:hover,
+html[data-brand="onest"] .sidebar-footer .dropdown-link:focus {
+  background-color: rgba(255, 255, 255, .1);
+  color: #fff;
+}
+
+/* Franja blanca detras del logo del sidebar - el PNG (logo-onest-smartlogistics.png)
+   trae "ONEST" en azul marino + "SMART" en verde, pensado para fondo claro; sobre
+   un sidebar oscuro el texto azul se pierde. Franja simple, sin tarjeta flotante. */
+html[data-brand="onest"] .sidebar-header {
+  background: #fff;
+  border-bottom: 1px solid var(--onest-gray-200);
+}
+
+/* Header superior: sin color propio - se quita el tratamiento oscuro que se
+   habia agregado, queda en su estilo por defecto del theme. La identidad
+   visual del skin ONEST se concentra en el sidebar. Unico ajuste: la sombra
+   del theme es casi imperceptible (alpha .01) - se refuerza para separar
+   visualmente el header del contenido. */
+html[data-brand="onest"] .header-main {
+  box-shadow: 0 2px 4px rgba(16, 30, 54, .08), 0 8px 16px rgba(16, 30, 54, .06);
+}
+
+/* Footer de pagina: "anclado al fondo" - .main ya trae min-height:100vh del
+   theme, solo falta volverlo columna flex y empujar el footer con margin-top
+   auto para que quede pegado a la base del viewport en paginas con poco
+   contenido (y siga fluyendo normal, no flotando encima, en paginas largas). */
+html[data-brand="onest"] .main {
+  display: flex;
+  flex-direction: column;
+}
+html[data-brand="onest"] .main-footer {
+  margin-top: auto;
+}
+/* Bug del theme (no exclusivo de este skin, pero solo se corrige aqui para no
+   tocar el skin actual): ".main-footer span" trae "display:block" y aplica a
+   CUALQUIER span anidado dentro del footer, no solo a los 2 de primer nivel -
+   fragments/footer.html anida spans para el anio/nombre de la app dentro del
+   primer span, y eso los parte cada uno en su propia linea. Se regresan a
+   inline solo los spans internos (los 2 de primer nivel siguen en block para
+   conservar el layout flex space-between del theme). */
+html[data-brand="onest"] .main-footer > span span {
+  display: inline;
+}
+
+/* Botones (doc §13-15): azul dominante, verde SOLO para exito/confirmar */
+html[data-brand="onest"] .btn-primary {
+  background: var(--onest-blue-700);
+  border-color: var(--onest-blue-700);
+  border-radius: var(--onest-radius-md);
+}
+html[data-brand="onest"] .btn-primary:hover,
+html[data-brand="onest"] .btn-primary:active,
+html[data-brand="onest"] .btn-primary.active {
+  background: var(--onest-blue-900);
+  border-color: var(--onest-blue-900);
+}
+html[data-brand="onest"] .btn-outline-primary {
+  color: var(--onest-blue-700);
+  border-color: var(--onest-blue-700);
+}
+/* Grid de secciones del examen medico (heredofamiliares/personales/exploracion) -
+   muchos botones pequenos pegados uno a otro se leen amontonados; mas aire entre
+   grupos y entre botones, y la etiqueta del grupo un poco mas separada. */
+html[data-brand="onest"] .examen-grupo {
+  margin-bottom: 1.25rem !important;
+}
+html[data-brand="onest"] .examen-grupo .text-uppercase {
+  margin-bottom: .5rem !important;
+  color: var(--onest-blue-700);
+  letter-spacing: .04em;
+}
+html[data-brand="onest"] .examen-secciones-grid {
+  gap: .5rem .625rem !important;
+}
+html[data-brand="onest"] .examen-secciones-grid .btn {
+  padding-top: .4rem;
+  padding-bottom: .4rem;
+}
+html[data-brand="onest"] .btn-outline-primary:hover,
+html[data-brand="onest"] .btn-outline-primary:focus,
+html[data-brand="onest"] .btn-outline-primary:active {
+  background: var(--onest-blue-700);
+  border-color: var(--onest-blue-700);
+  color: #fff;
+}
+html[data-brand="onest"] .btn-success {
+  background: var(--onest-green-500);
+  border-color: var(--onest-green-500);
+}
+html[data-brand="onest"] .btn-success:hover,
+html[data-brand="onest"] .btn-success:active {
+  background: var(--onest-green-700);
+  border-color: var(--onest-green-700);
+}
+
+/* Links y foco (doc §23, §35) */
+html[data-brand="onest"] a {
+  color: var(--onest-blue-700);
+}
+html[data-brand="onest"] a:hover {
+  color: var(--onest-blue-900);
+}
+html[data-brand="onest"] .form-control:focus,
+html[data-brand="onest"] .form-select:focus {
+  border-color: var(--onest-blue-700);
+  box-shadow: 0 0 0 3px rgba(0, 84, 158, .12);
+}
+html[data-brand="onest"] .breadcrumb-item a {
+  color: var(--onest-blue-900);
+}
+html[data-brand="onest"] .breadcrumb-item.active {
+  color: var(--onest-green-700);
+  font-weight: 500;
+}
+
+/* Cards (doc §16) */
+html[data-brand="onest"] .card-one,
+html[data-brand="onest"] .card {
+  border: 1px solid var(--onest-gray-200);
+  border-radius: var(--onest-radius-lg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
+}
+
+/* Badges (doc §32) - las variantes de estado (success/warning/danger) conservan su
+   significado semantico, NO se convierten a azul/verde de marca (doc §8, "un error
+   debe mantenerse rojo"). */
+html[data-brand="onest"] .badge.bg-primary {
+  background: var(--onest-blue-700) !important;
+}
+html[data-brand="onest"] .badge.bg-success,
+html[data-brand="onest"] .badge.ok {
+  background: var(--onest-green-100) !important;
+  color: var(--onest-green-700) !important;
+}
+html[data-brand="onest"] .badge.pend {
+  background: var(--onest-blue-100) !important;
+  color: var(--onest-blue-700) !important;
+}

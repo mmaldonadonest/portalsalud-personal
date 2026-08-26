@@ -12,9 +12,9 @@
             <span class="badge bg-primary" th:text="'NSS ' + ${nss}">NSS</span>
         </div>
         <div class="card-body">
-            <div th:each="g : ${grupos}" class="mb-2">
+            <div th:each="g : ${grupos}" class="examen-grupo mb-2">
                 <div class="text-uppercase fs-xs text-muted fw-semibold mb-1" th:text="${g.nombre}">Grupo</div>
-                <div class="d-flex flex-wrap gap-2 mb-2">
+                <div class="examen-secciones-grid d-flex flex-wrap gap-2 mb-2">
                     <button th:each="s : ${g.secciones}" type="button"
                             class="btn btn-sm btn-outline-primary"
                             th:text="${s}"

@@ -10,27 +10,27 @@
 
 | Parámetro | Valor |
 |---|---|
-| Host | `_______________________` |
-| Puerto | `_______________________` (default 3306) |
+| Host | `10.249.249.4` |
+| Puerto | `3306` (default 3306) — **⚠️ NO abierto todavía**. Falta gestionar el acceso de red/firewall hacia este puerto desde donde corra el ETL antes de poder conectar. No arrancar la ejecución sin confirmar esto primero. |
 | Base de datos | `servicioMedico` |
-| Usuario | `_______________________` |
-| Password | `_______________________` |
-| Charset de conexión | **`utf8mb4` obligatorio** — ver sección 5, hallazgo de encoding |
+| Usuario | `root` |
+| Password | `SysRut.000` |
+| Charset de conexión | **`utf8mb4` obligatorio** — ver sección 5, hallazgo de encoding. **No confundir con el charset del servidor/BD:** `SHOW VARIABLES LIKE 'character_set_%'` en este origen muestra `character_set_database`/`character_set_server` = `latin1` — es solo el default que heredaría una tabla NUEVA sin charset propio, **no aplica a `files`/`tags`**, que ya declaran su propio `CHARSET=utf8` a nivel de tabla (ver `SHOW CREATE TABLE` abajo). **No hay que tocar el charset del servidor/BD** — solo forzar `utf8mb4` en la conexión/herramienta que hace la extracción, sin depender de qué default traiga esa herramienta en particular |
 
-### Destino — Oracle (portal-salud)
+### Destino — Oracle QA (portal-salud)
 
 | Parámetro | Valor |
 |---|---|
-| Host | `_______________________` |
-| Puerto | `_______________________` (default 1521) |
-| Servicio / SID | `_______________________` |
-| Schema / usuario destino | `_______________________` |
-| Password | `_______________________` |
-| **¿Cuál instancia?** | `_______________________` — este proyecto tiene 3 instancias Oracle distintas con distinto grado de avance (local `PROYECTO_BASE_PDB`, QA `ONEWMS_QA` en `200.94.116.132`, y la instancia real que respalda el WS ORDS en `10.249.249.3`). **Confirmar explícitamente cuál es el destino real antes de correr nada** — no son intercambiables, cada una tiene datos distintos hoy. |
+| Host | `200.94.116.132` |
+| Puerto | `1521` (default 1521) |
+| Servicio / SID | `orclpdb` |
+| Schema / usuario destino | `ONEWMS_QA` |
+| Password | `Ol3rOn3.c4Wm5.3` |
+| **¿Cuál instancia?** | **Confirmado: QA (`ONEWMS_QA` @ `200.94.116.132`)** — de las 3 instancias Oracle de este proyecto (local `PROYECTO_BASE_PDB`, QA `ONEWMS_QA`, y la instancia real que respalda el WS ORDS en `10.249.249.3`, no intercambiables entre sí), esta migración corre contra QA. |
 
 ### Pre-requisito: el esquema Oracle destino ya debe existir
 
-Este ETL **no crea las tablas destino** — asume que `APP_FS_FILE` y `MED_TAG` ya existen en el schema elegido, con el DDL exacto que usa el portal Java. Confirmado que existen (vacías, listas para carga) en local y en QA (`ONEWMS_QA`) al 2026-07-30; **no confirmado** en la instancia real de `10.249.249.3`. Si el destino termina siendo esa instancia (o cualquier otra sin el esquema aplicado), correr primero, en este orden, los scripts del repositorio del portal Java:
+Este ETL **no crea las tablas destino** — asume que `APP_FS_FILE` y `MED_TAG` ya existen en el schema elegido, con el DDL exacto que usa el portal Java. **Resuelto y re-confirmado para el destino (QA `ONEWMS_QA`):** ambas tablas existen ahí — columnas verificadas directamente con `DESCRIBE` el 2026-08-25 (ver el mapeo exacto en la sección 3) — no hace falta correr ningún script antes de cargar. Se deja la lista de scripts como referencia por si en algún momento el destino cambia a una instancia sin el esquema aplicado:
 
 1. `src/main/resources/db/sql/00_init_oracle21c.sql` — crea `APP_FS_FILE` (script autoritativo) + tablas satélite/FKs.
 2. `src/main/resources/db/sql/app_domain/app-fs-file.sql` y `app-fs-file-reconcile.sql` — reconcilian columnas si `APP_FS_FILE` ya existe con una forma distinta (hay un antecedente real de esto: bug `ORA-00904 FILE_TYPE` por dos `CREATE TABLE` con formas distintas corriendo en el mismo destino).
@@ -44,10 +44,14 @@ El binario decodificado de `files` (ver sección 3) **no se guarda en Oracle** �
 
 | Valor | Estado |
 |---|---|
-| `C:/portal-salud/files` | **Activo hoy** — ruta de la máquina de desarrollo local (Windows), usada en la corrida de prueba del 2026-08-13 |
-| `/home/onedev/apps/exec/apache11_app_jdk21/filessalud` | Comentado/inactivo en el código — parece ser la ruta real de despliegue (Linux), **sin confirmar** |
+| `C:/portal-salud/files` | Perfil `local` (`application-local.properties`) — máquina de desarrollo (Windows). **No es la ruta a usar en esta migración.** |
+| `/mnt/data/onedev/apps/exec/filessalud` | **Confirmado — perfil `prod`** (`application-prod.properties`), servidor `10.249.249.4` |
 
-**Confirmar explícitamente, junto con el destino Oracle de arriba, la ruta de filesystem real donde este ETL debe escribir los binarios** — no asumir ninguna de las dos rutas de la tabla sin validarlo con el equipo del portal. El proceso ETL (del lado de Oracle) necesita acceso de escritura a esa ruta/mount antes de correr.
+**Ruta confirmada: `/mnt/data/onedev/apps/exec/filessalud` en `10.249.249.4`, usuario `onedev`.** Ya corregido en el código (2026-08-25): `portal.files.root` se quitó de `application.properties` (no tenía un default correcto, se dejó comentado por error) y ahora se define explícito por perfil — `application-local.properties` (Windows) y `application-prod.properties` (esta ruta). El equipo externo necesita permisos de escritura en esa ruta como (o equivalente a) el usuario `onedev` — confirmar si es el usuario del sistema operativo dueño del directorio, o el usuario con el que deben conectarse (SSH/SFTP) para escribir ahí.
+
+**⚠️ Cableado PROVISIONAL para ensayar este ETL (2026-08-25), no es la configuración final:** `application-prod.properties` — que trae la ruta real de filesystem de arriba — se apuntó temporalmente al datasource de **`ONEWMS_QA`** (la misma Oracle "provisional" de la tabla de Conexiones, usada aquí solo para ensayar el ETL sin arriesgar una Oracle de producción real que todavía no existe/no está lista). Es decir: hoy, el perfil `prod` = filesystem real (`10.249.249.4`) + Oracle provisional (QA). **Antes del *go-live* real, hay que volver a cablear `spring.datasource.*` en `application-prod.properties` a la Oracle de producción definitiva** (no dejar `ONEWMS_QA` ahí de forma permanente) — el filesystem real (`10.249.249.4`) sí se queda igual.
+
+No asumir ninguna otra ruta sin validarlo con el equipo del portal. El proceso ETL (del lado de Oracle) necesita acceso de escritura a esa ruta/mount antes de correr.
 
 ---
 
@@ -64,8 +68,7 @@ El binario decodificado de `files` (ver sección 3) **no se guarda en Oracle** �
 
 **⚠️ La corrida "migrado y verificado" de arriba fue contra Oracle LOCAL de desarrollo, NO contra QA ni contra la instancia real detrás del WS ORDS.** Sirvió para validar que el mapeo/proceso funciona end-to-end (conteos exactos, checksums, muestreo de archivos abiertos y validados — detalle en `u09-etl`), pero **no reemplaza la migración final**. Falta ejecutar (o re-ejecutar) formalmente contra el destino Oracle que se confirme en la sección 1, con el conteo de origen re-tomado en ese momento.
 
-**⚠️ Pregunta abierta para confirmar con el equipo externo / stakeholder que autorizó esta migración:**
-¿El alcance de "migración histórica" es exactamente este (`files` + `tags`) — en cuyo caso lo que falta es correr formalmente esta misma carga contra el destino Oracle real — o existe otro origen de datos (otra base, otro sistema, un dump distinto) que todavía no se ha identificado? No se debe asumir que hay más tablas de las que aquí se documentan sin confirmarlo.
+**✅ Alcance confirmado (2026-08-25): es exactamente `files` + `tags`, no hay otro origen de datos.** Lo que falta es correr formalmente esta misma carga (ya validada end-to-end en LOCAL) contra el destino Oracle real (QA `ONEWMS_QA`, sección 1).
 
 ### Esquema de origen (referencia exacta, `SHOW CREATE TABLE`)
 
@@ -93,13 +96,45 @@ CREATE TABLE `tags` (
 
 ## 3. Mapeo de destino en Oracle
 
+Columnas reales verificadas en QA (`DESCRIBE APP_FS_FILE` / `DESCRIBE MED_TAG`, 2026-08-25) y valores exactos confirmados contra el runner Java propio ya ejecutado y probado (`com.onest.app.catalog.file.etl`, ver sección 7) — no son una propuesta, es lo que YA corrió con éxito contra Oracle LOCAL.
+
 ### `files` → `APP_FS_FILE` + filesystem
-- **NO** se guarda el binario en Oracle (se descartó explícitamente meter 13.5GB reales a la BD). El binario decodificado va al filesystem del servidor del portal, con sharding `yyyy/MM/dd/<2 hex del sha256>/<uuid>.<ext>`.
-- `APP_FS_FILE` guarda solo metadatos: NSS, tipo, checksum SHA-256, ruta, fecha original (`date_upload`, **no** la fecha de la corrida del ETL).
-- `type` se copia tal cual a `FILE_TYPE`, sin normalizar (es polimórfico, ver esquema arriba).
+**NO** se guarda el binario en Oracle (se descartó explícitamente meter 13.5GB reales a la BD) — el binario decodificado va al filesystem (sección 1), con sharding `yyyy/MM/dd/<2 hex del sha256>/<uuid>.<ext>`. `APP_FS_FILE` solo guarda metadatos:
+
+| Columna `APP_FS_FILE` | Origen / valor |
+|---|---|
+| `NSS` | `files.nss` tal cual |
+| `BUSINESS_KEY` | `'legacy-' \|\| files.id` — idempotencia (permite reintentar sin duplicar) |
+| `FILE_TYPE` | `files.type` tal cual, **sin normalizar** (es polimórfico: categoría funcional o hash MD5 de consulta) |
+| `ORIGINAL_NAME` | `files.name` (base, sin extensión) |
+| `EXTENSION` | de `files.name` si la trae; si no, resuelta por magic-bytes (`%PDF`, `\x89PNG`, `\xFF\xD8\xFF`) — 3 casos conocidos sin extensión |
+| `MIME_TYPE` | derivado de la extensión resuelta |
+| `SIZE_BYTES` | tamaño del binario ya decodificado (no el tamaño del base64) |
+| `CHECKSUM_SHA256` | SHA-256 del binario decodificado |
+| `STORAGE_PATH` | ruta relativa a `portal.files.root` generada por el sharding de arriba |
+| `STORAGE_PROVIDER` | literal `'FILESYSTEM'` |
+| `STATUS` | literal `'ACTIVE'` |
+| `CURRENT_VERSION` / `VERSION` | literal `1` |
+| `DATE_UPLOAD` | `files.date_upload` (fecha **original** del legacy — NO la fecha de la corrida del ETL) |
+| `CREATED_BY` | literal `'ETL_LEGACY'` (mismo valor usado en la corrida propia — permite distinguir estas filas de las creadas por el portal en uso normal) |
+| `CREATED_AT` | se deja al `DEFAULT SYSTIMESTAMP` de la columna — no hace falta setearlo |
+
+Excluir las 27 filas con `url` vacío (huérfanas, ver sección 5).
 
 ### `tags` → `MED_TAG`
-- Copia directa fila por fila, `longtext` → `CLOB`. Es un patrón EAV puro (`type`=campo, `content`=valor), no requiere transformación de estructura.
+Patrón EAV puro (`type`=campo, `content`=valor), `longtext` → `CLOB`, sin transformación de estructura:
+
+| Columna `MED_TAG` | Origen / valor |
+|---|---|
+| `NSS` | `tags.nss` tal cual (117 filas con `nss` NULL son legítimas, no excluir) |
+| `TYPE` | `tags.type` tal cual |
+| `CONTENT` | `tags.content` tal cual (27% vacío es normal, EAV disperso) |
+| `TAG_GROUP` | `FN_MED_TAG_GROUP(tags.type)` — función PL/SQL ya existente en el destino (`tags-salud.sql`), NO calcularlo del lado del ETL |
+| `SOURCE_ID` | `tags.id` — idempotencia (`SELECT COUNT(*) FROM MED_TAG WHERE SOURCE_ID = ?` antes de insertar) |
+| `CREATED_BY` | mismo criterio que `files`, usar un literal identificable (ej. `'ETL_LEGACY'`) |
+| `MIGRATED_AT` / `CREATED_AT` | `SYSTIMESTAMP` (fecha de la corrida del ETL — a diferencia de `files`, aquí no hay una fecha original que preservar) |
+
+Verificación esperada tras la carga: 137 valores distintos de `TYPE`, cero filas con `TAG_GROUP` = `'OTRO'` (indicaría un `type` nuevo no cubierto por `FN_MED_TAG_GROUP`).
 
 ---
 
@@ -111,7 +146,7 @@ CREATE TABLE `tags` (
 4. **Base64 limpio**, sin prefijo `data:` ni saltos de línea — decodificación directa.
 5. **Commits por lote, no todo en una transacción** — el volumen de `files` es grande (~18GB), evitar un solo `INSERT` masivo.
 6. **Modo de muestra antes de la corrida completa** — validar ~50-60 filas representativas (de cada `type`, incluyendo duplicados y casos límite) antes de correr el total.
-7. **Verificar/alterar el índice de checksum ANTES de cargar `files`.** El DDL de origen (`00_init_oracle21c.sql`) crea `UX_FS_FILE_CHECKSUM` como **UNIQUE** sobre `APP_FS_FILE.CHECKSUM_SHA256`. Hay contenido duplicado legítimo (mismo PDF adjuntado a varios NSS/consultas — 261 casos conocidos al 2026-08-13), no es basura a deduplicar; con el índice UNIQUE, la segunda copia de cada duplicado falla con `ORA-00001`. Ya se cambió a NONUNIQUE en Oracle LOCAL de desarrollo; **sigue pendiente en QA**, y se desconoce su estado en la instancia real de `10.249.249.3`. Confirmar el estado de este índice en el destino elegido (sección 1) y alterarlo a NONUNIQUE si sigue como UNIQUE, antes de correr la carga completa.
+7. **Índice de checksum — RESUELTO en QA (2026-08-25).** El DDL de origen (`00_init_oracle21c.sql`) crea `UX_FS_FILE_CHECKSUM` como UNIQUE sobre `APP_FS_FILE.CHECKSUM_SHA256`; hay contenido duplicado legítimo (mismo PDF adjuntado a varios NSS/consultas — 261 casos conocidos), y con el índice UNIQUE la segunda copia de cada duplicado fallaría con `ORA-00001`. **Ya aplicado en ambos destinos:** Oracle LOCAL de desarrollo y ahora también QA `ONEWMS_QA` quedaron en **NONUNIQUE** (confirmado por consulta directa tras aplicar `docs/ords-fix-checksum-index-qa.sql`). No queda ninguna acción pendiente en este punto.
 
 ---
 
