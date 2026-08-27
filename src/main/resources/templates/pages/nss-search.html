@@ -866,28 +866,60 @@
                 }
             }
 
-            // Examen medico (U07): carga una seccion en #examenSecciones sin recargar (irAContenido).
-            // Toggle real: si la seccion ya esta abierta (boton activo), el mismo boton la cierra
-            // en vez de recargarla - se pierde lo que no se haya guardado en esa seccion, igual
-            // que ocultar cualquier formulario sin guardar.
-            window.cargarSeccionExamen = async function (btn) {
-                var seccion = btn.getAttribute('data-seccion');
-                var nss = btn.getAttribute('data-nss') || (input.value || '').trim();
-                var cont = document.getElementById('examenSecciones');
-                if (!cont) {
+            // Examen medico (U07): cada grupo (acordeon) tiene sus secciones como tabs.
+            // El contenido de un tab se carga UNA vez (lazy, al activarse por primera
+            // vez) y se queda en el DOM al cambiar de tab - a diferencia del viejo
+            // boton-toggle, cambiar de tab ya no borra lo que no hayas guardado.
+            //
+            // El badge del grupo cuenta las secciones marcadas con la palomita (data-checked),
+            // NO las simplemente visitadas/cargadas - es una marca deliberada del usuario
+            // ("ya revise/conteste esto"), a diferencia de solo abrir el tab. Se prefirio asi
+            // porque el WS no da una senal confiable de "tiene datos reales" (ver conversacion
+            // 2026-08-26: PR_SERVICIO_MED_CONSULTA rellena todo con defaults tipo "sin
+            // observaciones"/0 aunque la seccion nunca se haya contestado) - la unica fuente
+            // de verdad que queda es que el usuario mismo la marque.
+            function actualizarBadgeGrupoExamen(grupo) {
+                if (!grupo) {
                     return;
                 }
-                var abierta = cont.querySelector('[data-seccion="' + seccion.replace(/"/g, '') + '"]');
-                if (abierta && btn.classList.contains('active')) {
-                    abierta.remove();
-                    btn.classList.remove('active');
+                var badge = grupo.querySelector('.examen-grupo-badge');
+                if (!badge) {
                     return;
                 }
-                // Feedback inmediato mientras llega la respuesta del servidor (evita la sensacion
-                // de que el clic no hizo nada durante el round-trip).
-                var textoOriginal = btn.textContent;
-                btn.disabled = true;
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' + textoOriginal;
+                var total = grupo.querySelectorAll('.examen-tabs .nav-link[data-checked="true"]').length;
+                if (total > 0) {
+                    badge.textContent = total;
+                    badge.classList.remove('d-none');
+                } else {
+                    badge.classList.add('d-none');
+                }
+            }
+
+            // Palomita manual en cada tab: clic marca/desmarca en verde y ajusta el contador
+            // del grupo. stopPropagation evita que el clic tambien dispare el cambio de tab
+            // (data-bs-toggle="tab" esta en el boton padre, no en el icono).
+            window.toggleTabCheck = function (icon, event) {
+                event.stopPropagation();
+                var tab = icon.closest('.nav-link');
+                var marcar = tab.getAttribute('data-checked') !== 'true';
+                tab.setAttribute('data-checked', marcar ? 'true' : 'false');
+                icon.classList.toggle('ri-checkbox-blank-circle-line', !marcar);
+                icon.classList.toggle('ri-checkbox-circle-fill', marcar);
+                icon.classList.toggle('examen-tab-check--on', marcar);
+                actualizarBadgeGrupoExamen(tab.closest('.examen-grupo'));
+            };
+
+            // Carga el formulario de una seccion dentro de su tab-pane (una sola vez -
+            // si ya tiene data-loaded="true" no vuelve a pedirlo al servidor).
+            async function cargarPaneExamen(pane) {
+                if (!pane || pane.dataset.loaded === 'true' || pane.dataset.loading === 'true') {
+                    return;
+                }
+                var seccion = pane.getAttribute('data-seccion');
+                var tab = document.querySelector('.examen-tabs [data-bs-target="#' + pane.id + '"]');
+                var nss = (tab && tab.getAttribute('data-nss')) || (input.value || '').trim();
+                pane.dataset.loading = 'true';
+                pane.innerHTML = '<div class="text-muted fs-sm py-2"><span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Cargando...</div>';
                 try {
                     var body = new URLSearchParams();
                     body.append('data', seccion);
@@ -902,29 +934,41 @@
                         body: body.toString()
                     });
                     if (!response.ok) {
-                        status.textContent = 'Error al cargar la seccion (HTTP ' + response.status + ').';
+                        pane.innerHTML = '<div class="alert alert-danger mb-0">Error al cargar la seccion (HTTP ' + response.status + ').</div>';
                         return;
                     }
-                    var tmp = document.createElement('div');
-                    tmp.innerHTML = await response.text();
-                    var nuevo = tmp.firstElementChild;
-                    if (!nuevo) {
-                        return;
-                    }
-                    if (abierta) {
-                        abierta.replaceWith(nuevo);
-                    } else {
-                        cont.appendChild(nuevo);
-                        nuevo.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                    }
-                    btn.classList.add('active');
+                    pane.innerHTML = await response.text();
+                    pane.dataset.loaded = 'true';
                 } catch (error) {
-                    status.textContent = 'Error de red al cargar la seccion.';
+                    pane.innerHTML = '<div class="alert alert-danger mb-0">Error de red al cargar la seccion.</div>';
                 } finally {
-                    btn.disabled = false;
-                    btn.textContent = textoOriginal;
+                    pane.dataset.loading = 'false';
                 }
-            };
+            }
+
+            // Delegado en #moduleContent (existe desde el arranque de la pagina) en vez de
+            // #examenAccordion (se inyecta despues via innerHTML cuando se abre el modulo
+            // Examen - un addEventListener directo sobre el no encontraria nada todavia).
+            // El tab que arranca activo por default (el primero de cada grupo) no dispara
+            // "shown.bs.tab" al renderizarse (no hay cambio de tab, ya nace activo) - se
+            // carga aparte cuando el usuario abre el acordeon de ese grupo por primera vez.
+            var moduleContentEl = document.getElementById('moduleContent');
+            if (moduleContentEl) {
+                moduleContentEl.addEventListener('shown.bs.collapse', function (e) {
+                    if (!e.target.closest('#examenAccordion')) {
+                        return;
+                    }
+                    cargarPaneExamen(e.target.querySelector('.examen-tab-content .tab-pane.active'));
+                });
+                // Cambios de tab subsecuentes (clic del usuario).
+                moduleContentEl.addEventListener('shown.bs.tab', function (e) {
+                    if (!e.target.closest('#examenAccordion')) {
+                        return;
+                    }
+                    var target = e.target.getAttribute('data-bs-target');
+                    cargarPaneExamen(target ? document.querySelector(target) : null);
+                });
+            }
 
             // Antecedentes laborales - trabajos previos: fila repetible dentro de #trabajosPrevios.
             // No se precarga desde el WS (ver comentario en examen-shell.html); solo agrega/quita filas nuevas.
@@ -971,15 +1015,25 @@
             };
 
             // Guarda el examen completo: recolecta los campos de las secciones cargadas + firma.
+            // Las secciones ahora viven en los tab-panes del acordeon (#examenAccordion), no en
+            // un contenedor unico - solo importan los panes con contenido real (data-loaded),
+            // los que nunca se visitaron siguen con el placeholder "Selecciona esta pestaña..."
+            // sin inputs, asi que igual no aportarian campos aunque se incluyeran.
             window.guardarExamen = async function (btn) {
-                var cont = document.getElementById('examenSecciones');
+                var cont = document.getElementById('examenAccordion');
                 var trabajos = document.getElementById('trabajosPrevios');
                 // Diagnostico solo es obligatorio si esa seccion esta abierta - las secciones no
                 // cargadas no se mandan (evita clobber), asi que no tiene sentido exigirlo si el
                 // usuario esta guardando otras secciones sin haber tocado Diagnostico esta vez.
                 var diagEl = document.getElementById('examenDiagnostico');
                 if (diagEl && !diagEl.value.trim()) {
-                    status.textContent = 'Selecciona al menos un diagnóstico del catálogo ICD antes de guardar.';
+                    var mensaje = 'Selecciona al menos un diagnóstico del catálogo ICD antes de guardar.';
+                    status.textContent = mensaje;
+                    var resultElTemprano = document.getElementById('examenGuardarResult');
+                    if (resultElTemprano) {
+                        resultElTemprano.textContent = mensaje;
+                        resultElTemprano.className = 'fs-sm text-danger';
+                    }
                     return;
                 }
                 var nss = (input.value || '').trim();
@@ -1003,8 +1057,24 @@
                 if (csrf && csrf.name) {
                     body.append(csrf.name, csrf.value);
                 }
+                if (btn.disabled) {
+                    return;
+                }
+                // Resultado inline junto al boton: el status global (#nssSearchStatus) queda
+                // pegado al buscador NSS, muy arriba, fuera de vista cuando el examen esta
+                // mas abajo en la pantalla - sin esto el usuario nunca veia si se guardo o no.
+                var resultEl = document.getElementById('examenGuardarResult');
+                function mostrarResultadoExamen(texto, esError) {
+                    status.textContent = texto;
+                    if (resultEl) {
+                        resultEl.textContent = texto;
+                        resultEl.className = 'fs-sm ' + (esError ? 'text-danger' : 'text-success');
+                    }
+                }
+                var originalHtml = btn.innerHTML;
                 btn.disabled = true;
-                status.textContent = 'Guardando examen...';
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Guardando...';
+                mostrarResultadoExamen('Guardando examen...', false);
                 try {
                     var response = await fetch(contextPath + 'api/nss/examen/save', {
                         method: 'POST',
@@ -1012,12 +1082,13 @@
                         body: body.toString()
                     });
                     var txt = await response.text();
-                    status.textContent = response.ok ? ('Examen: ' + txt)
-                            : ('Error al guardar (HTTP ' + response.status + '): ' + txt);
+                    mostrarResultadoExamen(response.ok ? ('Examen: ' + txt)
+                            : ('Error al guardar (HTTP ' + response.status + '): ' + txt), !response.ok);
                 } catch (error) {
-                    status.textContent = 'Error de red al guardar el examen.';
+                    mostrarResultadoExamen('Error de red al guardar el examen.', true);
                 } finally {
                     btn.disabled = false;
+                    btn.innerHTML = originalHtml;
                 }
             };
 

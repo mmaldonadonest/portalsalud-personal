@@ -23,7 +23,7 @@
                     <a th:href="@{/antidoping-seleccion}" href="/antidoping-seleccion" class="nav-link" th:classappend="${currentPath == '/antidoping-seleccion'} ? ' active' : ''"><i class="ri-shuffle-line"></i> <span>Antidoping - Seleccion</span></a>
                 </li>
                 <li class="nav-item">
-                    <a th:href="@{/consumibles}" href="/consumibles" class="nav-link" th:classappend="${currentPath == '/consumibles'} ? ' active' : ''"><i class="ri-box-3-line"></i> <span>Consumibles</span></a>
+                    <a th:href="@{/consumibles}" href="/consumibles" class="nav-link" th:classappend="${currentPath == '/consumibles'} ? ' active' : ''"><i class="ri-file-list-3-line"></i> <span>Consumibles</span></a>
                 </li>
                 <li class="nav-item">
                     <a th:href="@{/causas-consulta}" href="/causas-consulta" class="nav-link" th:classappend="${currentPath == '/causas-consulta'} ? ' active' : ''"><i class="ri-file-list-3-line"></i> <span>Causas de consulta</span></a>
@@ -34,7 +34,7 @@
     <div class="sidebar-footer">
         <div class="sidebar-footer-top">
             <div class="sidebar-footer-thumb">
-                <img th:src="@{${currentUserAvatar}}"   alt="avatar usuario" onerror="this.onerror=null;this.src='/theme/assets/img/img1.jpg';">
+                <img th:src="@{${currentUserAvatar}}"   alt="avatar usuario" onerror="this.onerror=null;this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjUwIiBmaWxsPSIjQ0JENUUxIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSIzOCIgcj0iMTgiIGZpbGw9IiM5NEEzQjgiLz48cGF0aCBkPSJNNTAgNThjLTIyIDAtMzggMTQtMzggMzJ2MTBoNzZWOTBjMC0xOC0xNi0zMi0zOC0zMnoiIGZpbGw9IiM5NEEzQjgiLz48L3N2Zz4K';">
             </div>
             <div class="sidebar-footer-body">
                 <h6><a href="javascript:void(0)" th:text="${currentUserName}">Usuario del portal</a></h6>

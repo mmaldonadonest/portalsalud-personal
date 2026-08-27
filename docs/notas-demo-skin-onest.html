@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notas de Demo — Skin ONEST</title>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap');
+
+  :root {
+    --blue-900: #003E75;
+    --blue-700: #00549E;
+    --blue-500: #1677BD;
+    --blue-100: #EAF3FA;
+    --green-700: #2B9138;
+    --green-500: #39B54A;
+    --green-100: #EAF7EC;
+    --gray-950: #20252B;
+    --gray-700: #475467;
+    --gray-500: #667085;
+    --gray-300: #D0D5DD;
+    --gray-200: #E1E6EB;
+    --gray-100: #F2F4F7;
+    --gray-50: #F8FAFC;
+
+    --bg: var(--gray-50);
+    --surface: #ffffff;
+    --surface-tint: var(--blue-100);
+    --border: var(--gray-200);
+    --text: var(--gray-950);
+    --text-muted: var(--gray-500);
+    --accent: var(--blue-700);
+    --accent-strong: var(--blue-900);
+    --accent-soft: var(--blue-500);
+    --success: var(--green-700);
+    --success-soft: var(--green-100);
+
+    --font-display: 'Montserrat', 'Arial', sans-serif;
+    --font-body: 'Inter', 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0B1420;
+      --surface: #0F1D2E;
+      --surface-tint: #12283F;
+      --border: #1E3247;
+      --text: #EAF1F8;
+      --text-muted: #8FA3B8;
+      --accent: #4FA8E0;
+      --accent-strong: #EAF3FA;
+      --accent-soft: #1677BD;
+      --success: #59C96A;
+      --success-soft: #123322;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0B1420;
+    --surface: #0F1D2E;
+    --surface-tint: #12283F;
+    --border: #1E3247;
+    --text: #EAF1F8;
+    --text-muted: #8FA3B8;
+    --accent: #4FA8E0;
+    --accent-strong: #EAF3FA;
+    --accent-soft: #1677BD;
+    --success: #59C96A;
+    --success-soft: #123322;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    background: var(--bg);
+  }
+  body {
+    margin: 0;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 15.5px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 3.5rem 1.75rem 5rem;
+  }
+
+  header.hero {
+    margin-bottom: 2.75rem;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    font-family: var(--font-mono);
+    font-size: .72rem;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--surface-tint);
+    border: 1px solid var(--border);
+    padding: .3rem .65rem;
+    border-radius: 100px;
+    margin-bottom: 1rem;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(1.9rem, 4vw, 2.5rem);
+    letter-spacing: -.01em;
+    line-height: 1.12;
+    margin: 0 0 .6rem;
+    text-wrap: balance;
+    color: var(--accent-strong);
+  }
+  .hero p {
+    margin: 0;
+    max-width: 58ch;
+    color: var(--text-muted);
+    font-size: 1.02rem;
+  }
+  .hero-meta {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1.25rem;
+    font-size: .82rem;
+    color: var(--text-muted);
+  }
+  .hero-meta strong { color: var(--text); font-weight: 600; }
+
+  section.block {
+    margin-bottom: 2.5rem;
+  }
+  .block-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: .6rem;
+    border-bottom: 2px solid var(--border);
+  }
+  h2 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.18rem;
+    margin: 0;
+    color: var(--text);
+  }
+  .block-tag {
+    font-family: var(--font-mono);
+    font-size: .7rem;
+    letter-spacing: .04em;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.1rem 1.25rem;
+  }
+  .card + .card { margin-top: .6rem; }
+
+  ul.items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+  }
+  li.item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: .85rem 1.1rem;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: .15rem 1rem;
+  }
+  .item-title {
+    font-weight: 600;
+    color: var(--text);
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    flex-wrap: wrap;
+  }
+  .item-desc {
+    grid-column: 1 / -1;
+    color: var(--text-muted);
+    font-size: .92rem;
+  }
+  .item-desc code, .route {
+    font-family: var(--font-mono);
+    font-size: .82em;
+    background: var(--surface-tint);
+    color: var(--accent-strong);
+    padding: .1em .4em;
+    border-radius: 5px;
+  }
+
+  .pill {
+    font-family: var(--font-mono);
+    font-size: .66rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: .16em .55em;
+    border-radius: 5px;
+    font-weight: 500;
+  }
+  .pill.new { background: var(--success-soft); color: var(--success); }
+  .pill.redesign { background: var(--surface-tint); color: var(--accent); }
+  .pill.fix { background: var(--gray-100); color: var(--text-muted); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pill.fix { background: rgba(255,255,255,.06); } }
+  :root[data-theme="dark"] .pill.fix { background: rgba(255,255,255,.06); }
+
+  .note {
+    margin-top: .9rem;
+    padding: .75rem 1rem;
+    background: var(--surface-tint);
+    border-left: 3px solid var(--accent-soft);
+    border-radius: 0 8px 8px 0;
+    font-size: .88rem;
+    color: var(--text);
+  }
+  .note strong { color: var(--accent-strong); }
+
+  .swatches {
+    display: flex;
+    gap: .5rem;
+    margin-top: .9rem;
+    flex-wrap: wrap;
+  }
+  .swatch {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-family: var(--font-mono);
+    font-size: .72rem;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: .3rem .5rem .3rem .3rem;
+    border-radius: 100px;
+  }
+  .dot { width: 16px; height: 16px; border-radius: 50%; flex: none; border: 1px solid rgba(0,0,0,.08); }
+
+  footer.page-footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    font-size: .82rem;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 560px) {
+    .page { padding: 2.25rem 1.15rem 3.5rem; }
+    .hero-meta { flex-direction: column; gap: .35rem; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="hero">
+    <span class="eyebrow">Listo para demo</span>
+    <h1>Portal Salud — cambios recientes</h1>
+    <p>Skin corporativo ONEST, reorganización completa de Examen Médico y una serie de ajustes de legibilidad y navegación. Guía de lo que hay que mostrar y dónde encontrarlo.</p>
+    <div class="hero-meta">
+      <span><strong>Alcance</strong> Interfaz / experiencia de usuario</span>
+      <span><strong>Cambios de datos</strong> Ninguno — solo presentación</span>
+    </div>
+  </header>
+
+  <section class="block">
+    <div class="block-head">
+      <h2>Funcionalidad nueva</h2>
+      <span class="block-tag">Desde el análisis de salud-ocupacional-v2</span>
+    </div>
+    <ul class="items">
+      <li class="item">
+        <div class="item-title">Dashboard de KPIs <span class="pill new">Nuevo</span></div>
+        <div class="item-desc">Página de inicio con gráficas reales (no maqueta) y desgloses por género, edad y cuenta.</div>
+      </li>
+      <li class="item">
+        <div class="item-title">Matriz de permisos <span class="pill new">Nuevo</span></div>
+        <div class="item-desc">Control de acceso real por rol sobre las rutas clínicas — antes no existía ninguna restricción a nivel de endpoint.</div>
+      </li>
+      <li class="item">
+        <div class="item-title">Maternidad <span class="pill new">Nuevo</span></div>
+        <div class="item-desc">Módulo completo de seguimiento, con validación de sexo del NSS antes de permitir el alta.</div>
+      </li>
+      <li class="item">
+        <div class="item-title">Antidoping — selección aleatoria <span class="pill new">Nuevo</span></div>
+        <div class="item-desc">Captura por tarjeta con historial persistido entre sesiones.</div>
+      </li>
+      <li class="item">
+        <div class="item-title">Accidentes — seguimiento de casos <span class="pill new">Nuevo</span></div>
+        <div class="item-desc">Registro, evidencias y estado (abierto/cerrado) por caso.</div>
+      </li>
+      <li class="item">
+        <div class="item-title">Restricciones médicas <span class="pill new">Nuevo</span></div>
+        <div class="item-desc">Catálogo de 16 restricciones fijas con historial de asignaciones por NSS, visible en el dictamen del examen.</div>
+      </li>
+      <li class="item">
+        <div class="item-title">Causa de consulta <span class="pill new">Nuevo</span></div>
+        <div class="item-desc">Catálogo administrable (23 causas + "Otro") en vez de texto libre.</div>
+      </li>
+      <li class="item">
+        <div class="item-title">Foto de perfil real <span class="pill new">Nuevo</span></div>
+        <div class="item-desc">El header ya muestra la foto real del usuario logueado (vía intranet Onest) en vez del avatar genérico fijo.</div>
+      </li>
+      <li class="item">
+        <div class="item-title">NSS multipredio <span class="pill fix">Corrección</span></div>
+        <div class="item-desc">Un NSS con más de una relación laboral (varios predios/cuentas) ya no se recorta a la primera — se muestran todas las asociaciones.</div>
+      </li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <h2>Identidad visual — skin ONEST</h2>
+      <span class="block-tag">Settings ⚙ → Skin Mode</span>
+    </div>
+    <div class="card">
+      <p style="margin:0 0 .5rem;">Nuevo modo de apariencia junto a Light/Dark, ahora <strong>activo por default</strong>. Usa la paleta corporativa Onest en vez de los colores genéricos del template.</p>
+      <div class="swatches">
+        <span class="swatch"><span class="dot" style="background:#003E75"></span>#003E75</span>
+        <span class="swatch"><span class="dot" style="background:#00549E"></span>#00549E</span>
+        <span class="swatch"><span class="dot" style="background:#1677BD"></span>#1677BD</span>
+        <span class="swatch"><span class="dot" style="background:#2B9138"></span>#2B9138</span>
+        <span class="swatch"><span class="dot" style="background:#39B54A"></span>#39B54A</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <h2>Menús fijos nuevos en el sidebar</h2>
+      <span class="block-tag">Grupo "Portal Salud"</span>
+    </div>
+    <ul class="items">
+      <li class="item">
+        <div class="item-title">Antidoping — Selección <span class="pill new">Nuevo</span></div>
+        <div class="item-desc"><span class="route">http://10.249.249.10:8082/portal-salud/antidoping-seleccion</span></div>
+        <div class="item-desc">Página administrativa, fuera del flujo de búsqueda por NSS.</div>
+      </li>
+      <li class="item">
+        <div class="item-title">Consumibles <span class="pill new">Nuevo</span></div>
+        <div class="item-desc"><span class="route">http://10.249.249.10:8082/portal-salud/consumibles</span></div>
+      </li>
+      <li class="item">
+        <div class="item-title">Causas de consulta <span class="pill new">Nuevo</span></div>
+        <div class="item-desc"><span class="route">http://10.249.249.10:8082/portal-salud/causas-consulta</span></div>
+        <div class="item-desc">Catálogo administrable de causas (23 causas + "Otro").</div>
+      </li>
+    </ul>
+    <div class="note">Las 3 son páginas administrativas, sin restricción de rol clínico — no requieren haber buscado un NSS primero. Maternidad, Accidentes y el módulo de Antidoping (captura clínica, distinto de "Antidoping - Selección") <strong>no</strong> tienen link propio — aparecen dentro de "Expediente General" solo después de buscar un NSS.</div>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <h2>Examen Médico — reorganizado</h2>
+      <span class="block-tag">Búsqueda NSS → Expediente General → Examen Médico</span>
+    </div>
+    <ul class="items">
+      <li class="item">
+        <div class="item-title">De grid plano a acordeón por grupo + tabs <span class="pill redesign">Rediseño</span></div>
+        <div class="item-desc">Las ~46 secciones estaban en un solo grid de botones. Ahora se agrupan en 6 categorías colapsables (Antecedentes laborales, Heredofamiliares, Antecedentes personales, Padecimiento e interrogatorio, Exploración física, Cierre) y, dentro de cada grupo, las secciones son pestañas — se ve una a la vez, mucho menos amontonado.</div>
+      </li>
+      <li class="item">
+        <div class="item-title">Carga perezosa que no se pierde al cambiar de pestaña <span class="pill fix">Ajuste</span></div>
+        <div class="item-desc">Antes, cerrar una sección (para abrir otra) borraba lo no guardado. Ahora cada pestaña se carga una sola vez y permanece en memoria al navegar entre pestañas.</div>
+      </li>
+      <li class="item">
+        <div class="item-title">Palomita manual de "sección revisada" <span class="pill new">Nuevo</span></div>
+        <div class="item-desc">Cada pestaña trae un círculo clickeable junto al nombre; al marcarla se pone verde y el grupo muestra un contador. Es una marca deliberada del usuario, no un cálculo automático del sistema.</div>
+      </li>
+      <li class="item">
+        <div class="item-title">Guardado con confirmación visible <span class="pill fix">Ajuste</span></div>
+        <div class="item-desc">El botón "Guardar examen" ahora se bloquea con un spinner mientras guarda, y el resultado (éxito o error) aparece junto al botón — antes el mensaje solo se veía hasta arriba de la página, fuera de vista.</div>
+      </li>
+      <li class="item">
+        <div class="item-title">Segundo acordeón "Otros datos" <span class="pill redesign">Rediseño</span></div>
+        <div class="item-desc">Antecedentes laborales (trabajos previos), Contactos de emergencia, Diagnósticos secundarios y Restricciones médicas — antes 4 tarjetas siempre abiertas, ahora colapsadas para reducir el scroll.</div>
+      </li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <h2>Ficha de identificación</h2>
+      <span class="block-tag">Resultado de Búsqueda NSS</span>
+    </div>
+    <ul class="items">
+      <li class="item">
+        <div class="item-title">Layout etiqueta/valor <span class="pill redesign">Rediseño</span></div>
+        <div class="item-desc">Antes era una lista de líneas "Etiqueta: valor" apiladas. Ahora cada dato tiene su etiqueta arriba en gris y el valor abajo, en una cuadrícula con más aire.</div>
+      </li>
+      <li class="item">
+        <div class="item-title">Sexo traducido a texto legible <span class="pill fix">Ajuste</span></div>
+        <div class="item-desc">El WS regresa códigos (1, 2, M, H...); ahora se traduce a "Hombre"/"Mujer" cuando el código es uno de los confirmados, y deja el valor original si no lo es.</div>
+      </li>
+      <li class="item">
+        <div class="item-title">Mensajes internos del WS limpiados <span class="pill fix">Ajuste</span></div>
+        <div class="item-desc">El texto crudo "el no. de puesto no existe en base de datos" ahora se muestra como "No disponible".</div>
+      </li>
+      <li class="item">
+        <div class="item-title">Campos vacíos ocultos <span class="pill fix">Ajuste</span></div>
+        <div class="item-desc">Teléfono y estado civil ya no dejan una línea en blanco cuando no hay dato.</div>
+      </li>
+    </ul>
+  </section>
+
+  <footer class="page-footer">
+    <span>Portal Salud Personal · Onest Smart Logistics</span>
+    <span>Notas internas de demo — no distribuir fuera del equipo</span>
+  </footer>
+
+</div>
+</body>
+</html>

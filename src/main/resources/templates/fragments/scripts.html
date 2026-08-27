@@ -4,6 +4,20 @@
     <script th:src="@{/theme/lib/perfect-scrollbar/perfect-scrollbar.min.js}" src="/theme/lib/perfect-scrollbar/perfect-scrollbar.min.js"></script>
     <script th:src="@{/theme/assets/js/script.js}" src="/theme/assets/js/script.js"></script>
     <script th:src="@{/js/onest-skin.js}" src="/js/onest-skin.js"></script>
+    <script>
+        // Buscadores de NSS (header global + pagina de busqueda): si el usuario pega un
+        // valor con espacios al inicio/final (copiado de Excel, un chat, etc.) se ve igual
+        // en el input pero puede causar confusion. El backend ya normaliza (trim) antes de
+        // consultar el WS, esto es solo para que lo que se VE en el campo coincida con lo
+        // que realmente se va a buscar.
+        document.querySelectorAll('input[name="nss"]').forEach(function (el) {
+            el.addEventListener('paste', function () {
+                setTimeout(function () {
+                    el.value = el.value.trim();
+                }, 0);
+            });
+        });
+    </script>
     <th:block th:replace="${pageScripts}"></th:block>
 </th:block>
 

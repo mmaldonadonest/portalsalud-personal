@@ -244,27 +244,89 @@ html[data-brand="onest"] .btn-outline-primary {
   color: var(--onest-blue-700);
   border-color: var(--onest-blue-700);
 }
-/* Grid de secciones del examen medico (heredofamiliares/personales/exploracion) -
-   muchos botones pequenos pegados uno a otro se leen amontonados; mas aire entre
-   grupos y entre botones, y la etiqueta del grupo un poco mas separada. */
-html[data-brand="onest"] .examen-grupo {
-  margin-bottom: 1.25rem !important;
-}
-html[data-brand="onest"] .examen-grupo .text-uppercase {
-  margin-bottom: .5rem !important;
-  color: var(--onest-blue-700);
+/* Acordeon + tabs de secciones del examen medico (heredofamiliares/personales/
+   exploracion): cada grupo colapsado ocupa una fila, y dentro solo se ve un tab
+   (seccion) a la vez en vez de ir apilando tarjetas - el badge verde en el header
+   muestra cuantos tabs de ese grupo ya se visitaron sin necesidad de abrirlo. */
+html[data-brand="onest"] .examen-accordion .accordion-button,
+html[data-brand="onest"] .examen-extra-accordion .accordion-button {
+  font-size: .8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
   letter-spacing: .04em;
+  color: var(--onest-blue-700);
+  background: #fff;
 }
-html[data-brand="onest"] .examen-secciones-grid {
-  gap: .5rem .625rem !important;
+html[data-brand="onest"] .examen-accordion .accordion-button:not(.collapsed),
+html[data-brand="onest"] .examen-extra-accordion .accordion-button:not(.collapsed) {
+  color: var(--onest-blue-900);
+  background: var(--onest-blue-100);
+  box-shadow: none;
 }
-html[data-brand="onest"] .examen-secciones-grid .btn {
-  padding-top: .4rem;
-  padding-bottom: .4rem;
+html[data-brand="onest"] .examen-accordion .accordion-button:focus,
+html[data-brand="onest"] .examen-extra-accordion .accordion-button:focus {
+  box-shadow: 0 0 0 3px rgba(0, 84, 158, .12);
+}
+html[data-brand="onest"] .examen-grupo-badge {
+  background: var(--onest-green-700);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+/* Tabs dentro de cada grupo: son ~5-16 secciones por grupo, mas compactas que
+   un nav-tabs normal para que quepan varias por fila sin envolver feo. */
+html[data-brand="onest"] .examen-tabs {
+  border-bottom-color: var(--onest-gray-200);
+  row-gap: .25rem;
+}
+html[data-brand="onest"] .examen-tabs .nav-link {
+  padding: .375rem .75rem;
+  font-size: .8rem;
+  color: var(--onest-gray-500);
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+}
+html[data-brand="onest"] .examen-tabs .nav-link:hover {
+  color: var(--onest-blue-700);
+  border-bottom-color: var(--onest-blue-300);
+}
+html[data-brand="onest"] .examen-tabs .nav-link.active {
+  color: var(--onest-blue-900);
+  font-weight: 600;
+  border-bottom-color: var(--onest-blue-900);
+  background: transparent;
+}
+html[data-brand="onest"] .examen-tab-content {
+  padding-top: .75rem;
+}
+/* Palomita manual de "seccion revisada" (independiente de si el tab ya se
+   cargo) - gris tenue sin marcar, verde solido marcada. */
+html[data-brand="onest"] .examen-tab-check {
+  color: var(--onest-gray-300);
+  font-size: .95rem;
+  vertical-align: -1px;
+}
+html[data-brand="onest"] .examen-tab-check:hover {
+  color: var(--onest-green-500);
+}
+html[data-brand="onest"] .examen-tab-check--on {
+  color: var(--onest-green-700);
+}
+html[data-brand="onest"] .examen-tab-check--on:hover {
+  color: var(--onest-green-700);
 }
 html[data-brand="onest"] .btn-outline-primary:hover,
 html[data-brand="onest"] .btn-outline-primary:focus,
 html[data-brand="onest"] .btn-outline-primary:active {
+  background: var(--onest-blue-700);
+  border-color: var(--onest-blue-700);
+  color: #fff;
+}
+/* Boton de seccion ya seleccionado (queda con clase .active de forma persistente,
+   no solo mientras tiene foco/hover) - sin esto el texto se queda azul oscuro
+   sobre el fondo azul de "activo" y se pierde apenas se quita el foco. */
+html[data-brand="onest"] .btn-outline-primary.active {
   background: var(--onest-blue-700);
   border-color: var(--onest-blue-700);
   color: #fff;

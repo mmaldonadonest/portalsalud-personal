@@ -24,27 +24,38 @@
             <div class="card-header">
                 <h5 class="card-title mb-0">Ficha de identificacion</h5>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p class="mb-2"><strong>Cuenta:</strong> <span th:text="${e.cuenta}">-</span></p>
-                        <p class="mb-2"><strong>Nombre:</strong> <span th:text="${e.nombre}">-</span></p>
-                        <p class="mb-2"><strong>Apellido Paterno:</strong> <span th:text="${e.apellidoPaterno}">-</span></p>
-                        <p class="mb-2"><strong>Apellido Materno:</strong> <span th:text="${e.apellidoMaterno}">-</span></p>
-                        <p class="mb-2"><strong>Fecha de Nacimiento:</strong> <span th:text="${e.fechaNacimiento}">-</span></p>
-                        <p class="mb-2"><strong>Edad:</strong> <span th:text="${e.edad}">-</span></p>
-                        <p class="mb-2"><strong>Sexo:</strong> <span th:text="${e.sexo}">-</span></p>
-                        <p class="mb-2"><strong>Estado Civil:</strong> <span th:text="${e.estadoCivil}">-</span></p>
+            <!--
+              sexoTexto: mismo catalogo CONFIRMADO que usa MaternidadService.VALORES_HOMBRE
+              (1/M/H/HOMBRE=Hombre, 2/F/MUJER=Mujer confirmado por el usuario 2026-08-21) - solo
+              es texto para esta ficha, no toca la logica de negocio de Maternidad. emp_sexo NO
+              tiene catalogo consistente (12 variantes reales: M/m/F/f/H/HOMBRE/MUJER/O/X/1/2/vacio)
+              asi que cualquier otro valor (O/X/etc) se muestra tal cual en vez de adivinar.
+              puestoTexto: "nombre_puesto" a veces regresa un mensaje de error del WS en vez de un
+              puesto real ("el no. de puesto no existe en base de datos") - se cambia por un texto
+              mas presentable sin ocultar que el dato no esta disponible.
+            -->
+            <div class="card-body"
+                 th:with="sexoUp=${e.sexo != null ? #strings.toUpperCase(#strings.trim(e.sexo)) : ''},
+                          esHombre=${sexoUp == '1' or sexoUp == 'M' or sexoUp == 'H' or sexoUp == 'HOMBRE'},
+                          esMujer=${sexoUp == '2' or sexoUp == 'F' or sexoUp == 'MUJER'},
+                          sexoTexto=${esHombre ? 'Hombre' : (esMujer ? 'Mujer' : (#strings.isEmpty(sexoUp) ? '-' : e.sexo))},
+                          puestoTexto=${(e.nombrePuesto != null and #strings.contains(e.nombrePuesto,'no existe en base de datos')) ? 'No disponible' : (#strings.isEmpty(e.nombrePuesto) ? '-' : e.nombrePuesto)}">
+                <div class="row row-cols-1 row-cols-md-2 g-3 ficha-identificacion">
+                    <div class="col"><span class="ficha-label">Cuenta</span><span class="ficha-valor" th:text="${e.cuenta}">-</span></div>
+                    <div class="col"><span class="ficha-label">Puesto</span><span class="ficha-valor" th:text="${puestoTexto}">-</span></div>
+                    <div class="col"><span class="ficha-label">Nombre completo</span>
+                        <span class="ficha-valor" th:text="${e.nombre + ' ' + e.apellidoPaterno + ' ' + e.apellidoMaterno}">-</span>
                     </div>
-                    <div class="col-md-6">
-                        <p class="mb-2"><strong>Puesto:</strong> <span th:text="${e.nombrePuesto}">-</span></p>
-                        <p class="mb-2"><strong>Empresa:</strong> <span th:text="${e.nombreEmpresa}">-</span></p>
-                        <p class="mb-2"><strong>Turno:</strong> <span th:text="${e.turno}">-</span></p>
-                        <p class="mb-2"><strong>RFC:</strong> <span th:text="${e.rfc}">-</span></p>
-                        <p class="mb-2"><strong>Direccion:</strong> <span th:text="${e.direccion}">-</span></p>
-                        <p class="mb-2"><strong>Telefono:</strong> <span th:text="${e.celular}">-</span></p>
-                        <p class="mb-2"><strong>Telefono Fijo:</strong> <span th:text="${e.telFijo}">-</span></p>
-                    </div>
+                    <div class="col"><span class="ficha-label">Empresa</span><span class="ficha-valor" th:text="${e.nombreEmpresa}">-</span></div>
+                    <div class="col"><span class="ficha-label">Fecha de nacimiento</span><span class="ficha-valor" th:text="${e.fechaNacimiento}">-</span></div>
+                    <div class="col"><span class="ficha-label">Turno</span><span class="ficha-valor" th:text="${e.turno}">-</span></div>
+                    <div class="col"><span class="ficha-label">Edad</span><span class="ficha-valor" th:text="${e.edad}">-</span></div>
+                    <div class="col"><span class="ficha-label">RFC</span><span class="ficha-valor" th:text="${e.rfc}">-</span></div>
+                    <div class="col"><span class="ficha-label">Sexo</span><span class="ficha-valor" th:text="${sexoTexto}">-</span></div>
+                    <div class="col"><span class="ficha-label">Dirección</span><span class="ficha-valor" th:text="${e.direccion}">-</span></div>
+                    <div class="col" th:unless="${#strings.isEmpty(e.estadoCivil)}"><span class="ficha-label">Estado civil</span><span class="ficha-valor" th:text="${e.estadoCivil}">-</span></div>
+                    <div class="col" th:unless="${#strings.isEmpty(e.celular)}"><span class="ficha-label">Teléfono</span><span class="ficha-valor" th:text="${e.celular}">-</span></div>
+                    <div class="col" th:unless="${#strings.isEmpty(e.telFijo)}"><span class="ficha-label">Teléfono fijo</span><span class="ficha-valor" th:text="${e.telFijo}">-</span></div>
                 </div>
 
                 <!-- NSS multipredio (docs/entregable-liberacion-stoppers-salud.html §4): mas de

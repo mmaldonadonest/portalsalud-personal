@@ -7,12 +7,23 @@
 // y de dejar el resaltado "active" correcto entre los 3 botones al cargar la
 // pagina - el :last-child que usa script.js para restaurar "Dark" asumia solo 2
 // botones y quedaria mal con el 3ro, por eso se re-resuelve aqui con data-mode.
+//
+// Default = Onest (ver fragments/header.html, el boton "Onest" ya nace .active).
+// "brand-skin" guarda 3 estados posibles: 'onest' (elegido explicito), 'none'
+// (el usuario eligio Light/Dark explicitamente, opta por SALIR de Onest) o
+// ausente (nunca elegido nada = primera visita, aplica el default). Se necesita
+// ese 3er estado ('none') en vez de simplemente borrar la llave, porque "ausente"
+// y "el usuario eligio Light a proposito" tendrian que verse distinto - sin esto
+// no habria forma de distinguir "primera visita" de "goes explicitamente a Light".
 
 // Cargar preferencia guardada
 var brandSkin = localStorage.getItem('brand-skin');
 var skinMode = localStorage.getItem('skin-mode');
 
-if (brandSkin === 'onest') {
+if (brandSkin === 'none') {
+  $('#skinMode .nav-link').removeClass('active');
+  $('#skinMode .nav-link[data-mode="' + (skinMode === 'dark' ? 'dark' : 'light') + '"]').addClass('active');
+} else {
   $('html').attr('data-brand', 'onest');
   // data-skin="dark" puede haber quedado de una sesion anterior con Dark activo
   // (script.js del theme no lo limpia al elegir un boton que no es "dark" via
@@ -23,9 +34,6 @@ if (brandSkin === 'onest') {
   $('html').attr('data-skin', '');
   $('#skinMode .nav-link').removeClass('active');
   $('#skinMode .nav-link[data-mode="onest"]').addClass('active');
-} else {
-  $('#skinMode .nav-link').removeClass('active');
-  $('#skinMode .nav-link[data-mode="' + (skinMode === 'dark' ? 'dark' : 'light') + '"]').addClass('active');
 }
 
 // Fijar preferencia (se suma al click handler que ya trae script.js para light/dark)
@@ -42,6 +50,6 @@ $('#skinMode .nav-link').on('click', function (e) {
     localStorage.removeItem('skin-mode');
   } else {
     $('html').attr('data-brand', '');
-    localStorage.removeItem('brand-skin');
+    localStorage.setItem('brand-skin', 'none');
   }
 });

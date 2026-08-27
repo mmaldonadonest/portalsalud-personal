@@ -80,6 +80,24 @@ a {
     color: var(--onest-blue);
 }
 
+/* Ficha de identificacion (nss-result.html): antes era una lista de "<strong>Label:</strong>
+   valor" apiladas en <p>, se leia amontonado. Formato compacto tipo etiqueta-arriba/
+   valor-abajo, mas aire entre campos via grid gap en vez de margenes por parrafo. */
+.ficha-identificacion .ficha-label {
+    display: block;
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: #6e7985;
+    margin-bottom: .125rem;
+}
+.ficha-identificacion .ficha-valor {
+    display: block;
+    font-size: .9375rem;
+    font-weight: 500;
+    color: #212830;
+}
+
 a:hover {
     color: var(--onest-blue-dark);
 }

@@ -3,7 +3,8 @@
 <body>
 <!--
   Examen medico (U07) - shell con navegacion in-page. Equivale a menuHeredoFam.html.
-  Cada boton carga su seccion en #examenSecciones sin recargar (irAContenido).
+  Cada grupo (acordeon) tiene sus secciones como tabs; el formulario de la seccion
+  se carga sin recargar la pagina dentro del tab-pane correspondiente (irAContenido).
 -->
 <div th:fragment="shell">
     <div class="card card-one">
@@ -12,264 +13,330 @@
             <span class="badge bg-primary" th:text="'NSS ' + ${nss}">NSS</span>
         </div>
         <div class="card-body">
-            <div th:each="g : ${grupos}" class="examen-grupo mb-2">
-                <div class="text-uppercase fs-xs text-muted fw-semibold mb-1" th:text="${g.nombre}">Grupo</div>
-                <div class="examen-secciones-grid d-flex flex-wrap gap-2 mb-2">
-                    <button th:each="s : ${g.secciones}" type="button"
-                            class="btn btn-sm btn-outline-primary"
-                            th:text="${s}"
-                            th:attr="data-seccion=${s}, data-nss=${nss}"
-                            onclick="cargarSeccionExamen(this);">Seccion</button>
+            <!--
+              Acordeon por grupo + tabs por seccion dentro de cada grupo: cada grupo
+              colapsado ocupa una sola fila, y dentro solo se ve UNA seccion a la vez
+              (el tab activo) en vez de ir apilando tarjetas. El formulario de cada tab
+              se carga (lazy) la primera vez que se activa y se queda en el DOM aunque
+              cambies de tab - a diferencia del viejo boton-toggle, cambiar de tab ya
+              NO borra lo que no hayas guardado. Ver cargarPaneExamen/actualizarBadgeGrupoExamen
+              en nss-search.html.
+            -->
+            <div class="accordion examen-accordion mb-3" id="examenAccordion">
+                <div class="accordion-item examen-grupo" th:each="g, gStat : ${grupos}">
+                    <h2 class="accordion-header" th:id="|examenGrupoHeader${gStat.index}|">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                th:attr="data-bs-target='#examenGrupoBody' + ${gStat.index}, aria-controls='examenGrupoBody' + ${gStat.index}"
+                                aria-expanded="false">
+                            <span th:text="${g.nombre}">Grupo</span>
+                            <span class="badge examen-grupo-badge ms-2 d-none">0</span>
+                        </button>
+                    </h2>
+                    <div class="accordion-collapse collapse" th:id="|examenGrupoBody${gStat.index}|"
+                         th:attr="aria-labelledby='examenGrupoHeader' + ${gStat.index}" data-bs-parent="#examenAccordion">
+                        <div class="accordion-body">
+                            <ul class="nav nav-tabs examen-tabs" role="tablist">
+                                <li class="nav-item" role="presentation" th:each="s, sStat : ${g.secciones}">
+                                    <button class="nav-link" type="button" role="tab" data-bs-toggle="tab"
+                                            th:classappend="${sStat.index == 0} ? ' active' : ''"
+                                            th:attr="data-bs-target='#examenPane' + ${gStat.index} + '_' + ${sStat.index}, aria-controls='examenPane' + ${gStat.index} + '_' + ${sStat.index}, aria-selected=${sStat.index == 0}, data-seccion=${s}, data-nss=${nss}, data-checked=false">
+                                        <i class="ri-checkbox-blank-circle-line examen-tab-check me-1"
+                                           title="Marcar seccion como revisada" onclick="toggleTabCheck(this, event);"></i>
+                                        <span th:text="${s}">Seccion</span>
+                                    </button>
+                                </li>
+                            </ul>
+                            <div class="tab-content examen-tab-content">
+                                <div class="tab-pane fade" th:each="s, sStat : ${g.secciones}"
+                                     th:classappend="${sStat.index == 0} ? ' show active' : ''"
+                                     th:id="|examenPane${gStat.index}_${sStat.index}|"
+                                     th:attr="data-seccion=${s}">
+                                    <div class="text-muted fs-sm py-2">Selecciona esta pestaña para cargarla.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            <div id="examenSecciones"></div>
 
             <hr class="my-3">
 
             <!--
-              Antecedentes laborales - trabajos previos (lista repetible, uno por empleo anterior).
-              Guardado CONFIRMADO 2026-08-13 contra el WS real (POST directo a /Servcio/Medico,
-              fila verificada en SERV_MED_DET_ANT_LABORALES con contenido real - primera vez que
-              este arreglo se guarda con datos, ni el legacy PHP lo logro). Ver el fix de payload
-              anidado en BiowsExamenClient.guardar(). Sigue SIN precargarse desde el WS al reabrir
-              el examen: el endpoint de lectura (/Servcio/consulta_examen) no expone
-              SERV_MED_DET_ANT_LABORALES en ningun path de docs/contextoWS.txt - siempre arranca
-              vacio, solo para trabajos nuevos capturados en esta sesion. Filas fuera de
-              #examenSecciones a proposito: guardarExamen() las recolecta aparte desde
-              #trabajosPrevios.
+              Secciones independientes del examen (no van al WS Servcio/Medico como el resto):
+              cada una guarda por su cuenta con su propio boton, agrupadas en un segundo
+              acordeon separado del de arriba solo para que ocupen menos espacio en pantalla -
+              sin relacion funcional entre ellas mas alla de eso.
             -->
-            <div class="card bg-light mb-3" id="trabajosPrevios">
-                <div class="card-header py-2 d-flex align-items-center justify-content-between">
-                    <strong>Antecedentes laborales &mdash; trabajos previos</strong>
-                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="agregarTrabajoExamen();">
-                        <i class="ri-add-line me-1"></i> Agregar trabajo
-                    </button>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-warning py-2 px-3 fs-sm mb-3">
-                        <i class="ri-alert-line me-1"></i>
-                        El guardado ya está verificado contra el sistema real. Lo que sigue sin construirse:
-                        al reabrir el examen, esta lista no se precarga con trabajos capturados antes —
-                        siempre arranca vacía.
+            <h6 class="fw-semibold mb-2">Otros datos</h6>
+            <div class="accordion examen-extra-accordion mb-3" id="examenExtraAccordion">
+                <!--
+                  Antecedentes laborales - trabajos previos (lista repetible, uno por empleo anterior).
+                  Guardado CONFIRMADO 2026-08-13 contra el WS real (POST directo a /Servcio/Medico,
+                  fila verificada en SERV_MED_DET_ANT_LABORALES con contenido real - primera vez que
+                  este arreglo se guarda con datos, ni el legacy PHP lo logro). Ver el fix de payload
+                  anidado en BiowsExamenClient.guardar(). Sigue SIN precargarse desde el WS al reabrir
+                  el examen: el endpoint de lectura (/Servcio/consulta_examen) no expone
+                  SERV_MED_DET_ANT_LABORALES en ningun path de docs/contextoWS.txt - siempre arranca
+                  vacio, solo para trabajos nuevos capturados en esta sesion. Fuera del acordeon de
+                  tabs a proposito: guardarExamen() las recolecta aparte desde #trabajosPrevios.
+                -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="examenExtraHeader0">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#examenExtraBody0" aria-expanded="false" aria-controls="examenExtraBody0">
+                            Antecedentes laborales &mdash; trabajos previos
+                        </button>
+                    </h2>
+                    <div class="accordion-collapse collapse" id="examenExtraBody0"
+                         aria-labelledby="examenExtraHeader0" data-bs-parent="#examenExtraAccordion">
+                        <div class="accordion-body" id="trabajosPrevios">
+                            <div class="alert alert-warning py-2 px-3 fs-sm mb-3">
+                                <i class="ri-alert-line me-1"></i>
+                                El guardado ya está verificado contra el sistema real. Lo que sigue sin construirse:
+                                al reabrir el examen, esta lista no se precarga con trabajos capturados antes —
+                                siempre arranca vacía.
+                            </div>
+                            <div class="d-flex justify-content-end mb-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="agregarTrabajoExamen();">
+                                    <i class="ri-add-line me-1"></i> Agregar trabajo
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th style="min-width:90px;">No. trabajo</th>
+                                            <th style="min-width:140px;">Giro</th>
+                                            <th style="min-width:140px;">Puesto</th>
+                                            <th style="min-width:110px;">Turno</th>
+                                            <th style="min-width:110px;">Antigüedad</th>
+                                            <th style="min-width:100px;">Año salida</th>
+                                            <th style="min-width:140px;">Riesgos</th>
+                                            <th style="min-width:140px;">EPP</th>
+                                            <th style="min-width:160px;">Descripción</th>
+                                            <th style="min-width:160px;">Observaciones</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="trabajosBody"></tbody>
+                                </table>
+                            </div>
+                            <div class="text-muted fs-sm" id="trabajosVacio">Sin trabajos previos capturados.</div>
+                        </div>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th style="min-width:90px;">No. trabajo</th>
-                                    <th style="min-width:140px;">Giro</th>
-                                    <th style="min-width:140px;">Puesto</th>
-                                    <th style="min-width:110px;">Turno</th>
-                                    <th style="min-width:110px;">Antigüedad</th>
-                                    <th style="min-width:100px;">Año salida</th>
-                                    <th style="min-width:140px;">Riesgos</th>
-                                    <th style="min-width:140px;">EPP</th>
-                                    <th style="min-width:160px;">Descripción</th>
-                                    <th style="min-width:160px;">Observaciones</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody id="trabajosBody"></tbody>
-                        </table>
+                </div>
+                <!--
+                  Contactos de emergencia (hasta 3). EAV via MED_TAG, guardado independiente del
+                  resto del examen (no va al WS Servcio/Medico) - form propio + boton propio a
+                  proposito, fuera del acordeon de tabs/#trabajosPrevios para que guardarExamen()
+                  no los recoja por error.
+                -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="examenExtraHeader1">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#examenExtraBody1" aria-expanded="false" aria-controls="examenExtraBody1">
+                            Contactos de emergencia
+                        </button>
+                    </h2>
+                    <div class="accordion-collapse collapse" id="examenExtraBody1"
+                         aria-labelledby="examenExtraHeader1" data-bs-parent="#examenExtraAccordion">
+                        <div class="accordion-body" id="contactosEmergencia">
+                            <form id="contactosEmergenciaForm" class="row g-3" novalidate>
+                                <input type="hidden" name="nss" th:value="${nss}">
+                                <div th:each="c : ${contactos}" class="col-12">
+                                    <div class="text-uppercase fs-xs text-muted fw-semibold mb-2"
+                                         th:text="'Contacto ' + ${c.indice}">Contacto</div>
+                                    <div class="row g-2">
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control form-control-sm" placeholder="Nombre"
+                                                   th:name="${'contactoEmernombre' + c.indice}" th:value="${c.nombre}">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <input type="text" class="form-control form-control-sm" placeholder="Apellido paterno"
+                                                   th:name="${'contactoEmerapellido_paterno' + c.indice}" th:value="${c.apellidoPaterno}">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <input type="text" class="form-control form-control-sm" placeholder="Apellido materno"
+                                                   th:name="${'contactoEmerapellido_materno' + c.indice}" th:value="${c.apellidoMaterno}">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <input type="text" class="form-control form-control-sm" placeholder="Parentesco"
+                                                   th:name="${'contactoEmerparentesco' + c.indice}" th:value="${c.parentesco}">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control form-control-sm" placeholder="Teléfono"
+                                                   th:name="${'contactoEmertelefono' + c.indice}" th:value="${c.telefono}">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 d-flex justify-content-end align-items-center gap-3">
+                                    <span id="contactosEmergenciaResult" class="fs-sm"></span>
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="guardarContactosEmergencia(this);">
+                                        <i class="ri-save-line me-1"></i> Guardar contactos
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                    <div class="text-muted fs-sm" id="trabajosVacio">Sin trabajos previos capturados.</div>
                 </div>
-            </div>
-            <!--
-              Contactos de emergencia (hasta 3). EAV via MED_TAG, guardado independiente del
-              resto del examen (no va al WS Servcio/Medico) - form propio + boton propio a
-              proposito, fuera de #examenSecciones/#trabajosPrevios para que guardarExamen()
-              no los recoja por error.
-            -->
-            <div class="card bg-light mb-3" id="contactosEmergencia">
-                <div class="card-header py-2">
-                    <strong>Contactos de emergencia</strong>
-                </div>
-                <div class="card-body">
-                    <form id="contactosEmergenciaForm" class="row g-3" novalidate>
-                        <input type="hidden" name="nss" th:value="${nss}">
-                        <div th:each="c : ${contactos}" class="col-12">
-                            <div class="text-uppercase fs-xs text-muted fw-semibold mb-2"
-                                 th:text="'Contacto ' + ${c.indice}">Contacto</div>
-                            <div class="row g-2">
-                                <div class="col-md-3">
-                                    <input type="text" class="form-control form-control-sm" placeholder="Nombre"
-                                           th:name="${'contactoEmernombre' + c.indice}" th:value="${c.nombre}">
+                <!--
+                  Diagnosticos secundarios (hasta 3). EAV via MED_TAG, mismo patron que Contactos
+                  de emergencia - guardado independiente del resto del examen. Cada slot es de solo
+                  lectura, se llena con el mismo buscador ICD ya usado en el diagnostico principal
+                  (buscarIcd/addIcd generalizados), no texto libre.
+                -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="examenExtraHeader2">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#examenExtraBody2" aria-expanded="false" aria-controls="examenExtraBody2">
+                            Diagnósticos secundarios
+                        </button>
+                    </h2>
+                    <div class="accordion-collapse collapse" id="examenExtraBody2"
+                         aria-labelledby="examenExtraHeader2" data-bs-parent="#examenExtraAccordion">
+                        <div class="accordion-body" id="diagnosticosSecundarios">
+                            <form id="diagnosticosSecundariosForm" class="row g-3" novalidate>
+                                <input type="hidden" name="nss" th:value="${nss}">
+                                <div th:each="d : ${diagnosticosSecundarios}" class="col-12">
+                                    <label class="form-label mb-1" th:text="'Diagnóstico secundario ' + ${d.indice}">Diagnóstico secundario</label>
+                                    <div class="row g-2">
+                                        <div class="col-md-7">
+                                            <input type="text" class="form-control form-control-sm" readonly
+                                                   placeholder="Selecciona una clave del buscador ICD..."
+                                                   th:id="|diagSec${d.indice}|"
+                                                   th:name="|diagnosticoSecundario${d.indice}|"
+                                                   th:value="${d.valor}">
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label class="form-label mb-1 fs-xs text-muted" th:for="|diagSec${d.indice}IcdConsult|">Buscar diagnóstico secundario (catálogo ICD/CIE)</label>
+                                            <input type="text" class="form-control form-control-sm" autocomplete="off"
+                                                   placeholder="Escribe al menos 3 letras (autocompleta)..."
+                                                   th:id="|diagSec${d.indice}IcdConsult|"
+                                                   th:oninput="|buscarIcdDebounced('diagSec${d.indice}IcdConsult','diagSec${d.indice}IcdResult','diagSec${d.indice}');|">
+                                            <div th:id="|diagSec${d.indice}IcdResult|" class="mt-1"></div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col-md-2">
-                                    <input type="text" class="form-control form-control-sm" placeholder="Apellido paterno"
-                                           th:name="${'contactoEmerapellido_paterno' + c.indice}" th:value="${c.apellidoPaterno}">
+                                <div class="col-12 d-flex justify-content-end align-items-center gap-3">
+                                    <span id="diagnosticosSecundariosResult" class="fs-sm"></span>
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="guardarDiagnosticosSecundarios(this);">
+                                        <i class="ri-save-line me-1"></i> Guardar diagnósticos secundarios
+                                    </button>
                                 </div>
-                                <div class="col-md-2">
-                                    <input type="text" class="form-control form-control-sm" placeholder="Apellido materno"
-                                           th:name="${'contactoEmerapellido_materno' + c.indice}" th:value="${c.apellidoMaterno}">
-                                </div>
-                                <div class="col-md-2">
-                                    <input type="text" class="form-control form-control-sm" placeholder="Parentesco"
-                                           th:name="${'contactoEmerparentesco' + c.indice}" th:value="${c.parentesco}">
-                                </div>
-                                <div class="col-md-3">
-                                    <input type="text" class="form-control form-control-sm" placeholder="Teléfono"
-                                           th:name="${'contactoEmertelefono' + c.indice}" th:value="${c.telefono}">
-                                </div>
-                            </div>
+                            </form>
                         </div>
-                        <div class="col-12 d-flex justify-content-end align-items-center gap-3">
-                            <span id="contactosEmergenciaResult" class="fs-sm"></span>
-                            <button type="button" class="btn btn-sm btn-primary" onclick="guardarContactosEmergencia(this);">
-                                <i class="ri-save-line me-1"></i> Guardar contactos
-                            </button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
-            </div>
-            <!--
-              Diagnosticos secundarios (hasta 3). EAV via MED_TAG, mismo patron que Contactos
-              de emergencia - guardado independiente del resto del examen. Cada slot es de solo
-              lectura, se llena con el mismo buscador ICD ya usado en el diagnostico principal
-              (buscarIcd/addIcd generalizados), no texto libre.
-            -->
-            <div class="card bg-light mb-3" id="diagnosticosSecundarios">
-                <div class="card-header py-2">
-                    <strong>Diagnósticos secundarios</strong>
-                </div>
-                <div class="card-body">
-                    <form id="diagnosticosSecundariosForm" class="row g-3" novalidate>
-                        <input type="hidden" name="nss" th:value="${nss}">
-                        <div th:each="d : ${diagnosticosSecundarios}" class="col-12">
-                            <label class="form-label mb-1" th:text="'Diagnóstico secundario ' + ${d.indice}">Diagnóstico secundario</label>
-                            <div class="row g-2">
-                                <div class="col-md-7">
-                                    <input type="text" class="form-control form-control-sm" readonly
-                                           placeholder="Selecciona una clave del buscador ICD..."
-                                           th:id="|diagSec${d.indice}|"
-                                           th:name="|diagnosticoSecundario${d.indice}|"
-                                           th:value="${d.valor}">
-                                </div>
-                                <div class="col-md-5">
-                                    <label class="form-label mb-1 fs-xs text-muted" th:for="|diagSec${d.indice}IcdConsult|">Buscar diagnóstico secundario (catálogo ICD/CIE)</label>
-                                    <input type="text" class="form-control form-control-sm" autocomplete="off"
-                                           placeholder="Escribe al menos 3 letras (autocompleta)..."
-                                           th:id="|diagSec${d.indice}IcdConsult|"
-                                           th:oninput="|buscarIcdDebounced('diagSec${d.indice}IcdConsult','diagSec${d.indice}IcdResult','diagSec${d.indice}');|">
-                                    <div th:id="|diagSec${d.indice}IcdResult|" class="mt-1"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12 d-flex justify-content-end align-items-center gap-3">
-                            <span id="diagnosticosSecundariosResult" class="fs-sm"></span>
-                            <button type="button" class="btn btn-sm btn-primary" onclick="guardarDiagnosticosSecundarios(this);">
-                                <i class="ri-save-line me-1"></i> Guardar diagnósticos secundarios
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+                <!--
+                  Restricciones medicas (docs/checklist-bloqueadores-negocio.html #2, Medico Jefe).
+                  Catalogo RES-01..RES-16 fijo (no administrable, vive en RestriccionService),
+                  tabla dedicada insert-only (cada asignacion/revaloracion es un registro nuevo,
+                  conserva historico) - mismo patron que Accidentes/Maternidad, no EAV.
+                -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="examenExtraHeader3">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#examenExtraBody3" aria-expanded="false" aria-controls="examenExtraBody3">
+                            Restricciones médicas
+                        </button>
+                    </h2>
+                    <div class="accordion-collapse collapse" id="examenExtraBody3"
+                         aria-labelledby="examenExtraHeader3" data-bs-parent="#examenExtraAccordion">
+                        <div class="accordion-body" id="restriccionesMedicas">
+                            <div th:if="${#lists.isEmpty(restricciones)}" class="text-muted fs-sm mb-3">Sin restricciones registradas.</div>
+                            <ul th:unless="${#lists.isEmpty(restricciones)}" class="list-group mb-3">
+                                <li th:each="r : ${restricciones}" class="list-group-item"
+                                    th:classappend="${r.estatus == 'ACTIVA'} ? 'border-start border-4 border-warning' : ''">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>
+                                            <i th:if="${r.estatus == 'ACTIVA'}" class="ri-alert-line text-warning me-1" title="Restricción activa"></i>
+                                            <strong th:text="${r.codigoRestriccion}">RES-01</strong>
+                                            <span th:text="'— ' + ${r.descripcion}">Descripción</span>
+                                            <span class="badge ms-1"
+                                                  th:classappend="${r.estatus == 'ACTIVA'} ? 'bg-warning text-dark' : 'bg-secondary'"
+                                                  th:text="${r.estatus}">ACTIVA</span>
+                                        </span>
+                                        <small class="text-muted" th:text="${r.fechaRegistro}">fecha</small>
+                                    </div>
+                                    <div class="fs-sm text-muted mt-1">
+                                        <span th:if="${r.valorLimite != null and !r.valorLimite.isEmpty()}" th:text="'Límite: ' + ${r.valorLimite} + ' ' + ${r.unidad} + ' · '">Límite</span>
+                                        <span th:if="${r.fechaInicio != null and !r.fechaInicio.isEmpty()}" th:text="'Inicio: ' + ${r.fechaInicio} + ' · '">Inicio</span>
+                                        <span th:if="${r.fechaFin != null and !r.fechaFin.isEmpty()}" th:text="'Fin: ' + ${r.fechaFin} + ' · '">Fin</span>
+                                        <span th:if="${r.medicoResponsable != null and !r.medicoResponsable.isEmpty()}" th:text="'Médico: ' + ${r.medicoResponsable}">Médico</span>
+                                    </div>
+                                    <div class="fs-sm mt-1" th:if="${r.observaciones != null and !r.observaciones.isEmpty()}" th:text="${r.observaciones}">Observaciones</div>
+                                </li>
+                            </ul>
 
-            <!--
-              Restricciones medicas (docs/checklist-bloqueadores-negocio.html #2, Medico Jefe).
-              Catalogo RES-01..RES-16 fijo (no administrable, vive en RestriccionService),
-              tabla dedicada insert-only (cada asignacion/revaloracion es un registro nuevo,
-              conserva historico) - mismo patron que Accidentes/Maternidad, no EAV.
-            -->
-            <div class="card bg-light mb-3" id="restriccionesMedicas">
-                <div class="card-header py-2">
-                    <strong>Restricciones médicas</strong>
-                </div>
-                <div class="card-body">
-                    <div th:if="${#lists.isEmpty(restricciones)}" class="text-muted fs-sm mb-3">Sin restricciones registradas.</div>
-                    <ul th:unless="${#lists.isEmpty(restricciones)}" class="list-group mb-3">
-                        <li th:each="r : ${restricciones}" class="list-group-item"
-                            th:classappend="${r.estatus == 'ACTIVA'} ? 'border-start border-4 border-warning' : ''">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span>
-                                    <i th:if="${r.estatus == 'ACTIVA'}" class="ri-alert-line text-warning me-1" title="Restricción activa"></i>
-                                    <strong th:text="${r.codigoRestriccion}">RES-01</strong>
-                                    <span th:text="'— ' + ${r.descripcion}">Descripción</span>
-                                    <span class="badge ms-1"
-                                          th:classappend="${r.estatus == 'ACTIVA'} ? 'bg-warning text-dark' : 'bg-secondary'"
-                                          th:text="${r.estatus}">ACTIVA</span>
-                                </span>
-                                <small class="text-muted" th:text="${r.fechaRegistro}">fecha</small>
-                            </div>
-                            <div class="fs-sm text-muted mt-1">
-                                <span th:if="${r.valorLimite != null and !r.valorLimite.isEmpty()}" th:text="'Límite: ' + ${r.valorLimite} + ' ' + ${r.unidad} + ' · '">Límite</span>
-                                <span th:if="${r.fechaInicio != null and !r.fechaInicio.isEmpty()}" th:text="'Inicio: ' + ${r.fechaInicio} + ' · '">Inicio</span>
-                                <span th:if="${r.fechaFin != null and !r.fechaFin.isEmpty()}" th:text="'Fin: ' + ${r.fechaFin} + ' · '">Fin</span>
-                                <span th:if="${r.medicoResponsable != null and !r.medicoResponsable.isEmpty()}" th:text="'Médico: ' + ${r.medicoResponsable}">Médico</span>
-                            </div>
-                            <div class="fs-sm mt-1" th:if="${r.observaciones != null and !r.observaciones.isEmpty()}" th:text="${r.observaciones}">Observaciones</div>
-                        </li>
-                    </ul>
-
-                    <form id="restriccionesForm" class="row g-2" novalidate>
-                        <input type="hidden" name="nss" th:value="${nss}">
-                        <div class="col-md-6">
-                            <label class="form-label mb-1 fs-sm" for="restriccionCodigo">Código</label>
-                            <select class="form-select form-select-sm" id="restriccionCodigo" name="codigoRestriccion"
-                                    onchange="onRestriccionCodigoChange(this);">
-                                <option value="">Seleccionar...</option>
-                                <option th:each="r : ${catalogoRestricciones}" th:value="${r.codigo}"
-                                        th:attr="data-etiqueta=${r.etiqueta}"
-                                        th:text="${r.codigo} + ' — ' + ${r.etiqueta}">RES-01 — Etiqueta</option>
-                            </select>
+                            <form id="restriccionesForm" class="row g-2" novalidate>
+                                <input type="hidden" name="nss" th:value="${nss}">
+                                <div class="col-md-6">
+                                    <label class="form-label mb-1 fs-sm" for="restriccionCodigo">Código</label>
+                                    <select class="form-select form-select-sm" id="restriccionCodigo" name="codigoRestriccion"
+                                            onchange="onRestriccionCodigoChange(this);">
+                                        <option value="">Seleccionar...</option>
+                                        <option th:each="r : ${catalogoRestricciones}" th:value="${r.codigo}"
+                                                th:attr="data-etiqueta=${r.etiqueta}"
+                                                th:text="${r.codigo} + ' — ' + ${r.etiqueta}">RES-01 — Etiqueta</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label mb-1 fs-sm" for="restriccionDescripcion">Descripción (editable)</label>
+                                    <input type="text" class="form-control form-control-sm" name="descripcion" id="restriccionDescripcion">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label mb-1 fs-sm" for="restriccionValorLimite">Valor límite</label>
+                                    <input type="number" step="0.01" class="form-control form-control-sm" name="valorLimite" id="restriccionValorLimite">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label mb-1 fs-sm" for="restriccionUnidad">Unidad</label>
+                                    <input type="text" class="form-control form-control-sm" name="unidad" id="restriccionUnidad" placeholder="kg, hrs, etc.">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label mb-1 fs-sm" for="restriccionTemporalidad">Temporalidad</label>
+                                    <select class="form-select form-select-sm" name="temporalidad" id="restriccionTemporalidad">
+                                        <option value="">Seleccionar...</option>
+                                        <option value="PERMANENTE">Permanente</option>
+                                        <option value="TEMPORAL">Temporal</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label mb-1 fs-sm" for="restriccionEstatus">Estatus</label>
+                                    <select class="form-select form-select-sm" name="estatus" id="restriccionEstatus">
+                                        <option value="ACTIVA">Activa</option>
+                                        <option value="VENCIDA">Vencida</option>
+                                        <option value="CANCELADA">Cancelada</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label mb-1 fs-sm" for="restriccionFechaInicio">Fecha inicio</label>
+                                    <input type="date" class="form-control form-control-sm" name="fechaInicio" id="restriccionFechaInicio">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label mb-1 fs-sm" for="restriccionFechaFin">Fecha fin</label>
+                                    <input type="date" class="form-control form-control-sm" name="fechaFin" id="restriccionFechaFin">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label mb-1 fs-sm" for="restriccionFechaRevaloracion">Fecha revaloración</label>
+                                    <input type="date" class="form-control form-control-sm" name="fechaRevaloracion" id="restriccionFechaRevaloracion">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label mb-1 fs-sm" for="restriccionMedicoResponsable">Médico responsable</label>
+                                    <input type="text" class="form-control form-control-sm" name="medicoResponsable" id="restriccionMedicoResponsable">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label mb-1 fs-sm" for="restriccionObservaciones">Observaciones</label>
+                                    <input type="text" class="form-control form-control-sm" name="observaciones" id="restriccionObservaciones">
+                                </div>
+                                <div class="col-12 d-flex justify-content-end align-items-center gap-3">
+                                    <span id="restriccionesResult" class="fs-sm"></span>
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="guardarRestriccion(this);">
+                                        <i class="ri-save-line me-1"></i> Guardar restricción
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label mb-1 fs-sm" for="restriccionDescripcion">Descripción (editable)</label>
-                            <input type="text" class="form-control form-control-sm" name="descripcion" id="restriccionDescripcion">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label mb-1 fs-sm" for="restriccionValorLimite">Valor límite</label>
-                            <input type="number" step="0.01" class="form-control form-control-sm" name="valorLimite" id="restriccionValorLimite">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label mb-1 fs-sm" for="restriccionUnidad">Unidad</label>
-                            <input type="text" class="form-control form-control-sm" name="unidad" id="restriccionUnidad" placeholder="kg, hrs, etc.">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label mb-1 fs-sm" for="restriccionTemporalidad">Temporalidad</label>
-                            <select class="form-select form-select-sm" name="temporalidad" id="restriccionTemporalidad">
-                                <option value="">Seleccionar...</option>
-                                <option value="PERMANENTE">Permanente</option>
-                                <option value="TEMPORAL">Temporal</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label mb-1 fs-sm" for="restriccionEstatus">Estatus</label>
-                            <select class="form-select form-select-sm" name="estatus" id="restriccionEstatus">
-                                <option value="ACTIVA">Activa</option>
-                                <option value="VENCIDA">Vencida</option>
-                                <option value="CANCELADA">Cancelada</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label mb-1 fs-sm" for="restriccionFechaInicio">Fecha inicio</label>
-                            <input type="date" class="form-control form-control-sm" name="fechaInicio" id="restriccionFechaInicio">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label mb-1 fs-sm" for="restriccionFechaFin">Fecha fin</label>
-                            <input type="date" class="form-control form-control-sm" name="fechaFin" id="restriccionFechaFin">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label mb-1 fs-sm" for="restriccionFechaRevaloracion">Fecha revaloración</label>
-                            <input type="date" class="form-control form-control-sm" name="fechaRevaloracion" id="restriccionFechaRevaloracion">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label mb-1 fs-sm" for="restriccionMedicoResponsable">Médico responsable</label>
-                            <input type="text" class="form-control form-control-sm" name="medicoResponsable" id="restriccionMedicoResponsable">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label mb-1 fs-sm" for="restriccionObservaciones">Observaciones</label>
-                            <input type="text" class="form-control form-control-sm" name="observaciones" id="restriccionObservaciones">
-                        </div>
-                        <div class="col-12 d-flex justify-content-end align-items-center gap-3">
-                            <span id="restriccionesResult" class="fs-sm"></span>
-                            <button type="button" class="btn btn-sm btn-primary" onclick="guardarRestriccion(this);">
-                                <i class="ri-save-line me-1"></i> Guardar restricción
-                            </button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
             </div>
 
@@ -287,8 +354,9 @@
                 </div>
             </div>
 
-            <div class="d-flex justify-content-end mt-3">
-                <button type="button" class="btn btn-primary" onclick="guardarExamen(this);">
+            <div class="d-flex justify-content-end align-items-center gap-3 mt-3">
+                <span id="examenGuardarResult" class="fs-sm"></span>
+                <button type="button" class="btn btn-primary" id="examenGuardarBtn" onclick="guardarExamen(this);">
                     <i class="ri-save-line me-1"></i> Guardar examen
                 </button>
             </div>
