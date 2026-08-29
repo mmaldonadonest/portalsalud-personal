@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -17,8 +19,20 @@ import org.springframework.web.client.RestClient;
  * Implementacion de los gateways ORDS de permisos de menu.
  * Replica loadParms() + loadMenus() de php-old/rest/validateModules.php,
  * conservando URLs y nombres de campo. Reusa el RestClient de biows.
+ *
+ * <p>Default (matchIfMissing) - se mantiene activa sin tocar comportamiento a
+ * menos que se ponga {@code portal.permissions.source=LOCAL} a proposito. Ver
+ * LocalModulePermissionClient y docs/plan-rbac-local.md.
+ *
+ * <p>{@code @Primary} porque LocalModulePermissionClient es un bean SIEMPRE
+ * presente (para el modo sombra) - cuando ambos coexisten (fuente=ORDS), Spring
+ * necesita saber cual usar para el punto de inyeccion generico ModulePermissionClient
+ * (PermissionService/ModulePermissionService); cuando la fuente es LOCAL, Biows
+ * ni siquiera existe como bean (condicion abajo), asi que @Primary no aplica.
  */
 @Component
+@Primary
+@ConditionalOnProperty(name = "portal.permissions.source", havingValue = "ORDS", matchIfMissing = true)
 public class BiowsModulePermissionClient implements ModulePermissionClient {
 
     private static final Logger log = LoggerFactory.getLogger(BiowsModulePermissionClient.class);
@@ -63,7 +77,7 @@ public class BiowsModulePermissionClient implements ModulePermissionClient {
             return List.of();
         }
         return response.resultado().datos().stream()
-                .map(d -> new ModuleDto(d.idMenu(), d.nombreMenu()))
+                .map(d -> new ModuleDto(d.idMenu(), d.nombreMenu(), null, null))
                 .toList();
     }
 }

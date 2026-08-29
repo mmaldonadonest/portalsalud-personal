@@ -3,6 +3,7 @@ package com.onest.app.web;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
@@ -76,5 +77,28 @@ public class PortalViewController {
     @GetMapping("/causas-consulta")
     public String causasConsulta() {
         return "pages/causas-consulta";
+    }
+
+    /**
+     * /admin/** protegido con hasRole("ADMIN") en SecurityConfiguration. Roles locales
+     * (APP_SEC_ROLE) - primera de las 3 pantallas admin del plan RBAC local
+     * (docs/plan-rbac-local.md): roles, roles/{id}/menus, usuarios.
+     */
+    @GetMapping("/admin/roles")
+    public String adminRoles() {
+        return "pages/admin-roles";
+    }
+
+    /** Segunda pantalla admin del plan RBAC local: checklist de menus por rol. */
+    @GetMapping("/admin/roles/{id}/menus")
+    public String adminRoleMenus(@PathVariable Long id, Model model) {
+        model.addAttribute("roleId", id);
+        return "pages/admin-role-menus";
+    }
+
+    /** Tercera y ultima pantalla admin del plan RBAC local: rol(es) por NSS. */
+    @GetMapping("/admin/usuarios")
+    public String adminUsuarios() {
+        return "pages/admin-usuarios";
     }
 }

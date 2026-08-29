@@ -80,6 +80,14 @@ a {
     color: var(--onest-blue);
 }
 
+/* #moduleContent (nss-search.html): al seleccionar un modulo del submenu,
+   loadModuleView() hace scrollIntoView hacia aqui - el header (.header-main)
+   es fixed de 72px, se monta encima de los primeros px del contenido cargado
+   sin este margen, dejando el inicio de la ficha tapado/cortado. */
+#moduleContent {
+    scroll-margin-top: 88px;
+}
+
 /* Ficha de identificacion (nss-result.html): antes era una lista de "<strong>Label:</strong>
    valor" apiladas en <p>, se leia amontonado. Formato compacto tipo etiqueta-arriba/
    valor-abajo, mas aire entre campos via grid gap en vez de margenes por parrafo. */

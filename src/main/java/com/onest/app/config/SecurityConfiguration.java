@@ -1,5 +1,6 @@
 package com.onest.app.config;
 
+import com.onest.app.catalog.module.client.LocalModulePermissionClient;
 import com.onest.app.security.legacy.LegacyPhpAuthenticationProvider;
 import com.onest.app.security.permission.ClinicalAccessFilter;
 import com.onest.app.security.permission.PermissionService;
@@ -33,18 +34,33 @@ public class SecurityConfiguration {
 
     @Bean
     SecurityFilterChain securityFilterChain(
-            HttpSecurity http, AuthenticationManager authenticationManager, PermissionService permissionService)
+            HttpSecurity http,
+            AuthenticationManager authenticationManager,
+            PermissionService permissionService,
+            LocalModulePermissionClient localModulePermissionClient,
+            @Value("${portal.permissions.shadow:false}") boolean permissionsShadow,
+            @Value("${portal.permissions.source:ORDS}") String permissionsSource)
             throws Exception {
+        boolean useLocalKeys = "LOCAL".equalsIgnoreCase(permissionsSource);
         http
                 .authenticationManager(authenticationManager)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/theme/**", "/css/**", "/js/**", "/img/**", "/login", "/error", "/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 // Matriz de permisos - Rol + Tipo de informacion (docs/checklist-bloqueadores-negocio.html #7):
                 // bloquea con 403 real el acceso a rutas clinicas si el rol no tiene el id_menu
                 // correspondiente. Se instancia a mano (no @Component) para que corra UNA sola vez,
                 // ya dentro de la cadena de Spring Security, despues de que exista Authentication.
-                .addFilterAfter(new ClinicalAccessFilter(permissionService), AuthorizationFilter.class)
+                // localModulePermissionClient/permissionsShadow son solo para el modo sombra
+                // (portal.permissions.shadow=true, ver docs/plan-rbac-local.md) - no afectan la
+                // decision real mientras portal.permissions.source siga en ORDS (default).
+                // useLocalKeys SI afecta la decision real: con source=LOCAL, PermissionService
+                // ya no trae los id_menu fijos de ORDS, hay que comparar por code.
+                .addFilterAfter(
+                        new ClinicalAccessFilter(
+                                permissionService, localModulePermissionClient, permissionsShadow, useLocalKeys),
+                        AuthorizationFilter.class)
                 .formLogin(form -> form
                         .loginPage("/login")
                         .loginProcessingUrl("/login")

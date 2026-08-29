@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: adminUsuariosContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Usuarios | Portal Salud Personal</title>
+</head>
+<body>
+
+<th:block id="pageStyles"></th:block>
+
+<th:block th:fragment="adminUsuariosContent">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/home}" href="/home">Dashboard</a></li>
+                <li class="breadcrumb-item"><a th:href="@{/admin/roles}" href="/admin/roles">Roles</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Usuarios</li>
+            </ol>
+            <h4 class="main-title mb-0">Asignacion de rol por NSS</h4>
+        </div>
+    </div>
+
+    <div class="alert alert-info fs-sm" role="alert">
+        <i class="ri-information-line me-1"></i>
+        Busca un NSS (se consulta directo a ORDS, sin dar de alta nada) y marca su rol local.
+        El primer rol que se le asigna a un NSS crea su usuario local automaticamente
+        (sin password propio - sigue autenticando con su password real de ORDS).
+    </div>
+
+    <input type="hidden" id="csrfParam" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+    <div class="card card-one mb-3">
+        <div class="card-body">
+            <form id="formBuscar" class="row g-2" novalidate>
+                <div class="col-md-4">
+                    <label class="form-label" for="nss">NSS</label>
+                    <input id="nss" name="nss" type="text" class="form-control" maxlength="20" required
+                           placeholder="Ej. 03187830207">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="ri-search-line me-1"></i> Buscar
+                    </button>
+                </div>
+            </form>
+            <p class="fs-12 mt-2 mb-0" id="estadoBuscar"></p>
+        </div>
+    </div>
+
+    <div class="card card-one" id="cardResultado" style="display:none;">
+        <div class="card-header">
+            <h6 class="card-title mb-0" id="tituloEmpleado">Roles</h6>
+        </div>
+        <div class="card-body">
+            <div class="row g-2" id="filasRoles"></div>
+        </div>
+    </div>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:inline="javascript">
+        (function () {
+            var csrfToken = document.getElementById('csrfParam').value;
+            var nssActual = null;
+
+            document.getElementById('formBuscar').addEventListener('submit', async function (e) {
+                e.preventDefault();
+                var nss = document.getElementById('nss').value.trim();
+                if (!nss) { return; }
+                await buscar(nss);
+            });
+
+            async function buscar(nss) {
+                var estado = document.getElementById('estadoBuscar');
+                var card = document.getElementById('cardResultado');
+                estado.textContent = 'Consultando...';
+                card.style.display = 'none';
+                try {
+                    var response = await fetch(contextPath + 'api/admin/usuarios/' + encodeURIComponent(nss));
+                    if (!response.ok) {
+                        estado.textContent = response.status === 404
+                                ? 'NSS no encontrado en ORDS.' : 'Error al consultar (HTTP ' + response.status + ').';
+                        return;
+                    }
+                    var datos = await response.json();
+                    nssActual = datos.nss;
+                    estado.textContent = '';
+                    document.getElementById('tituloEmpleado').textContent = datos.nombre + ' (NSS ' + datos.nss + ')';
+                    pintarRoles(datos.roles);
+                    card.style.display = '';
+                } catch (err) {
+                    estado.textContent = 'Error de red al consultar.';
+                }
+            }
+
+            function pintarRoles(roles) {
+                var cont = document.getElementById('filasRoles');
+                cont.innerHTML = '';
+                roles.forEach(function (r) {
+                    var col = document.createElement('div');
+                    col.className = 'col-md-4';
+                    var wrap = document.createElement('div');
+                    wrap.className = 'd-flex align-items-center justify-content-between border rounded p-2 mb-0';
+                    var label = document.createElement('label');
+                    label.className = 'form-check-label mb-0';
+                    label.setAttribute('for', 'rol' + r.roleId);
+                    label.textContent = r.name + ' (' + r.code + ')';
+                    var switchWrap = document.createElement('div');
+                    switchWrap.className = 'form-check form-switch mb-0';
+                    var input = document.createElement('input');
+                    input.type = 'checkbox';
+                    input.className = 'form-check-input';
+                    input.setAttribute('role', 'switch');
+                    input.id = 'rol' + r.roleId;
+                    input.checked = r.asignado;
+                    input.addEventListener('change', function () { toggle(r.roleId, input); });
+                    switchWrap.appendChild(input);
+                    wrap.appendChild(label);
+                    wrap.appendChild(switchWrap);
+                    col.appendChild(wrap);
+                    cont.appendChild(col);
+                });
+            }
+
+            async function toggle(roleId, input) {
+                input.disabled = true;
+                var asignar = input.checked;
+                try {
+                    var response = await fetch(
+                        contextPath + 'api/admin/usuarios/' + encodeURIComponent(nssActual) + '/roles/' + roleId,
+                        {
+                            method: asignar ? 'POST' : 'DELETE',
+                            headers: { 'X-CSRF-TOKEN': csrfToken }
+                        });
+                    if (!response.ok) {
+                        input.checked = !asignar;
+                    }
+                } catch (err) {
+                    input.checked = !asignar;
+                } finally {
+                    input.disabled = false;
+                }
+            }
+        })();
+    </script>
+</th:block>
+</body>
+</html>

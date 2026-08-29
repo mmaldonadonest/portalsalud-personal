@@ -1,5 +1,6 @@
 package com.onest.app.web;
 
+import com.onest.app.security.service.AvatarDefaults;
 import com.onest.app.security.service.PortalUserPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Year;
@@ -17,13 +18,17 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 @ControllerAdvice
 public class ViewModelAdvice {
 
-    private static final String DEFAULT_AVATAR = "/theme/assets/img/img1.jpg";
+    private static final String DEFAULT_AVATAR = AvatarDefaults.DEFAULT_AVATAR;
 
     @ModelAttribute
     public void populateCommonAttributes(Model model, HttpServletRequest request) {
         Map<String, Object> attributes = model.asMap();
         attributes.put("appName", "Portal Salud Personal");
-        attributes.put("currentPath", request.getRequestURI());
+        // getServletPath() (no getRequestURI()) - este ultimo incluye el context path
+        // del despliegue en Tomcat externo (ej. /portal-salud/consumibles), y menu.html
+        // compara currentPath contra literales sin ese prefijo (ej. '/consumibles'),
+        // asi que el resaltado 'active' nunca aplicaba en un despliegue con context path.
+        attributes.put("currentPath", request.getServletPath());
         attributes.put("currentYear", Year.now().getValue());
         attributes.putIfAbsent("notificationCount", 0);
         attributes.putIfAbsent("notifications", List.of());

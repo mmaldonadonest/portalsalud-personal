@@ -2,20 +2,25 @@ package com.onest.app.security.permission;
 
 import com.onest.app.catalog.module.client.ModulePermissionClient;
 import com.onest.app.catalog.module.dto.ModuleDto;
+import java.util.List;
 import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Resuelve que id_menu tiene permitidos el usuario autenticado, reusando el MISMO WS
- * que ya arma el menu lateral (info/consulta_app_rol_usuario + consulta_app_rol_menu,
- * ver ModulePermissionService) - sin inventar ninguna fuente de permisos nueva ni
- * tocar ningun WS existente. Cache corta por usuario para no llamar a ORDS en cada
- * peticion (lo consume {@link ClinicalAccessFilter} en cada request clinico).
+ * Resuelve que modulos tiene permitidos el usuario autenticado, reusando el MISMO
+ * gateway que ya arma el menu lateral (ModulePermissionClient - ORDS o local segun
+ * portal.permissions.source, ver ModulePermissionService) - sin inventar ninguna
+ * fuente de permisos nueva. Cache corta por usuario para no golpear la fuente en
+ * cada peticion (lo consume {@link ClinicalAccessFilter} en cada request clinico).
+ *
+ * <p>Se cachea la lista completa de {@link ModuleDto} (no solo los id_menu) porque
+ * la llave que de verdad identifica un modulo depende de la fuente: ORDS solo trae
+ * id_menu (numeracion fija 1-14, code siempre null); el esquema local solo trae un
+ * id_menu util como PK tecnica (numeracion arbitraria segun el IDENTITY de APP_MENU,
+ * NO comparable con la de ORDS) pero SI trae un code estable. Ver docs/plan-rbac-local.md.
  */
 @Service
 public class PermissionService {
@@ -29,26 +34,29 @@ public class PermissionService {
         this.client = client;
     }
 
-    /** id_menu permitidos para el usuario autenticado actual (mismos que ve en el menu lateral). */
-    public Set<Integer> idsMenuPermitidos() {
+    /** Modulos permitidos para el usuario autenticado actual (mismos que ve en el menu lateral). */
+    public List<ModuleDto> modulosPermitidos() {
         String usuario = usuarioActual();
         CacheEntry entry = cache.get(usuario);
         long now = System.currentTimeMillis();
         if (entry != null && entry.expiresAt() > now) {
-            return entry.ids();
+            return entry.modulos();
         }
-        Set<Integer> ids = client.findRoleId(usuario)
-                .map(idRol -> client.findMenusByRole(idRol).stream()
-                        .map(ModuleDto::idMenu)
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.toUnmodifiableSet()))
-                .orElseGet(Set::of);
-        cache.put(usuario, new CacheEntry(ids, now + TTL_MILLIS));
-        return ids;
+        List<ModuleDto> modulos = client.findRoleId(usuario)
+                .map(client::findMenusByRole)
+                .orElseGet(List::of);
+        cache.put(usuario, new CacheEntry(modulos, now + TTL_MILLIS));
+        return modulos;
     }
 
+    /** Acceso por id_menu - valido SOLO mientras la fuente activa sea ORDS. */
     public boolean tieneAcceso(int idMenuRequerido) {
-        return idsMenuPermitidos().contains(idMenuRequerido);
+        return modulosPermitidos().stream().anyMatch(m -> Objects.equals(m.idMenu(), idMenuRequerido));
+    }
+
+    /** Acceso por code - valido SOLO mientras la fuente activa sea LOCAL (ORDS nunca trae code). */
+    public boolean tieneAccesoPorCodigo(String codeRequerido) {
+        return modulosPermitidos().stream().anyMatch(m -> codeRequerido.equals(m.code()));
     }
 
     private String usuarioActual() {
@@ -59,6 +67,6 @@ public class PermissionService {
         return authentication.getName();
     }
 
-    private record CacheEntry(Set<Integer> ids, long expiresAt) {
+    private record CacheEntry(List<ModuleDto> modulos, long expiresAt) {
     }
 }

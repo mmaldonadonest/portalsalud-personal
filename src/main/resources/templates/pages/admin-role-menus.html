@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: adminRoleMenusContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Menus del rol | Portal Salud Personal</title>
+</head>
+<body>
+
+<th:block id="pageStyles"></th:block>
+
+<th:block th:fragment="adminRoleMenusContent">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/home}" href="/home">Dashboard</a></li>
+                <li class="breadcrumb-item"><a th:href="@{/admin/roles}" href="/admin/roles">Roles</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Menus</li>
+            </ol>
+            <h4 class="main-title mb-0" id="tituloRol">Menus del rol</h4>
+        </div>
+        <a th:href="@{/admin/roles}" href="/admin/roles" class="btn btn-outline-secondary btn-sm">
+            <i class="ri-arrow-left-line me-1"></i> Volver a roles
+        </a>
+    </div>
+
+    <div class="alert alert-info fs-sm" role="alert">
+        <i class="ri-information-line me-1"></i>
+        Marca los modulos que este rol puede ver en el submenu "Expediente General" al buscar
+        un NSS. El catalogo de 14 modulos es fijo (cada uno tiene una pantalla ya construida) -
+        aqui solo se decide <strong>quien ve cuales</strong>, via <code>APP_MENU_ROLE</code>.
+    </div>
+
+    <input type="hidden" id="roleId" th:value="${roleId}">
+    <input type="hidden" id="csrfParam" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+    <div class="card card-one">
+        <div class="card-header">
+            <h6 class="card-title mb-0">Modulos</h6>
+        </div>
+        <div class="card-body">
+            <div id="estadoLista" class="fs-12 text-muted mb-3">Cargando...</div>
+            <div class="row g-2" id="filasMenus"></div>
+        </div>
+    </div>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:inline="javascript">
+        (function () {
+            var roleId = document.getElementById('roleId').value;
+            var csrfToken = document.getElementById('csrfParam').value;
+
+            function escapeHtml(valor) {
+                if (valor === null || valor === undefined) { return ''; }
+                return String(valor).replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+
+            async function cargar() {
+                var estado = document.getElementById('estadoLista');
+                estado.textContent = 'Cargando...';
+                try {
+                    var response = await fetch(contextPath + 'api/admin/roles/' + roleId + '/menus');
+                    if (!response.ok) {
+                        estado.textContent = 'Error al consultar (HTTP ' + response.status + ').';
+                        return;
+                    }
+                    var datos = await response.json();
+                    document.getElementById('tituloRol').textContent = 'Menus de ' + datos.role.name + ' (' + datos.role.code + ')';
+                    pintar(datos.menus);
+                    var asignados = datos.menus.filter(function (m) { return m.asignado; }).length;
+                    estado.textContent = asignados + ' de ' + datos.menus.length + ' modulo(s) asignado(s).';
+                } catch (e) {
+                    estado.textContent = 'Error de red al consultar los menus.';
+                }
+            }
+
+            function pintar(menus) {
+                var cont = document.getElementById('filasMenus');
+                cont.innerHTML = '';
+                menus.forEach(function (m) {
+                    var col = document.createElement('div');
+                    col.className = 'col-md-4';
+                    var wrap = document.createElement('div');
+                    wrap.className = 'd-flex align-items-center justify-content-between border rounded p-2 mb-0';
+                    var label = document.createElement('label');
+                    label.className = 'form-check-label mb-0';
+                    label.setAttribute('for', 'menu' + m.menuId);
+                    label.innerHTML = '<i class="' + escapeHtml(m.icon || 'ri-file-list-2-line') + ' me-1"></i>' + escapeHtml(m.title);
+                    var switchWrap = document.createElement('div');
+                    switchWrap.className = 'form-check form-switch mb-0';
+                    var input = document.createElement('input');
+                    input.type = 'checkbox';
+                    input.className = 'form-check-input';
+                    input.setAttribute('role', 'switch');
+                    input.id = 'menu' + m.menuId;
+                    input.checked = m.asignado;
+                    input.addEventListener('change', function () { toggle(m.menuId, input); });
+                    switchWrap.appendChild(input);
+                    wrap.appendChild(label);
+                    wrap.appendChild(switchWrap);
+                    col.appendChild(wrap);
+                    cont.appendChild(col);
+                });
+            }
+
+            async function toggle(menuId, input) {
+                input.disabled = true;
+                var asignar = input.checked;
+                try {
+                    var response = await fetch(
+                        contextPath + 'api/admin/roles/' + roleId + '/menus/' + menuId,
+                        {
+                            method: asignar ? 'POST' : 'DELETE',
+                            headers: { 'X-CSRF-TOKEN': csrfToken }
+                        });
+                    if (!response.ok) {
+                        input.checked = !asignar;
+                    } else {
+                        cargar();
+                    }
+                } catch (e) {
+                    input.checked = !asignar;
+                } finally {
+                    input.disabled = false;
+                }
+            }
+
+            cargar();
+        })();
+    </script>
+</th:block>
+</body>
+</html>

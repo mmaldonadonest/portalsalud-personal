@@ -5,31 +5,54 @@
   Menu dinamico de modulos permitidos (validateModules.php).
   Se inyecta como enlaces de submenu lateral dentro de #nssModulesSub.
   La clase 'modulo-<id>' replica el patron legacy ($("."+id_menu).show()).
-  Iconos curados por id_menu (fallback generico); label = nombre_menu del WS.
 
-  Antidoping (id_menu=12) y Accidentes (id_menu=13) dados de alta en Oracle el 2026-08-14
-  via security/info/crud_alta_app_menu (servicio=MENU, tipo_mov=ALTA), para id_app=13.
-  Verificados en el rol id_rol=2 - si otro rol necesita verlos, hay que repetir el alta para
-  ese id_rol tambien (la tabla TBL_APPS_ROL_MENU asigna por combinacion app+rol+menu).
+  Icono/label/accion/tipo se resuelven por CODE (llave estable, ver
+  docs/plan-rbac-local.md), no por el id_menu numerico - ese id ya NO es
+  confiable como llave: viene de ORDS (1-14 fijo) cuando portal.permissions.source
+  =ORDS, pero viene del IDENTITY autogenerado de APP_MENU (cualquier numero,
+  segun el orden real de insercion) cuando =LOCAL. idToCode traduce los 14
+  ids clasicos de ORDS al mismo CODE que usa el esquema local, para que ambas
+  fuentes compartan un solo set de mapas.
 
-  Maternidad (id_menu=14) dado de alta en Oracle el 2026-08-21 via security/info/crud_alta_app_menu
-  (servicio=MENU, tipo_mov=ALTA), para id_app=13, id_rol=2 (rol del usuario de pruebas).
-  Si otro rol necesita verlo, hay que repetir el alta para ese id_rol.
+  Titulo/icono: prioridad a m.nombreMenu/m.icon (viene de APP_MENU.TITLE/ICON
+  para la fuente LOCAL, editable en BD sin redeploy - asi se pueden reorganizar
+  nombres/iconos/orden de los modulos a discrecion por rol via APP_MENU_ROLE,
+  sin tocar codigo). El mapa fijo 'labels'/'icons' de abajo queda solo como
+  fallback si la BD no trae dato (ej. ORDS nunca manda icono).
+
+  'action'/'tipo' SI siguen fijos a proposito: cada uno apunta a una pantalla
+  ya construida en Java/JS, no son datos de presentacion reorganizables - una
+  fila de APP_MENU sin match aqui cae en el placeholder "disponible en una
+  proxima entrega" de abrirModulo() (ver pages/nss-search.html), nunca en un
+  403 real (ClinicalAccessFilter no depende de esto, sigue 100% en codigo).
+
+  Antidoping (id_menu=12 en ORDS) y Accidentes (id_menu=13 en ORDS) dados de alta
+  en Oracle el 2026-08-14 via security/info/crud_alta_app_menu (servicio=MENU,
+  tipo_mov=ALTA), para id_app=13. Verificados en el rol id_rol=2 - si otro rol
+  necesita verlos, hay que repetir el alta para ese id_rol tambien (la tabla
+  TBL_APPS_ROL_MENU asigna por combinacion app+rol+menu).
+
+  Maternidad (id_menu=14 en ORDS) dado de alta en Oracle el 2026-08-21 via
+  security/info/crud_alta_app_menu (servicio=MENU, tipo_mov=ALTA), para id_app=13,
+  id_rol=2 (rol del usuario de pruebas). Si otro rol necesita verlo, hay que
+  repetir el alta para ese id_rol.
 -->
 <th:block th:fragment="modules"
-          th:with="icons=${ {1:'ri-booklet-line',2:'ri-flask-line',3:'ri-history-line',4:'ri-file-text-line',5:'ri-file-paper-2-line',6:'ri-book-2-line',7:'ri-health-book-line',8:'ri-first-aid-kit-line',9:'ri-archive-line',10:'ri-heart-pulse-line',11:'ri-survey-line',12:'ri-test-tube-line',13:'ri-alarm-warning-line',14:'ri-women-line'} },
-                   labels=${ {1:'Expediente General',2:'E. Laboratorio',3:'Historico E.M',4:'Nota Medica',5:'Nota Incapacidad',6:'Archivo de Consultas',7:'Consulta Medica',8:'Incapacidades',9:'Archivo Incapacidades',10:'Examen Medico',11:'Pre-Test',12:'Antidoping',13:'Accidentes',14:'Maternidad'} },
-                   actions=${ {2:'archivos', 3:'archivos', 4:'archivos', 5:'archivos', 6:'expediente', 7:'consulta-form', 8:'incapacidad-form', 9:'incapacidades', 10:'examen', 11:'pretest', 12:'antidoping', 13:'accidentes', 14:'maternidad'} },
-                   tipos=${ {2:'laboratorio', 3:'examen_medico', 4:'nota_medica', 5:'nota_incapacidad'} }">
-    <a th:each="m : ${modulos}"
-       href="javascript:void(0)"
+          th:with="idToCode=${ {1:'EXPEDIENTE_GENERAL',2:'LABORATORIO',3:'HISTORICO_EM',4:'NOTA_MEDICA',5:'NOTA_INCAPACIDAD',6:'ARCHIVO_CONSULTAS',7:'CONSULTA_MEDICA',8:'INCAPACIDADES',9:'ARCHIVO_INCAPACIDADES',10:'EXAMEN_MEDICO',11:'PRETEST',12:'ANTIDOPING',13:'ACCIDENTES',14:'MATERNIDAD'} },
+                   icons=${ {'EXPEDIENTE_GENERAL':'ri-booklet-line','LABORATORIO':'ri-flask-line','HISTORICO_EM':'ri-history-line','NOTA_MEDICA':'ri-file-text-line','NOTA_INCAPACIDAD':'ri-file-paper-2-line','ARCHIVO_CONSULTAS':'ri-book-2-line','CONSULTA_MEDICA':'ri-health-book-line','INCAPACIDADES':'ri-first-aid-kit-line','ARCHIVO_INCAPACIDADES':'ri-archive-line','EXAMEN_MEDICO':'ri-heart-pulse-line','PRETEST':'ri-survey-line','ANTIDOPING':'ri-test-tube-line','ACCIDENTES':'ri-alarm-warning-line','MATERNIDAD':'ri-women-line'} },
+                   labels=${ {'EXPEDIENTE_GENERAL':'Expediente General','LABORATORIO':'E. Laboratorio','HISTORICO_EM':'Historico E.M','NOTA_MEDICA':'Nota Medica','NOTA_INCAPACIDAD':'Nota Incapacidad','ARCHIVO_CONSULTAS':'Archivo de Consultas','CONSULTA_MEDICA':'Consulta Medica','INCAPACIDADES':'Incapacidades','ARCHIVO_INCAPACIDADES':'Archivo Incapacidades','EXAMEN_MEDICO':'Examen Medico','PRETEST':'Pre-Test','ANTIDOPING':'Antidoping','ACCIDENTES':'Accidentes','MATERNIDAD':'Maternidad'} },
+                   actions=${ {'LABORATORIO':'archivos','HISTORICO_EM':'archivos','NOTA_MEDICA':'archivos','NOTA_INCAPACIDAD':'archivos','ARCHIVO_CONSULTAS':'expediente','CONSULTA_MEDICA':'consulta-form','INCAPACIDADES':'incapacidad-form','ARCHIVO_INCAPACIDADES':'incapacidades','EXAMEN_MEDICO':'examen','PRETEST':'pretest','ANTIDOPING':'antidoping','ACCIDENTES':'accidentes','MATERNIDAD':'maternidad'} },
+                   tipos=${ {'LABORATORIO':'laboratorio','HISTORICO_EM':'examen_medico','NOTA_MEDICA':'nota_medica','NOTA_INCAPACIDAD':'nota_incapacidad'} }">
+    <th:block th:each="m : ${modulos}" th:with="k=${m.code} ?: ${idToCode.get(m.idMenu)}">
+    <a href="javascript:void(0)"
        class="nav-sub-link module"
        th:classappend="'modulo-' + ${m.idMenu}"
-       th:attr="data-id-menu=${m.idMenu}, data-nss=${nss}, data-action=${actions.get(m.idMenu)}, data-tipo=${tipos.get(m.idMenu)}"
+       th:attr="data-id-menu=${m.idMenu}, data-nss=${nss}, data-action=${actions.get(k)}, data-tipo=${tipos.get(k)}"
        onclick="abrirModulo(this);">
-        <i class="me-2" th:classappend="${icons.get(m.idMenu)} ?: 'ri-file-list-2-line'"></i>
-        <span th:text="${labels.get(m.idMenu)} ?: ${m.nombreMenu}">Modulo</span>
+        <i class="me-2" th:classappend="${m.icon} ?: (${icons.get(k)} ?: 'ri-file-list-2-line')"></i>
+        <span th:text="${m.nombreMenu} ?: ${labels.get(k)}">Modulo</span>
     </a>
+    </th:block>
 </th:block>
 </body>
 </html>

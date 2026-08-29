@@ -1,5 +1,7 @@
 package com.onest.app.security.permission;
 
+import com.onest.app.catalog.module.client.LocalModulePermissionClient;
+import com.onest.app.catalog.module.dto.ModuleDto;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,7 +32,8 @@ public class ClinicalAccessFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(ClinicalAccessFilter.class);
 
     // Prefijo de path -> id_menu(s) aceptados (cualquiera de ellos da acceso). Mismos
-    // ids que ya usa fragments/nss-modules.html para dibujar el menu lateral.
+    // ids que ya usa fragments/nss-modules.html para dibujar el menu lateral. Es la
+    // decision REAL mientras portal.permissions.source=ORDS (default).
     private static final Map<String, Set<Integer>> RUTAS_CLINICAS = new LinkedHashMap<>();
     static {
         RUTAS_CLINICAS.put("/api/nss/expediente", Set.of(6, 7));
@@ -44,10 +47,43 @@ public class ClinicalAccessFilter extends OncePerRequestFilter {
         RUTAS_CLINICAS.put("/api/nss/maternidad", Set.of(14));
     }
 
+    // Mismas 9 rutas, en CODE local (ver docs/plan-rbac-local.md) - solo se usa para
+    // el modo sombra (portal.permissions.shadow=true), nunca para bloquear de verdad
+    // mientras la fuente activa siga siendo ORDS.
+    private static final Map<String, Set<String>> RUTAS_CLINICAS_LOCAL = new LinkedHashMap<>();
+    static {
+        RUTAS_CLINICAS_LOCAL.put("/api/nss/expediente", Set.of("ARCHIVO_CONSULTAS", "CONSULTA_MEDICA"));
+        RUTAS_CLINICAS_LOCAL.put("/api/nss/consulta", Set.of("ARCHIVO_CONSULTAS", "CONSULTA_MEDICA"));
+        RUTAS_CLINICAS_LOCAL.put("/api/nss/incapacidades", Set.of("INCAPACIDADES", "ARCHIVO_INCAPACIDADES"));
+        RUTAS_CLINICAS_LOCAL.put("/api/nss/examen", Set.of("EXAMEN_MEDICO"));
+        RUTAS_CLINICAS_LOCAL.put("/api/nss/restricciones", Set.of("EXAMEN_MEDICO"));
+        RUTAS_CLINICAS_LOCAL.put("/api/nss/pretest", Set.of("PRETEST"));
+        RUTAS_CLINICAS_LOCAL.put("/api/nss/antidoping", Set.of("ANTIDOPING"));
+        RUTAS_CLINICAS_LOCAL.put("/api/nss/accidentes", Set.of("ACCIDENTES"));
+        RUTAS_CLINICAS_LOCAL.put("/api/nss/maternidad", Set.of("MATERNIDAD"));
+    }
+
     private final PermissionService permissionService;
+    private final LocalModulePermissionClient localClient;
+    private final boolean shadowEnabled;
+    // true cuando portal.permissions.source=LOCAL: la decision real debe comparar por
+    // CODE (permissionService.tieneAccesoPorCodigo), no por id_menu - con la fuente
+    // local, PermissionService.modulosPermitidos() ya no trae los ids fijos 1-14 de
+    // ORDS (vienen del IDENTITY de APP_MENU, numeracion arbitraria) asi que comparar
+    // por id ahi seria comparar numeros que no significan lo mismo. Ver docs/plan-rbac-local.md.
+    private final boolean useLocalKeys;
 
     public ClinicalAccessFilter(PermissionService permissionService) {
+        this(permissionService, null, false, false);
+    }
+
+    public ClinicalAccessFilter(
+            PermissionService permissionService, LocalModulePermissionClient localClient, boolean shadowEnabled,
+            boolean useLocalKeys) {
         this.permissionService = permissionService;
+        this.localClient = localClient;
+        this.shadowEnabled = shadowEnabled;
+        this.useLocalKeys = useLocalKeys;
     }
 
     @Override
@@ -60,17 +96,61 @@ public class ClinicalAccessFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
             return;
         }
-        Set<Integer> requeridos = idsMenuRequeridos(path);
-        if (requeridos != null && !requeridos.isEmpty() && requeridos.stream().noneMatch(permissionService::tieneAcceso)) {
+        Set<Integer> idsRequeridos = idsMenuRequeridos(path);
+        Set<String> codesRequeridos = codesRequeridos(path);
+        boolean esRutaClinica = idsRequeridos != null && !idsRequeridos.isEmpty();
+        boolean permitido = !esRutaClinica || (useLocalKeys
+                ? codesRequeridos.stream().anyMatch(permissionService::tieneAccesoPorCodigo)
+                : idsRequeridos.stream().anyMatch(permissionService::tieneAcceso));
+
+        // El modo sombra compara "que decidiria local" contra la decision real - solo
+        // tiene sentido mientras la decision real siga siendo ORDS (useLocalKeys=false).
+        // Si ya se volteo a LOCAL, la decision real YA es local - compararla contra si
+        // misma via localClient seria ruido, no informacion.
+        if (shadowEnabled && !useLocalKeys && esRutaClinica) {
+            registrarComparacionSombra(path, permitido);
+        }
+
+        if (!permitido) {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            log.warn("[permisos] usuario={} SIN acceso clinico a {} (requiere id_menu {})",
-                    auth == null ? "?" : auth.getName(), path, requeridos);
+            log.warn("[permisos] usuario={} SIN acceso clinico a {} (fuente={}, requiere {})",
+                    auth == null ? "?" : auth.getName(), path, useLocalKeys ? "LOCAL" : "ORDS",
+                    useLocalKeys ? codesRequeridos : idsRequeridos);
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             response.setContentType("text/plain;charset=UTF-8");
             response.getWriter().write("No tienes permiso para ver esta información clínica.");
             return;
         }
         chain.doFilter(request, response);
+    }
+
+    /**
+     * Calcula EN PARALELO lo que decidiria el esquema local (sin afectar la
+     * respuesta real, que siempre sigue siendo la de ORDS mientras
+     * portal.permissions.source=ORDS) y lo loguea junto al resultado real, para
+     * comparar N dias de trafico antes de voltear la fuente de verdad. Cualquier
+     * fallo aqui (usuario no migrado, excepcion de BD) se traga y se loguea como
+     * discrepancia, nunca rompe el request real.
+     */
+    private void registrarComparacionSombra(String path, boolean permitidoOrds) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String usuario = auth == null ? null : auth.getName();
+        Set<String> codesRequeridos = codesRequeridos(path);
+        boolean permitidoLocal;
+        try {
+            permitidoLocal = usuario != null
+                    && localClient.findRoleId(usuario)
+                            .map(localClient::findMenusByRole)
+                            .map(modulos -> modulos.stream().map(ModuleDto::code)
+                                    .anyMatch(codesRequeridos::contains))
+                            .orElse(false);
+        } catch (Exception ex) {
+            log.warn("[permisos-sombra] usuario={} ruta={} error calculando decision local: {}", usuario, path, ex.getMessage());
+            return;
+        }
+        log.info("[permisos-sombra] usuario={} ruta={} ords={} local={} coincide={}",
+                usuario, path, permitidoOrds ? "permitido" : "403", permitidoLocal ? "permitido" : "403",
+                permitidoOrds == permitidoLocal);
     }
 
     private static Set<Integer> idsMenuRequeridos(String path) {
@@ -80,5 +160,14 @@ public class ClinicalAccessFilter extends OncePerRequestFilter {
             }
         }
         return null;
+    }
+
+    private static Set<String> codesRequeridos(String path) {
+        for (Map.Entry<String, Set<String>> entry : RUTAS_CLINICAS_LOCAL.entrySet()) {
+            if (path.startsWith(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+        return Set.of();
     }
 }

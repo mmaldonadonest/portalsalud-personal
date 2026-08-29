@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "APP_SEC_ROLE")
@@ -21,6 +22,26 @@ public class AppSecRole {
 
     @Column(name = "NAME", nullable = false)
     private String name;
+
+    @Column(name = "DESCRIPTION")
+    private String description;
+
+    // 'Y'/'N' - preferir desactivar sobre DELETE (a diferencia del rol de ORDS,
+    // que borra en duro sin validar huerfanos en TBL_APPS_ROL_MENU/TBL_APP_ROL_USUARIO).
+    @Column(name = "ACTIVE", nullable = false, columnDefinition = "CHAR(1)", length = 1)
+    private String active = "Y";
+
+    @Column(name = "CREATED_AT")
+    private LocalDateTime createdAt;
+
+    @Column(name = "CREATED_BY")
+    private String createdBy;
+
+    @Column(name = "UPDATED_AT")
+    private LocalDateTime updatedAt;
+
+    @Column(name = "UPDATED_BY")
+    private String updatedBy;
 
     public Long getId() {
         return id;
@@ -44,5 +65,37 @@ public class AppSecRole {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getActive() {
+        return active;
+    }
+
+    public void setActive(String active) {
+        this.active = active;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public String getUpdatedBy() {
+        return updatedBy;
     }
 }

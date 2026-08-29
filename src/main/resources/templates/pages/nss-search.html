@@ -232,6 +232,10 @@
                     });
                     if (response.ok) {
                         mc.innerHTML = await response.text();
+                        // Reenfocar tras cargar: el scrollIntoView de arriba se hizo con el
+                        // placeholder "Cargando..." (una linea) - una vez que el contenido real
+                        // crece (o la pagina se acomoda distinto), ese scroll queda desalineado.
+                        mc.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         // Si el modulo trae el canvas de firma, inicializar el signature pad.
                         if (document.getElementById('firmaCanvas')) {
                             initSignaturePad();
@@ -453,6 +457,22 @@
                 }
             };
 
+            // Estilo comun para los mensajes de resultado inline (junto al boton "Guardar")
+            // en toda la pantalla de NSS: icono + color semantico Bootstrap (success/danger),
+            // en vez de solo texto de color. Un solo lugar para no repetir el mismo className
+            // en cada guardarX() - lo usan guardarRegistro() y guardarExamen().
+            function pintarResultadoInline(el, texto, esError) {
+                if (!el) {
+                    return;
+                }
+                el.className = 'fs-sm d-inline-flex align-items-center gap-1 ' + (esError ? 'text-danger' : 'text-success');
+                el.innerHTML = '';
+                var icono = document.createElement('i');
+                icono.className = esError ? 'ri-error-warning-line' : 'ri-checkbox-circle-line';
+                el.appendChild(icono);
+                el.appendChild(document.createTextNode(texto));
+            }
+
             // Guardado generico de un alta (consulta / incapacidad / antidoping / accidente) +
             // subida de adjuntos. Bloquea doble-click (guard explicito + disabled), muestra
             // spinner mientras esta en vuelo, y opcionalmente limpia el formulario al exito
@@ -478,10 +498,11 @@
                 // el mismo mensaje justo ahi, imposible de perder de vista.
                 var resultEl = opts.resultElId ? document.getElementById(opts.resultElId) : null;
                 function mostrarResultado(texto, esError) {
-                    status.textContent = texto;
                     if (resultEl) {
-                        resultEl.textContent = texto;
-                        resultEl.className = 'fs-sm mt-2 ' + (esError ? 'text-danger' : 'text-success');
+                        pintarResultadoInline(resultEl, texto, esError);
+                        status.textContent = '';
+                    } else {
+                        status.textContent = texto;
                     }
                 }
                 btn.disabled = true;
@@ -522,21 +543,45 @@
                 }
             }
 
+            // form.reset() (opts.resetOnSuccess) no toca el canvas de firma - el trazo
+            // dibujado se queda en pantalla aunque el input oculto ya se haya limpiado,
+            // dejando el canvas visualmente "con firma" pero con el valor real vacio. Se
+            // dispara el mismo boton "Limpiar firma" (si el modulo trae uno) para que
+            // ambos queden sincronizados.
+            function limpiarFirmaSiExiste() {
+                var clearBtn = document.getElementById('firmaClear');
+                if (clearBtn) {
+                    clearBtn.click();
+                }
+            }
+
             window.guardarConsulta = function (btn) {
                 var diagnostico = document.getElementById('diagnostico');
                 if (diagnostico && !diagnostico.value.trim()) {
                     status.textContent = 'Selecciona al menos un diagnóstico del catálogo ICD antes de guardar.';
                     return;
                 }
-                guardarRegistro(btn, { formId: 'consultaAltaForm', savePath: 'api/nss/consulta', fileInputId: 'consultaFiles', label: 'consulta' });
+                guardarRegistro(btn, {
+                    formId: 'consultaAltaForm', savePath: 'api/nss/consulta', fileInputId: 'consultaFiles',
+                    label: 'consulta', resultElId: 'consultaGuardarResult',
+                    resetOnSuccess: true, onSuccess: limpiarFirmaSiExiste
+                });
             };
 
             window.guardarIncapacidad = function (btn) {
-                guardarRegistro(btn, { formId: 'incapacidadAltaForm', savePath: 'api/nss/incapacidades/save', fileInputId: 'incapacidadFiles', label: 'incapacidad' });
+                guardarRegistro(btn, {
+                    formId: 'incapacidadAltaForm', savePath: 'api/nss/incapacidades/save', fileInputId: 'incapacidadFiles',
+                    label: 'incapacidad', resultElId: 'incapacidadGuardarResult',
+                    resetOnSuccess: true, onSuccess: limpiarFirmaSiExiste
+                });
             };
 
             window.guardarPretest = function (btn) {
-                guardarRegistro(btn, { formId: 'pretestForm', savePath: 'api/nss/pretest/save', fileInputId: '__none__', label: 'Pre-Test' });
+                guardarRegistro(btn, {
+                    formId: 'pretestForm', savePath: 'api/nss/pretest/save', fileInputId: '__none__',
+                    label: 'Pre-Test', resultElId: 'pretestGuardarResult',
+                    resetOnSuccess: true, onSuccess: limpiarFirmaSiExiste
+                });
             };
 
             window.guardarContactosEmergencia = function (btn) {
@@ -733,6 +778,9 @@
                     });
                     mc.innerHTML = response.ok ? (await response.text())
                             : ('<div class="alert alert-danger mb-0">Error al cargar (HTTP ' + response.status + ').</div>');
+                    // El contenido real es mas grande que el placeholder "Cargando..." -
+                    // repetir el scroll ahora que el DOM ya tiene su tamano final.
+                    mc.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 } catch (error) {
                     mc.innerHTML = '<div class="alert alert-danger mb-0">Error de red al cargar.</div>';
                 }
@@ -741,9 +789,10 @@
             window.subirArchivo = async function (btn) {
                 var nss = btn.getAttribute('data-nss') || (input.value || '').trim();
                 var tipo = btn.getAttribute('data-tipo');
+                var resultEl = document.getElementById('archivoSubirResult');
                 var fileInput = document.getElementById('archivoFiles');
                 if (!fileInput || !fileInput.files || !fileInput.files.length) {
-                    status.textContent = 'Selecciona al menos un PDF.';
+                    pintarResultadoInline(resultEl, 'Selecciona al menos un PDF.', true);
                     return;
                 }
                 var fd = new FormData();
@@ -757,21 +806,27 @@
                 if (csrf) {
                     headers['X-CSRF-TOKEN'] = csrf.value;
                 }
+                var originalHtml = btn.innerHTML;
                 btn.disabled = true;
-                status.textContent = 'Subiendo...';
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Subiendo...';
+                pintarResultadoInline(resultEl, 'Subiendo...', false);
                 try {
                     var response = await fetch(contextPath + 'api/nss/consulta/file', {
                         method: 'POST', headers: headers, body: fd
                     });
-                    status.textContent = response.ok ? (await response.text())
-                            : ('Error al subir (HTTP ' + response.status + ').');
+                    var txt = await response.text();
+                    pintarResultadoInline(resultEl, response.ok ? txt : ('Error al subir (HTTP ' + response.status + ').'), !response.ok);
                     if (response.ok) {
                         await loadArchivos(nss, tipo);
+                        // loadArchivos reemplaza toda la tarjeta (incluido #archivoSubirResult) -
+                        // repintar el mensaje en el span nuevo para que no desaparezca de golpe.
+                        pintarResultadoInline(document.getElementById('archivoSubirResult'), txt, false);
                     }
                 } catch (error) {
-                    status.textContent = 'Error de red al subir.';
+                    pintarResultadoInline(document.getElementById('archivoSubirResult'), 'Error de red al subir.', true);
                 } finally {
                     btn.disabled = false;
+                    btn.innerHTML = originalHtml;
                 }
             };
 
@@ -789,13 +844,16 @@
                         method: 'POST', headers: headers
                     });
                     if (response.ok) {
-                        status.textContent = 'Archivo borrado.';
                         await loadArchivos(nss, tipo);
+                        // loadArchivos reemplaza toda la tarjeta - pintar el mensaje despues,
+                        // en el span nuevo, igual que subirArchivo.
+                        pintarResultadoInline(document.getElementById('archivoSubirResult'), 'Archivo borrado.', false);
                     } else {
-                        status.textContent = 'No se pudo borrar (HTTP ' + response.status + ').';
+                        pintarResultadoInline(document.getElementById('archivoSubirResult'),
+                                'No se pudo borrar (HTTP ' + response.status + ').', true);
                     }
                 } catch (error) {
-                    status.textContent = 'Error de red al borrar.';
+                    pintarResultadoInline(document.getElementById('archivoSubirResult'), 'Error de red al borrar.', true);
                 }
             };
 
@@ -1027,13 +1085,8 @@
                 // usuario esta guardando otras secciones sin haber tocado Diagnostico esta vez.
                 var diagEl = document.getElementById('examenDiagnostico');
                 if (diagEl && !diagEl.value.trim()) {
-                    var mensaje = 'Selecciona al menos un diagnóstico del catálogo ICD antes de guardar.';
-                    status.textContent = mensaje;
-                    var resultElTemprano = document.getElementById('examenGuardarResult');
-                    if (resultElTemprano) {
-                        resultElTemprano.textContent = mensaje;
-                        resultElTemprano.className = 'fs-sm text-danger';
-                    }
+                    pintarResultadoInline(document.getElementById('examenGuardarResult'),
+                            'Selecciona al menos un diagnóstico del catálogo ICD antes de guardar.', true);
                     return;
                 }
                 var nss = (input.value || '').trim();
@@ -1065,10 +1118,10 @@
                 // mas abajo en la pantalla - sin esto el usuario nunca veia si se guardo o no.
                 var resultEl = document.getElementById('examenGuardarResult');
                 function mostrarResultadoExamen(texto, esError) {
-                    status.textContent = texto;
                     if (resultEl) {
-                        resultEl.textContent = texto;
-                        resultEl.className = 'fs-sm ' + (esError ? 'text-danger' : 'text-success');
+                        pintarResultadoInline(resultEl, texto, esError);
+                    } else {
+                        status.textContent = texto;
                     }
                 }
                 var originalHtml = btn.innerHTML;

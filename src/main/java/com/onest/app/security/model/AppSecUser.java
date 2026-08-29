@@ -28,7 +28,11 @@ public class AppSecUser {
     @Column(name = "EMAIL")
     private String email;
 
-    @Column(name = "PASSWORD_HASH", nullable = false)
+    // Nullable a proposito: un usuario que solo recibe un rol local (autentica
+    // por LEGACY/HYBRID contra el WS ORDS, nunca por el DaoAuthenticationProvider
+    // local) no tiene hash real - forzar un placeholder aqui se veria como una
+    // cuenta de login local valida sin serlo. Ver docs/plan-rbac-local.md.
+    @Column(name = "PASSWORD_HASH")
     private String passwordHash;
 
     @Column(name = "DISPLAY_NAME")

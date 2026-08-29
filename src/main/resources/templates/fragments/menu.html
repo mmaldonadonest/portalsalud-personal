@@ -28,6 +28,16 @@
                 <li class="nav-item">
                     <a th:href="@{/causas-consulta}" href="/causas-consulta" class="nav-link" th:classappend="${currentPath == '/causas-consulta'} ? ' active' : ''"><i class="ri-file-list-3-line"></i> <span>Causas de consulta</span></a>
                 </li>
+                <!-- Gate visual (no de seguridad - eso lo hace SecurityConfiguration con
+                     hasRole("ADMIN") sobre /admin/**): no hay dialecto sec:authorize
+                     instalado, se reusa currentUserRole (ya viene sin prefijo ROLE_,
+                     ver ViewModelAdvice.extractRoleName). -->
+                <li class="nav-item" th:if="${currentUserRole != null and #strings.contains(currentUserRole, 'ADMIN')}">
+                    <a th:href="@{/admin/roles}" href="/admin/roles" class="nav-link" th:classappend="${currentPath == '/admin/roles'} ? ' active' : ''"><i class="ri-shield-user-line"></i> <span>Roles</span></a>
+                </li>
+                <li class="nav-item" th:if="${currentUserRole != null and #strings.contains(currentUserRole, 'ADMIN')}">
+                    <a th:href="@{/admin/usuarios}" href="/admin/usuarios" class="nav-link" th:classappend="${currentPath == '/admin/usuarios'} ? ' active' : ''"><i class="ri-user-settings-line"></i> <span>Usuarios (rol)</span></a>
+                </li>
             </ul>
         </div>      
     </div>
