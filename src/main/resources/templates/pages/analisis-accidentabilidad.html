@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: analisisAccidContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Accidentabilidad | Análisis | Portal Salud Personal</title>
+</head>
+<body>
+
+<!--
+  Accidentabilidad (modulo Analisis, rol MEDICO_ANALISTA). Equivale a V.accid del prototipo.
+  Reusa /api/dashboard/accidentes - cero WS nuevo.
+
+  Verificado contra la captura del prototipo el 11-sep-2026. Misma estructura: 5 KPIs, predio x
+  tipo (apilada), causas de riesgo, serie mensual. Dos huecos de dato, sustituidos y no
+  inventados:
+  - "Dias perdidos" (KPIs, subtitulos y la grafica mensual): AccidenteReporteDto no trae dias.
+    Se usa COSTO, que si viene por registro, y la serie mensual pasa a ser accidentes por tipo.
+  - "Mujeres / Hombres": el reporte no trae sexo. Esas 2 tarjetas se sustituyen por
+    "Calificados" (status de calificacion, real) y "Costo total".
+  - Boton "Registrar accidente": lleva a /accidentes, el modulo operativo que ya existe.
+-->
+<th:block id="pageStyles">
+    <link rel="stylesheet" th:href="@{/theme/lib/apexcharts/apexcharts.css}" href="/theme/lib/apexcharts/apexcharts.css">
+    <style>
+        .chart-card .card-header { border-bottom: none; padding-bottom: 0; display: block; }
+        .chart-eyebrow {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        .chart-eyebrow::before {
+            content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+            box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+        }
+        .chart-eyebrow--predio { color: #0EA5E9; }
+        .chart-eyebrow--causa { color: #DC2626; }
+        .chart-eyebrow--mes { color: #B45309; }
+
+        .kpi-card { border-top: 3px solid var(--kc, #94a3b8); transition: transform .15s, box-shadow .15s; }
+        .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15, 23, 42, .08); }
+        .kpi-ico {
+            width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
+            background: var(--kcbg, #f1f5f9); color: var(--kc, #64748b); margin-bottom: 9px; font-size: 16px;
+        }
+        .kpi-card--total { --kc: #DC2626; --kcbg: #FEF2F2; }
+        .kpi-card--laboral { --kc: #1D4ED8; --kcbg: #EFF6FF; }
+        .kpi-card--trayecto { --kc: #B45309; --kcbg: #FFFBEB; }
+        .kpi-card--calif { --kc: #047857; --kcbg: #ECFDF5; }
+        .kpi-card--costo { --kc: #6D28D9; --kcbg: #F5F3FF; }
+        .kpi-value { font-size: 1.6rem; font-weight: 700; letter-spacing: -.02em; color: #0f172a; line-height: 1.15; margin: 2px 0 6px; }
+        .kpi-sub { font-size: 11px; color: #64748b; margin-top: 5px; line-height: 1.4; display: block; }
+        .vacio { text-align: center; padding: 32px 16px; color: #94a3b8; font-size: 12.5px; }
+    </style>
+</th:block>
+
+<th:block th:fragment="analisisAccidContent">
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/analisis/ejecutivo}" href="/analisis/ejecutivo">Dashboard Ejecutivo</a></li>
+                <li class="breadcrumb-item"><span>Clínico</span></li>
+                <li class="breadcrumb-item active" aria-current="page">Accidentabilidad</li>
+            </ol>
+            <h4 class="main-title mb-0">Accidentabilidad</h4>
+            <p class="fs-12 text-muted mb-0" id="subtitulo">Accidentes de trabajo</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" id="btnExportar" class="btn btn-outline-secondary btn-sm">
+                <i class="ri-download-2-line me-1"></i>Exportar
+            </button>
+            <button type="button" id="btnNuevo" class="btn btn-primary btn-sm"
+                    th:attr="data-url=@{/accidentes}" data-url="/accidentes">
+                <i class="ri-add-line me-1"></i>Registrar accidente
+            </button>
+        </div>
+    </div>
+
+    <div class="card card-one mb-3">
+        <div class="card-body d-flex flex-wrap align-items-end gap-3">
+            <div>
+                <label class="form-label fs-12 mb-1">Año</label>
+                <select id="fAnio" class="form-select form-select-sm"></select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Periodo</label>
+                <select id="fPeriodo" class="form-select form-select-sm">
+                    <option value="0">Acumulado (todo el año)</option>
+                    <option value="1">Enero</option><option value="2">Febrero</option>
+                    <option value="3">Marzo</option><option value="4">Abril</option>
+                    <option value="5">Mayo</option><option value="6">Junio</option>
+                    <option value="7">Julio</option><option value="8">Agosto</option>
+                    <option value="9">Septiembre</option><option value="10">Octubre</option>
+                    <option value="11">Noviembre</option><option value="12">Diciembre</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Predio</label>
+                <select id="fPredio" class="form-select form-select-sm" style="min-width:200px">
+                    <option value="">Todos los predios</option>
+                </select>
+            </div>
+            <span id="estado" class="fs-12 text-muted ms-auto"></span>
+            <input type="hidden" id="fFechaInicial" value="">
+            <input type="hidden" id="fFechaFinal" value="">
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--total"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-alert-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Accidentes totales</span>
+                <h3 class="kpi-value" id="kpiTotal">—</h3>
+                <span class="kpi-sub" id="kpiTotalSub"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--laboral"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-building-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Laborales</span>
+                <h3 class="kpi-value" id="kpiLaboral">—</h3>
+                <span class="kpi-sub" id="kpiLaboralSub"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--trayecto"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-road-map-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Trayecto</span>
+                <h3 class="kpi-value" id="kpiTrayecto">—</h3>
+                <span class="kpi-sub" id="kpiTrayectoSub"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--calif"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-check-double-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Calificados</span>
+                <h3 class="kpi-value" id="kpiCalif">—</h3>
+                <span class="kpi-sub" id="kpiCalifSub"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--costo"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-money-dollar-circle-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Costo total</span>
+                <h3 class="kpi-value" id="kpiCosto">—</h3>
+                <span class="kpi-sub" id="kpiCostoSub"></span>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-6">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--predio">Predios</span>
+                    <div class="card-title-lg">Por predio y tipo</div>
+                    <p class="fs-11 text-muted mb-0">Laboral frente a trayecto</p>
+                </div>
+                <div class="card-body"><div id="chartPredioTipo"></div></div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--causa">Causas</span>
+                    <div class="card-title-lg">Causas de riesgo de trabajo</div>
+                    <p class="fs-11 text-muted mb-0">Mecanismo del accidente</p>
+                </div>
+                <div class="card-body"><div id="chartCausa"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card-one chart-card">
+        <div class="card-header">
+            <span class="chart-eyebrow chart-eyebrow--mes">Tendencia</span>
+            <div class="card-title-lg">Accidentes por mes y tipo</div>
+            <p class="fs-11 text-muted mb-0" id="subMes"></p>
+        </div>
+        <div class="card-body"><div id="chartMes"></div></div>
+    </div>
+
+    <p class="fs-11 text-muted mt-3 mb-0">
+        <i class="ri-information-line"></i>
+        El registro de accidentes no lleva días perdidos ni sexo del empleado, por eso esta
+        pantalla trabaja con costo y con el estado de calificación. Los días de incapacidad
+        derivados de un accidente están en el módulo de Incapacidades, ramo RT1/RT2.
+    </p>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:src="@{/theme/lib/apexcharts/apexcharts.min.js}" src="/theme/lib/apexcharts/apexcharts.min.js"></script>
+    <script th:inline="javascript">
+        (function () {
+            var contextPath = /*[[@{/}]]*/ '/';
+            var chartPredioTipo = null, chartCausa = null, chartMes = null, ultimoExport = null;
+
+            var NOMBRES_MES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
+                'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            var PALETA = ['#2563EB', '#D97706', '#DC2626', '#7C3AED', '#0F766E', '#DB2777', '#64748B'];
+            var COLOR_TIPO = { laboral: '#2563EB', trayecto: '#D97706' };
+
+            function numero(n) { return (n || 0).toLocaleString('es-MX'); }
+            function moneda(n) {
+                var v = n || 0;
+                if (Math.abs(v) >= 1000000) { return '$' + (v / 1000000).toFixed(2) + 'M'; }
+                if (Math.abs(v) >= 1000) { return '$' + (v / 1000).toFixed(1) + 'K'; }
+                return '$' + Math.round(v).toLocaleString('es-MX');
+            }
+            function pct(parte, total) { return total ? Math.round((parte / total) * 100) + '%' : '—'; }
+            function etiquetaMes(clave) {
+                var p = String(clave).split('-');
+                return p.length === 2 ? NOMBRES_MES[parseInt(p[1], 10) - 1] + ' ' + p[0].substring(2) : clave;
+            }
+            function vaciar(id, texto) {
+                document.getElementById(id).innerHTML = '<p class="vacio mb-0">' + texto + '</p>';
+            }
+            function colorTipo(tipo, i) {
+                var t = String(tipo).toLowerCase();
+                return COLOR_TIPO[t] || PALETA[i % PALETA.length];
+            }
+
+            function calcularRango() {
+                var anio = parseInt(document.getElementById('fAnio').value, 10);
+                var periodo = parseInt(document.getElementById('fPeriodo').value, 10);
+                var hoy = new Date();
+                var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+                if (periodo === 0) {
+                    var fin = anio === hoy.getFullYear() ? hoy : new Date(anio, 11, 31);
+                    return {
+                        fechaInicial: anio + '-01-01',
+                        fechaFinal: fin.getFullYear() + '-' + pad(fin.getMonth() + 1) + '-' + pad(fin.getDate()),
+                        texto: 'ejercicio ' + anio
+                    };
+                }
+                var ultimo = new Date(anio, periodo, 0).getDate();
+                return {
+                    fechaInicial: anio + '-' + pad(periodo) + '-01',
+                    fechaFinal: anio + '-' + pad(periodo) + '-' + pad(ultimo),
+                    texto: NOMBRES_MES[periodo - 1] + ' ' + anio
+                };
+            }
+
+            async function cargarPredios() {
+                try {
+                    var res = await fetch(contextPath + 'api/analisis/filtros');
+                    if (!res.ok) { return; }
+                    var data = await res.json();
+                    var select = document.getElementById('fPredio');
+                    (data.predios || []).forEach(function (nombre) {
+                        var opt = document.createElement('option');
+                        opt.value = nombre;
+                        opt.textContent = nombre;
+                        select.appendChild(opt);
+                    });
+                } catch (e) { /* sin filtro de predio, la pagina sigue */ }
+            }
+
+            function inicializar() {
+                var selectAnio = document.getElementById('fAnio');
+                var actual = new Date().getFullYear();
+                for (var y = actual; y >= 2023; y--) {
+                    var opt = document.createElement('option');
+                    opt.value = y;
+                    opt.textContent = y;
+                    selectAnio.appendChild(opt);
+                }
+                ['fAnio', 'fPeriodo', 'fPredio'].forEach(function (id) {
+                    document.getElementById(id).addEventListener('change', aplicar);
+                });
+                document.getElementById('btnExportar').addEventListener('click', exportarCsv);
+                document.getElementById('btnNuevo').addEventListener('click', function () {
+                    window.location.href = this.dataset.url;
+                });
+            }
+
+            function aplicar() {
+                var rango = calcularRango();
+                document.getElementById('fFechaInicial').value = rango.fechaInicial;
+                document.getElementById('fFechaFinal').value = rango.fechaFinal;
+                cargar(rango);
+            }
+
+            async function cargar(rango) {
+                var estado = document.getElementById('estado');
+                var predio = document.getElementById('fPredio').value;
+                var qs = 'fechaInicial=' + encodeURIComponent(rango.fechaInicial)
+                       + '&fechaFinal=' + encodeURIComponent(rango.fechaFinal)
+                       + (predio ? '&predio=' + encodeURIComponent(predio) : '');
+                estado.textContent = 'Cargando...';
+                try {
+                    var res = await fetch(contextPath + 'api/dashboard/accidentes?' + qs);
+                    if (!res.ok) { estado.textContent = 'Error al consultar (HTTP ' + res.status + ').'; return; }
+                    var d = await res.json();
+                    document.getElementById('subtitulo').textContent =
+                        numero(d.totalAccidentes) + ' accidentes · ' + moneda(d.totalCosto) + ' MXN · '
+                        + rango.texto + (predio ? ' · ' + predio : '');
+                    pintarKpis(d);
+                    pintarPredioTipo(d);
+                    pintarCausa(d);
+                    pintarMes(d);
+                    ultimoExport = d;
+                    estado.textContent = 'Actualizado.';
+                } catch (e) {
+                    console.error('[analisis-accidentabilidad] error en cargar():', e);
+                    estado.textContent = 'Error de red: ' + e.message;
+                }
+            }
+
+            function buscar(lista, patron) {
+                return (lista || []).find(function (r) { return patron.test(r.clave); }) || { cantidad: 0, costo: 0 };
+            }
+
+            function pintarKpis(d) {
+                var t = d.totalAccidentes;
+                var lab = buscar(d.porTipoRiesgo, /laboral/i);
+                var tra = buscar(d.porTipoRiesgo, /trayecto/i);
+                var cal = buscar(d.porStatusCalificacion, /^calificado$/i);
+
+                document.getElementById('kpiTotal').textContent = numero(t);
+                document.getElementById('kpiTotalSub').textContent = t ? '' : 'sin registros en el periodo';
+                document.getElementById('kpiLaboral').textContent = numero(lab.cantidad);
+                document.getElementById('kpiLaboralSub').textContent = t ? pct(lab.cantidad, t) + ' · ' + moneda(lab.costo) : '';
+                document.getElementById('kpiTrayecto').textContent = numero(tra.cantidad);
+                document.getElementById('kpiTrayectoSub').textContent = t ? pct(tra.cantidad, t) + ' · ' + moneda(tra.costo) : '';
+                document.getElementById('kpiCalif').textContent = numero(cal.cantidad);
+                document.getElementById('kpiCalifSub').textContent = t ? pct(cal.cantidad, t) + ' del total' : '';
+                document.getElementById('kpiCosto').textContent = moneda(d.totalCosto);
+                document.getElementById('kpiCostoSub').textContent = t ? moneda(d.totalCosto / t) + ' por accidente' : '';
+            }
+
+            function pintarPredioTipo(d) {
+                var celdas = d.porPredioTipo || [];
+                if (!celdas.length) { vaciar('chartPredioTipo', 'Sin accidentes en el periodo.'); return; }
+                // Pivote: filas = predios (ordenados por total), columnas = tipos.
+                var totales = {}, tipos = {};
+                celdas.forEach(function (c) {
+                    totales[c.fila] = (totales[c.fila] || 0) + c.cantidad;
+                    tipos[c.columna] = true;
+                });
+                var predios = Object.keys(totales).sort(function (a, b) { return totales[b] - totales[a]; });
+                var listaTipos = Object.keys(tipos);
+                var series = listaTipos.map(function (tipo) {
+                    return { name: tipo, data: predios.map(function (p) {
+                        var c = celdas.find(function (x) { return x.fila === p && x.columna === tipo; });
+                        return c ? c.cantidad : 0;
+                    }) };
+                });
+                var options = {
+                    chart: { type: 'bar', height: 320, stacked: true, toolbar: { show: false } },
+                    series: series,
+                    colors: listaTipos.map(colorTipo),
+                    xaxis: { categories: predios, labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' }, formatter: function (v) { return numero(Math.round(v)); } } },
+                    plotOptions: { bar: { borderRadius: 4, columnWidth: '50%' } },
+                    legend: { position: 'top', horizontalAlign: 'right', fontSize: '11px', markers: { radius: 12 }, showForSingleSeries: true },
+                    dataLabels: { enabled: false },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 }
+                };
+                document.getElementById('chartPredioTipo').innerHTML = '';
+                if (chartPredioTipo) { chartPredioTipo.destroy(); }
+                chartPredioTipo = new ApexCharts(document.querySelector('#chartPredioTipo'), options);
+                chartPredioTipo.render();
+            }
+
+            function pintarCausa(d) {
+                var lista = (d.porCausaRt || []).slice().sort(function (a, b) { return b.cantidad - a.cantidad; }).slice(0, 10);
+                if (!lista.length) { vaciar('chartCausa', 'Sin accidentes en el periodo.'); return; }
+                var options = {
+                    chart: { type: 'bar', height: 320, toolbar: { show: false } },
+                    series: [{ name: 'Accidentes', data: lista.map(function (r) { return r.cantidad; }) }],
+                    xaxis: { categories: lista.map(function (r) { return r.clave; }), labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    colors: PALETA.slice(2).concat(PALETA.slice(0, 2)),
+                    plotOptions: { bar: { distributed: true, borderRadius: 4, horizontal: true, barHeight: '58%' } },
+                    legend: { show: false },
+                    dataLabels: { enabled: true, style: { fontSize: '11px', fontWeight: 700, colors: ['#1e293b'] } },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 }
+                };
+                document.getElementById('chartCausa').innerHTML = '';
+                if (chartCausa) { chartCausa.destroy(); }
+                chartCausa = new ApexCharts(document.querySelector('#chartCausa'), options);
+                chartCausa.render();
+            }
+
+            function pintarMes(d) {
+                var series = d.tipoMensual || [];
+                var meses = {};
+                series.forEach(function (s) { (s.puntos || []).forEach(function (p) { if (p.mes !== 'Sin fecha') { meses[p.mes] = true; } }); });
+                var claves = Object.keys(meses).sort();
+                document.getElementById('subMes').textContent = claves.length
+                    ? claves.length + (claves.length === 1 ? ' mes' : ' meses') + ' con registro' : '';
+                if (!claves.length) { vaciar('chartMes', 'Sin accidentes en el periodo.'); return; }
+                var options = {
+                    chart: { type: 'line', height: 320, toolbar: { show: false } },
+                    series: series.map(function (s) {
+                        var m = {};
+                        (s.puntos || []).forEach(function (p) { m[p.mes] = p.cantidad; });
+                        return { name: s.clave, data: claves.map(function (k) { return m[k] || 0; }) };
+                    }),
+                    colors: series.map(function (s, i) { return colorTipo(s.clave, i); }),
+                    stroke: { curve: 'smooth', width: 2.5 },
+                    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.25, opacityTo: 0.02, stops: [0, 100] } },
+                    markers: { size: 4, strokeWidth: 2, strokeColors: '#fff' },
+                    xaxis: { categories: claves.map(etiquetaMes), labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' }, formatter: function (v) { return numero(Math.round(v)); } } },
+                    legend: { position: 'top', horizontalAlign: 'right', fontSize: '11px', markers: { radius: 12 }, showForSingleSeries: true },
+                    dataLabels: { enabled: false },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 }
+                };
+                document.getElementById('chartMes').innerHTML = '';
+                if (chartMes) { chartMes.destroy(); }
+                chartMes = new ApexCharts(document.querySelector('#chartMes'), options);
+                chartMes.render();
+            }
+
+            function exportarCsv() {
+                if (!ultimoExport) { return; }
+                var d = ultimoExport;
+                var filas = [
+                    ['Periodo', document.getElementById('fFechaInicial').value + ' a ' + document.getElementById('fFechaFinal').value],
+                    ['Predio', document.getElementById('fPredio').value || 'Todos'],
+                    [],
+                    ['Indicador', 'Valor'],
+                    ['Accidentes', d.totalAccidentes],
+                    ['Costo total', d.totalCosto],
+                    [],
+                    ['Tipo de riesgo', 'Accidentes', 'Costo']
+                ];
+                (d.porTipoRiesgo || []).forEach(function (r) { filas.push([r.clave, r.cantidad, r.costo]); });
+                filas.push([]);
+                filas.push(['Causa', 'Accidentes', 'Costo']);
+                (d.porCausaRt || []).forEach(function (r) { filas.push([r.clave, r.cantidad, r.costo]); });
+                filas.push([]);
+                filas.push(['Predio', 'Tipo', 'Accidentes', 'Costo']);
+                (d.porPredioTipo || []).forEach(function (c) { filas.push([c.fila, c.columna, c.cantidad, c.costo]); });
+                var csv = filas.map(function (f) {
+                    return f.map(function (v) { return '"' + String(v === undefined ? '' : v).replace(/"/g, '""') + '"'; }).join(',');
+                }).join('\r\n');
+                var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'accidentes_' + document.getElementById('fFechaInicial').value + '.csv';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            inicializar();
+            cargarPredios().then(aplicar);
+        })();
+    </script>
+</th:block>
+</body>
+</html>

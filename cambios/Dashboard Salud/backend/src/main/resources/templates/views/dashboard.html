@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<th:block th:fragment="contenido">
+
+  <div class="head">
+    <div>
+      <h1>Dashboard Ejecutivo</h1>
+      <p th:text="'Morbilidad y Salud Ocupacional · ' + ${resumen.periodo()}">Periodo</p>
+    </div>
+    <div class="acts">
+      <a th:href="@{/reportes}" class="btn ghost">
+        <span th:replace="~{fragments/iconos :: icono('descarga')}"></span>Reportes
+      </a>
+    </div>
+  </div>
+
+  <div th:replace="~{fragments/componentes :: filtros(${anio}, ${mes}, ${predioId}, ${anios}, ${predios})}"></div>
+
+  <!-- Indicadores principales -->
+  <div class="kpis">
+    <div th:replace="~{fragments/componentes :: kpi('#1D4ED8', '#EFF6FF', 'escudo',
+         'Atenciones médicas', ${#numbers.formatInteger(resumen.atenciones(), 1, 'COMMA')},
+         ${variacionAtenciones}, null)}"></div>
+
+    <div th:replace="~{fragments/componentes :: kpi('#0E7490', '#ECFEFF', 'persona',
+         'Personas incapacitadas', ${#numbers.formatInteger(resumen.personasIncapacitadas(), 1, 'COMMA')},
+         ${variacionPersonas}, null)}"></div>
+
+    <div th:replace="~{fragments/componentes :: kpi('#B45309', '#FFFBEB', 'reloj',
+         'Días de incapacidad', ${#numbers.formatInteger(resumen.diasIncapacidad(), 1, 'COMMA')},
+         ${variacionDias},
+         ${#numbers.formatInteger(resumen.horasNoTrabajadas(), 1, 'COMMA')} + ' horas no trabajadas')}"></div>
+
+    <div th:replace="~{fragments/componentes :: kpi('#B91C1C', '#FEF2F2', 'alerta',
+         'Accidentes', ${resumen.accidentes()}, null,
+         ${resumen.accidentesLaborales()} + ' laboral · ' + ${resumen.accidentesTrayecto()} + ' trayecto')}"></div>
+
+    <div th:replace="~{fragments/componentes :: kpi('#047857', '#ECFDF5', 'documento',
+         'Exámenes médicos', ${#numbers.formatInteger(resumen.examenes(), 1, 'COMMA')}, null,
+         ${resumen.examenesAptos()} + ' aptos · ' + ${resumen.examenesNoAptos()} + ' no aptos')}"></div>
+
+    <div th:replace="~{fragments/componentes :: kpi('#6D28D9', '#F5F3FF', 'dinero',
+         'Costo de incapacidades', '$' + ${#numbers.formatDecimal(resumen.costoIncapacidades(), 1, 'COMMA', 0, 'POINT')},
+         null, 'Acumulado del periodo')}"></div>
+  </div>
+
+  <!-- Tendencia y composición -->
+  <div class="g2">
+    <div class="pnl">
+      <div class="ph">
+        <div>
+          <h2><span th:replace="~{fragments/iconos :: icono('tendencia')}"></span>Evolución mensual</h2>
+          <p class="sub">Atenciones y días de incapacidad a lo largo del año</p>
+        </div>
+      </div>
+      <div class="cw lg"><canvas id="cTendencia" role="img"
+           aria-label="Evolución mensual de atenciones y días de incapacidad"></canvas></div>
+    </div>
+
+    <div class="pnl">
+      <h2><span th:replace="~{fragments/iconos :: icono('dona')}"></span>Días perdidos por causa</h2>
+      <p class="sub" th:text="${#numbers.formatInteger(resumen.diasIncapacidad(), 1, 'COMMA')} + ' días acumulados'"></p>
+      <div class="cw lg"><canvas id="cTipos" role="img" aria-label="Distribución de días perdidos"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Ranking y hallazgos -->
+  <div class="g2">
+    <div class="pnl">
+      <h2><span th:replace="~{fragments/iconos :: icono('edificio')}"></span>Ranking de predios</h2>
+      <p class="sub">Ordenado por atenciones · el nivel de riesgo usa los umbrales configurados</p>
+
+      <div class="tw" th:if="${!ranking.isEmpty()}">
+        <table>
+          <caption class="sr">Ranking de predios por carga de morbilidad</caption>
+          <thead>
+            <tr>
+              <th>Predio</th><th class="r">Atenciones</th><th class="r">Incapac.</th>
+              <th class="r">Días</th><th class="r">Accid.</th><th class="r">Exámenes</th><th>Riesgo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="p : ${ranking}">
+              <td class="nm" th:text="${p.predio()}">Predio</td>
+              <td class="r num" th:text="${#numbers.formatInteger(p.atenciones(), 1, 'COMMA')}">0</td>
+              <td class="r num" th:text="${p.incapacidades()}">0</td>
+              <td class="r num" th:text="${#numbers.formatInteger(p.diasIncapacidad(), 1, 'COMMA')}">0</td>
+              <td class="r num" th:text="${p.accidentes()}">0</td>
+              <td class="r num" th:text="${#numbers.formatInteger(p.examenes(), 1, 'COMMA')}">0</td>
+              <td>
+                <span th:class="'tag ' + (${p.riesgo()} == 'CRITICO' ? 't-crit' :
+                                          (${p.riesgo()} == 'ALTO' ? 't-alt' :
+                                          (${p.riesgo()} == 'MEDIO' ? 't-med' : 't-baj')))"
+                      th:text="${#strings.capitalize(#strings.toLowerCase(p.riesgo()))}">Bajo</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div th:if="${ranking.isEmpty()}"
+           th:replace="~{fragments/componentes :: vacio('Sin información del periodo',
+                        'Aún no hay registros capturados para el año y mes seleccionados.')}"></div>
+    </div>
+
+    <div class="pnl">
+      <h2><span th:replace="~{fragments/iconos :: icono('destello')}"></span>Análisis ejecutivo</h2>
+      <p class="sub">Hallazgos derivados de los datos del periodo</p>
+
+      <div class="ins" th:if="${!insights.isEmpty()}">
+        <div th:each="i : ${insights}"
+             th:class="'it ' + (${i.severidad()} == 'CRITICA' ? 'b' :
+                                (${i.severidad()} == 'ADVERTENCIA' ? 'w' :
+                                (${i.severidad()} == 'POSITIVA' ? 'g' : '')))">
+          <span th:replace="~{fragments/iconos :: icono(${i.severidad() == 'POSITIVA' ? 'palomita' :
+                             (i.severidad() == 'INFORMATIVA' ? 'informacion' : 'alerta')})}"></span>
+          <span th:text="${i.texto()}">Hallazgo</span>
+        </div>
+      </div>
+
+      <div th:if="${insights.isEmpty()}"
+           th:replace="~{fragments/componentes :: vacio('Sin hallazgos',
+                        'Se mostrarán aquí en cuanto haya datos suficientes para compararlos.')}"></div>
+    </div>
+  </div>
+
+  <!-- Distribuciones -->
+  <div class="g2b">
+    <div class="pnl">
+      <h2><span th:replace="~{fragments/iconos :: icono('barras')}"></span>Principales causas de atención</h2>
+      <p class="sub">Las diez más frecuentes del periodo</p>
+      <div class="cw"><canvas id="cCausas" role="img" aria-label="Principales causas de atención"></canvas></div>
+    </div>
+
+    <div class="pnl">
+      <h2><span th:replace="~{fragments/iconos :: icono('alerta')}"></span>Mecanismos de accidente</h2>
+      <p class="sub">Cómo ocurrieron los accidentes registrados</p>
+      <div class="cw"><canvas id="cAccidentes" role="img" aria-label="Mecanismos de accidente"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Datos que las gráficas consumen sin exponerlos en el marcado -->
+  <script type="application/json" id="datosGraficas" th:utext="${datosJson}">{}</script>
+  <script th:src="@{/js/dashboard.js}" defer></script>
+
+</th:block>
+
+</body>
+</html>

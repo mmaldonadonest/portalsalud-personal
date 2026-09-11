@@ -29,6 +29,44 @@
                     <a th:href="@{/causas-consulta}" href="/causas-consulta" class="nav-link" th:classappend="${currentPath == '/causas-consulta'} ? ' active' : ''"><i class="ri-file-list-3-line"></i> <span>Causas de consulta</span></a>
                 </li>
                 <!-- Gate visual (no de seguridad - eso lo hace SecurityConfiguration con
+                     hasRole("MEDICO_ANALISTA") sobre /analisis/**): rol nuevo, se crea desde
+                     /admin/roles (sin seed SQL). Estructura de submenu con encabezados de
+                     grupo tomada del prototipo original (cambios/Dashboard Salud/public/index.html,
+                     const NAV) - 15 modulos, sin "Administracion" (ya existe en /admin/**, no
+                     se duplica). Cada modulo es su propia ruta (/analisis/<clave>), NO tabs -
+                     asi cada vista es bookmarkeable/compartible (pedido explicito del usuario). -->
+                <li class="nav-item" th:if="${currentUserRole != null and #strings.contains(currentUserRole, 'MEDICO_ANALISTA')}"
+                    th:classappend="${currentPath != null and currentPath.startsWith('/analisis/')} ? ' show' : ''">
+                    <a href="javascript:void(0)" class="nav-link has-sub"><i class="ri-bar-chart-box-line"></i> <span>Análisis</span></a>
+                    <!-- El toggle de .has-sub es 100% JS en memoria (theme/assets/js/script.js,
+                         slideToggle sobre .nav-sub) - no sobrevive una recarga completa de pagina
+                         al navegar a otra URL. Si la pagina activa ya es de Analisis, se renderiza
+                         abierto desde el server (display:block) para que el usuario no tenga que
+                         reabrir el submenu cada vez que entra a un modulo. -->
+                    <nav class="nav nav-sub"
+                         th:style="${currentPath != null and currentPath.startsWith('/analisis/')} ? 'display:block' : ''">
+                        <a th:href="@{/analisis/ejecutivo}" href="/analisis/ejecutivo" class="nav-sub-link" th:classappend="${currentPath == '/analisis/ejecutivo'} ? ' active' : ''">Dashboard Ejecutivo</a>
+                        <a th:href="@{/analisis/predio}" href="/analisis/predio" class="nav-sub-link" th:classappend="${currentPath == '/analisis/predio'} ? ' active' : ''">Vista por Predio</a>
+                        <span class="nav-sub-group">Morbilidad</span>
+                        <a th:href="@{/analisis/atenciones}" href="/analisis/atenciones" class="nav-sub-link" th:classappend="${currentPath == '/analisis/atenciones'} ? ' active' : ''">Atenciones</a>
+                        <a th:href="@{/analisis/causas}" href="/analisis/causas" class="nav-sub-link" th:classappend="${currentPath == '/analisis/causas'} ? ' active' : ''">Causas</a>
+                        <a th:href="@{/analisis/musculoesqueleticas}" href="/analisis/musculoesqueleticas" class="nav-sub-link" th:classappend="${currentPath == '/analisis/musculoesqueleticas'} ? ' active' : ''">Musculoesqueléticas</a>
+                        <span class="nav-sub-group">Clínico</span>
+                        <a th:href="@{/analisis/examenes}" href="/analisis/examenes" class="nav-sub-link" th:classappend="${currentPath == '/analisis/examenes'} ? ' active' : ''">Exámenes Médicos</a>
+                        <a th:href="@{/analisis/incapacidades}" href="/analisis/incapacidades" class="nav-sub-link" th:classappend="${currentPath == '/analisis/incapacidades'} ? ' active' : ''">Incapacidades</a>
+                        <a th:href="@{/analisis/accidentabilidad}" href="/analisis/accidentabilidad" class="nav-sub-link" th:classappend="${currentPath == '/analisis/accidentabilidad'} ? ' active' : ''">Accidentabilidad</a>
+                        <span class="nav-sub-group">Control</span>
+                        <a th:href="@{/analisis/antidoping}" href="/analisis/antidoping" class="nav-sub-link" th:classappend="${currentPath == '/analisis/antidoping'} ? ' active' : ''">Antidoping</a>
+                        <a th:href="@{/analisis/inventario}" href="/analisis/inventario" class="nav-sub-link" th:classappend="${currentPath == '/analisis/inventario'} ? ' active' : ''">Inventario</a>
+                        <a th:href="@{/analisis/maternidad}" href="/analisis/maternidad" class="nav-sub-link" th:classappend="${currentPath == '/analisis/maternidad'} ? ' active' : ''">Maternidad</a>
+                        <span class="nav-sub-group">Sistema</span>
+                        <a th:href="@{/analisis/empleados}" href="/analisis/empleados" class="nav-sub-link" th:classappend="${currentPath == '/analisis/empleados'} ? ' active' : ''">Empleados</a>
+                        <a th:href="@{/analisis/importar}" href="/analisis/importar" class="nav-sub-link" th:classappend="${currentPath == '/analisis/importar'} ? ' active' : ''">Importar Excel</a>
+                        <a th:href="@{/analisis/reportes}" href="/analisis/reportes" class="nav-sub-link" th:classappend="${currentPath == '/analisis/reportes'} ? ' active' : ''">Reportes</a>
+                        <a th:href="@{/analisis/auditoria}" href="/analisis/auditoria" class="nav-sub-link" th:classappend="${currentPath == '/analisis/auditoria'} ? ' active' : ''">Auditoría</a>
+                    </nav>
+                </li>
+                <!-- Gate visual (no de seguridad - eso lo hace SecurityConfiguration con
                      hasRole("ADMIN") sobre /admin/**): no hay dialecto sec:authorize
                      instalado, se reusa currentUserRole (ya viene sin prefijo ROLE_,
                      ver ViewModelAdvice.extractRoleName). -->
@@ -37,6 +75,9 @@
                 </li>
                 <li class="nav-item" th:if="${currentUserRole != null and #strings.contains(currentUserRole, 'ADMIN')}">
                     <a th:href="@{/admin/usuarios}" href="/admin/usuarios" class="nav-link" th:classappend="${currentPath == '/admin/usuarios'} ? ' active' : ''"><i class="ri-user-settings-line"></i> <span>Usuarios (rol)</span></a>
+                </li>
+                <li class="nav-item" th:if="${currentUserRole != null and #strings.contains(currentUserRole, 'ADMIN')}">
+                    <a th:href="@{/admin/predios}" href="/admin/predios" class="nav-link" th:classappend="${currentPath == '/admin/predios'} ? ' active' : ''"><i class="ri-map-pin-line"></i> <span>Predios (cuentas)</span></a>
                 </li>
             </ul>
         </div>      

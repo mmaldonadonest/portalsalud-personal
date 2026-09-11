@@ -15,6 +15,13 @@ public record DashboardAccidentesDto(
         List<ConteoCostoDto> porTipoRiesgo,
         List<ConteoCostoDto> porCausaRt,
         List<ConteoCostoDto> porStatusCalificacion,
-        List<PuntoMensualDto> tendenciaMensual
+        /** Desglose por predio (via el mapeo cuenta->predio). Alimenta el ranking del
+         *  Dashboard Ejecutivo y el modulo Vista por Predio. */
+        List<ConteoCostoDto> porPredio,
+        List<PuntoMensualDto> tendenciaMensual,
+        /** Predio x tipo de riesgo, para la barra apilada del modulo Accidentabilidad. */
+        List<ConteoCruzadoDto> porPredioTipo,
+        /** Accidentes por mes y tipo de riesgo (cantidad = accidentes). */
+        List<SerieMensualDto> tipoMensual
 ) {
 }

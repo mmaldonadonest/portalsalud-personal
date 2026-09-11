@@ -54,9 +54,11 @@ public class DashboardController {
     @GetMapping("/incapacidades")
     public DashboardIncapacidadesDto incapacidades(
             @RequestParam("fechaInicial") String fechaInicial,
-            @RequestParam("fechaFinal") String fechaFinal) {
+            @RequestParam("fechaFinal") String fechaFinal,
+            @RequestParam(name = "predio", required = false) String predio,
+            @RequestParam(name = "cuenta", required = false) String cuenta) {
         try {
-            return incapacidadesService.resumen(fechaInicial, fechaFinal);
+            return incapacidadesService.resumen(fechaInicial, fechaFinal, predio, cuenta);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }
@@ -66,21 +68,31 @@ public class DashboardController {
     @GetMapping("/accidentes")
     public DashboardAccidentesDto accidentes(
             @RequestParam("fechaInicial") String fechaInicial,
-            @RequestParam("fechaFinal") String fechaFinal) {
+            @RequestParam("fechaFinal") String fechaFinal,
+            @RequestParam(name = "predio", required = false) String predio,
+            @RequestParam(name = "cuenta", required = false) String cuenta) {
         try {
-            return accidentesService.resumen(fechaInicial, fechaFinal);
+            return accidentesService.resumen(fechaInicial, fechaFinal, predio, cuenta);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }
     }
 
-    /** KPIs de consultas medicas / Morbilidad en un rango de fechas (ISO yyyy-MM-dd). */
+    /**
+     * KPIs de consultas medicas / Morbilidad en un rango de fechas (ISO yyyy-MM-dd).
+     * {@code predio} y {@code cuenta} son opcionales (filtro del Dashboard Ejecutivo): omitidos
+     * o vacios = sin corte, que es como lo sigue llamando /home. Desde el 10-sep-2026 los 4
+     * dashboards clinicos aceptan el mismo par de parametros - ver DashboardPredioFiltro.
+     */
     @GetMapping("/consultas")
     public DashboardConsultaDto consultas(
             @RequestParam("fechaInicial") String fechaInicial,
-            @RequestParam("fechaFinal") String fechaFinal) {
+            @RequestParam("fechaFinal") String fechaFinal,
+            @RequestParam(name = "predio", required = false) String predio,
+            @RequestParam(name = "cuenta", required = false) String cuenta,
+            @RequestParam(name = "topCausas", required = false, defaultValue = "0") int topCausas) {
         try {
-            return consultaService.resumen(fechaInicial, fechaFinal);
+            return consultaService.resumen(fechaInicial, fechaFinal, predio, cuenta, topCausas);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }
@@ -105,9 +117,11 @@ public class DashboardController {
     @GetMapping("/examen")
     public DashboardExamenDto examen(
             @RequestParam("fechaInicial") String fechaInicial,
-            @RequestParam("fechaFinal") String fechaFinal) {
+            @RequestParam("fechaFinal") String fechaFinal,
+            @RequestParam(name = "predio", required = false) String predio,
+            @RequestParam(name = "cuenta", required = false) String cuenta) {
         try {
-            return examenService.resumen(fechaInicial, fechaFinal);
+            return examenService.resumen(fechaInicial, fechaFinal, predio, cuenta);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }
@@ -120,9 +134,11 @@ public class DashboardController {
     @GetMapping("/resumen-general")
     public DashboardResumenGeneralDto resumenGeneral(
             @RequestParam("fechaInicial") String fechaInicial,
-            @RequestParam("fechaFinal") String fechaFinal) {
+            @RequestParam("fechaFinal") String fechaFinal,
+            @RequestParam(name = "predio", required = false) String predio,
+            @RequestParam(name = "cuenta", required = false) String cuenta) {
         try {
-            return resumenGeneralService.resumen(fechaInicial, fechaFinal);
+            return resumenGeneralService.resumen(fechaInicial, fechaFinal, predio, cuenta);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }

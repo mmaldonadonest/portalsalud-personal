@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard Ejecutivo — Morbilidad y Salud Ocupacional</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap');
+
+  :root{
+    /* Design system: ui-ux-pro-max — Soft UI Evolution / clinical blue+green+red / dense dashboard */
+    --color-primary:#0284C7; --color-on-primary:#FFFFFF;
+    --color-secondary:#0891B2; --color-accent:#16A34A;
+    --color-background:#F0F9FF; --color-foreground:#0C4A6E;
+    --color-muted:#E8F2F8; --color-border:#BAE6FD;
+    --color-destructive:#DC2626; --color-ring:#0284C7;
+    --surface:#FFFFFF; --text-muted:#4B7A96;
+    --amber:#C07800; --amber-bg:#FDF3E0;
+    --red-bg:#FDECEB; --green-bg:#E8F7EE;
+    --sidebar-bg:#0B2540; --sidebar-text:#9FC3DA; --sidebar-active:#0284C7;
+    --risk-low:#16A34A; --risk-med:#C07800; --risk-high:#E0631F; --risk-crit:#DC2626;
+    --space-1:8px; --space-2:16px; --space-3:24px; --space-4:32px;
+    --shadow-sm:0 1px 2px rgba(12,74,110,.06), 0 1px 1px rgba(12,74,110,.04);
+    --shadow-md:0 4px 14px rgba(12,74,110,.08), 0 1px 3px rgba(12,74,110,.05);
+    font-family:'Source Sans 3', -apple-system, "Segoe UI", Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--color-background); color:var(--color-foreground); font-size:14px; -webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.brand-font{font-family:'Lexend', 'Source Sans 3', sans-serif;}
+  a{cursor:pointer;}
+  .app{display:grid; grid-template-columns:252px 1fr; min-height:100vh;}
+  .sidebar{background:var(--sidebar-bg); color:var(--sidebar-text); padding:20px 0; position:sticky; top:0; height:100vh; overflow-y:auto;}
+  .sidebar .logo{padding:0 20px 20px; font-weight:700; color:#fff; font-size:16px; letter-spacing:.3px; border-bottom:1px solid rgba(255,255,255,.08); margin-bottom:12px; font-family:'Lexend',sans-serif;}
+  .sidebar nav a{display:block; padding:9px 20px; color:var(--sidebar-text); text-decoration:none; font-size:13.5px; border-left:3px solid transparent; transition:background .2s ease, color .2s ease;}
+  .sidebar nav a:hover{background:rgba(255,255,255,.06); color:#fff;}
+  .sidebar nav a:focus-visible{outline:2px solid #4DA8DB; outline-offset:-2px;}
+  .sidebar nav a.active{background:rgba(2,132,199,.35); color:#fff; border-left-color:#4DA8DB; font-weight:600;}
+  .sidebar .group-label{padding:16px 20px 6px; font-size:11px; text-transform:uppercase; letter-spacing:.6px; color:#5D8CA8;}
+  .main{padding:24px 28px 60px; max-width:1440px;}
+  header.page-head{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:var(--space-3); flex-wrap:wrap; gap:12px;}
+  header.page-head h1{margin:0; font-size:22px; font-weight:700; color:var(--color-foreground);}
+  header.page-head p{margin:2px 0 0; color:var(--text-muted); font-size:13px;}
+  .filters{background:var(--surface); border:1px solid var(--color-border); border-radius:12px; padding:14px 16px; display:flex; gap:14px; flex-wrap:wrap; margin-bottom:var(--space-3); align-items:flex-end; box-shadow:var(--shadow-sm);}
+  .filter-field{display:flex; flex-direction:column; gap:4px;}
+  .filter-field label{font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.4px; font-weight:600;}
+  .filter-field select{padding:7px 10px; border:1px solid var(--color-border); border-radius:8px; font-size:13px; background:#fff; min-width:140px; color:var(--color-foreground); cursor:pointer;}
+  .filter-field select:focus-visible{outline:2px solid var(--color-ring); outline-offset:1px;}
+  .kpi-row{display:grid; grid-template-columns:repeat(6,1fr); gap:var(--space-2); margin-bottom:var(--space-3);}
+  @media (max-width:1300px){.kpi-row{grid-template-columns:repeat(3,1fr);}}
+  @media (max-width:640px){.kpi-row{grid-template-columns:1fr 1fr;}}
+  .kpi-card{background:var(--surface); border:1px solid var(--color-border); border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:8px; box-shadow:var(--shadow-sm); transition:box-shadow .2s ease, transform .2s ease;}
+  .kpi-card:hover{box-shadow:var(--shadow-md); transform:translateY(-1px);}
+  .kpi-card .kpi-label{font-size:12px; color:var(--text-muted); font-weight:600;}
+  .kpi-card .kpi-value{font-size:26px; font-weight:700; color:var(--color-foreground); font-variant-numeric:tabular-nums;}
+  .kpi-card .kpi-delta{font-size:12px; font-weight:600; display:inline-flex; align-items:center; gap:4px; width:fit-content; padding:2px 8px; border-radius:20px;}
+  .delta-up-bad{color:var(--color-destructive); background:var(--red-bg);}
+  .delta-down-good{color:var(--color-accent); background:var(--green-bg);}
+  .delta-up-good{color:var(--color-accent); background:var(--green-bg);}
+  .kpi-card .kpi-sub{font-size:11.5px; color:var(--text-muted);}
+  .grid-2{display:grid; grid-template-columns:1.4fr 1fr; gap:var(--space-2); margin-bottom:var(--space-3);}
+  @media (max-width:1150px){.grid-2{grid-template-columns:1fr;}}
+  .panel{background:var(--surface); border:1px solid var(--color-border); border-radius:14px; padding:18px; box-shadow:var(--shadow-sm);}
+  .panel h2{margin:0 0 4px; font-size:15px; font-weight:700; color:var(--color-foreground);}
+  .panel .panel-sub{font-size:12px; color:var(--text-muted); margin-bottom:14px;}
+  .chart-toggle{display:inline-flex; gap:4px; margin-bottom:12px; background:var(--color-muted); border-radius:9px; padding:3px;}
+  .chart-toggle button{border:none; background:transparent; padding:6px 11px; font-size:12px; border-radius:7px; cursor:pointer; color:var(--text-muted); font-weight:600; transition:all .2s ease;}
+  .chart-toggle button.active{background:#fff; color:var(--color-primary); box-shadow:var(--shadow-sm);}
+  svg.trend{width:100%; height:220px;}
+  .ranking-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:11px;}
+  .ranking-list li{display:flex; align-items:center; gap:10px;}
+  .rank-num{width:20px; font-size:12px; color:var(--text-muted); font-weight:700;}
+  .rank-label{width:170px; font-size:12.5px; font-weight:600; flex-shrink:0; color:var(--color-foreground);}
+  .rank-bar-track{flex:1; height:10px; background:var(--color-muted); border-radius:6px; overflow:hidden;}
+  .rank-bar-fill{height:100%; background:linear-gradient(90deg,var(--color-primary),var(--color-secondary)); border-radius:6px;}
+  .rank-value{width:60px; text-align:right; font-size:12.5px; font-weight:700; flex-shrink:0; font-variant-numeric:tabular-nums;}
+  table.predio-rank{width:100%; border-collapse:collapse; font-size:12.5px;}
+  table.predio-rank th{text-align:left; padding:8px 10px; color:var(--text-muted); font-weight:600; border-bottom:1px solid var(--color-border); font-size:11px; text-transform:uppercase; letter-spacing:.3px;}
+  table.predio-rank td{padding:10px 10px; border-bottom:1px solid var(--color-muted); font-variant-numeric:tabular-nums;}
+  table.predio-rank tr{cursor:pointer; transition:background .15s ease;}
+  table.predio-rank tr:hover td{background:var(--color-muted);}
+  .risk-badge{display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:20px; font-variant-numeric:normal;}
+  .risk-bajo{color:#0F7A38; background:#E8F7EE;}
+  .risk-medio{color:var(--amber); background:var(--amber-bg);}
+  .risk-alto{color:#B3501A; background:#FDEEE3;}
+  .risk-critico{color:var(--color-destructive); background:var(--red-bg);}
+  .insights{display:flex; flex-direction:column; gap:10px;}
+  .insight-item{display:flex; gap:10px; padding:12px 14px; border-radius:12px; background:var(--color-muted); border:1px solid var(--color-border); font-size:13px; line-height:1.55;}
+  .insight-item .dot{width:8px; height:8px; border-radius:50%; background:var(--color-primary); margin-top:6px; flex-shrink:0;}
+  .insight-item.warn{background:var(--amber-bg); border-color:#F0DCA0;}
+  .insight-item.warn .dot{background:var(--amber);}
+  .insight-item.bad{background:var(--red-bg); border-color:#F4C9C6;}
+  .insight-item.bad .dot{background:var(--color-destructive);}
+  footer.mockup-note{margin-top:30px; padding:12px 16px; background:var(--amber-bg); border:1px solid #F0DCA0; border-radius:12px; font-size:12px; color:#6B5900;}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">SALUD OCUPACIONAL</div>
+    <nav>
+      <a href="#">Inicio</a>
+      <a href="#" class="active">Dashboard Ejecutivo</a>
+      <a href="#">Vista Gerencial</a>
+      <div class="group-label">Morbilidad</div>
+      <a href="#">Atenciones</a>
+      <a href="#">Causas</a>
+      <a href="#">Musculoesqueléticas</a>
+      <a href="#">Exámenes Médicos</a>
+      <div class="group-label">Incapacidades</div>
+      <a href="incapacidades.html">General</a>
+      <a href="#">IMSS</a>
+      <a href="#">Internas</a>
+      <a href="#">Accidentabilidad</a>
+      <div class="group-label">Antidoping</div>
+      <a href="#">Pruebas</a>
+      <a href="#">Inventario</a>
+      <a href="#">Alcoholimetría</a>
+      <a href="#">Maternidad</a>
+      <a href="#">Reportes</a>
+      <div class="group-label">Administración</div>
+      <a href="#">Predios</a>
+      <a href="#">Cuentas</a>
+      <a href="#">Catálogos</a>
+      <a href="#">Usuarios</a>
+      <a href="#">Permisos</a>
+      <a href="#">Auditoría</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <h1>Morbilidad y Salud Ocupacional</h1>
+        <p>Dashboard Ejecutivo | Salud Ocupacional</p>
+      </div>
+    </header>
+
+    <div class="filters">
+      <div class="filter-field"><label>Año</label><select><option>2026</option><option>2025</option></select></div>
+      <div class="filter-field"><label>Mes / Periodo</label><select><option>Julio 2026</option><option>Acumulado YTD</option></select></div>
+      <div class="filter-field"><label>Predio</label><select><option>Todos los predios</option><option>AIFA</option><option>Macro II</option><option>Siglo XXI</option></select></div>
+      <div class="filter-field"><label>Cuenta</label><select><option>Todas</option><option>Unilever Tepalcapa</option><option>Zara Almacén</option></select></div>
+      <div class="filter-field"><label>Tipo de indicador</label><select><option>Todos</option><option>Morbilidad</option><option>Incapacidades</option></select></div>
+    </div>
+
+    <section class="kpi-row">
+      <div class="kpi-card">
+        <span class="kpi-label">Atenciones médicas</span>
+        <span class="kpi-value">3,842</span>
+        <span class="kpi-delta delta-up-bad">▲ 18% vs. mes ant.</span>
+        <span class="kpi-sub">vs. mismo periodo 2025: ▲ 6%</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Personas incapacitadas</span>
+        <span class="kpi-value">214</span>
+        <span class="kpi-delta delta-up-bad">▲ 9%</span>
+        <span class="kpi-sub">3.1% del headcount total</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Días de incapacidad</span>
+        <span class="kpi-value">1,536</span>
+        <span class="kpi-sub">Promedio: 7.2 días / caso</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Accidentes</span>
+        <span class="kpi-value">37</span>
+        <span class="kpi-sub">Laborales: 29 · Trayecto: 8</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Exámenes médicos</span>
+        <span class="kpi-value">612</span>
+        <span class="kpi-sub">Aptos: 561 · No aptos: 18 · Condic.: 33</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Costo de incapacidades</span>
+        <span class="kpi-value">$482,300</span>
+        <span class="kpi-delta delta-up-bad">▲ 12% acumulado anual</span>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <div class="panel">
+        <h2>Evolución mensual de atenciones</h2>
+        <p class="panel-sub">Comparativo año actual vs. año anterior</p>
+        <div class="chart-toggle">
+          <button class="active">Comparativo</button>
+          <button>Año actual</button>
+          <button>Acumulado</button>
+        </div>
+        <svg class="trend" viewBox="0 0 720 220" role="img" aria-label="Tendencia mensual de atenciones, año actual vs anterior">
+          <line x1="40" y1="10" x2="40" y2="190" stroke="var(--color-border)"/>
+          <line x1="40" y1="190" x2="700" y2="190" stroke="var(--color-border)"/>
+          <polyline fill="none" stroke="#0284C7" stroke-width="2.5"
+            points="60,150 110,140 160,120 210,110 260,100 310,95 360,80 410,60 460,70 510,55 560,45 610,50"/>
+          <polyline fill="none" stroke="#7FB8D6" stroke-width="2" stroke-dasharray="4 4"
+            points="60,160 110,155 160,150 210,140 260,135 310,130 360,120 410,110 460,115 510,105 560,100 610,108"/>
+          <g font-size="10" fill="#4B7A96" font-family="Source Sans 3, sans-serif">
+            <text x="55" y="205">ENE</text><text x="105" y="205">FEB</text><text x="155" y="205">MAR</text>
+            <text x="205" y="205">ABR</text><text x="255" y="205">MAY</text><text x="305" y="205">JUN</text>
+            <text x="355" y="205">JUL</text><text x="405" y="205">AGO</text><text x="455" y="205">SEP</text>
+            <text x="505" y="205">OCT</text><text x="555" y="205">NOV</text><text x="605" y="205">DIC</text>
+          </g>
+        </svg>
+      </div>
+
+      <div class="panel">
+        <h2>Principales causas de atención</h2>
+        <p class="panel-sub">Top 10 del periodo · % sobre total de atenciones</p>
+        <ul class="ranking-list">
+          <li><span class="rank-num">1</span><span class="rank-label">Respiratorio</span><div class="rank-bar-track"><div class="rank-bar-fill" style="width:88%"></div></div><span class="rank-value">22.4%</span></li>
+          <li><span class="rank-num">2</span><span class="rank-label">Digestivo</span><div class="rank-bar-track"><div class="rank-bar-fill" style="width:64%"></div></div><span class="rank-value">16.1%</span></li>
+          <li><span class="rank-num">3</span><span class="rank-label">Cervical/Dorsal/Lumbar</span><div class="rank-bar-track"><div class="rank-bar-fill" style="width:52%"></div></div><span class="rank-value">13.0%</span></li>
+          <li><span class="rank-num">4</span><span class="rank-label">Dermatológico</span><div class="rank-bar-track"><div class="rank-bar-fill" style="width:41%"></div></div><span class="rank-value">10.3%</span></li>
+          <li><span class="rank-num">5</span><span class="rank-label">Circulatorio</span><div class="rank-bar-track"><div class="rank-bar-fill" style="width:33%"></div></div><span class="rank-value">8.2%</span></li>
+          <li><span class="rank-num">6</span><span class="rank-label">Tensión arterial</span><div class="rank-bar-track"><div class="rank-bar-fill" style="width:24%"></div></div><span class="rank-value">6.1%</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <div class="panel">
+        <h2>Morbilidad por predio</h2>
+        <p class="panel-sub">Ranking descendente · semáforo de riesgo</p>
+        <table class="predio-rank">
+          <thead><tr><th>Predio</th><th>Atenciones</th><th>Incapac.</th><th>Días</th><th>Accid.</th><th>Costo</th><th>Riesgo</th></tr></thead>
+          <tbody>
+            <tr><td>Macro II</td><td>612</td><td>48</td><td>340</td><td>9</td><td>$98,200</td><td><span class="risk-badge risk-critico">● Crítico</span></td></tr>
+            <tr><td>AIFA</td><td>540</td><td>32</td><td>210</td><td>6</td><td>$71,400</td><td><span class="risk-badge risk-alto">● Alto</span></td></tr>
+            <tr><td>Siglo XXI</td><td>410</td><td>25</td><td>160</td><td>4</td><td>$54,100</td><td><span class="risk-badge risk-medio">● Medio</span></td></tr>
+            <tr><td>Flora</td><td>305</td><td>18</td><td>95</td><td>2</td><td>$32,000</td><td><span class="risk-badge risk-medio">● Medio</span></td></tr>
+            <tr><td>Mercurio</td><td>210</td><td>9</td><td>44</td><td>1</td><td>$14,200</td><td><span class="risk-badge risk-bajo">● Bajo</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <h2>Análisis Ejecutivo</h2>
+        <p class="panel-sub">Insights calculados automáticamente sobre el periodo filtrado</p>
+        <div class="insights">
+          <div class="insight-item bad"><span class="dot"></span><span>Las atenciones médicas aumentaron 18% respecto al mes anterior.</span></div>
+          <div class="insight-item warn"><span class="dot"></span><span>Macro II concentra 23% de las incapacidades registradas en el periodo.</span></div>
+          <div class="insight-item"><span class="dot"></span><span>Las enfermedades respiratorias representan la principal causa de atención (22.4%).</span></div>
+          <div class="insight-item warn"><span class="dot"></span><span>Los días de incapacidad aumentaron 12% respecto al promedio de los últimos 3 meses.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="mockup-note">
+      Mockup navegable con datos de ejemplo ilustrativos (no son datos reales de producción). Sistema de diseño: paleta clínica azul/verde/rojo, tipografía Lexend + Source Sans 3, estilo "Soft UI Evolution" — generado con la skill ui-ux-pro-max para producto enterprise SaaS/BI de salud ocupacional.
+    </footer>
+  </main>
+</div>
+</body>
+</html>

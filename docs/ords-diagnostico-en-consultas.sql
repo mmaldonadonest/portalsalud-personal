@@ -1,0 +1,101 @@
+-- =============================================================================
+-- DIAGNOSTICO (con su clave ICD) en el reporte de consultas por fecha
+-- =============================================================================
+-- Destino : misma instancia ORDS que security/Servcio/* (10.249.249.3).
+-- Fecha   : 10 de septiembre de 2026
+--
+-- Motivo: el modulo "Musculoesqueleticas" del prototipo clasifica por TIPO DE LESION
+--   (algias/contusiones, columna, traumatismos, fracturas, amputaciones). Ese campo no
+--   existe en el modelo. Lo que si existe es el DIAGNOSTICO capturado desde el catalogo
+--   ICD/CIE: el buscador escribe "<clave> - <nombre>" en el campo (ver
+--   templates/fragments/icd-result.html, funcion addIcd), asi que el codigo va al inicio
+--   del texto. Con el codigo se puede filtrar el CAPITULO M de la CIE-10, que es
+--   literalmente "Enfermedades del sistema osteomuscular y del tejido conjuntivo" -
+--   clasificacion medica oficial, no una taxonomia inventada por nosotros.
+--
+-- Sin este campo, el modulo solo podria construirse sobre AREA_ANATOMICA_INVOLUCRADA,
+-- que es otra cosa: una consulta de "abdomen" o "torax" puede ser digestiva o
+-- respiratoria, no musculoesqueletica.
+--
+-- Alcance: aditivo, un campo. Se clona el handler (regla de no modificar un WS
+-- productivo en sitio) a consulta_medica_fecha_dx.
+-- =============================================================================
+
+
+-- =============================================================================
+-- EL PATRON
+-- =============================================================================
+-- Origen: security/Servcio/consulta_medica_fecha, cuyo Source completo esta en
+--   docs/ords-consulta-dashboard-genero-edad-cuenta.sql (BLOQUE 1).
+--
+-- Como aplicar (SQL Developer > conexion > RESTful Services):
+--   1. Abrir el handler POST de "consulta_medica_fecha" y COPIAR su Source.
+--   2. Modulo "Servcio" > New Template > URI Template: consulta_medica_fecha_dx
+--   3. New Handler > POST > Source Type: PL/SQL > pegar el Source copiado.
+--   4. Aplicar (a) y (b).
+--
+-- (a) En el SELECT del cursor, agregar la columna (DIAGNOSTICO es de la tabla base,
+--     alias "a" - no hace falta ningun join):
+--
+--         a.DIAGNOSTICO,
+--
+--     Si DIAGNOSTICO resulta ser CLOB o muy largo, acotarlo para no arrastrar texto
+--     innecesario: el codigo ICD va al inicio, con 300 caracteres sobra.
+--
+--         cast(substr(a.DIAGNOSTICO, 1, 300) as varchar2(300)) diagnostico,
+--
+--     Esto ademas previene el "ORA-06502 Bulk Bind: Truncated Bind" que ya nos costo
+--     tiempo en los WS _cta (ver docs/ords-cuenta-en-reportes.sql): al fijar el tipo
+--     explicitamente, PL/SQL no dimensiona la columna del cursor por el literal.
+--
+-- (b) En el loop de APEX_JSON, agregar la escritura junto a las demas:
+--
+--         APEX_JSON.WRITE('diagnostico',coalesce(i.diagnostico,'0'));
+--
+-- NADA MAS. No se toca el FROM, ni el SELECT COUNT(*) de kexiste, ni el manejo de
+-- "sin datos", ni el chunking del CLOB de respuesta.
+-- =============================================================================
+
+
+-- =============================================================================
+-- VERIFICACION
+-- =============================================================================
+--   POST http://10.249.249.3/biows/ords/security/Servcio/consulta_medica_fecha_dx
+--   Body: {"fecha_inicial":"01/01/24","fecha_final":"31/12/24"}
+--
+--   1. Mismo numero de filas que consulta_medica_fecha (83 en 2024, medido 10-sep-2026).
+--   2. Que cada fila traiga "diagnostico".
+--   3. Revisar cuantas traen una clave ICD al inicio (formato letra+digitos, p.ej.
+--      "M54.5 - Lumbago"). Las consultas anteriores a que el catalogo ICD fuera
+--      obligatorio van a traer texto libre sin clave: esas no se pueden clasificar y
+--      quedaran fuera del corte por capitulo. Es esperado, no un error - pero el
+--      porcentaje que representen dice que tan util va a ser el modulo.
+--
+-- =============================================================================
+-- LO QUE SIGUE DEL LADO JAVA
+-- =============================================================================
+-- 1. Campo diagnostico en ConsultaReporteDto + BiowsConsultaReporteResponse, y apuntar
+--    BiowsExpedienteClient.PATH_REPORTE_FECHA al _dx.
+-- 2. En DashboardConsultaService, derivar el capitulo CIE-10 de la clave (primera letra
+--    del codigo) y exponer un desglose por capitulo. El capitulo M alimenta el modulo
+--    Musculoesqueleticas; de paso, el resto de capitulos da un desglose diagnostico real
+--    para Atenciones y Causas, que hoy solo tienen texto libre.
+-- 3. Modulo /analisis/musculoesqueleticas filtrando por capitulo M.
+-- =============================================================================
+
+
+-- =============================================================================
+-- APLICADO Y VERIFICADO - 11-sep-2026
+-- =============================================================================
+-- Se aplico EN SITIO sobre consulta_medica_fecha (no se creo el clon _dx; el Java sigue
+-- apuntando al original). 83 filas en 2024, las 83 con "diagnostico".
+--
+-- Cobertura ICD en TODO el historico: 6 de 206 consultas (3%), ninguna del capitulo M, y
+-- las 6 son diagnosticos exoticos con pinta de prueba del buscador (A96.X, A01.3, B00.5).
+-- Hasta la consulta del 25-ago-2026 trae diagnostico "ok" y causa "caus": texto libre.
+--
+-- Causa confirmada por el PO (11-sep): los medicos capturan en el PHP productivo, que no
+-- exige el catalogo ICD. Sera obligatorio a partir del lanzamiento de este portal. Por
+-- eso el modulo Musculoesqueleticas se construye AL FINAL, antes de liberar: el campo ya
+-- viaja, el filtro es barato, pero hoy no hay dato con que verificarlo.
+-- =============================================================================

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Acceso — Portal Salud Ocupacional</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/css/portal.css}">
+</head>
+<body>
+
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="brand">
+      <span class="mk" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M12 2 3 7v6c0 5 4 8.5 9 9 5-.5 9-4 9-9V7l-9-5Z"/>
+          <path d="M9 12l2 2 4-4"/>
+        </svg>
+      </span>
+      <b>SALUD OCUPACIONAL</b>
+    </div>
+
+    <h1>Iniciar sesión</h1>
+    <p class="sub">Portal Integral de Salud Ocupacional</p>
+
+    <div class="alert-error" th:if="${param.error}" role="alert">
+      El correo o la contraseña no son correctos.
+    </div>
+    <div class="alert-error" th:if="${param.logout}"
+         style="background:var(--ok-bg);border-color:#A7F3D0;color:var(--ok)" role="status">
+      Tu sesión se cerró correctamente.
+    </div>
+
+    <form th:action="@{/login}" method="post">
+      <div class="fld">
+        <label for="username">Correo</label>
+        <input type="email" id="username" name="username" required autofocus
+               autocomplete="username" placeholder="nombre@saludocupacional.mx">
+      </div>
+      <div class="fld">
+        <label for="password">Contraseña</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn">Entrar</button>
+    </form>
+  </div>
+</div>
+
+</body>
+</html>

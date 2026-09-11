@@ -17,6 +17,17 @@
                 }, 0);
             });
         });
+
+        // El sidebar (PerfectScrollbar sobre #sidebarMenu) siempre arranca con el scroll
+        // en cero en cada carga completa de pagina - sin esto, entrar a un item activo que
+        // quedo mas abajo en un submenu largo (ej. Analisis, 15 items) se ve como que el
+        // sidebar "brinca" de vuelta arriba, tapando justo el item que se acaba de elegir.
+        // General a proposito (no solo para Analisis): cualquier submenu largo futuro se
+        // beneficia igual.
+        var activoSidebar = document.querySelector('#sidebarMenu .nav-sub-link.active, #sidebarMenu .nav-link.active');
+        if (activoSidebar) {
+            activoSidebar.scrollIntoView({ block: 'center' });
+        }
     </script>
     <th:block th:replace="${pageScripts}"></th:block>
 </th:block>

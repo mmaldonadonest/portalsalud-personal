@@ -12,6 +12,8 @@ public record ExamenReporteDto(
         String nombre,
         String rfc,
         String curp,
+        /** Cuenta del empleado; de aqui sale el predio via PredioService.predioFinoPorCuenta(). */
+        String cuenta,
         String apto,
         String noApto,
         String aptoCondicionado,

@@ -34,11 +34,20 @@ public class DashboardResumenGeneralService {
         this.examenService = examenService;
     }
 
+    /** Sin corte por predio/cuenta - el que usa /home. */
     public DashboardResumenGeneralDto resumen(String fechaInicial, String fechaFinal) {
-        var incapacidades = incapacidadesService.resumen(fechaInicial, fechaFinal);
-        var accidentes = accidentesService.resumen(fechaInicial, fechaFinal);
-        var consultas = consultaService.resumen(fechaInicial, fechaFinal);
-        var examenes = examenService.resumen(fechaInicial, fechaFinal);
+        return resumen(fechaInicial, fechaFinal, null, null);
+    }
+
+    /**
+     * Con corte opcional por predio y/o cuenta: se delega tal cual a los 4 dashboards que
+     * combina, para que el total unificado no pueda contradecir a las tarjetas individuales.
+     */
+    public DashboardResumenGeneralDto resumen(String fechaInicial, String fechaFinal, String predio, String cuenta) {
+        var incapacidades = incapacidadesService.resumen(fechaInicial, fechaFinal, predio, cuenta);
+        var accidentes = accidentesService.resumen(fechaInicial, fechaFinal, predio, cuenta);
+        var consultas = consultaService.resumen(fechaInicial, fechaFinal, predio, cuenta);
+        var examenes = examenService.resumen(fechaInicial, fechaFinal, predio, cuenta);
 
         long total = incapacidades.totalIncapacidades() + accidentes.totalAccidentes()
                 + consultas.totalConsultas() + examenes.totalExamenes();

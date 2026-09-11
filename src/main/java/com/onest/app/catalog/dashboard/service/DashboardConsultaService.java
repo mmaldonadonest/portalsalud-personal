@@ -3,6 +3,7 @@ package com.onest.app.catalog.dashboard.service;
 import com.onest.app.catalog.dashboard.dto.ConteoSimpleDto;
 import com.onest.app.catalog.dashboard.dto.DashboardConsultaDto;
 import com.onest.app.catalog.dashboard.dto.PuntoMensualDto;
+import com.onest.app.catalog.dashboard.dto.SeriePredioDto;
 import com.onest.app.catalog.expediente.dto.ConsultaReporteDto;
 import com.onest.app.catalog.expediente.service.ExpedienteService;
 import java.time.LocalDate;
@@ -37,20 +38,51 @@ public class DashboardConsultaService {
     // salud-ocupacional-v2 hace lo mismo (ATTENTIONS_BY_ACCOUNT: top 4 + "Otras cuentas").
     private static final int MAX_CUENTAS = 8;
 
+    // Predios que se superponen en la grafica comparada del modulo Atenciones. Mas de 6
+    // lineas en un mismo eje deja de leerse (mismo criterio que el prototipo).
+    private static final int MAX_PREDIOS_SERIE = 6;
+
     private static final int ANIO_MINIMO = 2000;
     private static final int ANIO_MAXIMO = LocalDate.now().getYear() + 1;
 
     private final ExpedienteService expedienteService;
+    private final DashboardPredioFiltro predioFiltro;
 
-    public DashboardConsultaService(ExpedienteService expedienteService) {
+    public DashboardConsultaService(ExpedienteService expedienteService, DashboardPredioFiltro predioFiltro) {
         this.expedienteService = expedienteService;
+        this.predioFiltro = predioFiltro;
     }
 
+    /** Sin corte por predio/cuenta - el que ya usa /home desde el 17-ago. */
     public DashboardConsultaDto resumen(String fechaInicial, String fechaFinal) {
+        return resumen(fechaInicial, fechaFinal, null, null);
+    }
+
+    /**
+     * Con corte opcional por predio y/o cuenta (filtro del Dashboard Ejecutivo). Desde el
+     * 10-sep-2026 los 4 dashboards aceptan el mismo corte: los WS {@code _cta} ya devuelven
+     * CUENTA por registro tambien en Incapacidades/Accidentes/Examenes.
+     *
+     * <p>El predio se compara contra el nombre YA resuelto (incluido el bucket "Sin asignar",
+     * que es seleccionable a proposito: deja ver cuanto falta por mapear en /admin/predios).
+     */
+    public DashboardConsultaDto resumen(String fechaInicial, String fechaFinal, String predio, String cuenta) {
+        return resumen(fechaInicial, fechaFinal, predio, cuenta, MAX_CAUSAS);
+    }
+
+    /**
+     * {@code topCausas} controla cuantas causas se devuelven antes de agrupar el resto en
+     * "Otras". El default (15) mantiene ligero el payload de /home y del Dashboard Ejecutivo,
+     * que solo pintan un top-N; el modulo Causas pide todas, porque su razon de ser es el
+     * ranking completo y un bucket "Otras" ahi seria justo lo que se quiere abrir.
+     */
+    public DashboardConsultaDto resumen(String fechaInicial, String fechaFinal, String predio, String cuenta,
+                                        int topCausas) {
         List<ConsultaReporteDto> filas = expedienteService.reportePorFecha(fechaInicial, fechaFinal).stream()
                 // Mismo bug de "fila fantasma" ya visto en Accidentes: sin datos en el rango,
                 // el WS regresa un objeto con todos los campos null en vez de array vacio.
                 .filter(f -> f.nss() != null && !f.nss().isBlank())
+                .filter(f -> predioFiltro.coincide(f.cuenta(), predio, cuenta))
                 .toList();
 
         long totalAccidentesEmergencias = 0;
@@ -60,7 +92,9 @@ public class DashboardConsultaService {
         Map<String, Long> porGenero = new LinkedHashMap<>();
         Map<String, Long> porEdad = new LinkedHashMap<>();
         Map<String, Long> porCuenta = new LinkedHashMap<>();
+        Map<String, Long> porPredio = new LinkedHashMap<>();
         Map<String, Long> porMes = new TreeMap<>();
+        Map<String, Map<String, Long>> porPredioMes = new LinkedHashMap<>();
         long sinFecha = 0;
 
         for (ConsultaReporteDto fila : filas) {
@@ -73,10 +107,18 @@ public class DashboardConsultaService {
             incrementar(porGenero, etiqueta(fila.genero()));
             incrementar(porEdad, rangoEdad(fila.edad()));
             incrementar(porCuenta, etiqueta(fila.cuenta()));
+            // Predio "fino" (17 sitios) via el mapeo cuenta->predio administrable
+            // (docs/ords-predio-cuenta.sql) - CERO llamadas WS extra, la cuenta ya viene en
+            // cada fila. Cuenta sin mapear todavia (o "Sin dato") cae en "Sin asignar", nunca
+            // se descarta - el analista ve cuanto le falta por mapear, no un dato inventado.
+            String predioFila = predioFiltro.predioDe(fila.cuenta());
+            incrementar(porPredio, predioFila);
 
             Optional<YearMonth> mes = mesDe(fila.fechaConsulta());
             if (mes.isPresent()) {
                 porMes.merge(mes.get().toString(), 1L, Long::sum);
+                porPredioMes.computeIfAbsent(predioFila, k -> new TreeMap<>())
+                        .merge(mes.get().toString(), 1L, Long::sum);
             } else {
                 sinFecha++;
             }
@@ -88,15 +130,37 @@ public class DashboardConsultaService {
             tendencia.add(new PuntoMensualDto("Sin fecha", sinFecha));
         }
 
+        // Personas != atenciones: la misma persona puede consultar varias veces en el rango.
+        long totalPersonas = filas.stream()
+                .map(ConsultaReporteDto::nss)
+                .filter(nss -> nss != null && !nss.isBlank())
+                .distinct()
+                .count();
+
+        // Solo los predios con mas atenciones, y "Sin asignar" fuera: no es un predio real y
+        // hoy concentraria casi todo, aplastando la escala de los demas.
+        List<SeriePredioDto> tendenciaPorPredio = porPredioMes.entrySet().stream()
+                .filter(e -> !DashboardPredioFiltro.SIN_ASIGNAR.equals(e.getKey()))
+                .sorted(Comparator.comparingLong(
+                        (Map.Entry<String, Map<String, Long>> e) -> e.getValue().values().stream()
+                                .mapToLong(Long::longValue).sum()).reversed())
+                .limit(MAX_PREDIOS_SERIE)
+                .map(e -> new SeriePredioDto(e.getKey(), e.getValue().entrySet().stream()
+                        .map(m -> new PuntoMensualDto(m.getKey(), m.getValue()))
+                        .toList()))
+                .toList();
+
         return new DashboardConsultaDto(
                 fechaInicial, fechaFinal,
                 filas.size(), totalAccidentesEmergencias,
                 aConteo(porTipoConsulta, Integer.MAX_VALUE),
                 aConteo(porAreaAccidente, Integer.MAX_VALUE),
-                aConteo(porCausa, MAX_CAUSAS),
+                aConteo(porCausa, topCausas > 0 ? topCausas : MAX_CAUSAS),
                 aConteo(porGenero, Integer.MAX_VALUE),
                 aConteoPorRangoEdad(porEdad),
                 aConteo(porCuenta, MAX_CUENTAS),
+                aConteo(porPredio, Integer.MAX_VALUE),
+                totalPersonas, tendenciaPorPredio,
                 tendencia);
     }
 

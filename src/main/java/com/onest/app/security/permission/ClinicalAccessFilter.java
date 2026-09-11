@@ -89,7 +89,11 @@ public class ClinicalAccessFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        String path = request.getRequestURI();
+        // getServletPath() excluye el context path (a diferencia de getRequestURI()) -
+        // necesario porque el WAR se despliega con context path /portal-salud (ver
+        // META-INF/context.xml); con getRequestURI() los prefijos de RUTAS_CLINICAS
+        // nunca hacian match en ese deployment y el filtro no bloqueaba nada.
+        String path = request.getServletPath();
         // Adjuntos (subir/descargar/borrar): los consumen varios modulos clinicos a la
         // vez y el path no distingue cual - quedan fuera de este primer alcance.
         if (path.startsWith("/api/nss/consulta/file")) {

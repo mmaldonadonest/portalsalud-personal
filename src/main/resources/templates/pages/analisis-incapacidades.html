@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: analisisIncapContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Incapacidades | Análisis | Portal Salud Personal</title>
+</head>
+<body>
+
+<!--
+  Incapacidades (modulo Analisis, rol MEDICO_ANALISTA). Equivale a V.incap del prototipo.
+  Reusa /api/dashboard/incapacidades - cero WS nuevo.
+
+  Verificado contra la captura del prototipo el 11-sep-2026. Misma estructura: 6 KPIs, dias por
+  mes y ramo (apilada), costo por ramo (dona), dias por predio, personas por mes y rubro.
+  Diferencias:
+  - "Personas IMSS / internas": aqui son NSS DISTINTOS por rubro, no registros. Y el rubro viene
+    sucio en los datos reales (en 2024, 137 de 221 registros traen "sin rubro"); se muestra tal
+    cual, con "sin rubro" visible, en vez de esconderlo.
+  - "Dias IMSS por predio" -> "Dias por predio", todos los rubros. Cortar solo IMSS dejaria fuera
+    la mayoria de los registros por el mismo problema del rubro.
+  - Boton "Nuevo caso": lleva a /nss, por donde se captura una incapacidad en el portal.
+-->
+<th:block id="pageStyles">
+    <link rel="stylesheet" th:href="@{/theme/lib/apexcharts/apexcharts.css}" href="/theme/lib/apexcharts/apexcharts.css">
+    <style>
+        .chart-card .card-header { border-bottom: none; padding-bottom: 0; display: block; }
+        .chart-eyebrow {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        .chart-eyebrow::before {
+            content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+            box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+        }
+        .chart-eyebrow--dias { color: #B45309; }
+        .chart-eyebrow--costo { color: #6D28D9; }
+        .chart-eyebrow--predio { color: #0EA5E9; }
+        .chart-eyebrow--personas { color: #1D4ED8; }
+
+        .kpi-card { border-top: 3px solid var(--kc, #94a3b8); transition: transform .15s, box-shadow .15s; }
+        .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15, 23, 42, .08); }
+        .kpi-ico {
+            width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
+            background: var(--kcbg, #f1f5f9); color: var(--kc, #64748b); margin-bottom: 9px; font-size: 16px;
+        }
+        .kpi-card--imss { --kc: #1D4ED8; --kcbg: #EFF6FF; }
+        .kpi-card--interna { --kc: #64748B; --kcbg: #F8FAFC; }
+        .kpi-card--dias { --kc: #B45309; --kcbg: #FFFBEB; }
+        .kpi-card--horas { --kc: #0E7490; --kcbg: #ECFEFF; }
+        .kpi-card--costo { --kc: #6D28D9; --kcbg: #F5F3FF; }
+        .kpi-card--promedio { --kc: #047857; --kcbg: #ECFDF5; }
+        .kpi-value { font-size: 1.6rem; font-weight: 700; letter-spacing: -.02em; color: #0f172a; line-height: 1.15; margin: 2px 0 6px; }
+        .kpi-sub { font-size: 11px; color: #64748b; margin-top: 5px; line-height: 1.4; display: block; }
+        .kpi-trend { font-size: 11px; font-weight: 600; display: inline-flex; gap: 3px; padding: 3px 8px; border-radius: 999px; }
+        .kpi-trend--up { color: #B91C1C; background: #FEF2F2; }
+        .kpi-trend--dn { color: #047857; background: #ECFDF5; }
+        .kpi-trend--eq { color: #475569; background: #f1f5f9; }
+        .vacio { text-align: center; padding: 32px 16px; color: #94a3b8; font-size: 12.5px; }
+    </style>
+</th:block>
+
+<th:block th:fragment="analisisIncapContent">
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/analisis/ejecutivo}" href="/analisis/ejecutivo">Dashboard Ejecutivo</a></li>
+                <li class="breadcrumb-item"><span>Clínico</span></li>
+                <li class="breadcrumb-item active" aria-current="page">Incapacidades</li>
+            </ol>
+            <h4 class="main-title mb-0">Incapacidades</h4>
+            <p class="fs-12 text-muted mb-0" id="subtitulo">Días, personas y costo</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" id="btnExportar" class="btn btn-outline-secondary btn-sm">
+                <i class="ri-download-2-line me-1"></i>Exportar
+            </button>
+            <button type="button" id="btnNuevo" class="btn btn-primary btn-sm"
+                    th:attr="data-url=@{/nss}" data-url="/nss">
+                <i class="ri-add-line me-1"></i>Nuevo caso
+            </button>
+        </div>
+    </div>
+
+    <div class="card card-one mb-3">
+        <div class="card-body d-flex flex-wrap align-items-end gap-3">
+            <div>
+                <label class="form-label fs-12 mb-1">Año</label>
+                <select id="fAnio" class="form-select form-select-sm"></select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Periodo</label>
+                <select id="fPeriodo" class="form-select form-select-sm">
+                    <option value="0">Acumulado (todo el año)</option>
+                    <option value="1">Enero</option><option value="2">Febrero</option>
+                    <option value="3">Marzo</option><option value="4">Abril</option>
+                    <option value="5">Mayo</option><option value="6">Junio</option>
+                    <option value="7">Julio</option><option value="8">Agosto</option>
+                    <option value="9">Septiembre</option><option value="10">Octubre</option>
+                    <option value="11">Noviembre</option><option value="12">Diciembre</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Predio</label>
+                <select id="fPredio" class="form-select form-select-sm" style="min-width:200px">
+                    <option value="">Todos los predios</option>
+                </select>
+            </div>
+            <span id="estado" class="fs-12 text-muted ms-auto"></span>
+            <input type="hidden" id="fFechaInicial" value="">
+            <input type="hidden" id="fFechaFinal" value="">
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--imss"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-user-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Personas IMSS</span>
+                <h3 class="kpi-value" id="kpiImss">—</h3>
+                <span class="kpi-sub" id="kpiImssSub"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--interna"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-user-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Personas internas</span>
+                <h3 class="kpi-value" id="kpiInterna">—</h3>
+                <span class="kpi-sub" id="kpiInternaSub"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--dias"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-time-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Días acumulados</span>
+                <h3 class="kpi-value" id="kpiDias">—</h3>
+                <span class="kpi-trend" id="kpiDiasTrend"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--horas"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-timer-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Horas no trabajadas</span>
+                <h3 class="kpi-value" id="kpiHoras">—</h3>
+                <span class="kpi-sub">días × 8 h</span>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--costo"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-money-dollar-circle-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Costo total</span>
+                <h3 class="kpi-value" id="kpiCosto">—</h3>
+                <span class="kpi-sub" id="kpiCostoSub"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--promedio"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-line-chart-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Promedio días/caso</span>
+                <h3 class="kpi-value" id="kpiPromedio">—</h3>
+                <span class="kpi-sub" id="kpiPromedioSub"></span>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-7">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--dias">Días</span>
+                    <div class="card-title-lg">Días por mes y ramo</div>
+                    <p class="fs-11 text-muted mb-0" id="subDiasRamo">Apiladas por ramo</p>
+                </div>
+                <div class="card-body"><div id="chartDiasRamoMes"></div></div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--costo">Costo</span>
+                    <div class="card-title-lg">Costo por ramo</div>
+                    <p class="fs-11 text-muted mb-0" id="subCosto">Distribución del gasto</p>
+                </div>
+                <div class="card-body"><div id="chartCosto"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--predio">Predios</span>
+                    <div class="card-title-lg">Días por predio</div>
+                    <p class="fs-11 text-muted mb-0" id="subPredio"></p>
+                </div>
+                <div class="card-body"><div id="chartPredio"></div></div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--personas">Personas</span>
+                    <div class="card-title-lg">Personas incapacitadas por mes</div>
+                    <p class="fs-11 text-muted mb-0">Por rubro</p>
+                </div>
+                <div class="card-body"><div id="chartPersonasMes"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <p class="fs-11 text-muted mt-3 mb-0">
+        <i class="ri-information-line"></i>
+        Personas = NSS distintos; una persona puede tener varias incapacidades en el periodo.
+        El rubro (IMSS / interna) viene tal cual del registro: los que no lo traen aparecen como
+        «sin rubro», no se reasignan.
+    </p>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:src="@{/theme/lib/apexcharts/apexcharts.min.js}" src="/theme/lib/apexcharts/apexcharts.min.js"></script>
+    <script th:inline="javascript">
+        (function () {
+            var contextPath = /*[[@{/}]]*/ '/';
+            var chartDiasRamoMes = null, chartCosto = null, chartPredio = null, chartPersonasMes = null;
+            var ultimoExport = null;
+
+            var NOMBRES_MES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
+                'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            var PALETA = ['#2563EB', '#D97706', '#DC2626', '#DB2777', '#64748B', '#0F766E', '#7C3AED', '#0EA5E9'];
+
+            function numero(n) { return (n || 0).toLocaleString('es-MX'); }
+            function moneda(n) {
+                var v = n || 0;
+                if (Math.abs(v) >= 1000000) { return '$' + (v / 1000000).toFixed(2) + 'M'; }
+                if (Math.abs(v) >= 1000) { return '$' + (v / 1000).toFixed(1) + 'K'; }
+                return '$' + Math.round(v).toLocaleString('es-MX');
+            }
+            function etiquetaMes(clave) {
+                var p = String(clave).split('-');
+                return p.length === 2 ? NOMBRES_MES[parseInt(p[1], 10) - 1] + ' ' + p[0].substring(2) : clave;
+            }
+            function vaciar(id, texto) {
+                document.getElementById(id).innerHTML = '<p class="vacio mb-0">' + texto + '</p>';
+            }
+            /** Union ordenada de los meses de varias series, para que compartan el eje X. */
+            function ejeMeses(series) {
+                var m = {};
+                (series || []).forEach(function (s) { (s.puntos || []).forEach(function (p) { if (p.mes !== 'Sin fecha') { m[p.mes] = true; } }); });
+                return Object.keys(m).sort();
+            }
+            function alinear(serie, claves) {
+                var m = {};
+                (serie.puntos || []).forEach(function (p) { m[p.mes] = p.cantidad; });
+                return claves.map(function (k) { return m[k] || 0; });
+            }
+
+            function calcularRango() {
+                var anio = parseInt(document.getElementById('fAnio').value, 10);
+                var periodo = parseInt(document.getElementById('fPeriodo').value, 10);
+                var hoy = new Date();
+                var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+                if (periodo === 0) {
+                    var fin = anio === hoy.getFullYear() ? hoy : new Date(anio, 11, 31);
+                    return {
+                        fechaInicial: anio + '-01-01',
+                        fechaFinal: fin.getFullYear() + '-' + pad(fin.getMonth() + 1) + '-' + pad(fin.getDate()),
+                        texto: 'ejercicio ' + anio
+                    };
+                }
+                var ultimo = new Date(anio, periodo, 0).getDate();
+                return {
+                    fechaInicial: anio + '-' + pad(periodo) + '-01',
+                    fechaFinal: anio + '-' + pad(periodo) + '-' + pad(ultimo),
+                    texto: NOMBRES_MES[periodo - 1] + ' ' + anio
+                };
+            }
+
+            async function cargarPredios() {
+                try {
+                    var res = await fetch(contextPath + 'api/analisis/filtros');
+                    if (!res.ok) { return; }
+                    var data = await res.json();
+                    var select = document.getElementById('fPredio');
+                    (data.predios || []).forEach(function (nombre) {
+                        var opt = document.createElement('option');
+                        opt.value = nombre;
+                        opt.textContent = nombre;
+                        select.appendChild(opt);
+                    });
+                } catch (e) { /* sin filtro de predio, la pagina sigue */ }
+            }
+
+            function inicializar() {
+                var selectAnio = document.getElementById('fAnio');
+                var actual = new Date().getFullYear();
+                for (var y = actual; y >= 2023; y--) {
+                    var opt = document.createElement('option');
+                    opt.value = y;
+                    opt.textContent = y;
+                    selectAnio.appendChild(opt);
+                }
+                ['fAnio', 'fPeriodo', 'fPredio'].forEach(function (id) {
+                    document.getElementById(id).addEventListener('change', aplicar);
+                });
+                document.getElementById('btnExportar').addEventListener('click', exportarCsv);
+                document.getElementById('btnNuevo').addEventListener('click', function () {
+                    window.location.href = this.dataset.url;
+                });
+            }
+
+            function aplicar() {
+                var rango = calcularRango();
+                document.getElementById('fFechaInicial').value = rango.fechaInicial;
+                document.getElementById('fFechaFinal').value = rango.fechaFinal;
+                cargar(rango);
+            }
+
+            async function cargar(rango) {
+                var estado = document.getElementById('estado');
+                var predio = document.getElementById('fPredio').value;
+                var qs = 'fechaInicial=' + encodeURIComponent(rango.fechaInicial)
+                       + '&fechaFinal=' + encodeURIComponent(rango.fechaFinal)
+                       + (predio ? '&predio=' + encodeURIComponent(predio) : '');
+                estado.textContent = 'Cargando...';
+                try {
+                    var res = await fetch(contextPath + 'api/dashboard/incapacidades?' + qs);
+                    if (!res.ok) { estado.textContent = 'Error al consultar (HTTP ' + res.status + ').'; return; }
+                    var d = await res.json();
+                    document.getElementById('subtitulo').textContent =
+                        numero(d.totalDiasAutorizados) + ' días acumulados · ' + moneda(d.totalCosto) + ' MXN · '
+                        + rango.texto + (predio ? ' · ' + predio : '');
+                    pintarKpis(d);
+                    pintarDiasRamoMes(d);
+                    pintarCosto(d);
+                    pintarPredio(d);
+                    pintarPersonasMes(d);
+                    ultimoExport = d;
+                    estado.textContent = 'Actualizado.';
+                } catch (e) {
+                    console.error('[analisis-incapacidades] error en cargar():', e);
+                    estado.textContent = 'Error de red: ' + e.message;
+                }
+            }
+
+            /**
+             * El rubro es texto libre y en los datos reales trae basura de teclado ("dsads",
+             * "fjdshfk", "536653563563563") y variantes ("IMSS_Interna"). Para que la grafica se
+             * lea, se colapsa a 3 cubetas. Nada se descarta: lo que no es IMSS ni interna cae en
+             * "Sin rubro / otro", visible, en vez de reasignarse a IMSS por defecto.
+             */
+            function cubetaRubro(clave) {
+                var c = String(clave || '').toLowerCase();
+                if (c.indexOf('interna') >= 0) { return 'Interna'; }
+                if (c.indexOf('imss') >= 0) { return 'IMSS'; }
+                return 'Sin rubro / otro';
+            }
+            var ORDEN_CUBETAS = ['IMSS', 'Interna', 'Sin rubro / otro'];
+
+            function buscarRubro(lista, patron) {
+                var r = (lista || []).find(function (x) { return patron.test(x.clave); });
+                return r ? r.cantidad : 0;
+            }
+
+            function pintarKpis(d) {
+                var porCubeta = { 'IMSS': 0, 'Interna': 0, 'Sin rubro / otro': 0 };
+                (d.personasPorRubro || []).forEach(function (x) { porCubeta[cubetaRubro(x.clave)] += x.cantidad; });
+                var imss = porCubeta['IMSS'], interna = porCubeta['Interna'], sinRubro = porCubeta['Sin rubro / otro'];
+                document.getElementById('kpiImss').textContent = numero(imss);
+                document.getElementById('kpiImssSub').textContent = numero(d.totalPersonas) + ' personas en total';
+                document.getElementById('kpiInterna').textContent = numero(interna);
+                document.getElementById('kpiInternaSub').textContent = sinRubro ? numero(sinRubro) + ' sin rubro' : '';
+
+                document.getElementById('kpiDias').textContent = numero(d.totalDiasAutorizados);
+                pintarTrend(d.tendenciaDiasMensual);
+
+                document.getElementById('kpiHoras').textContent = numero(d.totalDiasAutorizados * 8);
+                document.getElementById('kpiCosto').textContent = moneda(d.totalCosto);
+                document.getElementById('kpiCostoSub').textContent = numero(d.totalIncapacidades) + ' incapacidades';
+
+                var promedio = d.totalIncapacidades ? (d.totalDiasAutorizados / d.totalIncapacidades) : 0;
+                document.getElementById('kpiPromedio').textContent = promedio.toFixed(1);
+                document.getElementById('kpiPromedioSub').textContent = d.totalPersonas
+                    ? 'sobre ' + numero(d.totalPersonas) + ' personas' : '';
+            }
+
+            function pintarTrend(serie) {
+                var el = document.getElementById('kpiDiasTrend');
+                var puntos = (serie || []).filter(function (p) { return p.mes !== 'Sin fecha'; });
+                if (puntos.length < 2) { el.textContent = ''; el.className = 'kpi-trend'; return; }
+                var ult = puntos[puntos.length - 1], ant = puntos[puntos.length - 2];
+                if (!ant.dias) { el.textContent = ''; el.className = 'kpi-trend'; return; }
+                var delta = Math.round(((ult.dias - ant.dias) / ant.dias) * 100);
+                var clase = delta > 0 ? 'kpi-trend--up' : delta < 0 ? 'kpi-trend--dn' : 'kpi-trend--eq';
+                el.className = 'kpi-trend ' + clase;
+                el.textContent = (delta > 0 ? '▲ ' : delta < 0 ? '▼ ' : '') + Math.abs(delta) + '% '
+                    + etiquetaMes(ult.mes).split(' ')[0] + ' vs. ' + etiquetaMes(ant.mes).split(' ')[0];
+            }
+
+            function pintarDiasRamoMes(d) {
+                var series = d.diasRamoMensual || [];
+                var claves = ejeMeses(series);
+                if (!claves.length) { vaciar('chartDiasRamoMes', 'Sin incapacidades en el periodo.'); return; }
+                document.getElementById('subDiasRamo').textContent =
+                    'Apiladas: ' + series.map(function (s) { return s.clave; }).join(', ');
+                var options = {
+                    chart: { type: 'bar', height: 340, stacked: true, toolbar: { show: false } },
+                    series: series.map(function (s) { return { name: s.clave, data: alinear(s, claves) }; }),
+                    colors: PALETA,
+                    xaxis: { categories: claves.map(etiquetaMes), labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' }, formatter: function (v) { return numero(Math.round(v)); } } },
+                    plotOptions: { bar: { borderRadius: 4, columnWidth: '52%' } },
+                    legend: { position: 'top', horizontalAlign: 'right', fontSize: '11px', markers: { radius: 12 } },
+                    dataLabels: { enabled: false },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 },
+                    tooltip: { y: { formatter: function (v) { return numero(v) + ' días'; } } }
+                };
+                document.getElementById('chartDiasRamoMes').innerHTML = '';
+                if (chartDiasRamoMes) { chartDiasRamoMes.destroy(); }
+                chartDiasRamoMes = new ApexCharts(document.querySelector('#chartDiasRamoMes'), options);
+                chartDiasRamoMes.render();
+            }
+
+            function pintarCosto(d) {
+                var lista = (d.porRamo || []).filter(function (r) { return r.costo > 0; })
+                    .slice().sort(function (a, b) { return b.costo - a.costo; });
+                if (!lista.length) { vaciar('chartCosto', 'Sin costo registrado en el periodo.'); return; }
+                var options = {
+                    chart: { type: 'donut', height: 340 },
+                    series: lista.map(function (r) { return Math.round(r.costo); }),
+                    labels: lista.map(function (r) { return r.clave; }),
+                    colors: PALETA,
+                    legend: { position: 'bottom', fontSize: '11px', markers: { radius: 12 } },
+                    dataLabels: { enabled: true, formatter: function (v) { return Math.round(v) + '%'; } },
+                    plotOptions: { pie: { donut: { size: '59%' } } },
+                    tooltip: { y: { formatter: function (v) { return moneda(v); } } }
+                };
+                document.getElementById('chartCosto').innerHTML = '';
+                if (chartCosto) { chartCosto.destroy(); }
+                chartCosto = new ApexCharts(document.querySelector('#chartCosto'), options);
+                chartCosto.render();
+            }
+
+            function pintarPredio(d) {
+                var lista = (d.porPredio || []).filter(function (r) { return r.diasAutorizados > 0; })
+                    .slice().sort(function (a, b) { return b.diasAutorizados - a.diasAutorizados; });
+                document.getElementById('subPredio').textContent = lista.length
+                    ? lista.length + (lista.length === 1 ? ' predio' : ' predios') + ' con días de incapacidad' : '';
+                if (!lista.length) { vaciar('chartPredio', 'Sin incapacidades en el periodo.'); return; }
+                var options = {
+                    chart: { type: 'bar', height: 300, toolbar: { show: false } },
+                    series: [{ name: 'Días', data: lista.map(function (r) { return r.diasAutorizados; }) }],
+                    xaxis: { categories: lista.map(function (r) { return r.clave; }), labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    colors: ['#B45309'],
+                    plotOptions: { bar: { borderRadius: 4, columnWidth: '50%' } },
+                    dataLabels: { enabled: false },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 },
+                    tooltip: { y: { formatter: function (v) { return numero(v) + ' días'; } } }
+                };
+                document.getElementById('chartPredio').innerHTML = '';
+                if (chartPredio) { chartPredio.destroy(); }
+                chartPredio = new ApexCharts(document.querySelector('#chartPredio'), options);
+                chartPredio.render();
+            }
+
+            function pintarPersonasMes(d) {
+                var crudas = d.personasRubroMensual || [];
+                var claves = ejeMeses(crudas);
+                // Colapsa las N series crudas en las 3 cubetas, sumando mes a mes.
+                var acum = {};
+                crudas.forEach(function (s) {
+                    var cubeta = cubetaRubro(s.clave);
+                    acum[cubeta] = acum[cubeta] || {};
+                    (s.puntos || []).forEach(function (p) { acum[cubeta][p.mes] = (acum[cubeta][p.mes] || 0) + p.cantidad; });
+                });
+                var series = ORDEN_CUBETAS.filter(function (c) { return acum[c]; }).map(function (c) {
+                    return { clave: c, puntos: Object.keys(acum[c]).map(function (m) { return { mes: m, cantidad: acum[c][m] }; }) };
+                });
+                if (!claves.length) { vaciar('chartPersonasMes', 'Sin incapacidades en el periodo.'); return; }
+                var options = {
+                    chart: { type: 'bar', height: 300, toolbar: { show: false } },
+                    series: series.map(function (s) { return { name: s.clave, data: alinear(s, claves) }; }),
+                    colors: ['#2563EB', '#64748B', '#0EA5E9', '#D97706'],
+                    xaxis: { categories: claves.map(etiquetaMes), labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' }, formatter: function (v) { return numero(Math.round(v)); } } },
+                    plotOptions: { bar: { borderRadius: 4, columnWidth: '58%' } },
+                    legend: { position: 'top', horizontalAlign: 'right', fontSize: '11px', markers: { radius: 12 } },
+                    dataLabels: { enabled: false },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 },
+                    tooltip: { y: { formatter: function (v) { return numero(v) + ' personas'; } } }
+                };
+                document.getElementById('chartPersonasMes').innerHTML = '';
+                if (chartPersonasMes) { chartPersonasMes.destroy(); }
+                chartPersonasMes = new ApexCharts(document.querySelector('#chartPersonasMes'), options);
+                chartPersonasMes.render();
+            }
+
+            function exportarCsv() {
+                if (!ultimoExport) { return; }
+                var d = ultimoExport;
+                var filas = [
+                    ['Periodo', document.getElementById('fFechaInicial').value + ' a ' + document.getElementById('fFechaFinal').value],
+                    ['Predio', document.getElementById('fPredio').value || 'Todos'],
+                    [],
+                    ['Indicador', 'Valor'],
+                    ['Personas', d.totalPersonas],
+                    ['Incapacidades (registros)', d.totalIncapacidades],
+                    ['Días acumulados', d.totalDiasAutorizados],
+                    ['Horas no trabajadas', d.totalDiasAutorizados * 8],
+                    ['Costo total', d.totalCosto],
+                    [],
+                    ['Ramo', 'Incapacidades', 'Días', 'Costo']
+                ];
+                (d.porRamo || []).forEach(function (r) { filas.push([r.clave, r.cantidad, r.diasAutorizados, r.costo]); });
+                filas.push([]);
+                filas.push(['Predio', 'Incapacidades', 'Días', 'Costo']);
+                (d.porPredio || []).forEach(function (r) { filas.push([r.clave, r.cantidad, r.diasAutorizados, r.costo]); });
+                var csv = filas.map(function (f) {
+                    return f.map(function (v) { return '"' + String(v === undefined ? '' : v).replace(/"/g, '""') + '"'; }).join(',');
+                }).join('\r\n');
+                var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'incapacidades_' + document.getElementById('fFechaInicial').value + '.csv';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            inicializar();
+            cargarPredios().then(aplicar);
+        })();
+    </script>
+</th:block>
+</body>
+</html>

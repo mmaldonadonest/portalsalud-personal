@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: analisisEjecutivoContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Dashboard Ejecutivo | Análisis | Portal Salud Personal</title>
+</head>
+<body>
+
+<!--
+  Dashboard Ejecutivo del modulo Analisis (rol MEDICO_ANALISTA). Reusa TAL CUAL los
+  endpoints de pages/dashboard-demo-apex.html (/api/dashboard/resumen-general,
+  /api/dashboard/antidoping, /api/dashboard/consultas) - cero WS/controller nuevo,
+  esos ya alimentan /home. Lo unico nuevo son 2 secciones que la data YA traia pero
+  nadie renderizaba: "Morbilidad por predio" (consultas.porPredio, agregado
+  09-sep-2026 via el mapeo cuenta->predio, ver docs/ords-predio-cuenta.sql) y
+  "Principales causas" (consultas.porCausa, existia desde el 17-ago pero solo se
+  usaba internamente para el top-N, nunca se pinto en ninguna UI).
+-->
+<th:block id="pageStyles">
+    <link rel="stylesheet" th:href="@{/theme/lib/apexcharts/apexcharts.css}" href="/theme/lib/apexcharts/apexcharts.css">
+    <style>
+        .chart-card .card-header { border-bottom: none; padding-bottom: 0; display: block; }
+        .chart-eyebrow {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        .chart-eyebrow::before {
+            content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+            box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+        }
+        .chart-eyebrow--tendencia { color: #2563EB; }
+        .chart-eyebrow--predio { color: #0EA5E9; }
+        .chart-eyebrow--causa { color: #D97706; }
+        .chart-eyebrow--total { color: #1d5fa8; }
+        .chart-eyebrow--incap { color: #B45309; }
+
+        /* Ranking de predios - fila clicable deshabilitada por ahora (Vista por Predio,
+           el modulo destino del drill-down, todavia no existe - ver nav Analisis). */
+        #tbRanking td { font-size: 12.5px; }
+        #tbRanking .bar-track { background: #f1f5f9; border-radius: 5px; height: 16px; overflow: hidden; }
+        #tbRanking .bar-fill { height: 100%; border-radius: 5px; background: #0EA5E9; }
+        .riesgo-tag { font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+        .riesgo-critico { color: #B91C1C; background: #FEF2F2; }
+        .riesgo-alto { color: #B45309; background: #FFFBEB; }
+        .riesgo-medio { color: #1D4ED8; background: #EFF6FF; }
+        .riesgo-bajo { color: #475569; background: #f1f5f9; }
+
+        #listaInsights li { display: flex; gap: 9px; padding: 9px 0; border-bottom: 1px dashed #e2e8f0; font-size: 12.5px; color: #334155; line-height: 1.5; }
+        #listaInsights li:last-child { border-bottom: none; }
+        #listaInsights .ins-ico { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; font-size: 13px; }
+        #listaInsights .ins-warn .ins-ico { background: #FEF2F2; color: #B91C1C; }
+        #listaInsights .ins-info .ins-ico { background: #EFF6FF; color: #1D4ED8; }
+        #listaInsights .ins-ok .ins-ico { background: #ECFDF5; color: #047857; }
+
+        /* Tarjeta KPI estilo cambios/Dashboard Salud (public/index.html, funcion kpi()) -
+           franja superior de color + icono en badge + valor + pastilla de tendencia +
+           subtitulo de desglose real. Colores adaptados a Bootstrap/ONEST, no copiados
+           literal del prototipo (esos chocarian con el skin de marca ya construido). */
+        .kpi-card { border-top: 3px solid var(--kc, #94a3b8); transition: transform .15s, box-shadow .15s; }
+        .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15, 23, 42, .08); }
+        .kpi-ico {
+            width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
+            background: var(--kcbg, #f1f5f9); color: var(--kc, #64748b); margin-bottom: 9px; font-size: 16px;
+        }
+        .kpi-card--incapacidades { --kc: #0EA5E9; --kcbg: #EFF6FF; }
+        .kpi-card--dias { --kc: #B45309; --kcbg: #FFFBEB; }
+        .kpi-card--accidentes { --kc: #DC2626; --kcbg: #FEF2F2; }
+        .kpi-card--examen { --kc: #047857; --kcbg: #ECFDF5; }
+        .kpi-card--costo { --kc: #6D28D9; --kcbg: #F5F3FF; }
+        .kpi-card--consultas { --kc: #1D4ED8; --kcbg: #EFF6FF; }
+        .kpi-value { font-size: 1.6rem; font-weight: 700; letter-spacing: -.02em; color: #0f172a; line-height: 1.15; margin: 2px 0 6px; }
+        .kpi-trend {
+            font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;
+            padding: 3px 8px; border-radius: 999px;
+        }
+        .kpi-trend--up { color: #B91C1C; background: #FEF2F2; }   /* mas casos = peor */
+        .kpi-trend--dn { color: #047857; background: #ECFDF5; }   /* menos casos = mejor */
+        .kpi-trend--eq { color: #475569; background: #f1f5f9; }
+        .kpi-sub { font-size: 11px; color: #64748b; margin-top: 5px; line-height: 1.4; display: block; }
+
+        @keyframes kpiPop { 0% { transform: scale(.8); opacity: 0; } 60% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+        .kpi-animar { animation: kpiPop .5s cubic-bezier(.34, 1.56, .64, 1); }
+        .chart-card .card-title-lg { font-size: 1.05rem; font-weight: 700; color: #1e293b; }
+        .apex-tooltip-modern {
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, .10); font-size: 12px; min-width: 140px;
+        }
+        .apex-tooltip-modern .tt-title { font-weight: 700; margin-bottom: 4px; color: #1e293b; }
+        .apex-tooltip-modern .tt-row { display: flex; align-items: center; gap: 6px; color: #475569; }
+        .apex-tooltip-modern .tt-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: 0 0 auto; }
+    </style>
+</th:block>
+
+<th:block th:fragment="analisisEjecutivoContent">
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/home}" href="/home">Dashboard</a></li>
+                <li class="breadcrumb-item"><span>Análisis</span></li>
+                <li class="breadcrumb-item active" aria-current="page">Dashboard Ejecutivo</li>
+            </ol>
+            <h4 class="main-title mb-0">Dashboard Ejecutivo</h4>
+            <p class="fs-12 text-muted mb-0" id="subtitulo">Morbilidad y Salud Ocupacional</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" id="btnExportar" class="btn btn-outline-secondary btn-sm">
+                <i class="ri-download-2-line me-1"></i>Exportar
+            </button>
+        </div>
+    </div>
+
+    <!--
+      Filtro Año/Periodo/Predio/Cuenta - mismos 4 selects que el prototipo
+      (cambios/Dashboard Salud/public/index.html, .filters/.ff de V.exec), pero aqui SI filtran
+      de verdad, no son decorativos. Desde el 10-sep-2026 el corte alcanza a los 6 KPIs: los WS
+      _cta devuelven CUENTA por registro tambien en Incapacidades/Accidentes/Examenes
+      (docs/ords-cuenta-en-reportes.sql), asi que ya no hay indicadores "global" que excluir.
+    -->
+    <div class="card card-one mb-3">
+        <div class="card-body d-flex flex-wrap align-items-end gap-3">
+            <div>
+                <label class="form-label fs-12 mb-1">Año</label>
+                <select id="fAnio" class="form-select form-select-sm"></select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Periodo</label>
+                <select id="fPeriodo" class="form-select form-select-sm">
+                    <option value="0">Acumulado (todo el año)</option>
+                    <option value="1">Enero</option>
+                    <option value="2">Febrero</option>
+                    <option value="3">Marzo</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Mayo</option>
+                    <option value="6">Junio</option>
+                    <option value="7">Julio</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Predio</label>
+                <select id="fPredio" class="form-select form-select-sm">
+                    <option value="">Todos los predios</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Cuenta</label>
+                <select id="fCuenta" class="form-select form-select-sm">
+                    <option value="">Todas</option>
+                </select>
+            </div>
+            <span class="fs-11 text-muted d-inline-flex align-items-center gap-1" id="chipDisponible"></span>
+            <span id="estado" class="fs-12 text-muted ms-auto"></span>
+            <input type="hidden" id="fFechaInicial" value="">
+            <input type="hidden" id="fFechaFinal" value="">
+        </div>
+    </div>
+
+    <!--
+      6 KPIs = mismos que el prototipo (Atenciones/Personas incapacitadas/Dias/Accidentes/
+      Examenes/Costo). Valor+tendencia+subtitulo se llenan por JS con datos REALES de los
+      endpoints ya existentes - no se copian los numeros ni los textos del mockup.
+    -->
+    <div class="row g-3 mb-1" id="kpiCards">
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--consultas">
+                <div class="card-body">
+                    <div class="kpi-ico"><i class="ri-stethoscope-line"></i></div>
+                    <span class="kpi-lb fs-12 text-muted fw-medium">Atenciones médicas</span>
+                    <h3 class="kpi-value" id="kpiAtenciones">—</h3>
+                    <span class="kpi-trend" id="kpiAtencionesTrend"></span>
+                    <span class="kpi-sub" id="kpiAtencionesSub"></span>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--incapacidades">
+                <div class="card-body">
+                    <div class="kpi-ico"><i class="ri-user-line"></i></div>
+                    <span class="kpi-lb fs-12 text-muted fw-medium">Personas incapacitadas</span>
+                    <h3 class="kpi-value" id="kpiPersonasIncap">—</h3>
+                    <span class="kpi-trend" id="kpiPersonasIncapTrend"></span>
+                    <span class="kpi-sub" id="kpiPersonasIncapSub"></span>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--dias">
+                <div class="card-body">
+                    <div class="kpi-ico"><i class="ri-time-line"></i></div>
+                    <span class="kpi-lb fs-12 text-muted fw-medium">Días de incapacidad</span>
+                    <h3 class="kpi-value" id="kpiDiasIncap">—</h3>
+                    <span class="kpi-trend" id="kpiDiasIncapTrend"></span>
+                    <span class="kpi-sub" id="kpiDiasIncapSub"></span>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--accidentes">
+                <div class="card-body">
+                    <div class="kpi-ico"><i class="ri-alert-line"></i></div>
+                    <span class="kpi-lb fs-12 text-muted fw-medium">Accidentes</span>
+                    <h3 class="kpi-value" id="kpiAccidentes">—</h3>
+                    <span class="kpi-trend" id="kpiAccidentesTrend"></span>
+                    <span class="kpi-sub" id="kpiAccidentesSub"></span>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--examen">
+                <div class="card-body">
+                    <div class="kpi-ico"><i class="ri-file-list-3-line"></i></div>
+                    <span class="kpi-lb fs-12 text-muted fw-medium">Exámenes médicos</span>
+                    <h3 class="kpi-value" id="kpiExamenes">—</h3>
+                    <span class="kpi-trend" id="kpiExamenesTrend"></span>
+                    <span class="kpi-sub" id="kpiExamenesSub"></span>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--costo">
+                <div class="card-body">
+                    <div class="kpi-ico"><i class="ri-money-dollar-circle-line"></i></div>
+                    <span class="kpi-lb fs-12 text-muted fw-medium">Costo de incapacidades</span>
+                    <h3 class="kpi-value" id="kpiCosto">—</h3>
+                    <span class="kpi-trend" id="kpiCostoTrend"></span>
+                    <span class="kpi-sub" id="kpiCostoSub"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <p class="fs-11 text-muted mb-3" id="notaSinFecha"></p>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-7">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div>
+                        <span class="chart-eyebrow chart-eyebrow--tendencia">KPIs · Portal Salud</span>
+                        <div class="card-title-lg">Evolución mensual de indicadores</div>
+                        <p class="fs-11 text-muted mb-0">Atenciones, días de incapacidad y accidentes</p>
+                    </div>
+                    <div class="btn-group btn-group-sm" role="group" aria-label="Indicadores" id="evolTabs">
+                        <button type="button" class="btn btn-outline-secondary active" data-serie="all">Todos</button>
+                        <button type="button" class="btn btn-outline-secondary" data-serie="aten">Atenciones</button>
+                        <button type="button" class="btn btn-outline-secondary" data-serie="dias">Días incap.</button>
+                    </div>
+                </div>
+                <div class="card-body"><div id="chartEvolucion"></div></div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--incap">Incapacidades</span>
+                    <div class="card-title-lg">Composición de días perdidos</div>
+                    <p class="fs-11 text-muted mb-0" id="subDiasRamo">Días acumulados por ramo</p>
+                </div>
+                <div class="card-body"><div id="chartDiasRamo"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-7">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--predio">Morbilidad</span>
+                    <div class="card-title-lg">Ranking de predios</div>
+                    <p class="fs-11 text-muted mb-0">Ordenado por atenciones médicas · semáforo simplificado, ver nota abajo</p>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0" id="tablaRanking">
+                            <caption class="visually-hidden">Ranking de predios por atenciones médicas, días de incapacidad, accidentes y exámenes</caption>
+                            <thead>
+                            <tr>
+                                <th class="ps-3">Predio</th>
+                                <th class="text-end">Atenciones</th>
+                                <th style="width:110px">Distribución</th>
+                                <th class="text-end">Días incap.</th>
+                                <th class="text-end">Accid.</th>
+                                <th class="text-end">Exámenes</th>
+                                <th class="text-end pe-3">Riesgo</th>
+                            </tr>
+                            </thead>
+                            <tbody id="tbRanking"></tbody>
+                        </table>
+                    </div>
+                    <p class="fs-11 text-muted px-3 pb-2 mb-0">
+                        Los 4 dominios se cruzan por predio vía el mapeo cuenta→predio (<a th:href="@{/admin/predios}" href="/admin/predios">Predios (cuentas)</a>).
+                        El semáforo de riesgo se calcula solo con atenciones, que es la métrica que ordena la tabla.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--total">Resumen</span>
+                    <div class="card-title-lg">Análisis Ejecutivo</div>
+                    <p class="fs-11 text-muted mb-0">Insights calculados sobre el rango seleccionado</p>
+                </div>
+                <div class="card-body"><ul class="list-unstyled mb-0" id="listaInsights"></ul></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-4">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--causa">Morbilidad</span>
+                    <div class="card-title-lg">Top 8 causas</div>
+                </div>
+                <div class="card-body"><div id="chartCausa"></div></div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--incap">Incapacidades</span>
+                    <div class="card-title-lg">Costo por ramo</div>
+                    <p class="fs-11 text-muted mb-0" id="subCostoRamo"></p>
+                </div>
+                <div class="card-body"><div id="chartCostoRamo"></div></div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--total">Exámenes</span>
+                    <div class="card-title-lg">Resultado de exámenes</div>
+                    <p class="fs-11 text-muted mb-0" id="subExamenResultado"></p>
+                </div>
+                <div class="card-body"><div id="chartExamen"></div></div>
+            </div>
+        </div>
+    </div>
+    <p class="fs-11 text-muted mt-3 mb-0">
+        <i class="ri-information-line"></i>
+        Calculado en tiempo real sobre el rango seleccionado (Servcio/consulta_*_fecha vía ORDS). No hay archivo origen ni captura manual - cualquier registro nuevo en el sistema aparece aquí de inmediato.
+    </p>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:src="@{/theme/lib/apexcharts/apexcharts.min.js}" src="/theme/lib/apexcharts/apexcharts.min.js"></script>
+    <script th:inline="javascript">
+        (function () {
+            var chartEvolucion = null, chartCausa = null, chartDiasRamo = null, chartCostoRamo = null, chartExamen = null;
+            var ultimoConsultas = null, ultimoIncap = null, ultimoAccid = null;
+
+            function numero(n) {
+                return (n || 0).toLocaleString('es-MX');
+            }
+
+            /**
+             * Anima el valor de una KPI. El token es indispensable: la animacion dura 600ms y
+             * corre en requestAnimationFrame, asi que al cambiar de filtro antes de que termine,
+             * la animacion VIEJA seguia escribiendo y pisaba el valor nuevo con el anterior
+             * (bug real: con 2024 la tarjeta de examenes mostraba el 9 de 2026). Cada llamada
+             * invalida a la anterior sobre el mismo elemento.
+             *
+             * formato es opcional: permite animar valores que no son un entero suelto (el costo
+             * se pinta como moneda) sin tener que sobrescribir el textContent despues - eso era
+             * justo lo que hacia perder el simbolo de $.
+             */
+            function animarNumero(el, valorFinal, formato) {
+                valorFinal = valorFinal || 0;
+                var fmt = formato || numero;
+                var token = (el.__animToken || 0) + 1;
+                el.__animToken = token;
+                el.classList.remove('kpi-animar');
+                void el.offsetWidth;
+                el.classList.add('kpi-animar');
+                if (valorFinal === 0) { el.textContent = fmt(0); return; }
+                var duracion = 600, t0 = null;
+                function paso(t) {
+                    if (el.__animToken !== token) { return; }
+                    if (t0 === null) { t0 = t; }
+                    var progreso = Math.min((t - t0) / duracion, 1);
+                    var suavizado = 1 - Math.pow(1 - progreso, 3);
+                    el.textContent = fmt(Math.round(suavizado * valorFinal));
+                    if (progreso < 1) { requestAnimationFrame(paso); }
+                }
+                requestAnimationFrame(paso);
+            }
+
+            function ordenarDesc(lista) {
+                return (lista || []).slice().sort(function (a, b) { return b.cantidad - a.cantidad; });
+            }
+
+            function escapeHtml(valor) {
+                if (valor === null || valor === undefined) { return ''; }
+                return String(valor).replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+
+            var PALETA_CATEGORICA = ['#16A34A', '#0EA5E9', '#D97706', '#7C3AED', '#DC2626', '#2563EB', '#0F766E', '#DB2777'];
+
+            function tooltipModern(categoria, nombres, colores, valores) {
+                var filas = nombres.map(function (nombre, i) {
+                    return '<div class="tt-row"><span class="tt-dot" style="background:' + colores[i] + '"></span>'
+                        + '<span>' + nombre + ': ' + numero(valores[i]) + '</span></div>';
+                }).join('');
+                return '<div class="apex-tooltip-modern"><div class="tt-title">' + categoria + '</div>' + filas + '</div>';
+            }
+
+            var NOMBRES_MES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            var ultimoExport = null;
+
+            // Traduce Año+Periodo (selects) a fechaInicial/fechaFinal reales (mismos inputs
+            // que ya consume cargar()/los endpoints /api/dashboard/**). "Acumulado" = todo el
+            // año hasta hoy si es el año en curso, hasta el 31-dic si es un año anterior.
+            function calcularRangoFiltro() {
+                var anio = parseInt(document.getElementById('fAnio').value, 10);
+                var periodo = parseInt(document.getElementById('fPeriodo').value, 10);
+                var hoy = new Date();
+                var esAnioActual = anio === hoy.getFullYear();
+                var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+                if (periodo === 0) {
+                    var finAnio = esAnioActual ? hoy : new Date(anio, 11, 31);
+                    return {
+                        fechaInicial: anio + '-01-01',
+                        fechaFinal: finAnio.getFullYear() + '-' + pad(finAnio.getMonth() + 1) + '-' + pad(finAnio.getDate()),
+                        texto: 'ejercicio ' + anio + ' · acumulado ' + NOMBRES_MES[0] + '–' + NOMBRES_MES[finAnio.getMonth()]
+                    };
+                }
+                var ultimoDiaMes = new Date(anio, periodo, 0).getDate();
+                return {
+                    fechaInicial: anio + '-' + pad(periodo) + '-01',
+                    fechaFinal: anio + '-' + pad(periodo) + '-' + pad(ultimoDiaMes),
+                    texto: NOMBRES_MES[periodo - 1] + ' ' + anio
+                };
+            }
+
+            // Catalogo cuenta->predio, cargado una sola vez desde /api/analisis/filtros.
+            var CUENTAS = [];
+
+            function filtroPredio() { return document.getElementById('fPredio').value; }
+            function filtroCuenta() { return document.getElementById('fCuenta').value; }
+
+            /**
+             * Repuebla el select de Cuenta con las cuentas del predio elegido (o todas).
+             * Conserva la cuenta seleccionada si sigue siendo valida en el nuevo predio.
+             */
+            function poblarCuentas() {
+                var select = document.getElementById('fCuenta');
+                var seleccionada = select.value;
+                var predio = filtroPredio();
+                var visibles = CUENTAS.filter(function (c) { return !predio || c.predio === predio; });
+                select.innerHTML = '<option value="">Todas</option>';
+                visibles.forEach(function (c) {
+                    var opt = document.createElement('option');
+                    opt.value = c.cuenta;
+                    opt.textContent = c.cuenta;
+                    select.appendChild(opt);
+                });
+                select.value = visibles.some(function (c) { return c.cuenta === seleccionada; }) ? seleccionada : '';
+            }
+
+            function aplicarFiltro() {
+                var rango = calcularRangoFiltro();
+                document.getElementById('fFechaInicial').value = rango.fechaInicial;
+                document.getElementById('fFechaFinal').value = rango.fechaFinal;
+                var predio = filtroPredio();
+                var cuenta = filtroCuenta();
+                var corte = cuenta ? (' · cuenta ' + cuenta) : (predio ? (' · ' + predio) : '');
+                document.getElementById('subtitulo').textContent =
+                    'Morbilidad y Salud Ocupacional · ' + rango.texto + corte;
+                cargar();
+            }
+
+            function inicializarFiltro() {
+                var selectAnio = document.getElementById('fAnio');
+                var anioActual = new Date().getFullYear();
+                for (var y = anioActual; y >= 2023; y--) {
+                    var opt = document.createElement('option');
+                    opt.value = y;
+                    opt.textContent = y;
+                    selectAnio.appendChild(opt);
+                }
+                document.getElementById('fAnio').addEventListener('change', aplicarFiltro);
+                document.getElementById('fPeriodo').addEventListener('change', aplicarFiltro);
+                document.getElementById('fPredio').addEventListener('change', function () {
+                    poblarCuentas();
+                    aplicarFiltro();
+                });
+                document.getElementById('fCuenta').addEventListener('change', aplicarFiltro);
+            }
+
+            /**
+             * Predios y cuentas reales para los dos selects. Si el WS de catalogo falla, los
+             * selects quedan en "Todos"/"Todas" y el dashboard sigue funcionando sin corte -
+             * un catalogo caido no debe tumbar la pagina entera.
+             */
+            async function cargarOpcionesFiltro() {
+                try {
+                    var res = await fetch(contextPath + 'api/analisis/filtros');
+                    if (!res.ok) { return; }
+                    var data = await res.json();
+                    var selectPredio = document.getElementById('fPredio');
+                    (data.predios || []).forEach(function (nombre) {
+                        var opt = document.createElement('option');
+                        opt.value = nombre;
+                        opt.textContent = nombre;
+                        selectPredio.appendChild(opt);
+                    });
+                    CUENTAS = data.cuentas || [];
+                    poblarCuentas();
+                } catch (e) {
+                    // silencioso a proposito - ver comentario del metodo
+                }
+            }
+
+            // "Datos disponibles hasta ..." real: el mes mas reciente con datos genuinos en
+            // la tendencia combinada (resumen.tendenciaMensual), no un texto fijo del mockup.
+            function pintarChipDisponible(tendenciaMensual) {
+                var meses = (tendenciaMensual || []).filter(function (p) { return p.mes !== 'Sin fecha'; });
+                var chip = document.getElementById('chipDisponible');
+                if (!meses.length) { chip.textContent = ''; return; }
+                var ultimo = meses[meses.length - 1].mes;
+                chip.innerHTML = '<i class="ri-information-line"></i> Datos disponibles hasta ' + nombreMes(ultimo) + ' ' + ultimo.substring(0, 4);
+            }
+
+            function exportarCsv() {
+                if (!ultimoExport) { return; }
+                // El corte va en el CSV: un export filtrado que no lo diga se vuelve un numero
+                // sin contexto en cuanto sale de la pantalla.
+                var filas = [
+                    ['Periodo', document.getElementById('fFechaInicial').value + ' a ' + document.getElementById('fFechaFinal').value],
+                    ['Predio', filtroPredio() || 'Todos'],
+                    ['Cuenta', filtroCuenta() || 'Todas'],
+                    [],
+                    ['Indicador', 'Valor']
+                ];
+                ultimoExport.kpis.forEach(function (k) { filas.push([k.etiqueta, k.valor]); });
+                filas.push([]);
+                filas.push(['Predio', 'Atenciones', 'Dias incap.', 'Accidentes', 'Examenes']);
+                (ultimoExport.porPredio || []).forEach(function (r) {
+                    var busca = function (lista, campo) {
+                        var f = (lista || []).find(function (x) { return x.clave === r.clave; });
+                        return f ? (f[campo] || 0) : 0;
+                    };
+                    filas.push([r.clave, r.cantidad,
+                        busca(ultimoExport.incapPorPredio, 'diasAutorizados'),
+                        busca(ultimoExport.accidPorPredio, 'cantidad'),
+                        busca(ultimoExport.examenPorPredio, 'cantidad')]);
+                });
+                filas.push([]);
+                filas.push(['Causa', 'Consultas']);
+                (ultimoExport.porCausa || []).forEach(function (r) { filas.push([r.clave, r.cantidad]); });
+                var csv = filas.map(function (fila) {
+                    return fila.map(function (v) { return '"' + String(v === undefined ? '' : v).replace(/"/g, '""') + '"'; }).join(',');
+                }).join('\r\n');
+                var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'dashboard-ejecutivo_' + document.getElementById('fFechaInicial').value + '_' + document.getElementById('fFechaFinal').value + '.csv';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            async function cargar() {
+                var fechaInicial = document.getElementById('fFechaInicial').value;
+                var fechaFinal = document.getElementById('fFechaFinal').value;
+                var estado = document.getElementById('estado');
+                if (!fechaInicial || !fechaFinal) {
+                    estado.textContent = 'Selecciona ambas fechas.';
+                    return;
+                }
+                estado.textContent = 'Cargando...';
+                // Desde el 10-sep-2026 los 5 endpoints aceptan el mismo corte por predio/cuenta:
+                // los WS _cta ya devuelven CUENTA por registro en los 4 dominios clinicos.
+                var qs = 'fechaInicial=' + encodeURIComponent(fechaInicial) + '&fechaFinal=' + encodeURIComponent(fechaFinal)
+                    + (filtroPredio() ? '&predio=' + encodeURIComponent(filtroPredio()) : '')
+                    + (filtroCuenta() ? '&cuenta=' + encodeURIComponent(filtroCuenta()) : '');
+                try {
+                    var [resumenRes, incapRes, accidRes, examenRes, consultasRes] = await Promise.all([
+                        fetch(contextPath + 'api/dashboard/resumen-general?' + qs),
+                        fetch(contextPath + 'api/dashboard/incapacidades?' + qs),
+                        fetch(contextPath + 'api/dashboard/accidentes?' + qs),
+                        fetch(contextPath + 'api/dashboard/examen?' + qs),
+                        fetch(contextPath + 'api/dashboard/consultas?' + qs)
+                    ]);
+                    if (!resumenRes.ok || !incapRes.ok || !accidRes.ok || !examenRes.ok || !consultasRes.ok) {
+                        estado.textContent = 'Error al consultar los endpoints (HTTP ' + resumenRes.status + ').';
+                        return;
+                    }
+                    var resumen = await resumenRes.json();
+                    var incap = await incapRes.json();
+                    var accid = await accidRes.json();
+                    var examen = await examenRes.json();
+                    var consultas = await consultasRes.json();
+
+                    ultimoConsultas = consultas; ultimoIncap = incap; ultimoAccid = accid;
+
+                    pintarKpis(incap, accid, examen, consultas);
+                    pintarNotaSinFecha(resumen.tendenciaMensual);
+                    pintarEvolucion(consultas, incap, accid, document.querySelector('#evolTabs .active').dataset.serie);
+                    pintarDiasRamo(incap.porRamo);
+                    pintarRanking(consultas.porPredio, incap, accid, examen);
+                    pintarInsights(consultas, incap, accid, examen);
+                    pintarCausa(consultas.porCausa.filter(function (r) { return r.clave !== 'Otras'; }).slice(0, 8));
+                    pintarCostoRamo(incap.porRamo);
+                    pintarExamenResultado(examen);
+                    pintarChipDisponible(resumen.tendenciaMensual);
+                    ultimoExport = {
+                        kpis: [
+                            { etiqueta: 'Atenciones médicas', valor: consultas.totalConsultas },
+                            { etiqueta: 'Personas incapacitadas', valor: incap.totalPersonas },
+                            { etiqueta: 'Incapacidades (registros)', valor: incap.totalIncapacidades },
+                            { etiqueta: 'Días de incapacidad', valor: incap.totalDiasAutorizados },
+                            { etiqueta: 'Accidentes', valor: accid.totalAccidentes },
+                            { etiqueta: 'Exámenes médicos', valor: examen.totalExamenes },
+                            { etiqueta: 'Costo de incapacidades', valor: incap.totalCosto }
+                        ],
+                        porPredio: consultas.porPredio,
+                        incapPorPredio: incap.porPredio,
+                        accidPorPredio: accid.porPredio,
+                        examenPorPredio: examen.porPredio,
+                        porCausa: consultas.porCausa
+                    };
+
+                    estado.textContent = 'Actualizado.';
+                } catch (e) {
+                    console.error('[analisis-ejecutivo] error en cargar():', e);
+                    estado.textContent = 'Error de red al consultar el dashboard: ' + e.message;
+                }
+            }
+
+            // Tendencia generica: ultimos 2 meses REALES (excluye "Sin fecha") de una serie
+            // mensual [{mes,cantidad}], comparando el mas reciente vs el anterior. "up"=mas
+            // casos que el mes previo (rojo, es un indicador de riesgo/salud - mas eventos
+            // no es "positivo"), "dn"=menos casos (verde). Sin al menos 2 meses reales, no
+            // hay tendencia que mostrar (nunca se inventa un numero).
+            function calcularTendencia(serie, campoCantidad) {
+                var meses = (serie || []).filter(function (p) { return p.mes !== 'Sin fecha'; });
+                if (meses.length < 2) { return null; }
+                var actual = meses[meses.length - 1];
+                var previo = meses[meses.length - 2];
+                var vActual = campoCantidad ? actual[campoCantidad] : actual.cantidad;
+                var vPrevio = campoCantidad ? previo[campoCantidad] : previo.cantidad;
+                if (!vPrevio) { return null; }
+                var pct = ((vActual - vPrevio) / vPrevio) * 100;
+                var clase = pct > 0.5 ? 'up' : (pct < -0.5 ? 'dn' : 'eq');
+                var flecha = clase === 'up' ? '▲' : (clase === 'dn' ? '▼' : '—');
+                return { clase: clase, texto: flecha + ' ' + Math.abs(Math.round(pct)) + '% vs. ' + nombreMes(previo.mes) };
+            }
+
+            function nombreMes(yyyyMM) {
+                if (!yyyyMM || yyyyMM.indexOf('-') < 0) { return yyyyMM; }
+                var nombres = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+                var partes = yyyyMM.split('-');
+                var idx = parseInt(partes[1], 10) - 1;
+                return nombres[idx] || yyyyMM;
+            }
+
+            function pintarTrend(idTrend, tendencia) {
+                var el = document.getElementById(idTrend);
+                if (!tendencia) { el.textContent = ''; el.className = 'kpi-trend'; return; }
+                el.textContent = tendencia.texto;
+                el.className = 'kpi-trend kpi-trend--' + tendencia.clase;
+            }
+
+            function moneda(valor) {
+                if (!valor) { return '$0'; }
+                if (valor >= 1000000) { return '$' + (valor / 1000000).toFixed(2) + 'M'; }
+                if (valor >= 1000) { return '$' + (valor / 1000).toFixed(1) + 'K'; }
+                return '$' + numero(Math.round(valor));
+            }
+
+            function mayor(lista, campo) {
+                if (!lista || !lista.length) { return null; }
+                return lista.slice().sort(function (a, b) { return b[campo] - a[campo]; })[0];
+            }
+
+            function pintarKpis(incap, accid, examen, consultas) {
+                // Atenciones medicas (Morbilidad/Consulta)
+                animarNumero(document.getElementById('kpiAtenciones'), consultas.totalConsultas);
+                pintarTrend('kpiAtencionesTrend', calcularTendencia(consultas.tendenciaMensual));
+                document.getElementById('kpiAtencionesSub').textContent =
+                    consultas.totalAccidentesEmergencias ? consultas.totalAccidentesEmergencias + ' atendidas como accidente/emergencia' : '';
+
+                // Personas incapacitadas: IMSS vs Internas viene de porRubro (Interna/IMSS)
+                // PERSONAS (NSS distintos), no registros: una persona puede tener varias
+                // incapacidades en el rango. El desglose por rubro NO se muestra aqui: con datos
+                // reales la mayoria cae en "sin rubro", asi que IMSS+internas no sumaba el total
+                // y la tarjeta se contradecia sola. El subtitulo dice el total de registros, que
+                // es la otra cifra que el analista necesita y si cuadra con el resto del tablero.
+                animarNumero(document.getElementById('kpiPersonasIncap'), incap.totalPersonas);
+                pintarTrend('kpiPersonasIncapTrend', calcularTendencia(incap.tendenciaMensual));
+                document.getElementById('kpiPersonasIncapSub').textContent =
+                    numero(incap.totalIncapacidades) + ' incapacidades en el periodo';
+
+                // Dias de incapacidad -> horas no trabajadas = dias x 8 (mismo criterio que
+                // el WS legacy, ver docs/01_ANALISIS_ACTUAL.md INCAP)
+                animarNumero(document.getElementById('kpiDiasIncap'), incap.totalDiasAutorizados);
+                pintarTrend('kpiDiasIncapTrend', calcularTendencia(incap.tendenciaDiasMensual, 'dias'));
+                document.getElementById('kpiDiasIncapSub').textContent = numero(incap.totalDiasAutorizados * 8) + ' horas no trabajadas';
+
+                // Accidentes: laboral/trayecto (porTipoRiesgo)
+                animarNumero(document.getElementById('kpiAccidentes'), accid.totalAccidentes);
+                pintarTrend('kpiAccidentesTrend', calcularTendencia(accid.tendenciaMensual));
+                var lab = (accid.porTipoRiesgo || []).find(function (r) { return /laboral/i.test(r.clave); });
+                var tray = (accid.porTipoRiesgo || []).find(function (r) { return /trayecto/i.test(r.clave); });
+                document.getElementById('kpiAccidentesSub').textContent =
+                    numero(lab ? lab.cantidad : 0) + ' laboral · ' + numero(tray ? tray.cantidad : 0) + ' trayecto';
+
+                // Examenes: % aptos
+                animarNumero(document.getElementById('kpiExamenes'), examen.totalExamenes);
+                pintarTrend('kpiExamenesTrend', calcularTendencia(examen.tendenciaMensual));
+                var pctApto = examen.totalExamenes ? Math.round((examen.totalApto / examen.totalExamenes) * 100) : 0;
+                document.getElementById('kpiExamenesSub').textContent = examen.totalExamenes ? pctApto + '% aptos' : 'sin registros';
+
+                // Costo de incapacidades: total + mayor ramo por costo (porRamo trae costo)
+                animarNumero(document.getElementById('kpiCosto'), Math.round(incap.totalCosto), moneda);
+                document.getElementById('kpiCostoTrend').textContent = '';
+                document.getElementById('kpiCostoTrend').className = 'kpi-trend';
+                var mayorRamo = mayor(incap.porRamo, 'costo');
+                document.getElementById('kpiCostoSub').textContent =
+                    mayorRamo && mayorRamo.costo > 0 ? 'Mayor: ' + mayorRamo.clave + ' ' + moneda(mayorRamo.costo) : 'Acumulado del periodo';
+            }
+
+            function pintarNotaSinFecha(puntos) {
+                puntos = puntos || [];
+                var sinFecha = puntos.find(function (p) { return p.mes === 'Sin fecha'; });
+                var nota = document.getElementById('notaSinFecha');
+                if (sinFecha) {
+                    var total = sinFecha.incapacidades + sinFecha.accidentes + sinFecha.consultas + sinFecha.examenes;
+                    nota.textContent = total + ' registro(s) con fecha no reconocida, no incluidos en las gráficas de tendencia.';
+                } else {
+                    nota.textContent = '';
+                }
+            }
+
+            var COLOR_ATENCIONES = '#1D4ED8', COLOR_DIAS = '#B45309', COLOR_ACCIDENTES = '#DC2626';
+
+            // Une los 3 meses reales (excluye "Sin fecha") de Consultas/Dias de incapacidad/
+            // Accidentes en un solo eje X, rellenando con 0 los meses que a una serie le
+            // falten - las 3 vienen de WS distintos y no siempre cubren exactamente los
+            // mismos meses.
+            function pintarEvolucion(consultas, incap, accid, modo) {
+                modo = modo || 'all';
+                var mAten = (consultas.tendenciaMensual || []).filter(function (p) { return p.mes !== 'Sin fecha'; });
+                var mDias = (incap.tendenciaDiasMensual || []).filter(function (p) { return p.mes !== 'Sin fecha'; });
+                var mAccid = (accid.tendenciaMensual || []).filter(function (p) { return p.mes !== 'Sin fecha'; });
+                var todos = {};
+                mAten.forEach(function (p) { todos[p.mes] = true; });
+                mDias.forEach(function (p) { todos[p.mes] = true; });
+                mAccid.forEach(function (p) { todos[p.mes] = true; });
+                var categorias = Object.keys(todos).sort();
+                var mapa = function (lista, campo) {
+                    var m = {};
+                    lista.forEach(function (p) { m[p.mes] = p[campo]; });
+                    return m;
+                };
+                var mapaAten = mapa(mAten, 'cantidad'), mapaDias = mapa(mDias, 'dias'), mapaAccid = mapa(mAccid, 'cantidad');
+
+                var series = [];
+                if (modo === 'all' || modo === 'aten') {
+                    series.push({ name: 'Atenciones', data: categorias.map(function (m) { return mapaAten[m] || 0; }) });
+                }
+                if (modo === 'all' || modo === 'dias') {
+                    series.push({ name: 'Días de incapacidad', data: categorias.map(function (m) { return mapaDias[m] || 0; }) });
+                }
+                if (modo === 'all') {
+                    series.push({ name: 'Accidentes', data: categorias.map(function (m) { return mapaAccid[m] || 0; }) });
+                }
+                var coloresPorNombre = { 'Atenciones': COLOR_ATENCIONES, 'Días de incapacidad': COLOR_DIAS, 'Accidentes': COLOR_ACCIDENTES };
+                var colores = series.map(function (s) { return coloresPorNombre[s.name]; });
+                var yaxis = series.map(function (s) {
+                    return s.name === 'Accidentes'
+                        ? { seriesName: 'Accidentes', opposite: true, labels: { style: { colors: '#94a3b8', fontSize: '11px' } }, title: { text: 'Accidentes', style: { fontSize: '10px', color: '#94a3b8' } } }
+                        : { seriesName: 'Principal', labels: { style: { colors: '#94a3b8', fontSize: '11px' } } };
+                });
+
+                var options = {
+                    chart: {
+                        type: 'line', height: 340,
+                        toolbar: { show: true, tools: { download: false, selection: false, zoom: true, zoomin: true, zoomout: true, pan: true, reset: true } }
+                    },
+                    series: series,
+                    colors: colores,
+                    stroke: { curve: 'smooth', width: 2.5 },
+                    markers: { size: 3, strokeWidth: 0 },
+                    dataLabels: { enabled: false },
+                    xaxis: {
+                        categories: categorias,
+                        axisBorder: { color: '#e5e9f2' }, axisTicks: { show: false },
+                        labels: { style: { colors: '#94a3b8', fontSize: '11px' } }
+                    },
+                    yaxis: yaxis.length ? yaxis : { labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 },
+                    legend: { position: 'top', fontSize: '12px', markers: { radius: 12 } },
+                    tooltip: { y: { formatter: function (v) { return numero(v); } } }
+                };
+                if (chartEvolucion) { chartEvolucion.updateOptions(options, true, true); return; }
+                chartEvolucion = new ApexCharts(document.querySelector('#chartEvolucion'), options);
+                chartEvolucion.render();
+            }
+
+            // Donut de dias de incapacidad por ramo (ConteoDto.diasAutorizados, ya calculado
+            // en el backend junto con cantidad/costo - cero llamadas WS extra).
+            function pintarDiasRamo(porRamo) {
+                var lista = (porRamo || []).filter(function (r) { return r.diasAutorizados > 0; })
+                    .slice().sort(function (a, b) { return b.diasAutorizados - a.diasAutorizados; });
+                var claves = lista.map(function (r) { return r.clave; });
+                var dias = lista.map(function (r) { return r.diasAutorizados; });
+                var totalDias = dias.reduce(function (a, b) { return a + b; }, 0);
+                document.getElementById('subDiasRamo').textContent = numero(totalDias) + ' días acumulados por ramo';
+                var options = {
+                    chart: { type: 'donut', height: 300 },
+                    series: dias,
+                    labels: claves,
+                    colors: claves.map(function (c, i) { return PALETA_CATEGORICA[i % PALETA_CATEGORICA.length]; }),
+                    stroke: { width: 3, colors: ['#fff'] },
+                    dataLabels: { enabled: false },
+                    legend: { position: 'bottom', fontSize: '12px', markers: { radius: 12 } },
+                    plotOptions: { pie: { donut: { size: '63%' } } },
+                    tooltip: { y: { formatter: function (v) { return numero(v) + ' días (' + (totalDias ? Math.round(v / totalDias * 100) : 0) + '%)'; } } }
+                };
+                if (!lista.length) {
+                    document.querySelector('#chartDiasRamo').innerHTML = '<p class="fs-12 text-muted mb-0">Sin datos.</p>';
+                    return;
+                }
+                if (chartDiasRamo) { chartDiasRamo.updateOptions(options, true, true); return; }
+                chartDiasRamo = new ApexCharts(document.querySelector('#chartDiasRamo'), options);
+                chartDiasRamo.render();
+            }
+
+            function calcularRiesgo(cantidad, maximo) {
+                var score = maximo ? (cantidad / maximo) * 100 : 0;
+                if (score >= 70) { return { texto: 'Crítico', clase: 'riesgo-critico' }; }
+                if (score >= 40) { return { texto: 'Alto', clase: 'riesgo-alto' }; }
+                if (score >= 12) { return { texto: 'Medio', clase: 'riesgo-medio' }; }
+                return { texto: 'Bajo', clase: 'riesgo-bajo' };
+            }
+
+            /**
+             * Ranking de predios cruzando los 4 dominios. Desde el 10-sep-2026 los 4 DTOs traen
+             * su propio porPredio (los WS _cta entregan CUENTA por registro), asi que la tabla
+             * ya no depende solo de consultas.
+             *
+             * Se ordena por ATENCIONES y el universo de filas tambien sale de ahi: un predio con
+             * incapacidades pero sin ninguna consulta en el rango no aparece. Es deliberado -
+             * "ranking de predios" en el prototipo significa ranking por carga de morbilidad.
+             * "Sin asignar" se lista pero sin etiqueta de riesgo (no es un predio real).
+             */
+            function pintarRanking(porPredio, incap, accid, examen) {
+                var tb = document.getElementById('tbRanking');
+
+                // Indices por nombre de predio para no recorrer las 3 listas en cada fila.
+                function indexar(filas, campo) {
+                    var mapa = {};
+                    (filas || []).forEach(function (r) { mapa[r.clave] = r[campo] || 0; });
+                    return mapa;
+                }
+                var diasPorPredio = indexar(incap && incap.porPredio, 'diasAutorizados');
+                var accidPorPredio = indexar(accid && accid.porPredio, 'cantidad');
+                var examPorPredio = indexar(examen && examen.porPredio, 'cantidad');
+
+                // El universo de filas es la UNION de los 4 dominios, no solo consultas: un predio
+                // con incapacidades pero sin ninguna consulta en el rango tiene que aparecer. Antes
+                // salia solo de consultas y esos dias se perdian de la tabla sin dejar rastro.
+                var atencionesPorPredio = indexar(porPredio, 'cantidad');
+                var nombres = {};
+                [porPredio, incap && incap.porPredio, accid && accid.porPredio, examen && examen.porPredio]
+                    .forEach(function (fuente) {
+                        (fuente || []).forEach(function (r) { nombres[r.clave] = true; });
+                    });
+                var lista = Object.keys(nombres).map(function (clave) {
+                    return { clave: clave, cantidad: atencionesPorPredio[clave] || 0 };
+                }).sort(function (a, b) { return b.cantidad - a.cantidad; });
+
+                var reales = lista.filter(function (r) { return r.clave !== 'Sin asignar'; });
+                var maximo = reales.length ? reales[0].cantidad : 0;
+                if (!lista.length) {
+                    tb.innerHTML = '<tr><td colspan="7" class="text-muted fs-12">Sin datos.</td></tr>';
+                    return;
+                }
+                tb.innerHTML = lista.map(function (r) {
+                    var nombre = escapeHtml(r.clave || '(sin dato)');
+                    var esSinAsignar = r.clave === 'Sin asignar';
+                    var porcentaje = maximo > 0 ? Math.round((r.cantidad / maximo) * 100) : 0;
+                    var riesgoHtml = esSinAsignar ? '<span class="fs-11 text-muted">—</span>' : (function () {
+                        var rg = calcularRiesgo(r.cantidad, maximo);
+                        return '<span class="riesgo-tag ' + rg.clase + '">' + rg.texto + '</span>';
+                    })();
+                    return '' +
+                        '<tr>' +
+                            '<td class="ps-3">' + nombre + '</td>' +
+                            '<td class="text-end fw-semibold">' + numero(r.cantidad) + '</td>' +
+                            '<td><div class="bar-track"><div class="bar-fill" style="width:' + Math.max(porcentaje, 4) + '%"></div></div></td>' +
+                            '<td class="text-end">' + numero(diasPorPredio[r.clave] || 0) + '</td>' +
+                            '<td class="text-end">' + numero(accidPorPredio[r.clave] || 0) + '</td>' +
+                            '<td class="text-end">' + numero(examPorPredio[r.clave] || 0) + '</td>' +
+                            '<td class="text-end pe-3">' + riesgoHtml + '</td>' +
+                        '</tr>';
+                }).join('');
+            }
+
+            function ins(clase, icono, html) {
+                return '<li class="ins-' + clase + '"><span class="ins-ico"><i class="' + icono + '"></i></span><span>' + html + '</span></li>';
+            }
+
+            // Insights 100% derivados de los mismos agregados ya pintados arriba - nunca se
+            // inventa un dato que el backend no trae (ver decisiones documentadas: sin dias
+            // por accidente, sin tipo de examen, sin clasificacion de gravedad).
+            function pintarInsights(consultas, incap, accid, examen) {
+                var items = [];
+                var porPredioReal = ordenarDesc(consultas.porPredio).filter(function (r) { return r.clave !== 'Sin asignar'; });
+                if (porPredioReal.length && consultas.totalConsultas > 0) {
+                    var top = porPredioReal[0];
+                    var pct = Math.round(top.cantidad / consultas.totalConsultas * 100);
+                    items.push(ins('warn', 'ri-alert-line', '<b>' + escapeHtml(top.clave) + '</b> concentra el <b>' + pct + '%</b> de las atenciones (' + numero(top.cantidad) + ' de ' + numero(consultas.totalConsultas) + ').'));
+                }
+                var tendDias = calcularTendencia(incap.tendenciaDiasMensual, 'dias');
+                if (tendDias) {
+                    var mesesDias = (incap.tendenciaDiasMensual || []).filter(function (p) { return p.mes !== 'Sin fecha'; });
+                    var ultimo = mesesDias[mesesDias.length - 1];
+                    items.push(ins(tendDias.clase === 'up' ? 'warn' : 'ok', 'ri-line-chart-line',
+                        'Los días de incapacidad de <b>' + nombreMesLargo(ultimo.mes) + '</b> (<b>' + numero(ultimo.dias) + '</b>) ' +
+                        (tendDias.clase === 'up' ? 'subieron' : tendDias.clase === 'dn' ? 'bajaron' : 'se mantuvieron') + ' ' + tendDias.texto.replace(/^[▲▼—]\s*/, '') + '.'));
+                }
+                var causas = ordenarDesc(consultas.porCausa).filter(function (r) { return r.clave !== 'Otras'; }).slice(0, 3);
+                if (causas.length && consultas.totalConsultas > 0) {
+                    var sumaCausas = causas.reduce(function (a, c) { return a + c.cantidad; }, 0);
+                    var pctCausas = Math.round(sumaCausas / consultas.totalConsultas * 100);
+                    items.push(ins('info', 'ri-stethoscope-line', 'Las principales causas — <b>' + causas.map(function (c) { return escapeHtml(c.clave); }).join('</b>, <b>') + '</b> — suman el <b>' + pctCausas + '%</b> del total.'));
+                }
+                var tipoMayor = mayor(accid.porTipoRiesgo, 'cantidad');
+                if (tipoMayor && accid.totalAccidentes > 0) {
+                    var pctTipo = Math.round(tipoMayor.cantidad / accid.totalAccidentes * 100);
+                    items.push(ins('warn', 'ri-error-warning-line', 'Los accidentes de tipo <b>' + escapeHtml(tipoMayor.clave) + '</b> representan el <b>' + pctTipo + '%</b> del total (' + numero(tipoMayor.cantidad) + ' de ' + numero(accid.totalAccidentes) + ').'));
+                }
+                if (examen.totalExamenes > 0) {
+                    var pctApto = Math.round(examen.totalApto / examen.totalExamenes * 100);
+                    items.push(ins('ok', 'ri-checkbox-circle-line', 'El <b>' + pctApto + '%</b> de los exámenes resultó apto (' + numero(examen.totalApto) + ' de ' + numero(examen.totalExamenes) + ').'));
+                }
+                var lista = document.getElementById('listaInsights');
+                lista.innerHTML = items.length ? items.join('') : '<li class="fs-12 text-muted">Sin datos suficientes para generar insights en este rango.</li>';
+            }
+
+            function nombreMesLargo(yyyyMM) {
+                if (!yyyyMM || yyyyMM.indexOf('-') < 0) { return yyyyMM; }
+                var nombres = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+                var idx = parseInt(yyyyMM.split('-')[1], 10) - 1;
+                return nombres[idx] || yyyyMM;
+            }
+
+            // Costo por ramo (misma fuente que "Composicion de dias perdidos", campo costo
+            // en vez de diasAutorizados).
+            function pintarCostoRamo(porRamo) {
+                var lista = (porRamo || []).filter(function (r) { return r.costo > 0 })
+                    .slice().sort(function (a, b) { return b.costo - a.costo; });
+                var claves = lista.map(function (r) { return r.clave; });
+                var costos = lista.map(function (r) { return Math.round(r.costo); });
+                var totalCosto = costos.reduce(function (a, b) { return a + b; }, 0);
+                document.getElementById('subCostoRamo').textContent = 'Total ' + moneda(totalCosto);
+                var colores = claves.map(function (c, i) { return PALETA_CATEGORICA[i % PALETA_CATEGORICA.length]; });
+                var options = {
+                    chart: { type: 'bar', height: 300, toolbar: { show: false } },
+                    series: [{ name: 'Costo', data: costos }],
+                    xaxis: {
+                        categories: claves,
+                        labels: { style: { colors: '#94a3b8', fontSize: '10px' }, formatter: function (v) { return moneda(v); } },
+                        axisBorder: { color: '#e5e9f2' }, axisTicks: { show: false }
+                    },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    colors: colores,
+                    plotOptions: { bar: { distributed: true, borderRadius: 5, horizontal: true, barHeight: '55%' } },
+                    legend: { show: false },
+                    dataLabels: { enabled: true, style: { fontSize: '11px', fontWeight: 700, colors: ['#1e293b'] }, formatter: function (v) { return moneda(v); } },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 },
+                    tooltip: { y: { formatter: function (v) { return moneda(v); } } }
+                };
+                if (!lista.length) {
+                    document.querySelector('#chartCostoRamo').innerHTML = '<p class="fs-12 text-muted mb-0">Sin datos.</p>';
+                    return;
+                }
+                if (chartCostoRamo) { chartCostoRamo.updateOptions(options, true, true); return; }
+                chartCostoRamo = new ApexCharts(document.querySelector('#chartCostoRamo'), options);
+                chartCostoRamo.render();
+            }
+
+            // Donut de resultado de examenes (apto/no apto/condicionado/restringido) - los 4
+            // campos que si trae DashboardExamenDto (no hay "tipo de examen" en el WS).
+            function pintarExamenResultado(examen) {
+                var labels = ['Apto', 'No apto', 'Apto condicionado', 'Apto restringido'];
+                var valores = [examen.totalApto, examen.totalNoApto, examen.totalAptoCondicionado, examen.totalAptoRestringido];
+                var colores = ['#047857', '#DC2626', '#D97706', '#2563EB'];
+                document.getElementById('subExamenResultado').textContent = numero(examen.totalExamenes) + ' exámenes en el periodo';
+                if (!examen.totalExamenes) {
+                    document.querySelector('#chartExamen').innerHTML = '<p class="fs-12 text-muted mb-0">Sin datos.</p>';
+                    return;
+                }
+                var options = {
+                    chart: { type: 'donut', height: 300 },
+                    series: valores,
+                    labels: labels,
+                    colors: colores,
+                    stroke: { width: 3, colors: ['#fff'] },
+                    dataLabels: { enabled: false },
+                    legend: { position: 'bottom', fontSize: '12px', markers: { radius: 12 } },
+                    plotOptions: { pie: { donut: { size: '59%' } } },
+                    tooltip: { y: { formatter: function (v) { return numero(v) + ' (' + (examen.totalExamenes ? Math.round(v / examen.totalExamenes * 100) : 0) + '%)'; } } }
+                };
+                if (chartExamen) { chartExamen.updateOptions(options, true, true); return; }
+                chartExamen = new ApexCharts(document.querySelector('#chartExamen'), options);
+                chartExamen.render();
+            }
+
+            function pintarCausa(porCausa) {
+                var lista = ordenarDesc(porCausa);
+                var claves = lista.map(function (r) { return r.clave || '(sin dato)'; });
+                var cantidades = lista.map(function (r) { return r.cantidad; });
+                var colores = claves.map(function (c, i) { return PALETA_CATEGORICA[i % PALETA_CATEGORICA.length]; });
+                var options = {
+                    chart: { type: 'bar', height: 380, toolbar: { show: false } },
+                    series: [{ name: 'Consultas', data: cantidades }],
+                    // Barras HORIZONTALES, sin leyenda: igual que el prototipo
+                    // (cambios/Dashboard Salud/public/index.html, mk('c3') usa indexAxis:'y').
+                    // Con nombres de causa largos las columnas verticales obligaban a rotar
+                    // las etiquetas -45 grados y aun asi se encimaban.
+                    xaxis: {
+                        categories: claves,
+                        labels: { style: { colors: '#94a3b8', fontSize: '11px' } },
+                        axisBorder: { color: '#e5e9f2' }, axisTicks: { show: false }
+                    },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    colors: colores,
+                    plotOptions: { bar: { distributed: true, borderRadius: 5, horizontal: true, barHeight: '55%' } },
+                    legend: { show: false },
+                    dataLabels: {
+                        enabled: true,
+                        style: { fontSize: '11px', fontWeight: 700, colors: ['#1e293b'] },
+                        formatter: function (v) { return numero(v); }
+                    },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 },
+                    tooltip: {
+                        custom: function (opts) {
+                            var categoria = claves[opts.dataPointIndex];
+                            return tooltipModern(categoria, ['Consultas'], [colores[opts.dataPointIndex]], [cantidades[opts.dataPointIndex]]);
+                        }
+                    }
+                };
+                if (chartCausa) { chartCausa.updateOptions(options, true, true); return; }
+                chartCausa = new ApexCharts(document.querySelector('#chartCausa'), options);
+                chartCausa.render();
+            }
+
+            document.getElementById('btnExportar').addEventListener('click', exportarCsv);
+            document.querySelectorAll('#evolTabs button').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    document.querySelectorAll('#evolTabs button').forEach(function (x) { x.classList.remove('active'); });
+                    b.classList.add('active');
+                    if (ultimoConsultas) { pintarEvolucion(ultimoConsultas, ultimoIncap, ultimoAccid, b.dataset.serie); }
+                });
+            });
+            inicializarFiltro();
+            aplicarFiltro();
+            // Los selects de Predio/Cuenta se llenan aparte: el dashboard ya pinto con "Todos",
+            // y el catalogo (cacheado 2 min en PredioService) no debe retrasar el primer render.
+            cargarOpcionesFiltro();
+        })();
+    </script>
+</th:block>
+</body>
+</html>

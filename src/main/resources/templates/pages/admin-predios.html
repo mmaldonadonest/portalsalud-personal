@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: prediosContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Predios (cuentas) | Portal Salud Personal</title>
+</head>
+<body>
+
+<th:block id="pageStyles"></th:block>
+
+<th:block th:fragment="prediosContent">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/home}" href="/home">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Predios (cuentas)</li>
+            </ol>
+            <h4 class="main-title mb-0">Mapeo de cuentas a predio</h4>
+        </div>
+    </div>
+
+    <div class="alert alert-info fs-sm" role="alert">
+        <i class="ri-information-line me-1"></i>
+        El dashboard de <strong>Análisis</strong> (rol Médico Analista) agrupa casos por predio (sitio físico) usando
+        este mapeo. Una cuenta sin predio asignado aparece como "Sin asignar" en los reportes — nunca se descarta.
+        Reasignar una cuenta no borra la asignación anterior (queda como histórico).
+    </div>
+
+    <div class="card card-one">
+        <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <h6 class="card-title mb-0">Cuentas</h6>
+            <input type="text" id="filtroCuenta" class="form-control form-control-sm" style="max-width: 260px"
+                   placeholder="Buscar cuenta...">
+        </div>
+        <div class="card-body">
+            <div id="estadoLista" class="fs-12 text-muted mb-2"></div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="thead-onest">
+                        <tr>
+                            <th>Cuenta</th>
+                            <th>Predio actual</th>
+                            <th style="width: 260px">Reasignar</th>
+                        </tr>
+                    </thead>
+                    <tbody id="filasCuentas"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:inline="javascript">
+        (function () {
+            var predios = [];
+            var cuentas = [];
+
+            function escapeHtml(valor) {
+                if (valor === null || valor === undefined) { return ''; }
+                return String(valor).replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+
+            function csrfToken() {
+                return /*[[${_csrf.token}]]*/ '';
+            }
+
+            function csrfParam() {
+                return /*[[${_csrf.parameterName}]]*/ '_csrf';
+            }
+
+            async function cargar() {
+                var estado = document.getElementById('estadoLista');
+                estado.textContent = 'Cargando...';
+                try {
+                    var [respPredios, respCuentas] = await Promise.all([
+                        fetch(contextPath + 'api/admin/predios'),
+                        fetch(contextPath + 'api/admin/predios/cuentas')
+                    ]);
+                    if (!respPredios.ok || !respCuentas.ok) {
+                        estado.textContent = 'Error al consultar el catálogo.';
+                        return;
+                    }
+                    predios = await respPredios.json();
+                    cuentas = await respCuentas.json();
+                    pintarTabla();
+                    var pendientes = cuentas.filter(function (c) { return !c.predioId; }).length;
+                    estado.textContent = cuentas.length + ' cuenta(s), ' + pendientes + ' sin asignar.';
+                } catch (e) {
+                    estado.textContent = 'Error de red al consultar.';
+                }
+            }
+
+            function opcionesPredio(predioIdActual) {
+                var html = '<option value="">Seleccionar predio...</option>';
+                predios.forEach(function (p) {
+                    var selected = String(p.predioId) === String(predioIdActual) ? ' selected' : '';
+                    html += '<option value="' + p.predioId + '"' + selected + '>' + escapeHtml(p.nombre) + '</option>';
+                });
+                return html;
+            }
+
+            function pintarTabla() {
+                var filtro = document.getElementById('filtroCuenta').value.trim().toLowerCase();
+                var tbody = document.getElementById('filasCuentas');
+                tbody.innerHTML = '';
+                var visibles = cuentas.filter(function (c) {
+                    return !filtro || c.cuentaNombre.toLowerCase().indexOf(filtro) >= 0;
+                });
+                if (visibles.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Sin resultados.</td></tr>';
+                    return;
+                }
+                visibles.forEach(function (c) {
+                    var tr = document.createElement('tr');
+                    var asignado = !!c.predioId;
+                    tr.innerHTML =
+                        '<td>' + escapeHtml(c.cuentaNombre) + '</td>' +
+                        '<td><span class="badge ' + (asignado ? 'bg-success' : 'bg-warning') + '">' +
+                            (asignado ? escapeHtml(c.predioNombre) : 'Sin asignar') + '</span></td>' +
+                        '<td></td>';
+
+                    var celda = tr.lastElementChild;
+                    var select = document.createElement('select');
+                    select.className = 'form-select form-select-sm d-inline-block';
+                    select.style.width = '160px';
+                    select.innerHTML = opcionesPredio(c.predioId);
+
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'btn btn-sm btn-outline-primary ms-1';
+                    btn.textContent = 'Guardar';
+                    btn.addEventListener('click', function () { asignar(c.cuentaNombre, select.value, btn); });
+
+                    celda.appendChild(select);
+                    celda.appendChild(btn);
+                    tbody.appendChild(tr);
+                });
+            }
+
+            async function asignar(cuentaNombre, predioId, btn) {
+                if (!predioId) {
+                    return;
+                }
+                btn.disabled = true;
+                var body = new URLSearchParams();
+                body.append(csrfParam(), csrfToken());
+                body.append('cuentaNombre', cuentaNombre);
+                body.append('predioId', predioId);
+                try {
+                    var response = await fetch(contextPath + 'api/admin/predios/asignar', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: body.toString()
+                    });
+                    if (response.ok) {
+                        await cargar();
+                    } else {
+                        btn.disabled = false;
+                    }
+                } catch (e) {
+                    btn.disabled = false;
+                }
+            }
+
+            document.getElementById('filtroCuenta').addEventListener('input', pintarTabla);
+
+            cargar();
+        })();
+    </script>
+</th:block>
+</body>
+</html>

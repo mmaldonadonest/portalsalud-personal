@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: salud-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: salud_ocupacional
+      POSTGRES_USER: salud_admin
+      POSTGRES_PASSWORD: salud_dev_password
+      TZ: America/Mexico_City
+    ports:
+      - "5432:5432"
+    volumes:
+      - salud_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U salud_admin -d salud_ocupacional"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  salud_db_data:

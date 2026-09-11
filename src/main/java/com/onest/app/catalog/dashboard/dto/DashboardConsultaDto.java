@@ -20,6 +20,11 @@ public record DashboardConsultaDto(
         List<ConteoSimpleDto> porGenero,
         List<ConteoSimpleDto> porEdad,
         List<ConteoSimpleDto> porCuenta,
+        List<ConteoSimpleDto> porPredio,
+        /** NSS distintos: una persona puede tener varias atenciones en el rango. */
+        long totalPersonas,
+        /** Serie mensual de los predios con mas atenciones, para la grafica comparada. */
+        List<SeriePredioDto> tendenciaPorPredio,
         List<PuntoMensualDto> tendenciaMensual
 ) {
 }

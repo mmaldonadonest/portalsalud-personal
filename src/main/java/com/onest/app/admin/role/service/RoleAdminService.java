@@ -3,7 +3,10 @@ package com.onest.app.admin.role.service;
 import com.onest.app.admin.role.dto.RoleAdminDto;
 import com.onest.app.security.model.AppSecRole;
 import com.onest.app.security.repository.AppSecRoleRepository;
+import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +44,12 @@ public class RoleAdminService {
         role.setCode(codeNorm);
         role.setName(nameNorm);
         role.setDescription(blankToNull(description));
+        // CREATED_AT/CREATED_BY son NOT NULL con default en Oracle (SYSTIMESTAMP/USER), pero
+        // ese default SOLO aplica si la columna se omite del INSERT - Hibernate siempre manda
+        // todas las columnas mapeadas (NULL incluido si el campo Java esta vacio), lo que pisa
+        // el default y viola el NOT NULL (ORA-01400 -> 500 sin capturar). Setearlos aqui explicito.
+        role.setCreatedAt(LocalDateTime.now());
+        role.setCreatedBy(usuarioActual());
         return RoleAdminDto.from(roleRepository.save(role));
     }
 
@@ -50,6 +59,8 @@ public class RoleAdminService {
                 .orElseThrow(() -> new IllegalArgumentException("Rol no encontrado (id=" + id + ")."));
         role.setName(requireNonBlank(name, "El nombre es obligatorio.").trim());
         role.setDescription(blankToNull(description));
+        role.setUpdatedAt(LocalDateTime.now());
+        role.setUpdatedBy(usuarioActual());
         return RoleAdminDto.from(roleRepository.save(role));
     }
 
@@ -58,7 +69,17 @@ public class RoleAdminService {
         AppSecRole role = roleRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Rol no encontrado (id=" + id + ")."));
         role.setActive(activo ? "Y" : "N");
+        role.setUpdatedAt(LocalDateTime.now());
+        role.setUpdatedBy(usuarioActual());
         return RoleAdminDto.from(roleRepository.save(role));
+    }
+
+    private String usuarioActual() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            return "SISTEMA";
+        }
+        return authentication.getName();
     }
 
     private static String requireNonBlank(String valor, String mensaje) {

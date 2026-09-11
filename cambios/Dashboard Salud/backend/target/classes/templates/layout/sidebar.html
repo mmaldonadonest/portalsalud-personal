@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+
+<!--
+  Menú lateral.
+
+  Cada entrada aparece solo si el usuario tiene el permiso que la respalda: quien
+  no puede consultar incapacidades tampoco ve la opción, en lugar de encontrarse
+  con un error al entrar.
+-->
+<aside class="sb" id="sb" th:fragment="sidebar(vista)" aria-label="Navegación principal">
+  <div class="brand">
+    <span class="mk" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M12 2 3 7v6c0 5 4 8.5 9 9 5-.5 9-4 9-9V7l-9-5Z"/>
+        <path d="M9 12l2 2 4-4"/>
+      </svg>
+    </span>
+    <b>SALUD<br>OCUPACIONAL</b>
+  </div>
+
+  <nav>
+    <a th:href="@{/dashboard}" th:attrappend="aria-current=${vista == 'dashboard' ? 'page' : null}">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/>
+        <rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>
+      </svg>Dashboard Ejecutivo
+    </a>
+
+    <div class="grp">Morbilidad</div>
+    <a th:href="@{/atenciones}" sec:authorize="hasAuthority('attention.read')"
+       th:attrappend="aria-current=${vista == 'atenciones' ? 'page' : null}">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2 3 7v6c0 5 4 8.5 9 9 5-.5 9-4 9-9V7l-9-5Z"/><path d="M12 8v6M9 11h6"/>
+      </svg>Atenciones
+    </a>
+    <a th:href="@{/causas}" sec:authorize="hasAuthority('dashboard.executive')"
+       th:attrappend="aria-current=${vista == 'causas' ? 'page' : null}">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 19V5M4 19h16M8 19v-7M12 19v-11M16 19v-5"/>
+      </svg>Causas
+    </a>
+
+    <div class="grp">Clínico</div>
+    <a th:href="@{/examenes}" sec:authorize="hasAuthority('exam.read')"
+       th:attrappend="aria-current=${vista == 'examenes' ? 'page' : null}">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/>
+      </svg>Exámenes Médicos
+    </a>
+    <a th:href="@{/incapacidades}" sec:authorize="hasAuthority('disability.read')"
+       th:attrappend="aria-current=${vista == 'incapacidades' ? 'page' : null}">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
+      </svg>Incapacidades
+    </a>
+    <a th:href="@{/accidentes}" sec:authorize="hasAuthority('accident.read')"
+       th:attrappend="aria-current=${vista == 'accidentes' ? 'page' : null}">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M10.3 3.86 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.86a2 2 0 0 0-3.4 0Z"/>
+        <path d="M12 9v4M12 17h.01"/>
+      </svg>Accidentabilidad
+    </a>
+
+    <div class="grp">Control</div>
+    <a th:href="@{/antidoping}" sec:authorize="hasAuthority('drugtest.read')"
+       th:attrappend="aria-current=${vista == 'antidoping' ? 'page' : null}">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M9 2h6M10 2v5.5L5 16a3 3 0 0 0 2.6 4.5h8.8A3 3 0 0 0 19 16l-5-8.5V2"/>
+      </svg>Antidoping
+    </a>
+    <a th:href="@{/inventario}" sec:authorize="hasAuthority('drugtest.read')"
+       th:attrappend="aria-current=${vista == 'inventario' ? 'page' : null}">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 7l9-4 9 4-9 4-9-4Z"/><path d="M3 7v10l9 4 9-4V7M12 11v10"/>
+      </svg>Inventario
+    </a>
+    <a th:href="@{/maternidad}" sec:authorize="hasAuthority('maternity.read')"
+       th:attrappend="aria-current=${vista == 'maternidad' ? 'page' : null}">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 21s-7-4.35-9.5-8.5C.5 8.5 3 5 6.5 5c2 0 3.5 1.5 5.5 4 2-2.5 3.5-4 5.5-4C21 5 23.5 8.5 21.5 12.5 19 16.65 12 21 12 21Z"/>
+      </svg>Maternidad
+    </a>
+
+    <div class="grp">Sistema</div>
+    <a th:href="@{/empleados}" sec:authorize="hasAuthority('employee.read')"
+       th:attrappend="aria-current=${vista == 'empleados' ? 'page' : null}">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>
+      </svg>Empleados
+    </a>
+    <a th:href="@{/reportes}" sec:authorize="hasAuthority('reports.export')"
+       th:attrappend="aria-current=${vista == 'reportes' ? 'page' : null}">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/>
+      </svg>Reportes
+    </a>
+    <a th:href="@{/auditoria}" sec:authorize="hasAuthority('audit.read')"
+       th:attrappend="aria-current=${vista == 'auditoria' ? 'page' : null}">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/>
+      </svg>Auditoría
+    </a>
+    <a th:href="@{/administracion}" sec:authorize="hasAuthority('admin.catalogs')"
+       th:attrappend="aria-current=${vista == 'administracion' ? 'page' : null}">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>
+      </svg>Administración
+    </a>
+  </nav>
+</aside>
+
+</body>
+</html>

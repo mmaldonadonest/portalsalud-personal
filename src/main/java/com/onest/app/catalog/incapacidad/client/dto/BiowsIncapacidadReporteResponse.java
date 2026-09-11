@@ -5,9 +5,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 /**
- * Respuesta de .../Servcio/consulta_incapacidades_fecha. Array de incapacidades de TODAS
+ * Respuesta de .../Servcio/consulta_incapacidades_fecha_cta. Array de incapacidades de TODAS
  * las NSS en el rango de fechas, con nombre/RFC/CURP del empleado ya resueltos (join contra
- * bio_empleado). Ver docs/contextoWS.txt:2317-2389.
+ * bio_empleado). Ver docs/contextoWS.txt:2317-2389 y docs/ords-cuenta-en-reportes.sql (el
+ * _cta agrega CUENTA por registro, que habilita el filtro por predio).
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record BiowsIncapacidadReporteResponse(
@@ -22,6 +23,7 @@ public record BiowsIncapacidadReporteResponse(
             @JsonProperty("nombre") String nombre,
             @JsonProperty("rfc") String rfc,
             @JsonProperty("curp") String curp,
+            @JsonProperty("cuenta") String cuenta,
             @JsonProperty("rubro") String rubro,
             @JsonProperty("ramo") String ramo,
             @JsonProperty("tipo_incapacidad") String tipoIncapacidad,

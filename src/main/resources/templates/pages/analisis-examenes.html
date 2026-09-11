@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: analisisExamenesContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Exámenes Médicos | Análisis | Portal Salud Personal</title>
+</head>
+<body>
+
+<!--
+  Examenes Medicos (modulo Analisis, rol MEDICO_ANALISTA). Equivale a V.em del prototipo.
+  Reusa /api/dashboard/examen - cero WS nuevo.
+
+  Diferencias contra el prototipo, verificadas capturando su pantalla el 11-sep-2026. Las tres
+  vienen de que ExamenReporteDto solo trae los 4 dictamenes (apto / no apto / condicionado /
+  restringido); no hay ningun otro atributo del examen en el WS:
+  - KPI "Inclusion" -> no existe el concepto. Se muestra "Restringidos", que es el 4o dictamen
+    real y el mock no lo pinta.
+  - "Tipo de examen por mes" (ingreso / periodico / post-incapacidad) -> el WS no trae tipo.
+    Se sustituye por "Dictamen por mes", barra apilada con los 4 dictamenes reales.
+  - "Modalidad EMNI vs Pretest" -> el WS no trae modalidad. Se omite; no hay con que sustituirlo.
+  - Boton "Nuevo examen": lleva a /nss, que es por donde se captura un examen en el portal.
+-->
+<th:block id="pageStyles">
+    <link rel="stylesheet" th:href="@{/theme/lib/apexcharts/apexcharts.css}" href="/theme/lib/apexcharts/apexcharts.css">
+    <style>
+        .chart-card .card-header { border-bottom: none; padding-bottom: 0; display: block; }
+        .chart-eyebrow {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        .chart-eyebrow::before {
+            content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+            box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+        }
+        .chart-eyebrow--mes { color: #2563EB; }
+        .chart-eyebrow--predio { color: #0EA5E9; }
+
+        .kpi-card { border-top: 3px solid var(--kc, #94a3b8); transition: transform .15s, box-shadow .15s; }
+        .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15, 23, 42, .08); }
+        .kpi-ico {
+            width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
+            background: var(--kcbg, #f1f5f9); color: var(--kc, #64748b); margin-bottom: 9px; font-size: 16px;
+        }
+        .kpi-card--total { --kc: #1D4ED8; --kcbg: #EFF6FF; }
+        .kpi-card--apto { --kc: #047857; --kcbg: #ECFDF5; }
+        .kpi-card--noapto { --kc: #DC2626; --kcbg: #FEF2F2; }
+        .kpi-card--cond { --kc: #B45309; --kcbg: #FFFBEB; }
+        .kpi-card--restr { --kc: #6D28D9; --kcbg: #F5F3FF; }
+        .kpi-value { font-size: 1.6rem; font-weight: 700; letter-spacing: -.02em; color: #0f172a; line-height: 1.15; margin: 2px 0 6px; }
+        .kpi-sub { font-size: 11px; color: #64748b; margin-top: 5px; line-height: 1.4; display: block; }
+        .vacio { text-align: center; padding: 32px 16px; color: #94a3b8; font-size: 12.5px; }
+    </style>
+</th:block>
+
+<th:block th:fragment="analisisExamenesContent">
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/analisis/ejecutivo}" href="/analisis/ejecutivo">Dashboard Ejecutivo</a></li>
+                <li class="breadcrumb-item"><span>Clínico</span></li>
+                <li class="breadcrumb-item active" aria-current="page">Exámenes Médicos</li>
+            </ol>
+            <h4 class="main-title mb-0">Exámenes Médicos</h4>
+            <p class="fs-12 text-muted mb-0" id="subtitulo">Dictámenes de examen médico</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" id="btnExportar" class="btn btn-outline-secondary btn-sm">
+                <i class="ri-download-2-line me-1"></i>Exportar
+            </button>
+            <button type="button" id="btnNuevo" class="btn btn-primary btn-sm"
+                    th:attr="data-url=@{/nss}" data-url="/nss">
+                <i class="ri-add-line me-1"></i>Nuevo examen
+            </button>
+        </div>
+    </div>
+
+    <div class="card card-one mb-3">
+        <div class="card-body d-flex flex-wrap align-items-end gap-3">
+            <div>
+                <label class="form-label fs-12 mb-1">Año</label>
+                <select id="fAnio" class="form-select form-select-sm"></select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Periodo</label>
+                <select id="fPeriodo" class="form-select form-select-sm">
+                    <option value="0">Acumulado (todo el año)</option>
+                    <option value="1">Enero</option><option value="2">Febrero</option>
+                    <option value="3">Marzo</option><option value="4">Abril</option>
+                    <option value="5">Mayo</option><option value="6">Junio</option>
+                    <option value="7">Julio</option><option value="8">Agosto</option>
+                    <option value="9">Septiembre</option><option value="10">Octubre</option>
+                    <option value="11">Noviembre</option><option value="12">Diciembre</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Predio</label>
+                <select id="fPredio" class="form-select form-select-sm" style="min-width:200px">
+                    <option value="">Todos los predios</option>
+                </select>
+            </div>
+            <span id="estado" class="fs-12 text-muted ms-auto"></span>
+            <input type="hidden" id="fFechaInicial" value="">
+            <input type="hidden" id="fFechaFinal" value="">
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--total"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-file-list-3-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Total exámenes</span>
+                <h3 class="kpi-value" id="kpiTotal">—</h3>
+                <span class="kpi-sub" id="kpiTotalSub"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--apto"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-check-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Aptos</span>
+                <h3 class="kpi-value" id="kpiApto">—</h3>
+                <span class="kpi-sub" id="kpiAptoSub"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--noapto"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-alert-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">No aptos</span>
+                <h3 class="kpi-value" id="kpiNoApto">—</h3>
+                <span class="kpi-sub" id="kpiNoAptoSub"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--cond"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-time-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Condicionados</span>
+                <h3 class="kpi-value" id="kpiCond">—</h3>
+                <span class="kpi-sub" id="kpiCondSub"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card card-one kpi-card kpi-card--restr"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-shield-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Restringidos</span>
+                <h3 class="kpi-value" id="kpiRestr">—</h3>
+                <span class="kpi-sub" id="kpiRestrSub"></span>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--mes">Tendencia</span>
+                    <div class="card-title-lg">Dictamen por mes</div>
+                    <p class="fs-11 text-muted mb-0">Barras apiladas</p>
+                </div>
+                <div class="card-body"><div id="chartMes"></div></div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--predio">Distribución</span>
+                    <div class="card-title-lg">Resultado por predio</div>
+                    <p class="fs-11 text-muted mb-0" id="subPredio"></p>
+                </div>
+                <div class="card-body"><div id="chartPredio"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <p class="fs-11 text-muted mt-3 mb-0">
+        <i class="ri-information-line"></i>
+        Un examen puede llevar más de un dictamen marcado, por eso la suma de los cuatro puede
+        superar el total. Historial sin datos retroactivos: arrancó vacío el 17 de agosto de 2026.
+    </p>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:src="@{/theme/lib/apexcharts/apexcharts.min.js}" src="/theme/lib/apexcharts/apexcharts.min.js"></script>
+    <script th:inline="javascript">
+        (function () {
+            var contextPath = /*[[@{/}]]*/ '/';
+            var chartMes = null, chartPredio = null, ultimoExport = null;
+
+            var NOMBRES_MES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
+                'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            var DICTAMENES = [
+                { campo: 'apto', nombre: 'Apto', color: '#16A34A' },
+                { campo: 'noApto', nombre: 'No apto', color: '#DC2626' },
+                { campo: 'aptoCondicionado', nombre: 'Condicionado', color: '#D97706' },
+                { campo: 'aptoRestringido', nombre: 'Restringido', color: '#7C3AED' }
+            ];
+
+            function numero(n) { return (n || 0).toLocaleString('es-MX'); }
+            function pct(parte, total) { return total ? Math.round((parte / total) * 100) + '% del total' : ''; }
+            function etiquetaMes(clave) {
+                var p = String(clave).split('-');
+                return p.length === 2 ? NOMBRES_MES[parseInt(p[1], 10) - 1] + ' ' + p[0].substring(2) : clave;
+            }
+            function vaciar(id, texto) {
+                document.getElementById(id).innerHTML = '<p class="vacio mb-0">' + texto + '</p>';
+            }
+
+            function calcularRango() {
+                var anio = parseInt(document.getElementById('fAnio').value, 10);
+                var periodo = parseInt(document.getElementById('fPeriodo').value, 10);
+                var hoy = new Date();
+                var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+                if (periodo === 0) {
+                    var fin = anio === hoy.getFullYear() ? hoy : new Date(anio, 11, 31);
+                    return {
+                        fechaInicial: anio + '-01-01',
+                        fechaFinal: fin.getFullYear() + '-' + pad(fin.getMonth() + 1) + '-' + pad(fin.getDate()),
+                        texto: 'ejercicio ' + anio
+                    };
+                }
+                var ultimo = new Date(anio, periodo, 0).getDate();
+                return {
+                    fechaInicial: anio + '-' + pad(periodo) + '-01',
+                    fechaFinal: anio + '-' + pad(periodo) + '-' + pad(ultimo),
+                    texto: NOMBRES_MES[periodo - 1] + ' ' + anio
+                };
+            }
+
+            async function cargarPredios() {
+                try {
+                    var res = await fetch(contextPath + 'api/analisis/filtros');
+                    if (!res.ok) { return; }
+                    var data = await res.json();
+                    var select = document.getElementById('fPredio');
+                    (data.predios || []).forEach(function (nombre) {
+                        var opt = document.createElement('option');
+                        opt.value = nombre;
+                        opt.textContent = nombre;
+                        select.appendChild(opt);
+                    });
+                } catch (e) { /* sin filtro de predio, la pagina sigue */ }
+            }
+
+            function inicializar() {
+                var selectAnio = document.getElementById('fAnio');
+                var actual = new Date().getFullYear();
+                for (var y = actual; y >= 2023; y--) {
+                    var opt = document.createElement('option');
+                    opt.value = y;
+                    opt.textContent = y;
+                    selectAnio.appendChild(opt);
+                }
+                ['fAnio', 'fPeriodo', 'fPredio'].forEach(function (id) {
+                    document.getElementById(id).addEventListener('change', aplicar);
+                });
+                document.getElementById('btnExportar').addEventListener('click', exportarCsv);
+                document.getElementById('btnNuevo').addEventListener('click', function () {
+                    window.location.href = this.dataset.url;
+                });
+            }
+
+            function aplicar() {
+                var rango = calcularRango();
+                document.getElementById('fFechaInicial').value = rango.fechaInicial;
+                document.getElementById('fFechaFinal').value = rango.fechaFinal;
+                cargar(rango);
+            }
+
+            async function cargar(rango) {
+                var estado = document.getElementById('estado');
+                var predio = document.getElementById('fPredio').value;
+                var qs = 'fechaInicial=' + encodeURIComponent(rango.fechaInicial)
+                       + '&fechaFinal=' + encodeURIComponent(rango.fechaFinal)
+                       + (predio ? '&predio=' + encodeURIComponent(predio) : '');
+                estado.textContent = 'Cargando...';
+                try {
+                    var res = await fetch(contextPath + 'api/dashboard/examen?' + qs);
+                    if (!res.ok) { estado.textContent = 'Error al consultar (HTTP ' + res.status + ').'; return; }
+                    var d = await res.json();
+                    document.getElementById('subtitulo').textContent =
+                        numero(d.totalExamenes) + ' exámenes · ' + rango.texto + (predio ? ' · ' + predio : '');
+                    pintarKpis(d);
+                    pintarMes(d);
+                    pintarPredio(d);
+                    ultimoExport = d;
+                    estado.textContent = 'Actualizado.';
+                } catch (e) {
+                    console.error('[analisis-examenes] error en cargar():', e);
+                    estado.textContent = 'Error de red: ' + e.message;
+                }
+            }
+
+            function pintarKpis(d) {
+                var t = d.totalExamenes;
+                document.getElementById('kpiTotal').textContent = numero(t);
+                document.getElementById('kpiTotalSub').textContent = t ? '' : 'sin registros en el periodo';
+                document.getElementById('kpiApto').textContent = numero(d.totalApto);
+                document.getElementById('kpiAptoSub').textContent = pct(d.totalApto, t);
+                document.getElementById('kpiNoApto').textContent = numero(d.totalNoApto);
+                document.getElementById('kpiNoAptoSub').textContent = pct(d.totalNoApto, t);
+                document.getElementById('kpiCond').textContent = numero(d.totalAptoCondicionado);
+                document.getElementById('kpiCondSub').textContent = pct(d.totalAptoCondicionado, t);
+                document.getElementById('kpiRestr').textContent = numero(d.totalAptoRestringido);
+                document.getElementById('kpiRestrSub').textContent = pct(d.totalAptoRestringido, t);
+            }
+
+            function seriesDictamen(filas) {
+                return DICTAMENES.map(function (dic) {
+                    return { name: dic.nombre, data: filas.map(function (r) { return r[dic.campo] || 0; }) };
+                });
+            }
+
+            function pintarMes(d) {
+                var meses = (d.tendenciaDictamen || []).filter(function (p) { return p.clave !== 'Sin fecha'; });
+                if (!meses.length) { vaciar('chartMes', 'Sin exámenes en el periodo.'); return; }
+                var options = {
+                    chart: { type: 'bar', height: 320, stacked: true, toolbar: { show: false } },
+                    series: seriesDictamen(meses),
+                    colors: DICTAMENES.map(function (x) { return x.color; }),
+                    xaxis: { categories: meses.map(function (p) { return etiquetaMes(p.clave); }), labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' }, formatter: function (v) { return numero(Math.round(v)); } } },
+                    plotOptions: { bar: { borderRadius: 4, columnWidth: '48%' } },
+                    legend: { position: 'top', horizontalAlign: 'right', fontSize: '11px', markers: { radius: 12 } },
+                    dataLabels: { enabled: false },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 }
+                };
+                document.getElementById('chartMes').innerHTML = '';
+                if (chartMes) { chartMes.destroy(); }
+                chartMes = new ApexCharts(document.querySelector('#chartMes'), options);
+                chartMes.render();
+            }
+
+            function pintarPredio(d) {
+                var lista = (d.porPredio || []).slice().sort(function (a, b) { return b.cantidad - a.cantidad; });
+                document.getElementById('subPredio').textContent = lista.length
+                    ? lista.length + (lista.length === 1 ? ' predio' : ' predios') + ' con exámenes' : '';
+                if (!lista.length) { vaciar('chartPredio', 'Sin exámenes en el periodo.'); return; }
+                var options = {
+                    chart: { type: 'bar', height: Math.max(320, lista.length * 30 + 80), stacked: true, toolbar: { show: false } },
+                    series: seriesDictamen(lista),
+                    colors: DICTAMENES.map(function (x) { return x.color; }),
+                    xaxis: { categories: lista.map(function (r) { return r.clave; }), labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: '58%' } },
+                    legend: { position: 'top', horizontalAlign: 'right', fontSize: '11px', markers: { radius: 12 } },
+                    dataLabels: { enabled: false },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 }
+                };
+                document.getElementById('chartPredio').innerHTML = '';
+                if (chartPredio) { chartPredio.destroy(); }
+                chartPredio = new ApexCharts(document.querySelector('#chartPredio'), options);
+                chartPredio.render();
+            }
+
+            function exportarCsv() {
+                if (!ultimoExport) { return; }
+                var d = ultimoExport;
+                var filas = [
+                    ['Periodo', document.getElementById('fFechaInicial').value + ' a ' + document.getElementById('fFechaFinal').value],
+                    ['Predio', document.getElementById('fPredio').value || 'Todos'],
+                    [],
+                    ['Indicador', 'Valor'],
+                    ['Total exámenes', d.totalExamenes],
+                    ['Aptos', d.totalApto],
+                    ['No aptos', d.totalNoApto],
+                    ['Condicionados', d.totalAptoCondicionado],
+                    ['Restringidos', d.totalAptoRestringido],
+                    [],
+                    ['Predio', 'Exámenes', 'Apto', 'No apto', 'Condicionado', 'Restringido']
+                ];
+                (d.porPredio || []).forEach(function (r) {
+                    filas.push([r.clave, r.cantidad, r.apto, r.noApto, r.aptoCondicionado, r.aptoRestringido]);
+                });
+                var csv = filas.map(function (f) {
+                    return f.map(function (v) { return '"' + String(v === undefined ? '' : v).replace(/"/g, '""') + '"'; }).join(',');
+                }).join('\r\n');
+                var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'examenes_' + document.getElementById('fFechaInicial').value + '.csv';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            inicializar();
+            cargarPredios().then(aplicar);
+        })();
+    </script>
+</th:block>
+</body>
+</html>

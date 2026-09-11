@@ -5,9 +5,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 /**
- * Respuesta de .../Servcio/consulta_accidentes_fecha. Array de accidentes de TODAS las NSS
+ * Respuesta de .../Servcio/consulta_accidentes_fecha_cta. Array de accidentes de TODAS las NSS
  * en el rango de fechas, con nombre/RFC/CURP ya resueltos (join contra bio_empleado).
- * Ver docs/ords-accidentes-dashboard.sql.
+ * Ver docs/ords-accidentes-dashboard.sql y docs/ords-cuenta-en-reportes.sql (el _cta
+ * agrega CUENTA por registro, que es lo que habilita el filtro por predio).
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record BiowsAccidenteReporteResponse(
@@ -22,6 +23,7 @@ public record BiowsAccidenteReporteResponse(
             @JsonProperty("nombre") String nombre,
             @JsonProperty("rfc") String rfc,
             @JsonProperty("curp") String curp,
+            @JsonProperty("cuenta") String cuenta,
             @JsonProperty("fecha_accidente") String fechaAccidente,
             @JsonProperty("tipo_riesgo") String tipoRiesgo,
             @JsonProperty("causa_rt") String causaRt,

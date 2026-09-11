@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--
+  Piezas reutilizables de la interfaz.
+
+  Declararlas una vez evita que cada vista reinvente la misma tarjeta o el mismo
+  panel con variaciones mínimas.
+-->
+
+<!-- Tarjeta de indicador. -->
+<div th:fragment="kpi(color, fondo, icono, etiqueta, valor, variacion, detalle)"
+     class="kpi" th:style="'--c:' + ${color} + ';--cb:' + ${fondo}">
+  <span class="ico" th:replace="~{fragments/iconos :: icono(${icono})}"></span>
+  <span class="lb" th:text="${etiqueta}">Indicador</span>
+  <div class="vl num" th:text="${valor}">0</div>
+  <span th:if="${variacion != null}"
+        th:class="'dl ' + (${variacion} > 0 ? 'up' : 'dn')"
+        th:text="(${variacion} > 0 ? '▲ ' : '▼ ') + ${#numbers.formatDecimal(variacion, 1, 1)} + '% vs. mes anterior'">
+  </span>
+  <div class="s2" th:if="${detalle != null}" th:text="${detalle}"></div>
+</div>
+
+<!-- Panel con título y contenido libre. -->
+<div th:fragment="panel(titulo, icono, subtitulo, cuerpo)" class="pnl">
+  <h2>
+    <span th:replace="~{fragments/iconos :: icono(${icono})}"></span>
+    <span th:text="${titulo}">Título</span>
+  </h2>
+  <p class="sub" th:text="${subtitulo}"></p>
+  <th:block th:replace="${cuerpo}"></th:block>
+</div>
+
+<!-- Etiqueta de estado; la clase determina el color. -->
+<span th:fragment="tag(clase, texto)" th:class="'tag ' + ${clase}" th:text="${texto}">Estado</span>
+
+<!-- Estado vacío con explicación. -->
+<div th:fragment="vacio(titulo, mensaje)" class="empty">
+  <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M3 7l9-4 9 4-9 4-9-4Z"/><path d="M3 7v10l9 4 9-4V7"/>
+  </svg>
+  <h3 th:text="${titulo}">Sin información</h3>
+  <p th:text="${mensaje}"></p>
+</div>
+
+<!-- Filtros de año, mes y predio, comunes a casi todas las vistas. -->
+<div th:fragment="filtros(anio, mes, predioId, anios, predios)" class="filters">
+  <form method="get" style="display:contents">
+    <div class="ff">
+      <label for="fAnio">Año</label>
+      <select id="fAnio" name="anio" onchange="this.form.submit()">
+        <option th:each="a : ${anios}" th:value="${a}" th:text="${a}" th:selected="${a == anio}"></option>
+      </select>
+    </div>
+    <div class="ff">
+      <label for="fMes">Periodo</label>
+      <select id="fMes" name="mes" onchange="this.form.submit()">
+        <option value="" th:selected="${mes == null}">Acumulado del año</option>
+        <option th:each="m,i : ${T(java.util.List).of('ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC')}"
+                th:value="${i.index + 1}" th:text="${m}" th:selected="${mes != null and mes == i.index + 1}"></option>
+      </select>
+    </div>
+    <div class="ff">
+      <label for="fPredio">Predio</label>
+      <select id="fPredio" name="predioId" onchange="this.form.submit()">
+        <option value="" th:selected="${predioId == null}">Todos los predios</option>
+        <option th:each="p : ${predios}" th:value="${p.id}" th:text="${p.nombre}"
+                th:selected="${predioId != null and predioId == p.id}"></option>
+      </select>
+    </div>
+  </form>
+</div>
+
+</body>
+</html>

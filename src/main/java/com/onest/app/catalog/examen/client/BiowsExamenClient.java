@@ -34,7 +34,9 @@ public class BiowsExamenClient implements ExamenClient {
     private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("dd/MM/yy HH:mm:ss");
     private static final String PATH = "/Servcio/consulta_examen";
     private static final String PATH_SAVE = "/Servcio/Medico";
-    private static final String PATH_REPORTE_FECHA = "/Servcio/consulta_examen_fecha";
+    // _cta = clon del WS original que ademas devuelve CUENTA por registro (10-sep-2026,
+    // docs/ords-cuenta-en-reportes.sql). El original sigue publicado e intacto.
+    private static final String PATH_REPORTE_FECHA = "/Servcio/consulta_examen_fecha_cta";
     private static final Pattern TRABAJO_KEY = Pattern.compile("^trabajos\\[(\\d+)]\\.(.+)$");
 
     private final RestClient biowsRestClient;
@@ -205,7 +207,7 @@ public class BiowsExamenClient implements ExamenClient {
 
     private static ExamenReporteDto toReporte(BiowsExamenReporteResponse.Dato d) {
         return new ExamenReporteDto(
-                d.idRegistro(), d.fechaRegistro(), d.nss(), d.nombre(), d.rfc(), d.curp(),
+                d.idRegistro(), d.fechaRegistro(), d.nss(), d.nombre(), d.rfc(), d.curp(), d.cuenta(),
                 d.apto(), d.noApto(), d.aptoCondicionado(), d.aptoRestringido());
     }
 }

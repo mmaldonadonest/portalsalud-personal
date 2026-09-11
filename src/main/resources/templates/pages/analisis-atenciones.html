@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: analisisAtencionesContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Atenciones | Análisis | Portal Salud Personal</title>
+</head>
+<body>
+
+<!--
+  Atenciones Medicas (modulo Analisis, rol MEDICO_ANALISTA). Equivale a V.aten del prototipo
+  (cambios/Dashboard Salud/public/index.html). Reusa /api/dashboard/consultas - cero WS nuevo.
+
+  Diferencias contra el prototipo, verificadas capturando su pantalla el 10-sep-2026:
+  - KPI "Personal de inclusion" -> se sustituye por "Personas atendidas" (NSS distintos). El
+    concepto de personal de inclusion no existe en el modelo de datos; personas distintas si,
+    y es la cifra que el analista necesita junto al total de atenciones.
+  - Boton "Registrar atencion": el mock abre un formulario propio. Aqui lleva a /nss, que es
+    por donde se captura realmente una consulta en el portal - no es un boton muerto.
+  - "Predios activos: 14 de 17" -> el denominador sale del catalogo real (/api/analisis/filtros),
+    no de una constante.
+-->
+<th:block id="pageStyles">
+    <link rel="stylesheet" th:href="@{/theme/lib/apexcharts/apexcharts.css}" href="/theme/lib/apexcharts/apexcharts.css">
+    <style>
+        .chart-card .card-header { border-bottom: none; padding-bottom: 0; display: block; }
+        .chart-eyebrow {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        .chart-eyebrow::before {
+            content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+            box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+        }
+        .chart-eyebrow--mes { color: #2563EB; }
+        .chart-eyebrow--predio { color: #0EA5E9; }
+        .chart-eyebrow--comp { color: #7C3AED; }
+
+        .kpi-card { border-top: 3px solid var(--kc, #94a3b8); transition: transform .15s, box-shadow .15s; }
+        .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15, 23, 42, .08); }
+        .kpi-ico {
+            width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
+            background: var(--kcbg, #f1f5f9); color: var(--kc, #64748b); margin-bottom: 9px; font-size: 16px;
+        }
+        .kpi-card--total { --kc: #1D4ED8; --kcbg: #EFF6FF; }
+        .kpi-card--promedio { --kc: #0EA5E9; --kcbg: #EFF6FF; }
+        .kpi-card--personas { --kc: #6D28D9; --kcbg: #F5F3FF; }
+        .kpi-card--predios { --kc: #047857; --kcbg: #ECFDF5; }
+        .kpi-value { font-size: 1.6rem; font-weight: 700; letter-spacing: -.02em; color: #0f172a; line-height: 1.15; margin: 2px 0 6px; }
+        .kpi-sub { font-size: 11px; color: #64748b; margin-top: 5px; line-height: 1.4; display: block; }
+        .vacio { text-align: center; padding: 32px 16px; color: #94a3b8; font-size: 12.5px; }
+    </style>
+</th:block>
+
+<th:block th:fragment="analisisAtencionesContent">
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/analisis/ejecutivo}" href="/analisis/ejecutivo">Dashboard Ejecutivo</a></li>
+                <li class="breadcrumb-item"><span>Morbilidad</span></li>
+                <li class="breadcrumb-item active" aria-current="page">Atenciones</li>
+            </ol>
+            <h4 class="main-title mb-0">Atenciones Médicas</h4>
+            <p class="fs-12 text-muted mb-0" id="subtitulo">Volumen de consultas médicas</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" id="btnExportar" class="btn btn-outline-secondary btn-sm">
+                <i class="ri-download-2-line me-1"></i>Exportar
+            </button>
+            <button type="button" id="btnRegistrar" class="btn btn-primary btn-sm"
+                    th:attr="data-url=@{/nss}" data-url="/nss">
+                <i class="ri-add-line me-1"></i>Registrar atención
+            </button>
+        </div>
+    </div>
+
+    <div class="card card-one mb-3">
+        <div class="card-body d-flex flex-wrap align-items-end gap-3">
+            <div>
+                <label class="form-label fs-12 mb-1">Año</label>
+                <select id="fAnio" class="form-select form-select-sm"></select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Periodo</label>
+                <select id="fPeriodo" class="form-select form-select-sm">
+                    <option value="0">Acumulado (todo el año)</option>
+                    <option value="1">Enero</option><option value="2">Febrero</option>
+                    <option value="3">Marzo</option><option value="4">Abril</option>
+                    <option value="5">Mayo</option><option value="6">Junio</option>
+                    <option value="7">Julio</option><option value="8">Agosto</option>
+                    <option value="9">Septiembre</option><option value="10">Octubre</option>
+                    <option value="11">Noviembre</option><option value="12">Diciembre</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Predio</label>
+                <select id="fPredio" class="form-select form-select-sm" style="min-width:200px">
+                    <option value="">Todos los predios</option>
+                </select>
+            </div>
+            <span id="estado" class="fs-12 text-muted ms-auto"></span>
+            <input type="hidden" id="fFechaInicial" value="">
+            <input type="hidden" id="fFechaFinal" value="">
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-xl-3">
+            <div class="card card-one kpi-card kpi-card--total"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-stethoscope-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Total atenciones</span>
+                <h3 class="kpi-value" id="kpiTotal">—</h3>
+                <span class="kpi-sub" id="kpiTotalSub"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card card-one kpi-card kpi-card--promedio"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-line-chart-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Promedio mensual</span>
+                <h3 class="kpi-value" id="kpiPromedio">—</h3>
+                <span class="kpi-sub" id="kpiPromedioSub"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card card-one kpi-card kpi-card--personas"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-user-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Personas atendidas</span>
+                <h3 class="kpi-value" id="kpiPersonas">—</h3>
+                <span class="kpi-sub" id="kpiPersonasSub"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card card-one kpi-card kpi-card--predios"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-building-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Predios activos</span>
+                <h3 class="kpi-value" id="kpiPredios">—</h3>
+                <span class="kpi-sub" id="kpiPrediosSub"></span>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-6">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--mes">Volumen</span>
+                    <div class="card-title-lg">Atenciones por mes</div>
+                    <p class="fs-11 text-muted mb-0" id="subMes"></p>
+                </div>
+                <div class="card-body"><div id="chartMes"></div></div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--predio">Distribución</span>
+                    <div class="card-title-lg">Atenciones por predio</div>
+                    <p class="fs-11 text-muted mb-0" id="subPredio"></p>
+                </div>
+                <div class="card-body"><div id="chartPredio"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card-one chart-card">
+        <div class="card-header">
+            <span class="chart-eyebrow chart-eyebrow--comp">Comparativa</span>
+            <div class="card-title-lg">Evolución comparada (top 6 predios)</div>
+            <p class="fs-11 text-muted mb-0">Haz clic en la leyenda para aislar un predio</p>
+        </div>
+        <div class="card-body"><div id="chartComparada"></div></div>
+    </div>
+
+    <p class="fs-11 text-muted mt-3 mb-0">
+        <i class="ri-information-line"></i>
+        Calculado en tiempo real sobre el rango seleccionado. El predio se resuelve por la cuenta
+        de cada registro vía el mapeo administrable
+        (<a th:href="@{/admin/predios}" href="/admin/predios">Predios (cuentas)</a>).
+    </p>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:src="@{/theme/lib/apexcharts/apexcharts.min.js}" src="/theme/lib/apexcharts/apexcharts.min.js"></script>
+    <script th:inline="javascript">
+        (function () {
+            var contextPath = /*[[@{/}]]*/ '/';
+            var chartMes = null, chartPredio = null, chartComparada = null;
+            var ultimoExport = null, totalPredios = 0;
+
+            var NOMBRES_MES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
+                'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            var PALETA = ['#2563EB', '#DC2626', '#0F766E', '#D97706', '#7C3AED', '#0EA5E9'];
+
+            function numero(n) { return (n || 0).toLocaleString('es-MX'); }
+            function nombreMes(clave) {
+                var p = String(clave).split('-');
+                return p.length === 2 ? NOMBRES_MES[parseInt(p[1], 10) - 1] : clave;
+            }
+            function etiquetaMes(clave) { return nombreMes(clave) + ' ' + String(clave).substring(2, 4); }
+            function vaciar(id, texto) {
+                document.getElementById(id).innerHTML = '<p class="vacio mb-0">' + texto + '</p>';
+            }
+
+            function calcularRango() {
+                var anio = parseInt(document.getElementById('fAnio').value, 10);
+                var periodo = parseInt(document.getElementById('fPeriodo').value, 10);
+                var hoy = new Date();
+                var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+                if (periodo === 0) {
+                    var fin = anio === hoy.getFullYear() ? hoy : new Date(anio, 11, 31);
+                    return {
+                        fechaInicial: anio + '-01-01',
+                        fechaFinal: fin.getFullYear() + '-' + pad(fin.getMonth() + 1) + '-' + pad(fin.getDate()),
+                        texto: 'ejercicio ' + anio
+                    };
+                }
+                var ultimo = new Date(anio, periodo, 0).getDate();
+                return {
+                    fechaInicial: anio + '-' + pad(periodo) + '-01',
+                    fechaFinal: anio + '-' + pad(periodo) + '-' + pad(ultimo),
+                    texto: NOMBRES_MES[periodo - 1] + ' ' + anio
+                };
+            }
+
+            async function cargarPredios() {
+                try {
+                    var res = await fetch(contextPath + 'api/analisis/filtros');
+                    if (!res.ok) { return; }
+                    var data = await res.json();
+                    var select = document.getElementById('fPredio');
+                    (data.predios || []).forEach(function (nombre) {
+                        var opt = document.createElement('option');
+                        opt.value = nombre;
+                        opt.textContent = nombre;
+                        select.appendChild(opt);
+                    });
+                    // Denominador real de "Predios activos": el catalogo, sin el bucket "Sin asignar".
+                    totalPredios = (data.predios || []).filter(function (n) { return n !== 'Sin asignar'; }).length;
+                } catch (e) {
+                    // el select se queda en "Todos los predios" y la pagina sigue funcionando
+                }
+            }
+
+            function inicializar() {
+                var selectAnio = document.getElementById('fAnio');
+                var actual = new Date().getFullYear();
+                for (var y = actual; y >= 2023; y--) {
+                    var opt = document.createElement('option');
+                    opt.value = y;
+                    opt.textContent = y;
+                    selectAnio.appendChild(opt);
+                }
+                ['fAnio', 'fPeriodo', 'fPredio'].forEach(function (id) {
+                    document.getElementById(id).addEventListener('change', aplicar);
+                });
+            }
+
+            function aplicar() {
+                var rango = calcularRango();
+                document.getElementById('fFechaInicial').value = rango.fechaInicial;
+                document.getElementById('fFechaFinal').value = rango.fechaFinal;
+                var predio = document.getElementById('fPredio').value;
+                document.getElementById('subtitulo').textContent =
+                    'Volumen de consultas médicas · ' + rango.texto + (predio ? ' · ' + predio : '');
+                cargar();
+            }
+
+            async function cargar() {
+                var estado = document.getElementById('estado');
+                var predio = document.getElementById('fPredio').value;
+                var qs = 'fechaInicial=' + encodeURIComponent(document.getElementById('fFechaInicial').value)
+                       + '&fechaFinal=' + encodeURIComponent(document.getElementById('fFechaFinal').value)
+                       + (predio ? '&predio=' + encodeURIComponent(predio) : '');
+                estado.textContent = 'Cargando...';
+                try {
+                    var res = await fetch(contextPath + 'api/dashboard/consultas?' + qs);
+                    if (!res.ok) { estado.textContent = 'Error al consultar (HTTP ' + res.status + ').'; return; }
+                    var d = await res.json();
+                    pintarKpis(d);
+                    pintarMes(d);
+                    pintarPredio(d);
+                    pintarComparada(d);
+                    ultimoExport = d;
+                    estado.textContent = 'Actualizado.';
+                } catch (e) {
+                    console.error('[analisis-atenciones] error en cargar():', e);
+                    estado.textContent = 'Error de red: ' + e.message;
+                }
+            }
+
+            function pintarKpis(d) {
+                var meses = (d.tendenciaMensual || []).filter(function (p) { return p.mes !== 'Sin fecha'; });
+                document.getElementById('kpiTotal').textContent = numero(d.totalConsultas);
+                document.getElementById('kpiTotalSub').textContent = meses.length
+                    ? etiquetaMes(meses[0].mes) + ' – ' + etiquetaMes(meses[meses.length - 1].mes) : '';
+
+                // Promedio sobre los meses CON captura, no sobre 12: dividir entre meses vacios
+                // hunde el promedio y no dice nada del ritmo real de atencion.
+                var promedio = meses.length ? Math.round(d.totalConsultas / meses.length) : 0;
+                document.getElementById('kpiPromedio').textContent = numero(promedio);
+                document.getElementById('kpiPromedioSub').textContent = meses.length
+                    ? 'sobre ' + meses.length + ' ' + (meses.length === 1 ? 'mes' : 'meses') + ' con captura' : '';
+
+                document.getElementById('kpiPersonas').textContent = numero(d.totalPersonas);
+                document.getElementById('kpiPersonasSub').textContent = d.totalPersonas
+                    ? (d.totalConsultas / d.totalPersonas).toFixed(1) + ' atenciones por persona' : '';
+
+                var activos = (d.porPredio || []).filter(function (r) {
+                    return r.clave !== 'Sin asignar' && r.cantidad > 0;
+                }).length;
+                document.getElementById('kpiPredios').textContent = numero(activos);
+                document.getElementById('kpiPrediosSub').textContent = totalPredios
+                    ? 'de ' + totalPredios + ' registrados' : '';
+            }
+
+            function pintarMes(d) {
+                var meses = (d.tendenciaMensual || []).filter(function (p) { return p.mes !== 'Sin fecha'; });
+                document.getElementById('subMes').textContent = meses.length
+                    ? meses.length + ' meses con captura' : '';
+                if (!meses.length) { vaciar('chartMes', 'Sin atenciones en el periodo.'); return; }
+                var options = {
+                    chart: { type: 'bar', height: 300, toolbar: { show: false } },
+                    series: [{ name: 'Atenciones', data: meses.map(function (p) { return p.cantidad; }) }],
+                    xaxis: {
+                        categories: meses.map(function (p) { return etiquetaMes(p.mes); }),
+                        labels: { style: { colors: '#94a3b8', fontSize: '11px' } }
+                    },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' }, formatter: function (v) { return numero(Math.round(v)); } } },
+                    colors: ['#2563EB'],
+                    plotOptions: { bar: { borderRadius: 5, columnWidth: '52%' } },
+                    dataLabels: { enabled: false },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 }
+                };
+                document.getElementById('chartMes').innerHTML = '';
+                if (chartMes) { chartMes.destroy(); }
+                chartMes = new ApexCharts(document.querySelector('#chartMes'), options);
+                chartMes.render();
+            }
+
+            function pintarPredio(d) {
+                var lista = (d.porPredio || []).slice().sort(function (a, b) { return b.cantidad - a.cantidad; });
+                document.getElementById('subPredio').textContent =
+                    lista.length + (lista.length === 1 ? ' predio' : ' predios') + ' con atenciones';
+                if (!lista.length) { vaciar('chartPredio', 'Sin atenciones en el periodo.'); return; }
+                var options = {
+                    chart: { type: 'bar', height: 300, toolbar: { show: false } },
+                    series: [{ name: 'Atenciones', data: lista.map(function (r) { return r.cantidad; }) }],
+                    xaxis: { categories: lista.map(function (r) { return r.clave; }), labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    colors: ['#0EA5E9'],
+                    plotOptions: { bar: { borderRadius: 4, horizontal: true, barHeight: '62%' } },
+                    dataLabels: { enabled: true, style: { fontSize: '11px', fontWeight: 700, colors: ['#1e293b'] } },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 }
+                };
+                document.getElementById('chartPredio').innerHTML = '';
+                if (chartPredio) { chartPredio.destroy(); }
+                chartPredio = new ApexCharts(document.querySelector('#chartPredio'), options);
+                chartPredio.render();
+            }
+
+            function pintarComparada(d) {
+                var series = d.tendenciaPorPredio || [];
+                if (!series.length) {
+                    vaciar('chartComparada', 'Todavía no hay predios con atenciones asignadas. '
+                        + 'Se llena conforme se asignen cuentas a predios.');
+                    return;
+                }
+                // Eje comun: la union de los meses de todos los predios, para que las lineas
+                // no se desfasen cuando a un predio le falta un mes.
+                var meses = {};
+                series.forEach(function (s) { (s.puntos || []).forEach(function (p) { meses[p.mes] = true; }); });
+                var claves = Object.keys(meses).sort();
+                var options = {
+                    chart: { type: 'line', height: 380, toolbar: { show: false } },
+                    series: series.map(function (s) {
+                        var m = {};
+                        (s.puntos || []).forEach(function (p) { m[p.mes] = p.cantidad; });
+                        return { name: s.predio, data: claves.map(function (k) { return m[k] || 0; }) };
+                    }),
+                    colors: PALETA,
+                    stroke: { curve: 'smooth', width: 2.5 },
+                    markers: { size: 4, strokeWidth: 2, strokeColors: '#fff' },
+                    xaxis: { categories: claves.map(etiquetaMes), labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' }, formatter: function (v) { return numero(Math.round(v)); } } },
+                    legend: { position: 'top', horizontalAlign: 'right', fontSize: '12px', markers: { radius: 12 } },
+                    dataLabels: { enabled: false },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 }
+                };
+                document.getElementById('chartComparada').innerHTML = '';
+                if (chartComparada) { chartComparada.destroy(); }
+                chartComparada = new ApexCharts(document.querySelector('#chartComparada'), options);
+                chartComparada.render();
+            }
+
+            function exportarCsv() {
+                if (!ultimoExport) { return; }
+                var d = ultimoExport;
+                var filas = [
+                    ['Periodo', document.getElementById('fFechaInicial').value + ' a ' + document.getElementById('fFechaFinal').value],
+                    ['Predio', document.getElementById('fPredio').value || 'Todos'],
+                    [],
+                    ['Indicador', 'Valor'],
+                    ['Total atenciones', d.totalConsultas],
+                    ['Personas atendidas', d.totalPersonas],
+                    [],
+                    ['Mes', 'Atenciones']
+                ];
+                (d.tendenciaMensual || []).forEach(function (p) { filas.push([p.mes, p.cantidad]); });
+                filas.push([]);
+                filas.push(['Predio', 'Atenciones']);
+                (d.porPredio || []).forEach(function (r) { filas.push([r.clave, r.cantidad]); });
+                var csv = filas.map(function (f) {
+                    return f.map(function (v) { return '"' + String(v === undefined ? '' : v).replace(/"/g, '""') + '"'; }).join(',');
+                }).join('\r\n');
+                var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'atenciones_' + document.getElementById('fFechaInicial').value + '.csv';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            document.getElementById('btnExportar').addEventListener('click', exportarCsv);
+            document.getElementById('btnRegistrar').addEventListener('click', function () {
+                window.location.href = this.dataset.url;
+            });
+            inicializar();
+            cargarPredios().then(aplicar);
+        })();
+    </script>
+</th:block>
+</body>
+</html>

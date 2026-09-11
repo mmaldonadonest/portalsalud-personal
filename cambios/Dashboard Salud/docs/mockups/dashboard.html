@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Portal Salud Ocupacional — Dashboard Ejecutivo 2026</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --primary:#1E40AF; --primary-600:#1D4ED8; --secondary:#3B82F6; --accent:#F59E0B;
+  --bg:#F1F5F9; --surface:#FFFFFF; --text:#0F172A; --text-muted:#475569;
+  --border:#E2E8F0; --border-strong:#CBD5E1;
+  --green:#059669; --green-bg:#ECFDF5;
+  --red:#DC2626; --red-bg:#FEF2F2;
+  --amber:#D97706; --amber-bg:#FFFBEB;
+  --purple:#7C3AED; --cyan:#0891B2; --pink:#DB2777; --slate:#64748B;
+  --sidebar:#0F172A; --sidebar-2:#1E293B; --sidebar-txt:#94A3B8;
+  --sh-sm:0 1px 2px rgba(15,23,42,.06);
+  --sh:0 1px 3px rgba(15,23,42,.08),0 1px 2px rgba(15,23,42,.04);
+  --sh-lg:0 10px 30px rgba(15,23,42,.10),0 2px 6px rgba(15,23,42,.06);
+  --r:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Fira Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:13.5px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+.num{font-family:'Fira Code',monospace;font-variant-numeric:tabular-nums;}
+svg.ic{width:18px;height:18px;stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+button,select{font-family:inherit;}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:6px}
+
+/* LAYOUT */
+.app{display:grid;grid-template-columns:236px 1fr;min-height:100vh;}
+.sb{background:linear-gradient(180deg,var(--sidebar),var(--sidebar-2));position:sticky;top:0;height:100vh;overflow-y:auto;padding:16px 0;}
+.sb-logo{display:flex;align-items:center;gap:10px;padding:0 18px 16px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:10px;}
+.sb-logo .mk{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--secondary),var(--green));display:grid;place-items:center;flex-shrink:0;}
+.sb-logo .mk svg{width:17px;height:17px;stroke:#fff;stroke-width:2.2;}
+.sb-logo b{color:#fff;font-size:12.5px;font-weight:600;letter-spacing:.3px;line-height:1.25;}
+.sb-lbl{padding:14px 18px 5px;font-size:9.5px;text-transform:uppercase;letter-spacing:.9px;color:#64748B;font-weight:600;}
+.sb a{display:flex;align-items:center;gap:9px;padding:7.5px 18px;color:var(--sidebar-txt);text-decoration:none;font-size:12.8px;border-left:3px solid transparent;cursor:pointer;transition:background .15s,color .15s;}
+.sb a .ic{width:15px;height:15px;opacity:.8;}
+.sb a:hover{background:rgba(255,255,255,.05);color:#fff;}
+.sb a.on{background:rgba(59,130,246,.16);color:#fff;border-left-color:var(--secondary);font-weight:500;}
+.sb a.on .ic{opacity:1;color:#60A5FA;}
+
+.top{position:sticky;top:0;z-index:30;background:rgba(241,245,249,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:11px 22px;display:flex;align-items:center;gap:14px;}
+.srch{flex:1;max-width:400px;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:7px 11px;color:var(--text-muted);}
+.srch input{border:0;outline:0;background:transparent;font-size:12.5px;flex:1;color:var(--text);font-family:inherit;}
+.top-r{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.ibtn{position:relative;width:33px;height:33px;border-radius:8px;border:1px solid var(--border);background:#fff;display:grid;place-items:center;cursor:pointer;color:var(--text);transition:background .15s;}
+.ibtn:hover{background:var(--bg);}
+.ibtn .pip{position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--red);border:1.5px solid #fff;}
+.av{width:33px;height:33px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;display:grid;place-items:center;font-weight:600;font-size:12px;}
+
+.main{padding:20px 22px 60px;max-width:1720px;}
+.view{display:none;}.view.on{display:block;animation:fade .3s ease;}
+@keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+.head h1{font-size:20px;font-weight:600;letter-spacing:-.2px;}
+.head p{color:var(--text-muted);font-size:12.5px;margin-top:2px;}
+.btn{background:var(--primary);color:#fff;border:0;padding:8px 15px;border-radius:8px;font-size:12.5px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:7px;box-shadow:var(--sh-sm);transition:background .15s,transform .15s;}
+.btn:hover{background:var(--primary-600);transform:translateY(-1px);}
+.btn.ghost{background:#fff;color:var(--text);border:1px solid var(--border);}
+.btn.ghost:hover{background:var(--bg);}
+
+.filters{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:11px 14px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;box-shadow:var(--sh-sm);}
+.ff{display:flex;flex-direction:column;gap:3px;}
+.ff label{font-size:9.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);font-weight:600;}
+.ff select{padding:6.5px 10px;border:1px solid var(--border);border-radius:7px;font-size:12.5px;background:#fff;min-width:135px;cursor:pointer;color:var(--text);}
+.ff select:focus{outline:2px solid var(--secondary);outline-offset:1px;}
+.chip{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-muted);background:var(--amber-bg);border:1px solid #FDE68A;padding:6px 11px;border-radius:20px;}
+.chip .ic{width:14px;height:14px;color:var(--amber);}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px;}
+@media(max-width:1500px){.kpis{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:13px 14px;position:relative;overflow:hidden;box-shadow:var(--sh-sm);transition:box-shadow .18s,transform .18s;cursor:pointer;}
+.kpi::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--c,var(--primary));}
+.kpi:hover{box-shadow:var(--sh-lg);transform:translateY(-2px);}
+.kpi .r1{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px;}
+.kpi .ico{width:29px;height:29px;border-radius:7px;display:grid;place-items:center;background:var(--cb,#EFF6FF);color:var(--c,var(--primary));}
+.kpi .ico .ic{width:16px;height:16px;}
+.kpi .lb{font-size:11.5px;color:var(--text-muted);font-weight:500;}
+.kpi .vl{font-size:23px;font-weight:600;letter-spacing:-.5px;margin:1px 0 5px;}
+.kpi .dl{font-size:10.5px;font-weight:600;display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;}
+.up-bad{color:var(--red);background:var(--red-bg);}
+.dn-good{color:var(--green);background:var(--green-bg);}
+.neu{color:var(--text-muted);background:#F1F5F9;}
+.kpi .sb2{font-size:10.5px;color:var(--text-muted);margin-top:4px;}
+
+/* GRID + PANELS */
+.g2{display:grid;grid-template-columns:1.55fr 1fr;gap:14px;margin-bottom:14px;}
+.g2b{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
+@media(max-width:1200px){.g2,.g2b,.g3{grid-template-columns:1fr}}
+.pnl{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px;box-shadow:var(--sh-sm);}
+.pnl h2{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:7px;margin-bottom:2px;}
+.pnl h2 .ic{width:15px;height:15px;color:var(--secondary);}
+.pnl .sub{font-size:11.5px;color:var(--text-muted);margin-bottom:12px;}
+.ph{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px;}
+.ph .sub{margin:0;}
+.cw{position:relative;height:250px;}
+.cw.sm{height:210px;}
+.cw.lg{height:300px;}
+
+.tabs{display:inline-flex;gap:3px;background:#F1F5F9;border-radius:8px;padding:3px;}
+.tabs button{border:0;background:transparent;padding:5px 11px;font-size:11.5px;border-radius:6px;cursor:pointer;color:var(--text-muted);font-weight:500;transition:.15s;}
+.tabs button.on{background:#fff;color:var(--primary);box-shadow:var(--sh-sm);font-weight:600;}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead th{text-align:left;padding:8px 10px;font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);font-weight:600;border-bottom:1.5px solid var(--border);white-space:nowrap;}
+thead th.r,tbody td.r{text-align:right;}
+tbody td{padding:8.5px 10px;border-bottom:1px solid #F1F5F9;}
+tbody tr{cursor:pointer;transition:background .12s;}
+tbody tr:hover td{background:#F8FAFC;}
+tbody td.nm{font-weight:500;}
+.bar-cell{display:flex;align-items:center;gap:8px;}
+.bar-cell .tr{flex:1;height:5px;background:#F1F5F9;border-radius:4px;overflow:hidden;min-width:44px;}
+.bar-cell .fl{height:100%;border-radius:4px;background:var(--secondary);}
+.tag{display:inline-flex;font-size:10px;font-weight:600;padding:2.5px 8px;border-radius:20px;white-space:nowrap;}
+.t-crit{color:var(--red);background:var(--red-bg);}
+.t-alt{color:#C2410C;background:#FFF7ED;}
+.t-med{color:var(--amber);background:var(--amber-bg);}
+.t-baj{color:var(--green);background:var(--green-bg);}
+
+/* INSIGHTS */
+.ins{display:flex;flex-direction:column;gap:8px;}
+.ins .it{display:flex;gap:9px;padding:10px 12px;border-radius:9px;font-size:12.3px;line-height:1.45;border:1px solid;background:#F8FAFC;border-color:var(--border);}
+.ins .it .ic{width:16px;height:16px;margin-top:1px;color:var(--secondary);}
+.ins .it.b{background:var(--red-bg);border-color:#FECACA;}.ins .it.b .ic{color:var(--red);}
+.ins .it.w{background:var(--amber-bg);border-color:#FDE68A;}.ins .it.w .ic{color:var(--amber);}
+.ins .it.g{background:var(--green-bg);border-color:#A7F3D0;}.ins .it.g .ic{color:var(--green);}
+.ins .it b{font-weight:600;}
+
+.mini{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:9px;}
+.mini .m{background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
+.mini .m .n{font-size:17px;font-weight:600;letter-spacing:-.3px;}
+.mini .m .l{font-size:10px;color:var(--text-muted);margin-top:1px;font-weight:500;}
+
+.note{margin-top:22px;padding:11px 14px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--r);font-size:11.5px;color:#1E3A8A;display:flex;gap:9px;}
+.note .ic{width:16px;height:16px;flex-shrink:0;margin-top:1px;color:var(--primary);}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sb">
+  <div class="sb-logo">
+    <span class="mk"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2 3 7v6c0 5 4 8.5 9 9 5-.5 9-4 9-9V7l-9-5Z"/><path d="M9 12l2 2 4-4"/></svg></span>
+    <b>SALUD<br>OCUPACIONAL</b>
+  </div>
+  <nav id="nav">
+    <a class="on" data-v="exec"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dashboard Ejecutivo</a>
+    <div class="sb-lbl">Morbilidad</div>
+    <a data-v="aten"><svg class="ic" viewBox="0 0 24 24"><path d="M12 2 3 7v6c0 5 4 8.5 9 9 5-.5 9-4 9-9V7l-9-5Z"/><path d="M12 8v6M9 11h6"/></svg>Atenciones</a>
+    <a data-v="causas"><svg class="ic" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 19v-7M12 19v-11M16 19v-5"/></svg>Causas</a>
+    <a data-v="musc"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3v18M18 3v18M6 8h5a3 3 0 0 1 0 6H6"/></svg>Musculoesqueléticas</a>
+    <div class="sb-lbl">Clínico</div>
+    <a data-v="em"><svg class="ic" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>Exámenes Médicos</a>
+    <a data-v="incap"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Incapacidades</a>
+    <a data-v="accid"><svg class="ic" viewBox="0 0 24 24"><path d="M10.3 3.86 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.86a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>Accidentabilidad</a>
+    <div class="sb-lbl">Control</div>
+    <a data-v="antid"><svg class="ic" viewBox="0 0 24 24"><path d="M9 2h6M10 2v5.5L5 16a3 3 0 0 0 2.6 4.5h8.8A3 3 0 0 0 19 16l-5-8.5V2"/></svg>Antidoping</a>
+    <a data-v="mater"><svg class="ic" viewBox="0 0 24 24"><path d="M12 21s-7-4.35-9.5-8.5C.5 8.5 3 5 6.5 5c2 0 3.5 1.5 5.5 4 2-2.5 3.5-4 5.5-4C21 5 23.5 8.5 21.5 12.5 19 16.65 12 21 12 21Z"/></svg>Maternidad</a>
+    <div class="sb-lbl">Sistema</div>
+    <a data-v="rep"><svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>Reportes</a>
+    <a data-v="admin"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Administración</a>
+  </nav>
+</aside>
+
+<main>
+<div class="top">
+  <div class="srch"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input placeholder="Buscar empleado, predio, folio…"></div>
+  <div class="top-r">
+    <button class="ibtn" title="Alertas"><svg class="ic" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="pip"></span></button>
+    <div class="av">JA</div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- ============ EJECUTIVO ============ -->
+<section class="view on" id="v-exec">
+  <div class="head">
+    <div><h1>Dashboard Ejecutivo</h1><p>Morbilidad y Salud Ocupacional · Ejercicio 2026 · datos acumulados ENE–JUN</p></div>
+    <div style="display:flex;gap:8px"><button class="btn ghost"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>Exportar</button><button class="btn"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nueva captura</button></div>
+  </div>
+
+  <div class="filters">
+    <div class="ff"><label>Año</label><select><option>2026</option><option>2025</option></select></div>
+    <div class="ff"><label>Periodo</label><select><option>Acumulado ENE–JUN</option><option>Junio 2026</option><option>Mayo 2026</option></select></div>
+    <div class="ff"><label>Predio</label><select id="f-predio"><option>Todos los predios</option></select></div>
+    <div class="ff"><label>Cuenta</label><select><option>Todas</option></select></div>
+    <div class="chip"><svg class="ic" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.86 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.86a2 2 0 0 0-3.4 0Z"/></svg>Datos capturados hasta junio 2026</div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi" style="--c:#1E40AF;--cb:#EFF6FF">
+      <div class="r1"><span class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M12 2 3 7v6c0 5 4 8.5 9 9 5-.5 9-4 9-9V7l-9-5Z"/><path d="M12 8v6M9 11h6"/></svg></span></div>
+      <div class="lb">Atenciones médicas</div><div class="vl num">12,613</div>
+      <span class="dl dn-good">▼ 2.8% vs. mayo</span><div class="sb2">Junio: 2,295 · pico: mayo 2,362</div>
+    </div>
+    <div class="kpi" style="--c:#0891B2;--cb:#ECFEFF">
+      <div class="r1"><span class="ico"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></span></div>
+      <div class="lb">Personas incapacitadas</div><div class="vl num">1,932</div>
+      <span class="dl up-bad">▲ 25.2% vs. mayo</span><div class="sb2">IMSS 1,790 · internas 142</div>
+    </div>
+    <div class="kpi" style="--c:#D97706;--cb:#FFFBEB">
+      <div class="r1"><span class="ico"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span></div>
+      <div class="lb">Días de incapacidad</div><div class="vl num">13,332</div>
+      <span class="dl up-bad">▲ 16.9% vs. mayo</span><div class="sb2">106,656 horas no trabajadas</div>
+    </div>
+    <div class="kpi" style="--c:#DC2626;--cb:#FEF2F2">
+      <div class="r1"><span class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M10.3 3.86 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.86a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg></span></div>
+      <div class="lb">Accidentes</div><div class="vl num">225</div>
+      <span class="dl neu">102 laboral · 123 trayecto</span><div class="sb2">4,054 días perdidos por RT</div>
+    </div>
+    <div class="kpi" style="--c:#059669;--cb:#ECFDF5">
+      <div class="r1"><span class="ico"><svg class="ic" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span></div>
+      <div class="lb">Exámenes médicos</div><div class="vl num">8,671</div>
+      <span class="dl neu">22.2% aptos</span><div class="sb2">Ingreso 7,129 · periód. 1,266</div>
+    </div>
+    <div class="kpi" style="--c:#7C3AED;--cb:#F5F3FF">
+      <div class="r1"><span class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span></div>
+      <div class="lb">Costo incapacidades</div><div class="vl num">$3.75M</div>
+      <span class="dl up-bad">Acumulado 2026</span><div class="sb2">Mayor: enf. general $1.65M</div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="pnl">
+      <div class="ph">
+        <div><h2><svg class="ic" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-4 4"/></svg>Evolución mensual de indicadores</h2><p class="sub">Atenciones, días de incapacidad y accidentes · 2026</p></div>
+        <div class="tabs" id="tb-trend"><button class="on" data-s="all">Todos</button><button data-s="aten">Atenciones</button><button data-s="dias">Días incap.</button></div>
+      </div>
+      <div class="cw lg"><canvas id="c-trend"></canvas></div>
+    </div>
+    <div class="pnl">
+      <h2><svg class="ic" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9v9Z"/><path d="M12 3a9 9 0 0 1 9 9h-9Z"/></svg>Composición de días perdidos</h2>
+      <p class="sub">13,332 días acumulados por tipo</p>
+      <div class="cw lg"><canvas id="c-donut"></canvas></div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="pnl">
+      <h2><svg class="ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg>Ranking de predios por carga de morbilidad</h2>
+      <p class="sub">Ordenado por atenciones · semáforo calculado sobre umbrales configurables</p>
+      <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Predio</th><th class="r">Atenciones</th><th style="width:110px">Distribución</th><th class="r">Días incap.</th><th class="r">Accid.</th><th class="r">Exámenes</th><th>Riesgo</th></tr></thead>
+        <tbody id="tb-predios"></tbody>
+      </table></div>
+    </div>
+    <div class="pnl">
+      <h2><svg class="ic" viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>Análisis Ejecutivo</h2>
+      <p class="sub">Insights derivados de los datos capturados</p>
+      <div class="ins">
+        <div class="it b"><svg class="ic" viewBox="0 0 24 24"><path d="M10.3 3.86 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.86a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg><span><b>AIFA</b> concentra el <b>24.2%</b> de las atenciones (3,052 de 12,613) y el mayor número de accidentes (42).</span></div>
+        <div class="it w"><svg class="ic" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-4 4"/></svg><span>Los días de incapacidad de junio (<b>2,394</b>) subieron <b>16.9%</b> frente a mayo, el valor más alto del año.</span></div>
+        <div class="it"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg><span>Las tres principales causas — <b>vacuna/seguimiento (1,982)</b>, <b>digestivo (1,809)</b> y <b>respiratorio (1,775)</b> — suman el 44% del total.</span></div>
+        <div class="it w"><svg class="ic" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.86 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.86a2 2 0 0 0-3.4 0Z"/></svg><span>El <b>accidente de trayecto</b> genera 2,600 días perdidos, <b>79% más</b> que el accidente laboral (1,454).</span></div>
+        <div class="it g"><svg class="ic" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg><span>Las lesiones graves son marginales: <b>0 amputaciones y 0 fracturas</b> en el acumulado del año.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="g3">
+    <div class="pnl"><h2><svg class="ic" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 19v-7M12 19v-11M16 19v-5"/></svg>Top 8 causas de atención</h2><p class="sub">Acumulado 2026</p><div class="cw"><canvas id="c-causas"></canvas></div></div>
+    <div class="pnl"><h2><svg class="ic" viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Costo por tipo de incapacidad</h2><p class="sub">Total $3,747,511 MXN</p><div class="cw"><canvas id="c-costo"></canvas></div></div>
+    <div class="pnl"><h2><svg class="ic" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6"/></svg>Resultado de exámenes</h2><p class="sub">7,129 exámenes de ingreso</p><div class="cw"><canvas id="c-em"></canvas></div></div>
+  </div>
+  <div class="note"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg><span>Todos los indicadores provienen del archivo <b>10 REPORTE MORBILIDAD 2026 GERENCIA.xlsm</b>. Los meses de julio a diciembre aparecen en cero porque aún no tienen captura en el archivo origen.</span></div>
+</section>
+
+<!-- ============ ATENCIONES ============ -->
+<section class="view" id="v-aten">
+  <div class="head"><div><h1>Atenciones Médicas</h1><p>12,613 atenciones acumuladas · 484 a personal de inclusión</p></div><button class="btn"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Registrar atención</button></div>
+  <div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi" style="--c:#1E40AF;--cb:#EFF6FF"><div class="lb">Total atenciones</div><div class="vl num">12,613</div><div class="sb2">ENE–JUN 2026</div></div>
+    <div class="kpi" style="--c:#3B82F6;--cb:#EFF6FF"><div class="lb">Promedio mensual</div><div class="vl num">2,102</div><div class="sb2">sobre 6 meses con captura</div></div>
+    <div class="kpi" style="--c:#7C3AED;--cb:#F5F3FF"><div class="lb">Personal de inclusión</div><div class="vl num">484</div><div class="sb2">3.8% del total</div></div>
+    <div class="kpi" style="--c:#059669;--cb:#ECFDF5"><div class="lb">Predios activos</div><div class="vl num">14</div><div class="sb2">de 17 registrados</div></div>
+  </div>
+  <div class="g2b">
+    <div class="pnl"><h2>Atenciones por mes</h2><p class="sub">Volumen mensual 2026</p><div class="cw"><canvas id="c-aten-mes"></canvas></div></div>
+    <div class="pnl"><h2>Atenciones por predio</h2><p class="sub">Acumulado ENE–JUN</p><div class="cw"><canvas id="c-aten-predio"></canvas></div></div>
+  </div>
+  <div class="pnl"><h2>Evolución por predio (top 6)</h2><p class="sub">Comparativo mensual de los predios con mayor volumen</p><div class="cw lg"><canvas id="c-aten-multi"></canvas></div></div>
+</section>
+
+<!-- ============ CAUSAS ============ -->
+<section class="view" id="v-causas">
+  <div class="head"><div><h1>Causas de Atención</h1><p>26 causas catalogadas · 12,613 atenciones clasificadas</p></div></div>
+  <div class="g2">
+    <div class="pnl"><h2>Ranking completo de causas</h2><p class="sub">Todas las causas con registro en 2026</p><div class="cw" style="height:520px"><canvas id="c-causas-full"></canvas></div></div>
+    <div class="pnl"><h2>Concentración por grupo clínico</h2><p class="sub">Agrupación de las 26 causas</p><div class="cw" style="height:280px"><canvas id="c-causas-grupo"></canvas></div>
+      <div class="mini" style="margin-top:14px">
+        <div class="m"><div class="n num">1,982</div><div class="l">Vacuna / PF</div></div>
+        <div class="m"><div class="n num">1,809</div><div class="l">Digestivo</div></div>
+        <div class="m"><div class="n num">1,775</div><div class="l">Respiratorio</div></div>
+        <div class="m"><div class="n num">1,594</div><div class="l">Musculoesq.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MUSCULOESQUELÉTICAS ============ -->
+<section class="view" id="v-musc">
+  <div class="head"><div><h1>Lesiones Musculoesqueléticas</h1><p>1,594 lesiones registradas · MT = miembro torácico, MP = miembro pélvico</p></div></div>
+  <div class="kpis" style="grid-template-columns:repeat(5,1fr)">
+    <div class="kpi" style="--c:#1E40AF;--cb:#EFF6FF"><div class="lb">Total lesiones</div><div class="vl num">1,594</div></div>
+    <div class="kpi" style="--c:#D97706;--cb:#FFFBEB"><div class="lb">Algias/contusiones</div><div class="vl num">997</div><div class="sb2">62.5% del total</div></div>
+    <div class="kpi" style="--c:#3B82F6;--cb:#EFF6FF"><div class="lb">Columna</div><div class="vl num">494</div><div class="sb2">cervical/dorsal/lumbar</div></div>
+    <div class="kpi" style="--c:#DC2626;--cb:#FEF2F2"><div class="lb">Traumatismos</div><div class="vl num">63</div><div class="sb2">cabeza y tronco</div></div>
+    <div class="kpi" style="--c:#059669;--cb:#ECFDF5"><div class="lb">Fracturas / amput.</div><div class="vl num">0</div><div class="sb2">sin eventos graves</div></div>
+  </div>
+  <div class="pnl"><h2>Distribución por tipo de lesión</h2><p class="sub">Acumulado 2026</p><div class="cw lg"><canvas id="c-musc"></canvas></div></div>
+</section>
+
+<!-- ============ EXÁMENES ============ -->
+<section class="view" id="v-em">
+  <div class="head"><div><h1>Exámenes Médicos</h1><p>8,671 exámenes · ingreso, periódico y post-incapacidad</p></div><button class="btn"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nuevo examen</button></div>
+  <div class="kpis" style="grid-template-columns:repeat(5,1fr)">
+    <div class="kpi" style="--c:#1E40AF;--cb:#EFF6FF"><div class="lb">Total exámenes</div><div class="vl num">8,671</div></div>
+    <div class="kpi" style="--c:#059669;--cb:#ECFDF5"><div class="lb">Aptos</div><div class="vl num">1,580</div><span class="dl dn-good">22.2%</span></div>
+    <div class="kpi" style="--c:#DC2626;--cb:#FEF2F2"><div class="lb">No aptos</div><div class="vl num">1,332</div><span class="dl up-bad">18.7%</span></div>
+    <div class="kpi" style="--c:#D97706;--cb:#FFFBEB"><div class="lb">Condicionados</div><div class="vl num">4,094</div><span class="dl neu">57.4%</span></div>
+    <div class="kpi" style="--c:#7C3AED;--cb:#F5F3FF"><div class="lb">Inclusión</div><div class="vl num">123</div><span class="dl neu">1.7%</span></div>
+  </div>
+  <div class="g2b">
+    <div class="pnl"><h2>Tipo de examen por mes</h2><p class="sub">Ingreso · periódico · post-incapacidad</p><div class="cw"><canvas id="c-em-mes"></canvas></div></div>
+    <div class="pnl"><h2>Resultado por predio</h2><p class="sub">Barras apiladas · exámenes de ingreso</p><div class="cw"><canvas id="c-em-predio"></canvas></div></div>
+  </div>
+</section>
+
+<!-- ============ INCAPACIDADES ============ -->
+<section class="view" id="v-incap">
+  <div class="head"><div><h1>Incapacidades</h1><p>13,332 días acumulados · IMSS e internas · costo $3.75M MXN</p></div><button class="btn"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nuevo caso</button></div>
+  <div class="kpis">
+    <div class="kpi" style="--c:#1E40AF;--cb:#EFF6FF"><div class="lb">Personas IMSS</div><div class="vl num">1,790</div></div>
+    <div class="kpi" style="--c:#64748B;--cb:#F1F5F9"><div class="lb">Personas internas</div><div class="vl num">142</div></div>
+    <div class="kpi" style="--c:#D97706;--cb:#FFFBEB"><div class="lb">Días acumulados</div><div class="vl num">13,332</div></div>
+    <div class="kpi" style="--c:#0891B2;--cb:#ECFEFF"><div class="lb">Horas no trabajadas</div><div class="vl num">106,656</div></div>
+    <div class="kpi" style="--c:#7C3AED;--cb:#F5F3FF"><div class="lb">Costo total</div><div class="vl num">$3.75M</div></div>
+    <div class="kpi" style="--c:#059669;--cb:#ECFDF5"><div class="lb">Promedio días/caso</div><div class="vl num">6.9</div></div>
+  </div>
+  <div class="g2">
+    <div class="pnl"><h2>Días de incapacidad por mes y causa</h2><p class="sub">Barras apiladas: enfermedad general, maternidad, RT1 (laboral), RT2 (trayecto), interna</p><div class="cw lg"><canvas id="c-incap-mes"></canvas></div></div>
+    <div class="pnl"><h2>Costo por tipo</h2><p class="sub">Distribución del gasto 2026</p><div class="cw lg"><canvas id="c-incap-costo"></canvas></div></div>
+  </div>
+  <div class="pnl"><h2>Días de incapacidad IMSS por predio</h2><p class="sub">Acumulado ENE–JUN</p><div class="cw"><canvas id="c-incap-predio"></canvas></div></div>
+</section>
+
+<!-- ============ ACCIDENTABILIDAD ============ -->
+<section class="view" id="v-accid">
+  <div class="head"><div><h1>Accidentabilidad</h1><p>225 accidentes · 4,054 días perdidos acumulados</p></div><button class="btn"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Registrar accidente</button></div>
+  <div class="kpis" style="grid-template-columns:repeat(5,1fr)">
+    <div class="kpi" style="--c:#DC2626;--cb:#FEF2F2"><div class="lb">Accidentes totales</div><div class="vl num">225</div></div>
+    <div class="kpi" style="--c:#1E40AF;--cb:#EFF6FF"><div class="lb">Laborales (RT1)</div><div class="vl num">102</div><span class="dl neu">45.3%</span></div>
+    <div class="kpi" style="--c:#D97706;--cb:#FFFBEB"><div class="lb">Trayecto (RT2)</div><div class="vl num">123</div><span class="dl neu">54.7%</span></div>
+    <div class="kpi" style="--c:#DB2777;--cb:#FDF2F8"><div class="lb">Mujeres</div><div class="vl num">113</div><span class="dl neu">50.2%</span></div>
+    <div class="kpi" style="--c:#0891B2;--cb:#ECFEFF"><div class="lb">Hombres</div><div class="vl num">112</div><span class="dl neu">49.8%</span></div>
+  </div>
+  <div class="g2b">
+    <div class="pnl"><h2>Accidentes por predio y tipo</h2><p class="sub">Laboral vs. trayecto</p><div class="cw"><canvas id="c-accid-predio"></canvas></div></div>
+    <div class="pnl"><h2>Causas de riesgo de trabajo</h2><p class="sub">Mecanismo del accidente</p><div class="cw"><canvas id="c-accid-causa"></canvas></div></div>
+  </div>
+  <div class="pnl"><h2>Días perdidos por accidente, mensual</h2><p class="sub">Comparativo laboral vs. trayecto</p><div class="cw"><canvas id="c-accid-dias"></canvas></div></div>
+</section>
+
+<!-- ============ ANTIDOPING ============ -->
+<section class="view" id="v-antid">
+  <div class="head"><div><h1>Antidoping y Alcoholimetría</h1><p>793 pruebas aplicadas · 1,553 kits suministrados</p></div><button class="btn"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Registrar prueba</button></div>
+  <div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi" style="--c:#1E40AF;--cb:#EFF6FF"><div class="lb">Pruebas aplicadas</div><div class="vl num">793</div><div class="sb2">antidoping ENE–JUN</div></div>
+    <div class="kpi" style="--c:#0891B2;--cb:#ECFEFF"><div class="lb">Alcoholimetrías</div><div class="vl num">187</div><div class="sb2">Mercurio concentra 167</div></div>
+    <div class="kpi" style="--c:#059669;--cb:#ECFDF5"><div class="lb">Kits suministrados</div><div class="vl num">1,553</div><div class="sb2">acumulado anual</div></div>
+    <div class="kpi" style="--c:#D97706;--cb:#FFFBEB"><div class="lb">Tasa de uso</div><div class="vl num">51.1%</div><div class="sb2">aplicados / suministrados</div></div>
+  </div>
+  <div class="g2b">
+    <div class="pnl"><h2>Pruebas por predio</h2><p class="sub">Antidoping acumulado</p><div class="cw"><canvas id="c-ant-predio"></canvas></div></div>
+    <div class="pnl"><h2>Aplicados vs. suministrados</h2><p class="sub">Balance mensual de inventario</p><div class="cw"><canvas id="c-ant-mes"></canvas></div></div>
+  </div>
+</section>
+
+<!-- ============ MATERNIDAD ============ -->
+<section class="view" id="v-mater">
+  <div class="head"><div><h1>Maternidad</h1><p>70 casos registrados · 1,515 días incapacitantes</p></div></div>
+  <div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi" style="--c:#DB2777;--cb:#FDF2F8"><div class="lb">Casos acumulados</div><div class="vl num">70</div></div>
+    <div class="kpi" style="--c:#7C3AED;--cb:#F5F3FF"><div class="lb">Días incapacitantes</div><div class="vl num">1,515</div></div>
+    <div class="kpi" style="--c:#1E40AF;--cb:#EFF6FF"><div class="lb">Promedio días/caso</div><div class="vl num">21.6</div></div>
+    <div class="kpi" style="--c:#059669;--cb:#ECFDF5"><div class="lb">Costo asociado</div><div class="vl num">$504K</div></div>
+  </div>
+  <div class="pnl"><h2>Casos y días por mes</h2><p class="sub">Los días se extienden más allá del mes de alta por la duración de la incapacidad</p><div class="cw lg"><canvas id="c-mater"></canvas></div></div>
+</section>
+
+<!-- ============ REPORTES ============ -->
+<section class="view" id="v-rep">
+  <div class="head"><div><h1>Reportes</h1><p>Generación en PDF, Excel y CSV desde la misma capa analítica del dashboard</p></div></div>
+  <div class="g3" id="rep-cards"></div>
+</section>
+
+<!-- ============ ADMIN ============ -->
+<section class="view" id="v-admin">
+  <div class="head"><div><h1>Administración</h1><p>Catálogos únicos compartidos por todos los módulos</p></div></div>
+  <div class="g3">
+    <div class="pnl"><h2>Predios</h2><p class="sub">Catálogo maestro</p><div class="mini"><div class="m"><div class="n num">17</div><div class="l">Registrados</div></div><div class="m"><div class="n num">14</div><div class="l">Con actividad</div></div><div class="m"><div class="n num">7</div><div class="l">Con alias</div></div></div></div>
+    <div class="pnl"><h2>Cuentas</h2><p class="sub">Clientes corporativos</p><div class="mini"><div class="m"><div class="n num">56</div><div class="l">Registradas</div></div></div></div>
+    <div class="pnl"><h2>Catálogos clínicos</h2><p class="sub">Configurables sin código</p><div class="mini"><div class="m"><div class="n num">26</div><div class="l">Causas</div></div><div class="m"><div class="n num">15</div><div class="l">Lesiones</div></div><div class="m"><div class="n num">7</div><div class="l">Causas RT</div></div></div></div>
+    <div class="pnl"><h2>Áreas y puestos</h2><p class="sub">Estructura organizacional</p><div class="mini"><div class="m"><div class="n num">19</div><div class="l">Áreas</div></div><div class="m"><div class="n num">36</div><div class="l">Puestos</div></div><div class="m"><div class="n num">5</div><div class="l">Agencias</div></div></div></div>
+    <div class="pnl"><h2>Usuarios y roles</h2><p class="sub">RBAC configurable</p><div class="mini"><div class="m"><div class="n num">6</div><div class="l">Roles</div></div><div class="m"><div class="n num">21</div><div class="l">Permisos</div></div></div></div>
+    <div class="pnl"><h2>Periodos</h2><p class="sub">Control de captura</p><div class="mini"><div class="m"><div class="n num">6</div><div class="l">Con datos</div></div><div class="m"><div class="n num">12</div><div class="l">Del año</div></div></div></div>
+  </div>
+</section>
+
+</div>
+</main>
+</div>
+
+<script>
+/* ============ DATOS REALES DEL EXCEL ============ */
+const MESES=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+const M6=MESES.slice(0,6);
+const D={
+  atencionesMes:[1932,1746,2156,2122,2362,2295],
+  diasIncapMes:[2095,1886,2214,1854,2048,2394],
+  accidPersonasMes:[73,16,32,27,45,32],
+  emIngreso:[699,722,1418,1241,880,2169],
+  emPeriodico:[136,424,212,203,182,109],
+  emPost:[54,41,42,41,41,57],
+  incapDetalle:{ // por mes: EG, MATER, RT1, RT2, INTERNA
+    EG:[1094,1073,1308,1123,1072,1301],
+    MATER:[82,128,256,185,245,274],
+    RT1:[302,186,114,144,301,329],
+    RT2:[569,433,442,337,316,380],
+    INT:[48,66,94,65,114,110]
+  },
+  costos:{'Enfermedad general':1653355.90,'Accidente trayecto':892922.08,'Maternidad':504831.24,'Accidente laboral':486885.71,'Interna':209516.55},
+  maternidadCasos:[42,10,8,4,6,0],
+  maternidadDias:[82,128,256,185,245,274,212,120,13,0,0,0],
+  antidopingMes:[91,129,125,133,192,123],
+  antidopingSuministrado:[166,411,0,62,82,183],
+  predios:[
+    // nombre, atenciones, diasIncapIMSS, accidLaboral, accidTrayecto, examenes, aptos, noAptos, condic, antidoping
+    {n:'AIFA',a:3052,d:293,al:16,at:26,e:1683,ap:75,na:141,co:1454,ad:14,mes:[543,316,357,556,693,587]},
+    {n:'MACRO II',a:2453,d:295,al:13,at:20,e:1071,ap:290,na:234,co:504,ad:26,mes:[311,369,471,492,423,387]},
+    {n:'TOLUCA',a:1715,d:155,al:11,at:4,e:377,ap:63,na:17,co:294,ad:32,mes:[226,233,350,265,324,317]},
+    {n:'MACRO I',a:1635,d:200,al:12,at:14,e:870,ap:182,na:245,co:414,ad:63,mes:[277,209,367,235,272,275]},
+    {n:'WORLD PARK',a:1105,d:124,al:9,at:12,e:746,ap:125,na:157,co:459,ad:42,mes:[137,153,168,192,226,229]},
+    {n:'Z VALLEJO',a:738,d:219,al:12,at:16,e:1405,ap:570,na:335,co:479,ad:17,mes:[150,134,113,104,120,117]},
+    {n:'TULTIPARK',a:604,d:80,al:9,at:6,e:49,ap:7,na:1,co:40,ad:2,mes:[93,102,107,75,116,111]},
+    {n:'MERCURIO',a:559,d:160,al:3,at:9,e:202,ap:51,na:34,co:117,ad:428,mes:[98,119,110,80,72,80]},
+    {n:'ATIZAPAN',a:238,d:13,al:2,at:0,e:75,ap:27,na:7,co:40,ad:33,mes:[36,31,40,43,41,47]},
+    {n:'CHARCON',a:218,d:67,al:0,at:3,e:36,ap:13,na:7,co:16,ad:57,mes:[22,23,27,24,26,96]},
+    {n:'SIGLO XXI',a:179,d:82,al:7,at:6,e:324,ap:97,na:102,co:119,ad:4,mes:[20,39,29,40,25,26]},
+    {n:'MIKELS',a:59,d:18,al:3,at:1,e:61,ap:17,na:15,co:28,ad:4,mes:[9,10,10,11,7,12]},
+    {n:'U TEPALCAPA',a:54,d:40,al:0,at:3,e:157,ap:48,na:31,co:78,ad:67,mes:[7,8,6,5,17,11]},
+    {n:'SMO',a:4,d:0,al:0,at:0,e:20,ap:6,na:6,co:8,ad:0,mes:[3,0,1,0,0,0]},
+    {n:'FORANEO',a:0,d:44,al:5,at:3,e:53,ap:9,na:0,co:44,ad:4,mes:[0,0,0,0,0,0]},
+    {n:'FLORA',a:0,d:0,al:0,at:0,e:0,ap:0,na:0,co:0,ad:0,mes:[0,0,0,0,0,0]}
+  ],
+  causas:[['Vacuna / PF / seg. salud',1982],['Digestivo',1809],['Respiratorio',1775],['Neurológico',1401],['Tensión arterial',991],['MT algia/contusión',503],['MP algia/contusión',482],['Fisioterapia',409],['Ginecológico',320],['Curación',313],['Cervical/dorsal/lumbar',313],['Circulatorio',311],['General algia/contusión',296],['Bucodental',272],['Oftálmico',231],['Ácido péptica',166],['Alergia/intoxicación',162],['Psicosomático',171],['Inyección',148],['Toma de glucosa',137],['Dermatológico',132],['Genitourinario',108],['Embarazo',69],['Ótico',66],['Endocrino',26],['NOM 035',20]],
+  musc:[['Algia/contusión MT',512],['Algia/contusión MP',485],['Cervicalgia/dorsalgia/lumbalgia',494],['Contusión/trauma cabeza',46],['Policontundido',18],['Contusión/trauma tronco',17],['Esguince MP',10],['Esguince MT',6],['Luxación MT',5],['Luxación MP',1],['Amputación MT',0],['Amputación MP',0],['Fractura MT',0],['Fractura MP',0],['Fractura cabeza/tronco',0]],
+  accidCausas:[['Caída',76],['Accidente vial',48],['Golpe',43],['Ergonómica',33],['Improcedente',12],['Herida',7],['Agresión',6]],
+  accidDiasLab:[314,186,114,144,301,329],
+  accidDiasTray:[630,433,442,337,316,380]
+};
+
+/* ============ CHART.JS CONFIG ============ */
+const C={p:'#1E40AF',s:'#3B82F6',a:'#F59E0B',g:'#059669',r:'#DC2626',v:'#7C3AED',c:'#0891B2',pk:'#DB2777',sl:'#64748B',am:'#D97706'};
+Chart.defaults.font.family="'Fira Sans',system-ui,sans-serif";
+Chart.defaults.font.size=11;
+Chart.defaults.color='#475569';
+Chart.defaults.plugins.legend.labels.usePointStyle=true;
+Chart.defaults.plugins.legend.labels.boxWidth=7;
+Chart.defaults.plugins.legend.labels.padding=12;
+Chart.defaults.plugins.tooltip.backgroundColor='#0F172A';
+Chart.defaults.plugins.tooltip.padding=10;
+Chart.defaults.plugins.tooltip.cornerRadius=7;
+Chart.defaults.plugins.tooltip.titleFont={weight:'600',size:12};
+Chart.defaults.plugins.tooltip.boxPadding=5;
+Chart.defaults.maintainAspectRatio=false;
+const GRID={grid:{color:'#F1F5F9',drawTicks:false},border:{display:false},ticks:{padding:7}};
+const GRIDX={grid:{display:false},border:{display:false},ticks:{padding:5}};
+const nf=n=>n.toLocaleString('es-MX');
+const charts={};
+function mk(id,cfg){const el=document.getElementById(id);if(!el||charts[id])return;charts[id]=new Chart(el,cfg);}
+
+/* ---- EJECUTIVO ---- */
+function trendCfg(mode){
+  const ds=[];
+  if(mode==='all'||mode==='aten')ds.push({label:'Atenciones',data:D.atencionesMes,borderColor:C.p,backgroundColor:'rgba(30,64,175,.10)',fill:mode==='aten',tension:.35,borderWidth:2.5,pointRadius:3.5,pointHoverRadius:6,pointBackgroundColor:'#fff',pointBorderWidth:2,yAxisID:'y'});
+  if(mode==='all'||mode==='dias')ds.push({label:'Días de incapacidad',data:D.diasIncapMes,borderColor:C.am,backgroundColor:'rgba(217,119,6,.10)',fill:mode==='dias',tension:.35,borderWidth:2.5,pointRadius:3.5,pointHoverRadius:6,pointBackgroundColor:'#fff',pointBorderWidth:2,yAxisID:'y'});
+  if(mode==='all')ds.push({label:'Personas accidentadas',data:D.accidPersonasMes,borderColor:C.r,borderDash:[5,4],tension:.35,borderWidth:2,pointRadius:3,pointHoverRadius:5.5,pointBackgroundColor:'#fff',pointBorderWidth:2,yAxisID:'y1'});
+  return{type:'line',data:{labels:M6,datasets:ds},options:{interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',align:'end'}},scales:{y:{...GRID,beginAtZero:true,title:{display:true,text:'Atenciones / días',font:{size:10}}},y1:{...GRID,position:'right',beginAtZero:true,grid:{display:false},display:mode==='all',title:{display:mode==='all',text:'Accidentes',font:{size:10}}},x:GRIDX}}};
+}
+function initExec(){
+  mk('c-trend',trendCfg('all'));
+  mk('c-donut',{type:'doughnut',data:{labels:['Enfermedad general','Acc. trayecto','Maternidad','Acc. laboral','Interna'],datasets:[{data:[7259,2600,1515,1454,504],backgroundColor:[C.p,C.am,C.pk,C.r,C.sl],borderWidth:3,borderColor:'#fff',hoverOffset:8}]},options:{cutout:'62%',plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:x=>` ${x.label}: ${nf(x.raw)} días (${(x.raw/13332*100).toFixed(1)}%)`}}}}});
+  mk('c-causas',{type:'bar',data:{labels:D.causas.slice(0,8).map(c=>c[0]),datasets:[{data:D.causas.slice(0,8).map(c=>c[1]),backgroundColor:[C.p,C.s,C.c,C.g,C.a,C.am,C.v,C.sl],borderRadius:5,barThickness:16}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{...GRID,beginAtZero:true},y:{...GRIDX,ticks:{font:{size:10.5}}}}}});
+  mk('c-costo',{type:'bar',data:{labels:Object.keys(D.costos),datasets:[{data:Object.values(D.costos),backgroundColor:[C.p,C.am,C.pk,C.r,C.sl],borderRadius:5,barThickness:20}]},options:{indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>' $'+x.raw.toLocaleString('es-MX',{maximumFractionDigits:0})}}},scales:{x:{...GRID,beginAtZero:true,ticks:{callback:v=>'$'+(v/1000)+'k'}},y:{...GRIDX,ticks:{font:{size:10.5}}}}}});
+  mk('c-em',{type:'doughnut',data:{labels:['Condicionado','Apto','No apto','Inclusión'],datasets:[{data:[4094,1580,1332,123],backgroundColor:[C.a,C.g,C.r,C.v],borderWidth:3,borderColor:'#fff',hoverOffset:8}]},options:{cutout:'58%',plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:x=>` ${x.label}: ${nf(x.raw)} (${(x.raw/7129*100).toFixed(1)}%)`}}}}});
+  // tabla predios
+  const mx=Math.max(...D.predios.map(p=>p.a));
+  document.getElementById('tb-predios').innerHTML=D.predios.filter(p=>p.a>0||p.d>0).map(p=>{
+    const acc=p.al+p.at;const sc=p.a/mx*100;
+    let rk,cls;if(sc>=70||p.d>=280){rk='Crítico';cls='t-crit';}else if(sc>=40||p.d>=180){rk='Alto';cls='t-alt';}else if(sc>=12||p.d>=60){rk='Medio';cls='t-med';}else{rk='Bajo';cls='t-baj';}
+    return `<tr><td class="nm">${p.n}</td><td class="r num">${nf(p.a)}</td><td><div class="bar-cell"><div class="tr"><div class="fl" style="width:${sc}%"></div></div></div></td><td class="r num">${nf(p.d)}</td><td class="r num">${acc}</td><td class="r num">${nf(p.e)}</td><td><span class="tag ${cls}">${rk}</span></td></tr>`;
+  }).join('');
+  document.getElementById('f-predio').innerHTML='<option>Todos los predios</option>'+D.predios.map(p=>`<option>${p.n}</option>`).join('');
+}
+document.querySelectorAll('#tb-trend button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#tb-trend button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  charts['c-trend'].destroy();delete charts['c-trend'];mk('c-trend',trendCfg(b.dataset.s));
+}));
+
+/* ---- VISTAS ---- */
+const INIT={
+  aten(){
+    mk('c-aten-mes',{type:'bar',data:{labels:M6,datasets:[{label:'Atenciones',data:D.atencionesMes,backgroundColor:C.p,borderRadius:6,barThickness:34}]},options:{plugins:{legend:{display:false}},scales:{y:{...GRID,beginAtZero:true},x:GRIDX}}});
+    const top=D.predios.filter(p=>p.a>0);
+    mk('c-aten-predio',{type:'bar',data:{labels:top.map(p=>p.n),datasets:[{data:top.map(p=>p.a),backgroundColor:C.s,borderRadius:5,barThickness:13}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{...GRID,beginAtZero:true},y:{...GRIDX,ticks:{font:{size:10}}}}}});
+    const cols=[C.p,C.r,C.g,C.a,C.v,C.c];
+    mk('c-aten-multi',{type:'line',data:{labels:M6,datasets:D.predios.slice(0,6).map((p,i)=>({label:p.n,data:p.mes,borderColor:cols[i],backgroundColor:cols[i],tension:.35,borderWidth:2.2,pointRadius:3,pointHoverRadius:5.5}))},options:{interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',align:'end'}},scales:{y:{...GRID,beginAtZero:true},x:GRIDX}}});
+  },
+  causas(){
+    mk('c-causas-full',{type:'bar',data:{labels:D.causas.map(c=>c[0]),datasets:[{data:D.causas.map(c=>c[1]),backgroundColor:D.causas.map((_,i)=>i<3?C.p:i<8?C.s:'#93C5FD'),borderRadius:4,barThickness:12}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{...GRID,beginAtZero:true},y:{...GRIDX,ticks:{font:{size:9.5}}}}}});
+    mk('c-causas-grupo',{type:'polarArea',data:{labels:['Preventivo','Digestivo','Respiratorio','Musculoesq.','Neurológico','Cardiovascular','Otros'],datasets:[{data:[2051,1809,1775,1594,1401,991,2992],backgroundColor:['rgba(5,150,105,.75)','rgba(30,64,175,.75)','rgba(59,130,246,.75)','rgba(217,119,6,.75)','rgba(124,58,237,.75)','rgba(220,38,38,.75)','rgba(100,116,139,.6)'],borderWidth:2,borderColor:'#fff'}]},options:{plugins:{legend:{position:'right',labels:{font:{size:10.5}}}},scales:{r:{grid:{color:'#E2E8F0'},ticks:{display:false}}}}});
+  },
+  musc(){
+    const d=D.musc.filter(m=>m[1]>0);
+    mk('c-musc',{type:'bar',data:{labels:d.map(m=>m[0]),datasets:[{data:d.map(m=>m[1]),backgroundColor:d.map(m=>m[1]>400?C.am:m[1]>40?C.a:C.sl),borderRadius:5,barThickness:22}]},options:{plugins:{legend:{display:false}},scales:{y:{...GRID,beginAtZero:true},x:{...GRIDX,ticks:{font:{size:10},maxRotation:35,minRotation:0}}}}});
+  },
+  em(){
+    mk('c-em-mes',{type:'bar',data:{labels:M6,datasets:[
+      {label:'Ingreso',data:D.emIngreso,backgroundColor:C.p,borderRadius:5,barThickness:26},
+      {label:'Periódico',data:D.emPeriodico,backgroundColor:C.s,borderRadius:5,barThickness:26},
+      {label:'Post-incapacidad',data:D.emPost,backgroundColor:C.c,borderRadius:5,barThickness:26}]},
+      options:{plugins:{legend:{position:'top',align:'end'}},scales:{y:{...GRID,beginAtZero:true,stacked:true},x:{...GRIDX,stacked:true}}}});
+    const p=D.predios.filter(x=>x.e>0);
+    mk('c-em-predio',{type:'bar',data:{labels:p.map(x=>x.n),datasets:[
+      {label:'Apto',data:p.map(x=>x.ap),backgroundColor:C.g},
+      {label:'No apto',data:p.map(x=>x.na),backgroundColor:C.r},
+      {label:'Condicionado',data:p.map(x=>x.co),backgroundColor:C.a}]},
+      options:{indexAxis:'y',plugins:{legend:{position:'top',align:'end'}},scales:{x:{...GRID,beginAtZero:true,stacked:true},y:{...GRIDX,stacked:true,ticks:{font:{size:10}}}}}});
+  },
+  incap(){
+    const I=D.incapDetalle;
+    mk('c-incap-mes',{type:'bar',data:{labels:M6,datasets:[
+      {label:'Enfermedad general',data:I.EG,backgroundColor:C.p},
+      {label:'Acc. trayecto (RT2)',data:I.RT2,backgroundColor:C.am},
+      {label:'Acc. laboral (RT1)',data:I.RT1,backgroundColor:C.r},
+      {label:'Maternidad',data:I.MATER,backgroundColor:C.pk},
+      {label:'Interna',data:I.INT,backgroundColor:C.sl}]},
+      options:{plugins:{legend:{position:'top',align:'end'}},scales:{y:{...GRID,beginAtZero:true,stacked:true},x:{...GRIDX,stacked:true}}}});
+    mk('c-incap-costo',{type:'doughnut',data:{labels:Object.keys(D.costos),datasets:[{data:Object.values(D.costos),backgroundColor:[C.p,C.am,C.pk,C.r,C.sl],borderWidth:3,borderColor:'#fff',hoverOffset:8}]},options:{cutout:'60%',plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:x=>` ${x.label}: $${x.raw.toLocaleString('es-MX',{maximumFractionDigits:0})}`}}}}});
+    const p=D.predios.filter(x=>x.d>0).sort((a,b)=>b.d-a.d);
+    mk('c-incap-predio',{type:'bar',data:{labels:p.map(x=>x.n),datasets:[{data:p.map(x=>x.d),backgroundColor:p.map(x=>x.d>=250?C.r:x.d>=150?C.am:C.s),borderRadius:5,barThickness:24}]},options:{plugins:{legend:{display:false}},scales:{y:{...GRID,beginAtZero:true},x:{...GRIDX,ticks:{font:{size:10},maxRotation:35}}}}});
+  },
+  accid(){
+    const p=D.predios.filter(x=>x.al+x.at>0).sort((a,b)=>(b.al+b.at)-(a.al+a.at));
+    mk('c-accid-predio',{type:'bar',data:{labels:p.map(x=>x.n),datasets:[
+      {label:'Laboral',data:p.map(x=>x.al),backgroundColor:C.p,borderRadius:4},
+      {label:'Trayecto',data:p.map(x=>x.at),backgroundColor:C.am,borderRadius:4}]},
+      options:{plugins:{legend:{position:'top',align:'end'}},scales:{y:{...GRID,beginAtZero:true,stacked:true},x:{...GRIDX,stacked:true,ticks:{font:{size:10},maxRotation:40}}}}});
+    mk('c-accid-causa',{type:'bar',data:{labels:D.accidCausas.map(c=>c[0]),datasets:[{data:D.accidCausas.map(c=>c[1]),backgroundColor:[C.r,C.am,C.a,C.v,C.sl,C.c,C.pk],borderRadius:5,barThickness:20}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{...GRID,beginAtZero:true},y:GRIDX}}});
+    mk('c-accid-dias',{type:'line',data:{labels:M6,datasets:[
+      {label:'Días por acc. trayecto',data:D.accidDiasTray,borderColor:C.am,backgroundColor:'rgba(217,119,6,.12)',fill:true,tension:.35,borderWidth:2.5,pointRadius:3.5,pointHoverRadius:6,pointBackgroundColor:'#fff',pointBorderWidth:2},
+      {label:'Días por acc. laboral',data:D.accidDiasLab,borderColor:C.r,backgroundColor:'rgba(220,38,38,.12)',fill:true,tension:.35,borderWidth:2.5,pointRadius:3.5,pointHoverRadius:6,pointBackgroundColor:'#fff',pointBorderWidth:2}]},
+      options:{interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',align:'end'}},scales:{y:{...GRID,beginAtZero:true},x:GRIDX}}});
+  },
+  antid(){
+    const p=D.predios.filter(x=>x.ad>0).sort((a,b)=>b.ad-a.ad);
+    mk('c-ant-predio',{type:'bar',data:{labels:p.map(x=>x.n),datasets:[{data:p.map(x=>x.ad),backgroundColor:p.map(x=>x.ad>200?C.v:C.s),borderRadius:5,barThickness:18}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{...GRID,beginAtZero:true},y:{...GRIDX,ticks:{font:{size:10}}}}}});
+    mk('c-ant-mes',{type:'bar',data:{labels:M6,datasets:[
+      {label:'Suministrados',data:D.antidopingSuministrado,backgroundColor:'#C7D2FE',borderRadius:5,barThickness:24},
+      {label:'Aplicados',data:D.antidopingMes,backgroundColor:C.p,borderRadius:5,barThickness:24}]},
+      options:{plugins:{legend:{position:'top',align:'end'}},scales:{y:{...GRID,beginAtZero:true},x:GRIDX}}});
+  },
+  mater(){
+    mk('c-mater',{type:'bar',data:{labels:MESES,datasets:[
+      {type:'bar',label:'Días incapacitantes',data:D.maternidadDias,backgroundColor:'rgba(219,39,119,.75)',borderRadius:5,barThickness:24,yAxisID:'y'},
+      {type:'line',label:'Casos nuevos',data:D.maternidadCasos,borderColor:C.v,backgroundColor:C.v,tension:.35,borderWidth:2.5,pointRadius:4,pointHoverRadius:6.5,pointBackgroundColor:'#fff',pointBorderWidth:2,yAxisID:'y1'}]},
+      options:{interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',align:'end'}},scales:{y:{...GRID,beginAtZero:true,title:{display:true,text:'Días',font:{size:10}}},y1:{...GRID,position:'right',beginAtZero:true,grid:{display:false},title:{display:true,text:'Casos',font:{size:10}}},x:GRIDX}}});
+  },
+  rep(){
+    const reps=[['Reporte Ejecutivo','KPIs consolidados, tendencias e insights del periodo','#1E40AF'],['Morbilidad','Atenciones, causas y lesiones musculoesqueléticas','#3B82F6'],['Incapacidades','Días, personas y costos por tipo y predio','#D97706'],['Accidentabilidad','Eventos, causas RT, días perdidos y género','#DC2626'],['Exámenes Médicos','Resultados por tipo, predio y periodo','#059669'],['Antidoping','Pruebas aplicadas, inventario y alcoholimetría','#7C3AED'],['Maternidad','Casos, días incapacitantes y costo','#DB2777'],['Por Predio','Ficha 360° de un predio específico','#0891B2'],['Calidad de Datos','Registros procesados, advertencias y rechazos','#64748B']];
+    document.getElementById('rep-cards').innerHTML=reps.map(([t,d,c])=>`<div class="pnl" style="cursor:pointer"><h2 style="color:${c}"><svg class="ic" viewBox="0 0 24 24" style="color:${c}"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>${t}</h2><p class="sub">${d}</p><div style="display:flex;gap:6px;margin-top:10px"><button class="btn ghost" style="padding:5px 11px;font-size:11.5px">PDF</button><button class="btn ghost" style="padding:5px 11px;font-size:11.5px">Excel</button><button class="btn ghost" style="padding:5px 11px;font-size:11.5px">CSV</button></div></div>`).join('');
+  },
+  admin(){}
+};
+
+/* ---- NAVEGACIÓN ---- */
+const done={};
+function go(v){
+  document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('on',a.dataset.v===v));
+  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));
+  if(!done[v]&&INIT[v]){INIT[v]();done[v]=true;}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.querySelectorAll('#nav a').forEach(a=>a.addEventListener('click',()=>go(a.dataset.v)));
+initExec();done.exec=true;
+</script>
+</body>
+</html>

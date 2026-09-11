@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Incapacidades — Salud Ocupacional</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap');
+
+  :root{
+    --color-primary:#0284C7; --color-on-primary:#FFFFFF;
+    --color-secondary:#0891B2; --color-accent:#16A34A;
+    --color-background:#F0F9FF; --color-foreground:#0C4A6E;
+    --color-muted:#E8F2F8; --color-border:#BAE6FD;
+    --color-destructive:#DC2626; --color-ring:#0284C7;
+    --surface:#FFFFFF; --text-muted:#4B7A96;
+    --amber:#C07800; --amber-bg:#FDF3E0;
+    --purple:#A3227A; --purple-bg:#FBE6F3;
+    --slate:#475569; --slate-bg:#EEF0F3;
+    --sidebar-bg:#0B2540; --sidebar-text:#9FC3DA;
+    --shadow-sm:0 1px 2px rgba(12,74,110,.06), 0 1px 1px rgba(12,74,110,.04);
+    --shadow-md:0 4px 14px rgba(12,74,110,.08), 0 1px 3px rgba(12,74,110,.05);
+    font-family:'Source Sans 3', -apple-system, "Segoe UI", Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--color-background); color:var(--color-foreground); font-size:14px; -webkit-font-smoothing:antialiased;}
+  h1,h2,.brand-font{font-family:'Lexend', 'Source Sans 3', sans-serif;}
+  a{cursor:pointer;}
+  .app{display:grid; grid-template-columns:252px 1fr; min-height:100vh;}
+  .sidebar{background:var(--sidebar-bg); color:var(--sidebar-text); padding:20px 0; position:sticky; top:0; height:100vh; overflow-y:auto;}
+  .sidebar .logo{padding:0 20px 20px; font-weight:700; color:#fff; font-size:16px; border-bottom:1px solid rgba(255,255,255,.08); margin-bottom:12px; font-family:'Lexend',sans-serif;}
+  .sidebar nav a{display:block; padding:9px 20px; color:var(--sidebar-text); text-decoration:none; font-size:13.5px; border-left:3px solid transparent; transition:background .2s ease, color .2s ease;}
+  .sidebar nav a:hover{background:rgba(255,255,255,.06); color:#fff;}
+  .sidebar nav a.active{background:rgba(2,132,199,.35); color:#fff; border-left-color:#4DA8DB; font-weight:600;}
+  .sidebar .group-label{padding:16px 20px 6px; font-size:11px; text-transform:uppercase; letter-spacing:.6px; color:#5D8CA8;}
+  .main{padding:24px 28px 60px; max-width:1440px;}
+  .breadcrumbs{font-size:12.5px; color:var(--text-muted); margin-bottom:8px;}
+  .breadcrumbs a{color:var(--color-primary); text-decoration:none;}
+  header.page-head{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:20px; flex-wrap:wrap; gap:12px;}
+  header.page-head h1{margin:0; font-size:22px; font-weight:700; color:var(--color-foreground);}
+  header.page-head p{margin:2px 0 0; color:var(--text-muted); font-size:13px;}
+  .btn-primary{background:var(--color-primary); color:#fff; border:none; padding:9px 16px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; box-shadow:var(--shadow-sm); transition:background .2s ease, box-shadow .2s ease;}
+  .btn-primary:hover{background:#026FA8; box-shadow:var(--shadow-md);}
+  .btn-primary:focus-visible{outline:2px solid var(--color-ring); outline-offset:2px;}
+  .filters{background:var(--surface); border:1px solid var(--color-border); border-radius:12px; padding:14px 16px; display:flex; gap:14px; flex-wrap:wrap; margin-bottom:20px; align-items:flex-end; box-shadow:var(--shadow-sm);}
+  .filter-field{display:flex; flex-direction:column; gap:4px;}
+  .filter-field label{font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.4px; font-weight:600;}
+  .filter-field select{padding:7px 10px; border:1px solid var(--color-border); border-radius:8px; font-size:13px; background:#fff; min-width:140px; cursor:pointer;}
+  .kpi-row{display:grid; grid-template-columns:repeat(6,1fr); gap:16px; margin-bottom:22px;}
+  @media (max-width:1300px){.kpi-row{grid-template-columns:repeat(3,1fr);}}
+  .kpi-card{background:var(--surface); border:1px solid var(--color-border); border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:8px; box-shadow:var(--shadow-sm); transition:box-shadow .2s ease, transform .2s ease;}
+  .kpi-card:hover{box-shadow:var(--shadow-md); transform:translateY(-1px);}
+  .kpi-card .kpi-label{font-size:12px; color:var(--text-muted); font-weight:600;}
+  .kpi-card .kpi-value{font-size:24px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--color-foreground);}
+  .kpi-card .kpi-sub{font-size:11.5px; color:var(--text-muted);}
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;}
+  @media (max-width:1150px){.grid-2{grid-template-columns:1fr;}}
+  .panel{background:var(--surface); border:1px solid var(--color-border); border-radius:14px; padding:18px; box-shadow:var(--shadow-sm);}
+  .panel h2{margin:0 0 4px; font-size:15px; font-weight:700; color:var(--color-foreground);}
+  .panel .panel-sub{font-size:12px; color:var(--text-muted); margin-bottom:14px;}
+  .donut-wrap{display:flex; align-items:center; gap:22px;}
+  .legend{display:flex; flex-direction:column; gap:8px; font-size:12.5px;}
+  .legend .item{display:flex; align-items:center; gap:8px;}
+  .legend .swatch{width:10px; height:10px; border-radius:3px;}
+  svg.trend{width:100%; height:180px;}
+  table.data-table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  table.data-table th{text-align:left; padding:9px 10px; color:var(--text-muted); font-weight:600; border-bottom:1px solid var(--color-border); font-size:11px; text-transform:uppercase; letter-spacing:.3px;}
+  table.data-table td{padding:10px; border-bottom:1px solid var(--color-muted); font-variant-numeric:tabular-nums;}
+  table.data-table tr{cursor:pointer; transition:background .15s ease;}
+  table.data-table tr:hover td{background:var(--color-muted);}
+  .status-badge{display:inline-flex; font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; font-variant-numeric:normal;}
+  .badge-eg{color:var(--color-primary); background:#E0F2FE;}
+  .badge-mat{color:var(--purple); background:var(--purple-bg);}
+  .badge-lab{color:var(--color-destructive); background:#FDECEB;}
+  .badge-tray{color:var(--amber); background:var(--amber-bg);}
+  .badge-int{color:var(--slate); background:var(--slate-bg);}
+  .table-toolbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;}
+  .export-btn{border:1px solid var(--color-border); background:#fff; padding:7px 12px; border-radius:8px; font-size:12.5px; font-weight:600; cursor:pointer; color:var(--color-foreground); transition:background .2s ease;}
+  .export-btn:hover{background:var(--color-muted);}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">SALUD OCUPACIONAL</div>
+    <nav>
+      <a href="#">Inicio</a>
+      <a href="dashboard-ejecutivo.html">Dashboard Ejecutivo</a>
+      <a href="#">Vista Gerencial</a>
+      <div class="group-label">Morbilidad</div>
+      <a href="#">Atenciones</a>
+      <a href="#">Causas</a>
+      <a href="#">Musculoesqueléticas</a>
+      <a href="#">Exámenes Médicos</a>
+      <div class="group-label">Incapacidades</div>
+      <a href="#" class="active">General</a>
+      <a href="#">IMSS</a>
+      <a href="#">Internas</a>
+      <a href="#">Accidentabilidad</a>
+      <div class="group-label">Antidoping</div>
+      <a href="#">Pruebas</a>
+      <a href="#">Inventario</a>
+      <a href="#">Alcoholimetría</a>
+      <a href="#">Maternidad</a>
+      <a href="#">Reportes</a>
+      <div class="group-label">Administración</div>
+      <a href="#">Predios</a>
+      <a href="#">Cuentas</a>
+      <a href="#">Catálogos</a>
+      <a href="#">Usuarios</a>
+      <a href="#">Permisos</a>
+      <a href="#">Auditoría</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="breadcrumbs"><a href="dashboard-ejecutivo.html">Dashboard</a> &nbsp;›&nbsp; Incapacidades</div>
+    <header class="page-head">
+      <div>
+        <h1>Incapacidades</h1>
+        <p>Julio 2026 · Todos los predios</p>
+      </div>
+      <button class="btn-primary">+ Nuevo caso</button>
+    </header>
+
+    <div class="filters">
+      <div class="filter-field"><label>Año</label><select><option>2026</option></select></div>
+      <div class="filter-field"><label>Mes / Periodo</label><select><option>Julio 2026</option></select></div>
+      <div class="filter-field"><label>Predio</label><select><option>Todos los predios</option></select></div>
+      <div class="filter-field"><label>Tipo</label><select><option>Todos</option><option>Enfermedad general</option><option>Maternidad</option><option>Accidente laboral</option><option>Accidente trayecto</option><option>Interna</option></select></div>
+    </div>
+
+    <section class="kpi-row">
+      <div class="kpi-card"><span class="kpi-label">Total casos</span><span class="kpi-value">214</span></div>
+      <div class="kpi-card"><span class="kpi-label">Personas incapacitadas</span><span class="kpi-value">198</span></div>
+      <div class="kpi-card"><span class="kpi-label">Días acumulados</span><span class="kpi-value">1,536</span></div>
+      <div class="kpi-card"><span class="kpi-label">Horas no trabajadas</span><span class="kpi-value">12,288</span></div>
+      <div class="kpi-card"><span class="kpi-label">Costo</span><span class="kpi-value">$482,300</span></div>
+      <div class="kpi-card"><span class="kpi-label">Promedio de días</span><span class="kpi-value">7.2</span></div>
+    </section>
+
+    <section class="grid-2">
+      <div class="panel">
+        <h2>Segmentación por tipo</h2>
+        <p class="panel-sub">Distribución de casos del periodo</p>
+        <div class="donut-wrap">
+          <svg width="150" height="150" viewBox="0 0 42 42" role="img" aria-label="Distribución de casos de incapacidad por tipo">
+            <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="var(--color-muted)" stroke-width="6"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#0284C7" stroke-width="6" stroke-dasharray="42 100" stroke-dashoffset="25"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#DC2626" stroke-width="6" stroke-dasharray="25 100" stroke-dashoffset="-17"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#C07800" stroke-width="6" stroke-dasharray="10 100" stroke-dashoffset="-42"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#A3227A" stroke-width="6" stroke-dasharray="8 100" stroke-dashoffset="-52"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#475569" stroke-width="6" stroke-dasharray="15 100" stroke-dashoffset="-60"></circle>
+          </svg>
+          <div class="legend">
+            <div class="item"><span class="swatch" style="background:#0284C7"></span>Enfermedad general — 42%</div>
+            <div class="item"><span class="swatch" style="background:#DC2626"></span>Accidente laboral — 25%</div>
+            <div class="item"><span class="swatch" style="background:#C07800"></span>Accidente trayecto — 10%</div>
+            <div class="item"><span class="swatch" style="background:#A3227A"></span>Maternidad — 8%</div>
+            <div class="item"><span class="swatch" style="background:#475569"></span>Interna — 15%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Tendencia mensual</h2>
+        <p class="panel-sub">Casos por mes, año en curso</p>
+        <svg class="trend" viewBox="0 0 620 180" role="img" aria-label="Tendencia mensual de casos de incapacidad">
+          <line x1="30" y1="10" x2="30" y2="150" stroke="var(--color-border)"/>
+          <line x1="30" y1="150" x2="600" y2="150" stroke="var(--color-border)"/>
+          <polyline fill="none" stroke="#0284C7" stroke-width="2.5"
+            points="50,120 95,115 140,100 185,95 230,85 275,80 320,60 365,55"/>
+          <g font-size="10" fill="#4B7A96" font-family="Source Sans 3, sans-serif">
+            <text x="45" y="165">ENE</text><text x="90" y="165">FEB</text><text x="135" y="165">MAR</text>
+            <text x="180" y="165">ABR</text><text x="225" y="165">MAY</text><text x="270" y="165">JUN</text>
+            <text x="315" y="165">JUL</text>
+          </g>
+        </svg>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="table-toolbar">
+        <h2 style="margin:0;">Ranking por predio</h2>
+        <button class="export-btn">⭳ Exportar</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Predio</th><th>Casos</th><th>Días</th><th>Costo</th><th>Tipo predominante</th></tr></thead>
+        <tbody>
+          <tr><td>Macro II</td><td>48</td><td>340</td><td>$98,200</td><td><span class="status-badge badge-eg">Enf. general</span></td></tr>
+          <tr><td>AIFA</td><td>32</td><td>210</td><td>$71,400</td><td><span class="status-badge badge-lab">Accid. laboral</span></td></tr>
+          <tr><td>Siglo XXI</td><td>25</td><td>160</td><td>$54,100</td><td><span class="status-badge badge-eg">Enf. general</span></td></tr>
+          <tr><td>Flora</td><td>18</td><td>95</td><td>$32,000</td><td><span class="status-badge badge-int">Interna</span></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <div class="table-toolbar">
+        <h2 style="margin:0;">Casos recientes</h2>
+        <button class="export-btn">⭳ Exportar</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Folio</th><th>Predio</th><th>Tipo</th><th>Inicio</th><th>Días</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>INC-2026-0341</td><td>Macro II</td><td><span class="status-badge badge-eg">Enf. general</span></td><td>02/07/2026</td><td>12</td><td>Activa</td></tr>
+          <tr><td>INC-2026-0340</td><td>AIFA</td><td><span class="status-badge badge-lab">Accid. laboral</span></td><td>28/06/2026</td><td>21</td><td>Activa</td></tr>
+          <tr><td>INC-2026-0339</td><td>Siglo XXI</td><td><span class="status-badge badge-mat">Maternidad</span></td><td>15/06/2026</td><td>84</td><td>Activa</td></tr>
+          <tr><td>INC-2026-0338</td><td>Flora</td><td><span class="status-badge badge-tray">Accid. trayecto</span></td><td>10/06/2026</td><td>7</td><td>Cerrada</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</div>
+</body>
+</html>

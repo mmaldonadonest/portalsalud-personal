@@ -27,7 +27,9 @@ public class BiowsIncapacidadClient implements IncapacidadClient {
     private static final Logger log = LoggerFactory.getLogger(BiowsIncapacidadClient.class);
     private static final String PATH_INCAPACIDADES = "/Servcio/consulta_incapacidad";
     private static final String PATH_INCAPACIDAD_ALTA = "/Servcio/incapacidades";
-    private static final String PATH_REPORTE_FECHA = "/Servcio/consulta_incapacidades_fecha";
+    // _cta = clon del WS original que ademas devuelve CUENTA por registro (10-sep-2026,
+    // docs/ords-cuenta-en-reportes.sql). El original sigue publicado e intacto.
+    private static final String PATH_REPORTE_FECHA = "/Servcio/consulta_incapacidades_fecha_cta";
 
     private final RestClient biowsRestClient;
     private final BiowsProperties properties;
@@ -90,7 +92,7 @@ public class BiowsIncapacidadClient implements IncapacidadClient {
 
     private static IncapacidadReporteDto toReporte(BiowsIncapacidadReporteResponse.Dato d) {
         return new IncapacidadReporteDto(
-                d.fechaConsulta(), d.folioIncapacidad(), d.nss(), d.nombre(), d.rfc(), d.curp(),
+                d.fechaConsulta(), d.folioIncapacidad(), d.nss(), d.nombre(), d.rfc(), d.curp(), d.cuenta(),
                 d.rubro(), d.ramo(), d.tipoIncapacidad(), d.fechaInicio(), d.fechaTermino(),
                 d.diasAutorizados(), d.salarioIntegrado(), d.costo(), d.estadoDictamen());
     }

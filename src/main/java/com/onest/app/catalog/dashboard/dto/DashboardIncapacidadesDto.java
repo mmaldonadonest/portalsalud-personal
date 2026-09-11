@@ -11,11 +11,24 @@ public record DashboardIncapacidadesDto(
         String fechaInicial,
         String fechaFinal,
         long totalIncapacidades,
+        /** NSS distintos en el rango. La tarjeta dice "Personas incapacitadas", y
+         *  totalIncapacidades son REGISTROS: una misma persona puede tener varios. */
+        long totalPersonas,
         long totalDiasAutorizados,
         double totalCosto,
         List<ConteoDto> porRamo,
         List<ConteoDto> porRubro,
         List<ConteoDto> porEstadoDictamen,
-        List<PuntoMensualDto> tendenciaMensual
+        /** Desglose por predio (via el mapeo cuenta->predio). Alimenta el ranking del
+         *  Dashboard Ejecutivo y el modulo Vista por Predio. */
+        List<ConteoDto> porPredio,
+        List<PuntoMensualDto> tendenciaMensual,
+        List<PuntoMensualDiasDto> tendenciaDiasMensual,
+        /** Dias por mes y por ramo (cantidad = dias), para la barra apilada del modulo Incapacidades. */
+        List<SerieMensualDto> diasRamoMensual,
+        /** Personas (NSS distintos) por rubro IMSS / Interna / sin rubro. */
+        List<ConteoSimpleDto> personasPorRubro,
+        /** Personas (NSS distintos) por mes y por rubro. */
+        List<SerieMensualDto> personasRubroMensual
 ) {
 }

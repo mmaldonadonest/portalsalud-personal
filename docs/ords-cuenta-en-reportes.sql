@@ -1,0 +1,133 @@
+-- =============================================================================
+-- CUENTA en los 3 WS de reporte que hoy solo traen NSS
+-- (Incapacidades / Accidentes / Examenes) — habilita el filtro por Predio
+-- =============================================================================
+-- Destino : misma instancia ORDS que security/Servcio/* (10.249.249.3).
+-- Fecha   : 9 de septiembre de 2026
+-- Motivo  : el Dashboard Ejecutivo (/analisis/ejecutivo, rol MEDICO_ANALISTA) ya
+--           tiene los selects Predio y Cuenta, pero HOY solo pueden cortar lo que
+--           sale de consulta_medica_fecha: es el unico reporte con CUENTA por
+--           registro. Los otros tres devuelven NSS pero no cuenta, asi que sus
+--           KPIs (personas incapacitadas, dias, accidentes, examenes, costo)
+--           quedan en total global y la UI los marca con la pastilla «global».
+--           Con este cambio los 6 KPIs se pueden filtrar por predio.
+--
+-- Alcance : cambio ADITIVO — se agrega un campo, no se quita ni se renombra
+--           ninguno. Aun asi son 3 WS PRODUCTIVOS, y la regla de este proyecto es
+--           CLONAR ANTES DE MODIFICAR: se crea un template nuevo con sufijo _cta
+--           y el original se queda intacto hasta que el nuevo este verificado.
+--
+-- Ojo    : el WS de consultas usa 'sin cuenta asignada' como texto cuando el
+--          empleado no tiene cuenta. Se replica EXACTO ese literal en los tres,
+--          para que Java agrupe todo en el mismo bucket "Sin asignar" sin tener
+--          que conocer variantes.
+-- =============================================================================
+
+
+-- =============================================================================
+-- EL PATRON — final, 10-sep-2026
+-- =============================================================================
+-- CAUSA RAIZ de los dos intentos fallidos (queda documentada porque el error
+-- enganaba): al aplicar la v2 sobre la v1 quedo el FROM mal formado —
+--
+--     from SERV_MED_ACCIDENTE a
+--     left join bio_empleado b                                    <- SIN su ON
+--     left join bio_datos_laborales_empleados dl on a.NSS = dl.emp_nss
+--     left join biometrico_cuenta cta on dl.cuenta_id=cta.cuenta_id
+--     on a.nss=b.emp_nss                                          <- ON desplazado
+--
+-- Oracle lo lee como  a ⟕ ( b ⟕ dl ON a.NSS = dl.emp_nss ): dentro de ese join
+-- anidado solo existen 'b' y 'dl', 'a' todavia no esta en alcance. De ahi el
+-- ORA-00904: "A"."NSS": invalid identifier — que parecia un problema de alias
+-- pero era puramente sintactico.
+--
+-- (a) En el SELECT del cursor, agregar esta columna (con su coma). El FROM NO
+--     se toca: sigue siendo solo la tabla base + el left join a bio_empleado
+--     CON su ON pegado.
+--
+--         coalesce((select max(cta.CUENTA_NOMBRE)
+--                     from bio_datos_laborales_empleados dl
+--                     join biometrico_cuenta cta on dl.cuenta_id = cta.cuenta_id
+--                    where dl.emp_nss = a.nss),
+--                  'sin cuenta asignada') cuenta,
+--
+--     La subconsulta escalar se prefiere a un JOIN por dos razones: no puede
+--     alterar el numero de filas (un JOIN a bio_datos_laborales_empleados SI
+--     podria duplicarlas si un NSS tuviera mas de un registro laboral), y no
+--     obliga a tocar el FROM — que es justo donde se rompio todo.
+--
+-- (b) En el loop de APEX_JSON, agregar la escritura (al final, junto a las demas):
+--
+--         APEX_JSON.WRITE('cuenta',coalesce(i.cuenta,'0'));
+--
+-- NADA MAS. No se toca el FROM, ni el SELECT COUNT(*) de kexiste, ni el manejo
+-- de "sin datos"/"fechas incorrectas", ni el chunking del CLOB de respuesta.
+-- =============================================================================
+
+
+-- =============================================================================
+-- LOS 3 HANDLERS
+-- =============================================================================
+-- El patron (a)+(b) de arriba es identico en los tres. Lo unico que cambia es
+-- de que handler se copia el Source original:
+--
+--   1. consulta_incapacidades_fecha_cta
+--      Origen: security/Servcio/consulta_incapacidades_fecha (docs/contextoWS.txt:2259)
+--      Tabla base: TBL_SERV_INCAPACIDAD_MEDICA
+--      OJO: este handler declara el cursor DOS veces (el count de kexiste y el del
+--      loop). Solo el del LOOP se envuelve — el count no se toca.
+--
+--   2. consulta_accidentes_fecha_cta
+--      Origen: docs/ords-accidentes-dashboard.sql (aplicado 17-ago-2026)
+--      Tabla base: SERV_MED_ACCIDENTE
+--
+--   3. consulta_examen_fecha_cta
+--      Origen: docs/ords-examen-dashboard.sql
+--      Tabla base: SERV_MED_RESULTADO_EXAMEN_HIST
+--      Verificar en SQL Developer el URI real del template antes de clonar.
+--
+-- Como aplicar cada uno (SQL Developer > conexion > RESTful Services):
+--   1. Abrir el handler POST del ORIGINAL y copiar su Source completo.
+--   2. Modulo "Servcio" > New Template > URI Template: <nombre>_cta
+--   3. New Handler > POST > Source Type: PL/SQL > pegar el Source copiado.
+--   4. Aplicar (a) y (b).
+-- =============================================================================
+
+
+-- =============================================================================
+-- VERIFICACION (antes de tocar Java)
+-- =============================================================================
+-- Para cada uno de los 3, con un rango que sepas que tiene datos:
+--
+--   POST http://10.249.249.3/biows/ords/security/Servcio/<nombre>_cta
+--   Body: {"fecha_inicial":"01/01/24","fecha_final":"31/12/24"}
+--
+--   OJO con el rango: 2024 es el unico ano con volumen real en esta instancia.
+--   2025 esta vacio y 2026 trae ~1 registro (probado con curl 10-sep-2026), asi
+--   que un "No se tienen datos" con otro rango no prueba nada.
+--
+-- Revisar que:
+--   1. El conteo de filas sea EXACTAMENTE el mismo que el WS original. Con la
+--      subconsulta escalar no deberia cambiar nunca, pero hay que confirmarlo.
+--   2. Cada fila traiga "cuenta". Las que no tengan cuenta en RH deben decir
+--      'sin cuenta asignada', no venir ausentes ni null.
+--   3. Los nombres de cuenta coincidan con los de consulta_medica_fecha (mismo
+--      catalogo biometrico_cuenta) — si no coinciden, el mapeo cuenta->predio
+--      de SERV_MED_CUENTA_PREDIO no va a resolver y todo caeria en "Sin asignar".
+--
+-- =============================================================================
+-- LO QUE SIGUE DEL LADO JAVA (cuando los 3 esten publicados y verificados)
+-- =============================================================================
+-- 1. Agregar el campo cuenta a IncapacidadReporteDto, AccidenteReporteDto y
+--    ExamenReporteDto, y apuntar los 3 clientes Biows* a los endpoints _cta.
+-- 2. Dar a DashboardIncapacidadesService / DashboardAccidentesService /
+--    DashboardExamenService la misma firma resumen(fi, ff, predio, cuenta) que ya
+--    tiene DashboardConsultaService (filtra las filas antes de agregar, reusando
+--    PredioService.predioFinoPorCuenta()).
+-- 3. Pasar predio/cuenta a los 4 endpoints en DashboardController.
+-- 4. En pages/analisis-ejecutivo.html: mandar el corte a los 5 fetch (hoy solo va
+--    a qsConsultas), y BORRAR la logica de pastillas «global» + el aviso
+--    #avisoFiltroParcial — ya no aplicaria a nada.
+-- 5. Recien entonces el "Ranking de predios" puede ganar las columnas Dias /
+--    Accidentes / Examenes por predio, que hoy no existen por esta misma razon.
+-- =============================================================================

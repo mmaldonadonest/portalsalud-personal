@@ -1,0 +1,1024 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Portal Salud Ocupacional — Dashboard Ejecutivo 2026</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Portal Integral de Salud Ocupacional — dashboard ejecutivo de morbilidad, incapacidades, accidentabilidad, exámenes médicos, antidoping y maternidad.">
+<meta name="color-scheme" content="light">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='5' fill='%231D4ED8'/><path d='M12 5 6 8.5v4c0 3.3 2.6 5.7 6 6.2 3.4-.5 6-2.9 6-6.2v-4L12 5Z' fill='none' stroke='white' stroke-width='1.6'/><path d='M9.5 12l1.7 1.7L15 10' fill='none' stroke='white' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<style>
+/* ===== TOKENS ===================================================== */
+:root{
+  --brand:#1D4ED8; --brand-700:#1E40AF; --brand-400:#60A5FA; --brand-50:#EFF6FF;
+  --ink:#0B1220; --ink-2:#334155; --ink-3:#64748B;
+  --bg:#F4F6FA; --surface:#FFFFFF; --surface-2:#F8FAFC;
+  --line:#E5E9F0; --line-2:#CBD5E1;
+  --ok:#047857; --ok-bg:#ECFDF5; --danger:#B91C1C; --danger-bg:#FEF2F2;
+  --warn:#B45309; --warn-bg:#FFFBEB; --info:#0E7490; --info-bg:#ECFEFF;
+  --violet:#6D28D9; --violet-bg:#F5F3FF; --pink:#BE185D; --pink-bg:#FDF2F8; --steel:#475569;
+  --ink-inv:#F8FAFC;
+  --nav:#0B1220; --nav-2:#16233B; --nav-txt:#A8B8D0;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px; --s8:32px;
+  --f-xs:10.5px; --f-sm:11.5px; --f-md:12.5px; --f-base:13.5px; --f-lg:15px; --f-xl:20px; --f-2xl:24px;
+  --r-sm:7px; --r:10px; --r-lg:14px; --r-full:999px;
+  --e1:0 1px 2px rgba(11,18,32,.05);
+  --e2:0 1px 3px rgba(11,18,32,.07),0 1px 2px rgba(11,18,32,.04);
+  --e3:0 8px 24px rgba(11,18,32,.09),0 2px 6px rgba(11,18,32,.05);
+  --e4:0 20px 48px rgba(11,18,32,.16);
+  --t:.18s cubic-bezier(.2,.8,.3,1);
+  --z-nav:30; --z-drawer:45; --z-modal:50; --z-toast:60;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Fira Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:var(--f-base);line-height:1.5;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.num{font-family:'Fira Code',ui-monospace,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.2px}
+svg.ic{width:18px;height:18px;stroke:currentColor;stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+button,select,input,textarea{font-family:inherit;font-size:inherit;color:inherit}
+a{color:inherit}
+:focus{outline:none}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:var(--r-sm)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:var(--r-full);border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:var(--ink-3);background-clip:content-box}
+::selection{background:var(--brand-400);color:#fff}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.skip{position:absolute;left:var(--s4);top:-60px;z-index:100;background:var(--brand);color:#fff;padding:10px 18px;border-radius:var(--r);font-weight:600;font-size:var(--f-md);transition:top var(--t);text-decoration:none}
+.skip:focus{top:var(--s3)}
+
+/* ===== LAYOUT ===================================================== */
+.app{display:grid;grid-template-columns:238px 1fr;min-height:100vh}
+.sb{background:linear-gradient(175deg,var(--nav) 0%,var(--nav-2) 100%);position:sticky;top:0;height:100vh;overflow-y:auto;padding:var(--s4) 0 var(--s6);z-index:var(--z-drawer);scrollbar-width:thin}
+.sb::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);background-clip:content-box}
+.brand{display:flex;align-items:center;gap:10px;padding:0 var(--s5) var(--s4);border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:var(--s2)}
+.brand .mk{width:31px;height:31px;border-radius:9px;background:linear-gradient(135deg,var(--brand-400),var(--ok));display:grid;place-items:center;flex-shrink:0;box-shadow:0 2px 8px rgba(96,165,250,.3)}
+.brand .mk svg{width:17px;height:17px;stroke:#fff;stroke-width:2.1}
+.brand b{color:#fff;font-size:var(--f-md);font-weight:600;letter-spacing:.25px;line-height:1.3}
+.grp{padding:var(--s4) var(--s5) var(--s1);font-size:9.5px;text-transform:uppercase;letter-spacing:1px;color:#5C6E8A;font-weight:600}
+.sb a{display:flex;align-items:center;gap:10px;padding:8px var(--s5);color:var(--nav-txt);text-decoration:none;font-size:var(--f-md);border-left:3px solid transparent;cursor:pointer;transition:background var(--t),color var(--t),border-color var(--t);min-height:36px;position:relative}
+.sb a .ic{width:15px;height:15px;opacity:.75;transition:opacity var(--t),color var(--t)}
+.sb a:hover{background:rgba(255,255,255,.055);color:#fff}
+.sb a:hover .ic{opacity:1}
+.sb a[aria-current="page"]{background:linear-gradient(90deg,rgba(96,165,250,.2),rgba(96,165,250,.04));color:#fff;border-left-color:var(--brand-400);font-weight:500}
+.sb a[aria-current="page"] .ic{opacity:1;color:var(--brand-400)}
+.sb a:focus-visible{outline-offset:-2px}
+.sbx{display:none}
+
+.top{position:sticky;top:0;z-index:var(--z-nav);background:rgba(244,246,250,.88);backdrop-filter:saturate(180%) blur(12px);-webkit-backdrop-filter:saturate(180%) blur(12px);border-bottom:1px solid var(--line);padding:10px var(--s6);display:flex;align-items:center;gap:var(--s3)}
+.burger{display:none;width:36px;height:36px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--surface);place-items:center;cursor:pointer;color:var(--ink);transition:background var(--t)}
+.burger:hover{background:var(--surface-2)}
+.srch{flex:1;max-width:400px;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 11px;color:var(--ink-3);position:relative;transition:border-color var(--t),box-shadow var(--t)}
+.srch:focus-within{border-color:var(--brand-400);box-shadow:0 0 0 3px rgba(96,165,250,.16)}
+.srch input{border:0;outline:0;background:transparent;font-size:var(--f-md);flex:1;color:var(--ink);min-width:0}
+.srch input::placeholder{color:var(--ink-3)}
+.sres{position:absolute;top:calc(100% + 7px);left:-1px;right:-1px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--e3);overflow:hidden;display:none;max-height:300px;overflow-y:auto;z-index:var(--z-nav)}
+.sres.on{display:block}
+.sres .hd{padding:7px 12px;font-size:9.5px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink-3);background:var(--surface-2);font-weight:600}
+.sres button{display:flex;width:100%;justify-content:space-between;gap:10px;padding:9px 12px;font-size:var(--f-md);color:var(--ink);background:none;border:0;border-top:1px solid var(--surface-2);cursor:pointer;text-align:left;transition:background var(--t)}
+.sres button:hover,.sres button:focus-visible{background:var(--brand-50)}
+.sres button span{color:var(--ink-3);font-size:var(--f-sm);flex-shrink:0}
+.top-r{margin-left:auto;display:flex;align-items:center;gap:var(--s2)}
+.ibtn{position:relative;width:36px;height:36px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;cursor:pointer;color:var(--ink-2);transition:background var(--t),color var(--t)}
+.ibtn:hover{background:var(--surface-2);color:var(--ink)}
+.ibtn .pip{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 4px;border-radius:var(--r-full);background:var(--danger);border:2px solid var(--bg);color:#fff;font-size:9px;font-weight:700;display:grid;place-items:center;line-height:1;font-family:'Fira Code',monospace}
+.av{width:36px;height:36px;border-radius:var(--r-full);background:linear-gradient(135deg,var(--brand-700),var(--brand-400));color:#fff;display:grid;place-items:center;font-weight:600;font-size:var(--f-md);cursor:pointer;border:0;letter-spacing:.3px}
+
+.main{padding:var(--s5) var(--s6) 64px;max-width:1760px}
+.view{animation:in .28s cubic-bezier(.2,.8,.3,1)}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.crumb{font-size:var(--f-sm);color:var(--ink-3);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.crumb button{background:none;border:0;color:var(--brand);cursor:pointer;font-size:inherit;padding:0}
+.crumb button:hover{text-decoration:underline}
+
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:var(--s3);flex-wrap:wrap;margin-bottom:var(--s4)}
+.head h1{font-size:var(--f-xl);font-weight:600;letter-spacing:-.3px;line-height:1.25;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.head p{color:var(--ink-2);font-size:var(--f-md);margin-top:3px;max-width:76ch}
+.acts{display:flex;gap:var(--s2);flex-wrap:wrap}
+.btn{background:var(--brand);color:#fff;border:1px solid transparent;padding:8px 15px;border-radius:var(--r-sm);font-size:var(--f-md);font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:7px;box-shadow:var(--e1);transition:background var(--t),box-shadow var(--t),transform var(--t);min-height:36px;white-space:nowrap}
+.btn:hover{background:var(--brand-700);box-shadow:var(--e2);transform:translateY(-1px)}
+.btn:active{transform:none}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn .ic{width:15px;height:15px}
+.btn.ghost{background:var(--surface);color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{background:var(--surface-2);border-color:var(--line-2)}
+.btn.sm{padding:5px 11px;font-size:var(--f-sm);min-height:30px}
+
+.filters{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:11px var(--s4);display:flex;gap:var(--s3);flex-wrap:wrap;align-items:flex-end;margin-bottom:var(--s4);box-shadow:var(--e1)}
+.ff{display:flex;flex-direction:column;gap:4px}
+.ff label{font-size:9.5px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink-3);font-weight:600}
+.ff select,.ff input{padding:7px 10px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface);min-width:140px;cursor:pointer;color:var(--ink);min-height:34px;font-size:var(--f-md);transition:border-color var(--t),box-shadow var(--t)}
+.ff select:hover,.ff input:hover{border-color:var(--line-2)}
+.ff select:focus,.ff input:focus{border-color:var(--brand-400);box-shadow:0 0 0 3px rgba(96,165,250,.16)}
+.chip{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:var(--f-sm);color:var(--warn);background:var(--warn-bg);border:1px solid #FDE68A;padding:6px 12px;border-radius:var(--r-full);font-weight:500}
+.chip .ic{width:14px;height:14px}
+
+/* ===== KPI ======================================================== */
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:var(--s3);margin-bottom:var(--s4)}
+.kpis.k5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.kpis.k4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:1560px){.kpis,.kpis.k5,.kpis.k4{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.kpis,.kpis.k5,.kpis.k4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:13px var(--s4) var(--s4);position:relative;overflow:hidden;box-shadow:var(--e1);transition:box-shadow var(--t),transform var(--t),border-color var(--t);text-align:left;width:100%;display:block;border-top:3px solid var(--c,var(--brand))}
+button.kpi{cursor:pointer;font:inherit}
+button.kpi:hover{box-shadow:var(--e3);transform:translateY(-2px);border-color:var(--line-2)}
+.kpi .ico{width:30px;height:30px;border-radius:var(--r-sm);display:grid;place-items:center;background:var(--cb,var(--brand-50));color:var(--c,var(--brand));margin-bottom:9px}
+.kpi .ico .ic{width:16px;height:16px}
+.kpi .lb{font-size:var(--f-sm);color:var(--ink-2);font-weight:500;line-height:1.35}
+.kpi .vl{font-size:var(--f-2xl);font-weight:600;letter-spacing:-.7px;margin:2px 0 6px;line-height:1.1;color:var(--ink)}
+.kpi .dl{font-size:var(--f-xs);font-weight:600;display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:var(--r-full)}
+.up{color:var(--danger);background:var(--danger-bg)}
+.dn{color:var(--ok);background:var(--ok-bg)}
+.eq{color:var(--ink-2);background:var(--surface-2)}
+.kpi .s2{font-size:var(--f-xs);color:var(--ink-3);margin-top:5px;line-height:1.4}
+
+/* ===== PANELS ===================================================== */
+.g2{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:var(--s3);margin-bottom:var(--s3)}
+.g2b{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s3);margin-bottom:var(--s3)}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s3);margin-bottom:var(--s3)}
+@media(max-width:1240px){.g2,.g2b,.g3{grid-template-columns:minmax(0,1fr)}}
+.pnl{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:var(--s4);box-shadow:var(--e1);min-width:0}
+.pnl h2{font-size:var(--f-lg);font-weight:600;display:flex;align-items:center;gap:8px;letter-spacing:-.15px;line-height:1.3}
+.pnl h2 .ic{width:16px;height:16px;color:var(--brand);flex-shrink:0}
+.pnl .sub{font-size:var(--f-sm);color:var(--ink-3);margin-top:2px;line-height:1.45}
+.ph{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--s3);flex-wrap:wrap;margin-bottom:var(--s3)}
+.pnl>h2+.sub{margin-bottom:var(--s3)}
+.cw{position:relative;height:252px}
+.cw.sm{height:208px}.cw.lg{height:300px}.cw.xl{height:500px}
+
+.tabs{display:inline-flex;gap:2px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:3px}
+.tabs button{border:0;background:transparent;padding:6px 12px;font-size:var(--f-sm);border-radius:5px;cursor:pointer;color:var(--ink-2);font-weight:500;transition:background var(--t),color var(--t),box-shadow var(--t);min-height:30px;white-space:nowrap}
+.tabs button:hover{color:var(--ink)}
+.tabs button[aria-pressed="true"]{background:var(--surface);color:var(--brand);box-shadow:var(--e1);font-weight:600}
+
+/* ===== TABLE ====================================================== */
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 calc(var(--s4) * -1);padding:0 var(--s4)}
+table{width:100%;border-collapse:collapse;font-size:var(--f-md)}
+caption{text-align:left;font-size:var(--f-sm);color:var(--ink-3);padding-bottom:var(--s2)}
+th{text-align:left;padding:9px 11px;font-size:9.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-3);font-weight:600;border-bottom:1.5px solid var(--line);white-space:nowrap;background:var(--surface)}
+th.r,td.r{text-align:right}
+th.srt{cursor:pointer;user-select:none;transition:color var(--t)}
+th.srt:hover{color:var(--brand)}
+th .ar{opacity:.3;font-size:8px;margin-left:3px}
+th[aria-sort]:not([aria-sort="none"]){color:var(--brand)}
+th[aria-sort]:not([aria-sort="none"]) .ar{opacity:1}
+td{padding:9px 11px;border-bottom:1px solid var(--surface-2);color:var(--ink-2)}
+td.nm{font-weight:500;color:var(--ink)}
+tbody tr{transition:background var(--t)}
+tbody tr.clk{cursor:pointer}
+tbody tr.clk:hover td,tbody tr.clk:focus-within td{background:var(--brand-50)}
+tbody tr:last-child td{border-bottom:0}
+.bc{display:flex;align-items:center;gap:8px}
+.bc .tr{flex:1;height:6px;background:var(--surface-2);border-radius:var(--r-full);overflow:hidden;min-width:46px}
+.bc .fl{height:100%;border-radius:var(--r-full);background:var(--brand);transition:width .5s cubic-bezier(.2,.8,.3,1)}
+.bc .pv{font-size:var(--f-xs);color:var(--ink-3);min-width:30px;text-align:right}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:var(--f-xs);font-weight:600;padding:3px 9px;border-radius:var(--r-full);white-space:nowrap}
+.tag::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
+.tag.plain::before{display:none}
+.t-crit{color:var(--danger);background:var(--danger-bg)}
+.t-alt{color:#C2410C;background:#FFF7ED}
+.t-med{color:var(--warn);background:var(--warn-bg)}
+.t-baj{color:var(--ok);background:var(--ok-bg)}
+.t-inf{color:var(--brand);background:var(--brand-50)}
+.t-neu{color:var(--steel);background:var(--surface-2)}
+.t-vio{color:var(--violet);background:var(--violet-bg)}
+.t-pnk{color:var(--pink);background:var(--pink-bg)}
+
+/* ===== INSIGHTS =================================================== */
+.ins{display:flex;flex-direction:column;gap:var(--s2)}
+.ins .it{display:flex;gap:10px;padding:11px 13px;border-radius:var(--r-sm);font-size:var(--f-md);line-height:1.5;border:1px solid var(--line);background:var(--surface-2);color:var(--ink-2)}
+.ins .it .ic{width:16px;height:16px;margin-top:1px;color:var(--brand)}
+.ins .it b{font-weight:600;color:var(--ink)}
+.ins .it.b{background:var(--danger-bg);border-color:#FECACA}.ins .it.b .ic{color:var(--danger)}
+.ins .it.w{background:var(--warn-bg);border-color:#FDE68A}.ins .it.w .ic{color:var(--warn)}
+.ins .it.g{background:var(--ok-bg);border-color:#A7F3D0}.ins .it.g .ic{color:var(--ok)}
+
+.mini{display:grid;grid-template-columns:repeat(auto-fit,minmax(94px,1fr));gap:var(--s2)}
+.mini .m{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 9px;text-align:center}
+.mini .m .n{font-size:17px;font-weight:600;letter-spacing:-.4px;color:var(--ink)}
+.mini .m .l{font-size:var(--f-xs);color:var(--ink-3);margin-top:2px;font-weight:500;line-height:1.3}
+
+.note{margin-top:var(--s5);padding:11px var(--s4);background:var(--brand-50);border:1px solid #BFDBFE;border-radius:var(--r);font-size:var(--f-sm);color:#1E3A8A;display:flex;gap:10px;line-height:1.5}
+.note .ic{width:16px;height:16px;flex-shrink:0;margin-top:1px;color:var(--brand)}
+.note b{font-weight:600}
+
+.empty{text-align:center;padding:40px var(--s5);color:var(--ink-3)}
+.empty .ic{width:36px;height:36px;margin:0 auto 11px;color:var(--line-2);stroke-width:1.4}
+.empty h3{font-size:var(--f-base);color:var(--ink);margin-bottom:4px;font-weight:600}
+.empty p{font-size:var(--f-md);max-width:330px;margin:0 auto;line-height:1.5}
+
+/* ===== MODAL / DRAWER / TOAST ===================================== */
+.ov{position:fixed;inset:0;background:rgba(11,18,32,.45);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);z-index:var(--z-modal);display:none;align-items:center;justify-content:center;padding:var(--s5)}
+.ov.on{display:flex;animation:in .18s ease}
+.modal{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--e4);width:100%;max-width:560px;max-height:88vh;display:flex;flex-direction:column;animation:pop .22s cubic-bezier(.2,.8,.3,1)}
+@keyframes pop{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:none}}
+.mh{padding:var(--s4) var(--s5);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-start;gap:var(--s3)}
+.mh h3{font-size:var(--f-lg);font-weight:600;letter-spacing:-.2px}
+.mh p{font-size:var(--f-sm);color:var(--ink-3);margin-top:3px;line-height:1.45}
+.mb{padding:var(--s5);overflow-y:auto}
+.mf{padding:var(--s3) var(--s5);border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:var(--s2);background:var(--surface-2);border-radius:0 0 var(--r-lg) var(--r-lg);flex-wrap:wrap}
+.x{width:32px;height:32px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;cursor:pointer;color:var(--ink-3);flex-shrink:0;transition:background var(--t),color var(--t)}
+.x:hover{background:var(--surface-2);color:var(--ink)}
+
+.fg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s3)}
+@media(max-width:560px){.fg{grid-template-columns:1fr}}
+.fld{display:flex;flex-direction:column;gap:5px;min-width:0}
+.fld.full{grid-column:1/-1}
+.fld label{font-size:var(--f-sm);font-weight:500;color:var(--ink)}
+.fld label .rq{color:var(--danger);margin-left:1px}
+.fld input,.fld select,.fld textarea{padding:9px 11px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface);color:var(--ink);min-height:38px;font-size:var(--f-md);transition:border-color var(--t),box-shadow var(--t);width:100%}
+.fld input:hover,.fld select:hover,.fld textarea:hover{border-color:var(--line-2)}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--brand-400);box-shadow:0 0 0 3px rgba(96,165,250,.16)}
+.fld textarea{resize:vertical;min-height:66px;line-height:1.5}
+.fld .hint{font-size:var(--f-xs);color:var(--ink-3);line-height:1.4}
+.fld .err{font-size:var(--f-xs);color:var(--danger);display:none;align-items:center;gap:4px;font-weight:500}
+.fld.bad input,.fld.bad select,.fld.bad textarea{border-color:var(--danger)}
+.fld.bad input:focus,.fld.bad select:focus{box-shadow:0 0 0 3px rgba(185,28,28,.13)}
+.fld.bad .err{display:flex}
+.fld.bad .hint{display:none}
+
+.toast{position:fixed;bottom:var(--s6);right:var(--s6);z-index:var(--z-toast);display:flex;flex-direction:column;gap:var(--s2);pointer-events:none}
+.tst{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--ok);border-radius:var(--r);box-shadow:var(--e4);padding:12px var(--s4);display:flex;gap:10px;align-items:flex-start;min-width:280px;max-width:380px;animation:sl .3s cubic-bezier(.2,.8,.3,1);transition:opacity .25s,transform .25s;pointer-events:auto}
+.tst.err{border-left-color:var(--danger)}
+.tst .ic{width:17px;height:17px;color:var(--ok);flex-shrink:0;margin-top:1px}
+.tst.err .ic{color:var(--danger)}
+.tst b{font-size:var(--f-md);font-weight:600;display:block;margin-bottom:2px;color:var(--ink)}
+.tst p{font-size:var(--f-sm);color:var(--ink-2);line-height:1.45}
+@keyframes sl{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}
+
+.drw{position:fixed;top:0;right:0;bottom:0;width:380px;max-width:92vw;background:var(--surface);box-shadow:var(--e4);z-index:var(--z-modal);transform:translateX(101%);transition:transform .3s cubic-bezier(.2,.8,.3,1);display:flex;flex-direction:column;visibility:hidden}
+.drw.on{transform:none;visibility:visible}
+.al{padding:13px var(--s4);border-bottom:1px solid var(--surface-2);display:flex;gap:11px;cursor:pointer;transition:background var(--t);width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0}
+.al:hover,.al:focus-visible{background:var(--surface-2)}
+.al .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.al b{font-size:var(--f-md);font-weight:600;display:block;margin-bottom:3px;color:var(--ink);line-height:1.35}
+.al p{font-size:var(--f-sm);color:var(--ink-2);line-height:1.5}
+.al time{font-size:var(--f-xs);color:var(--ink-3);margin-top:4px;display:block}
+
+/* ===== RESPONSIVE ================================================= */
+@media(max-width:960px){
+  html,body{max-width:100%;overflow-x:hidden}
+  .app{display:block}
+  .sb{position:fixed;left:0;top:0;width:252px;transform:translateX(-101%);transition:transform .28s cubic-bezier(.2,.8,.3,1);visibility:hidden}
+  .sb.on{transform:none;visibility:visible;box-shadow:var(--e4)}
+  .sbx{display:grid;position:absolute;top:14px;right:12px;width:30px;height:30px;border-radius:var(--r-sm);border:0;background:rgba(255,255,255,.1);place-items:center;color:#fff;cursor:pointer}
+  .burger{display:grid}
+  main{min-width:0;max-width:100%}
+  .top{padding:9px var(--s3)}
+  .main{padding:var(--s4) var(--s3) 56px;max-width:100%}
+  .head h1{font-size:18px}
+  .head{align-items:flex-start}
+  .ff{flex:1 1 145px;min-width:0}
+  .ff select,.ff input{min-width:0;width:100%}
+  .chip{margin-left:0;flex:1 1 100%}
+  .kpi .vl{font-size:21px}
+  .cw,.cw.lg{height:236px}.cw.xl{height:420px}
+  .pnl{padding:var(--s3)}
+  .tw{margin:0 calc(var(--s3) * -1);padding:0 var(--s3)}
+  .toast{left:var(--s3);right:var(--s3);bottom:var(--s3)}
+  .tst{min-width:0;max-width:none}
+}
+@media(max-width:520px){
+  .kpis,.kpis.k5,.kpis.k4{grid-template-columns:minmax(0,1fr)}
+  .cw,.cw.lg{height:220px}.cw.xl{height:380px}
+  .head .acts{width:100%}
+  .head .acts .btn{flex:1;justify-content:center}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
+@media print{
+  .sb,.top,.drw,.toast,.acts,.filters{display:none!important}
+  .app{display:block}.main{padding:0;max-width:none}
+  .pnl{break-inside:avoid;box-shadow:none;border-color:#ccc}
+}
+</style>
+</head>
+<body>
+<a href="#main" class="skip">Saltar al contenido principal</a>
+<div class="app">
+<aside class="sb" id="sb" aria-label="Navegación principal">
+  <button class="sbx" id="sbx" aria-label="Cerrar menú"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  <div class="brand">
+    <span class="mk" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2 3 7v6c0 5 4 8.5 9 9 5-.5 9-4 9-9V7l-9-5Z"/><path d="M9 12l2 2 4-4"/></svg></span>
+    <b>SALUD<br>OCUPACIONAL</b>
+  </div>
+  <nav id="nav"></nav>
+</aside>
+
+<main>
+<div class="top">
+  <button class="burger" id="bg" aria-label="Abrir menú" aria-expanded="false" aria-controls="sb"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+  <div class="srch" role="search">
+    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="q" placeholder="Buscar predio, causa, módulo…" aria-label="Búsqueda global" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="qr">
+    <div class="sres" id="qr" role="listbox" aria-label="Resultados"></div>
+  </div>
+  <div class="top-r">
+    <button class="ibtn" id="alr" aria-label="Ver alertas (5 activas)" aria-expanded="false" aria-controls="drw"><svg class="ic" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="pip" aria-hidden="true">5</span></button>
+    <button class="av" title="José Alemán · Administrador" aria-label="Cuenta de José Alemán">JA</button>
+  </div>
+</div>
+<div class="main" id="main" tabindex="-1"></div>
+</main>
+</div>
+
+<aside class="drw" id="drw" aria-label="Alertas" aria-hidden="true">
+  <div class="mh"><div><h3>Alertas</h3><p>5 activas · calculadas sobre umbrales configurables</p></div>
+  <button class="x" id="drwx" aria-label="Cerrar alertas"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+  <div style="overflow-y:auto;flex:1" id="alist"></div>
+</aside>
+<div class="ov" id="ov" role="dialog" aria-modal="true" aria-labelledby="mt"><div class="modal" id="mdl"></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ==========================================================================
+   Portal Salud Ocupacional — Dashboard Ejecutivo
+   Datos reales de "10 REPORTE MORBILIDAD 2026 GERENCIA.xlsm" (ENE–JUN 2026)
+   ========================================================================== */
+'use strict';
+const MESES=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'], M6=MESES.slice(0,6);
+
+const D={
+ atencionesMes:[1932,1746,2156,2122,2362,2295],
+ diasIncapMes:[2095,1886,2214,1854,2048,2394],
+ accidPersonasMes:[73,16,32,27,45,32],
+ emIngreso:[699,722,1418,1241,880,2169], emPeriodico:[136,424,212,203,182,109], emPost:[54,41,42,41,41,57],
+ incap:{EG:[1094,1073,1308,1123,1072,1301],MATER:[82,128,256,185,245,274],RT1:[302,186,114,144,301,329],RT2:[569,433,442,337,316,380],INT:[48,66,94,65,114,110]},
+ personasIncapMes:[334,246,287,253,286,358], internasMes:[22,36,29,15,19,20],
+ costos:{'Enfermedad general':1653355.90,'Accidente trayecto':892922.08,'Maternidad':504831.24,'Accidente laboral':486885.71,'Interna':209516.55},
+ materCasos:[42,10,8,4,6,0], materDias:[82,128,256,185,245,274,212,120,13,0,0,0],
+ antidopingMes:[91,129,125,133,192,123], antidopingSum:[166,411,0,62,82,183],
+ accidDiasLab:[314,186,114,144,301,329], accidDiasTray:[630,433,442,337,316,380],
+ predios:[
+  {n:'AIFA',a:3052,inc:24,d:293,al:16,at:26,f:30,m:12,e:1683,ap:75,na:141,co:1454,incl:13,emni:167,pre:1516,ad:14,alc:3,mes:[543,316,357,556,693,587]},
+  {n:'MACRO II',a:2453,inc:358,d:295,al:13,at:20,f:20,m:13,e:1071,ap:290,na:234,co:504,incl:43,emni:1030,pre:41,ad:26,alc:6,mes:[311,369,471,492,423,387]},
+  {n:'TOLUCA',a:1715,inc:0,d:155,al:11,at:4,f:4,m:11,e:377,ap:63,na:17,co:294,incl:3,emni:377,pre:0,ad:32,alc:0,mes:[226,233,350,265,324,317]},
+  {n:'MACRO I',a:1635,inc:19,d:200,al:12,at:14,f:22,m:4,e:870,ap:182,na:245,co:414,incl:29,emni:870,pre:0,ad:63,alc:1,mes:[277,209,367,235,272,275]},
+  {n:'WORLD PARK',a:1105,inc:6,d:124,al:9,at:12,f:4,m:17,e:746,ap:125,na:157,co:459,incl:5,emni:582,pre:164,ad:42,alc:8,mes:[137,153,168,192,226,229]},
+  {n:'Z VALLEJO',a:738,inc:4,d:219,al:12,at:16,f:10,m:18,e:1405,ap:570,na:335,co:479,incl:21,emni:85,pre:1320,ad:17,alc:0,mes:[150,134,113,104,120,117]},
+  {n:'TULTIPARK',a:604,inc:72,d:80,al:9,at:6,f:12,m:3,e:49,ap:7,na:1,co:40,incl:1,emni:49,pre:0,ad:2,alc:1,mes:[93,102,107,75,116,111]},
+  {n:'MERCURIO',a:559,inc:0,d:160,al:3,at:9,f:0,m:12,e:202,ap:51,na:34,co:117,incl:0,emni:202,pre:0,ad:428,alc:167,mes:[98,119,110,80,72,80]},
+  {n:'ATIZAPAN',a:238,inc:1,d:13,al:2,at:0,f:0,m:2,e:75,ap:27,na:7,co:40,incl:1,emni:75,pre:0,ad:33,alc:0,mes:[36,31,40,43,41,47]},
+  {n:'CHARCON',a:218,inc:0,d:67,al:0,at:3,f:0,m:3,e:36,ap:13,na:7,co:16,incl:0,emni:36,pre:0,ad:57,alc:1,mes:[22,23,27,24,26,96]},
+  {n:'SIGLO XXI',a:179,inc:0,d:82,al:7,at:6,f:10,m:3,e:324,ap:97,na:102,co:119,incl:6,emni:324,pre:0,ad:4,alc:0,mes:[20,39,29,40,25,26]},
+  {n:'MIKELS',a:59,inc:0,d:18,al:3,at:1,f:0,m:4,e:61,ap:17,na:15,co:28,incl:1,emni:55,pre:6,ad:4,alc:0,mes:[9,10,10,11,7,12]},
+  {n:'U TEPALCAPA',a:54,inc:0,d:40,al:0,at:3,f:0,m:3,e:157,ap:48,na:31,co:78,incl:0,emni:157,pre:0,ad:67,alc:0,mes:[7,8,6,5,17,11]},
+  {n:'SMO',a:4,inc:0,d:0,al:0,at:0,f:0,m:0,e:20,ap:6,na:6,co:8,incl:0,emni:20,pre:0,ad:0,alc:0,mes:[3,0,1,0,0,0]},
+  {n:'FORANEO',a:0,inc:0,d:44,al:5,at:3,f:1,m:7,e:53,ap:9,na:0,co:44,incl:0,emni:53,pre:0,ad:4,alc:0,mes:[0,0,0,0,0,0]},
+  {n:'FLORA',a:0,inc:0,d:0,al:0,at:0,f:0,m:0,e:0,ap:0,na:0,co:0,incl:0,emni:0,pre:0,ad:0,alc:0,mes:[0,0,0,0,0,0]}],
+ causas:[['Vacuna / método PF / seg. salud',1982],['Digestivo',1809],['Respiratorio',1775],['Neurológico',1401],['Tensión arterial',991],['MT algia/contusión',503],['MP algia/contusión',482],['Fisioterapia',409],['Ginecológico',320],['Curación',313],['Cervical/dorsal/lumbar',313],['Circulatorio',311],['General algia/contusión',296],['Bucodental',272],['Oftálmico',231],['Psicosomático',171],['Ácido péptica',166],['Alergia/intoxicación',162],['Inyección',148],['Toma de glucosa',137],['Dermatológico',132],['Genitourinario',108],['Embarazo (detección/control)',69],['Ótico',66],['Endocrino',26],['NOM 035',20]],
+ musc:[['Algia/contusión MT',512],['Cervicalgia/dorsalgia/lumbalgia',494],['Algia/contusión MP',485],['Contusión/trauma cabeza',46],['Policontundido',18],['Contusión/trauma tronco',17],['Esguince MP',10],['Esguince MT',6],['Luxación MT',5],['Luxación MP',1],['Amputación MT',0],['Amputación MP',0],['Fractura MT',0],['Fractura MP',0],['Fractura cabeza/tronco',0]],
+ accidCausas:[['Caída',76],['Accidente vial',48],['Golpe',43],['Ergonómica',33],['Improcedente',12],['Herida',7],['Agresión',6]],
+ lotes:[{l:'D2412111',pr:'AIFA',ini:400,con:360,cad:'2026-10-04',dias:27},{l:'D2501087',pr:'MACRO II',ini:250,con:238,cad:'2026-11-04',dias:58},{l:'D2502044',pr:'MERCURIO',ini:600,con:428,cad:'2027-01-15',dias:130},{l:'D2503022',pr:'MACRO I',ini:180,con:63,cad:'2027-04-02',dias:207},{l:'D2504019',pr:'TOLUCA',ini:123,con:32,cad:'2027-06-18',dias:284}]
+};
+const T={atenciones:12613,inclusion:484,diasIncap:13332,horasNoTrab:106656,personasIMSS:1790,personasInternas:142,
+ accidentes:225,accLab:102,accTray:123,accFem:113,accMasc:112,examenes:8671,emIngreso:7129,emPeriodico:1266,emPost:276,
+ emApto:1580,emNoApto:1332,emCondic:4094,emInclusion:123,emEMNI:4082,emPretest:3047,antidoping:793,alcoholemia:187,
+ kits:1553,materCasos:70,materDias:1515,costoTotal:3747511.48,musc:1594,diasEG:7259,diasRT1:1454,diasRT2:2600,diasInt:504};
+
+const ALERTAS=[
+ {t:'crit',ti:'Lote D2412111 caduca en 27 días',d:'AIFA · 40 de 400 unidades. Umbral crítico: ≤30 días.',w:'Hace 2 h',v:'inv'},
+ {t:'crit',ti:'Macro II supera el umbral de días de incapacidad',d:'295 días acumulados IMSS, por encima del crítico (280).',w:'Hace 5 h',v:'predio',p:'MACRO II'},
+ {t:'warn',ti:'Stock bajo en lote D2501087',d:'Macro II · 12 de 250 unidades restantes (5%).',w:'Ayer',v:'inv'},
+ {t:'warn',ti:'Repunte de días de incapacidad en junio',d:'2,394 días, +16.9% frente a mayo. Máximo del ejercicio.',w:'Ayer',v:'incap'},
+ {t:'info',ti:'Concentración de antidoping en Mercurio',d:'428 de 793 pruebas (54%). Verificar si responde a un programa.',w:'Hace 3 días',v:'antid'}];
+
+/* ---------- Chart.js ---------- */
+const C={p:'#1D4ED8',s:'#3B82F6',lt:'#93C5FD',a:'#F59E0B',g:'#047857',r:'#B91C1C',v:'#6D28D9',c:'#0E7490',pk:'#BE185D',sl:'#64748B',am:'#B45309'};
+Object.assign(Chart.defaults,{maintainAspectRatio:false,color:'#334155'});
+Chart.defaults.font.family="'Fira Sans',system-ui,sans-serif";
+Chart.defaults.font.size=11;
+Object.assign(Chart.defaults.plugins.legend.labels,{usePointStyle:true,boxWidth:7,padding:13,font:{size:11}});
+Object.assign(Chart.defaults.plugins.tooltip,{backgroundColor:'#0B1220',padding:11,cornerRadius:8,boxPadding:5,titleFont:{weight:'600',size:12},bodyFont:{size:11.5},displayColors:true,usePointStyle:true});
+if(matchMedia('(prefers-reduced-motion:reduce)').matches)Chart.defaults.animation=false;
+const GRID={grid:{color:'#EFF3F8',drawTicks:false},border:{display:false},ticks:{padding:8,font:{size:10.5}}};
+const GX={grid:{display:false},border:{display:false},ticks:{padding:6,font:{size:10.5}}};
+const nf=n=>Number(n).toLocaleString('es-MX');
+const mxn=n=>'$'+Number(n).toLocaleString('es-MX',{maximumFractionDigits:0});
+const pc=(a,b)=>b?(a/b*100).toFixed(1)+'%':'0%';
+const charts={};
+const mk=(id,cfg)=>{const el=document.getElementById(id);if(!el)return;charts[id]?.destroy();charts[id]=new Chart(el,cfg)};
+const riesgo=p=>{const mx=Math.max(...D.predios.map(x=>x.a)),sc=mx?p.a/mx*100:0;
+ return sc>=70||p.d>=280?['Crítico','t-crit']:sc>=40||p.d>=180?['Alto','t-alt']:sc>=12||p.d>=60?['Medio','t-med']:['Bajo','t-baj']};
+
+/* ---------- Iconos ---------- */
+const I={grid:'<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
+ shield:'<path d="M12 2 3 7v6c0 5 4 8.5 9 9 5-.5 9-4 9-9V7l-9-5Z"/><path d="M12 8v6M9 11h6"/>',
+ user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>',
+ clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>',
+ alert:'<path d="M10.3 3.86 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.86a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/>',
+ doc:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/>',
+ money:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+ trend:'<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-4 4"/>',
+ bars:'<path d="M4 19V5M4 19h16M8 19v-7M12 19v-11M16 19v-5"/>',
+ check:'<path d="m20 6-11 11-5-5"/>', flask:'<path d="M9 2h6M10 2v5.5L5 16a3 3 0 0 0 2.6 4.5h8.8A3 3 0 0 0 19 16l-5-8.5V2"/>',
+ heart:'<path d="M12 21s-7-4.35-9.5-8.5C.5 8.5 3 5 6.5 5c2 0 3.5 1.5 5.5 4 2-2.5 3.5-4 5.5-4C21 5 23.5 8.5 21.5 12.5 19 16.65 12 21 12 21Z"/>',
+ box:'<path d="M3 7l9-4 9 4-9 4-9-4Z"/><path d="M3 7v10l9 4 9-4V7M12 11v10"/>',
+ bldg:'<path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/>',
+ pie:'<path d="M21 12a9 9 0 1 1-9-9v9Z"/><path d="M12 3a9 9 0 0 1 9 9h-9Z"/>',
+ spark:'<path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/>',
+ spine:'<path d="M6 3v18M18 3v18M6 8h5a3 3 0 0 1 0 6H6"/>',
+ up:'<path d="M12 16V4m0 0L8 8m4-4 4 4M4 20h16"/>',
+ file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/>',
+ audit:'<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/>',
+ cog:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>', down:'<path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/>',
+ info:'<circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/>'};
+const ico=k=>`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${I[k]||''}</svg>`;
+
+/* ---------- Menú ---------- */
+const NAV=[['exec','Dashboard Ejecutivo','grid'],['predio','Vista por Predio','bldg'],
+ ['@','Morbilidad'],['aten','Atenciones','shield'],['causas','Causas','bars'],['musc','Musculoesqueléticas','spine'],
+ ['@','Clínico'],['em','Exámenes Médicos','doc'],['incap','Incapacidades','clock'],['accid','Accidentabilidad','alert'],
+ ['@','Control'],['antid','Antidoping','flask'],['inv','Inventario','box'],['mater','Maternidad','heart'],
+ ['@','Sistema'],['emp','Empleados','user'],['imp','Importar Excel','up'],['rep','Reportes','file'],['aud','Auditoría','audit'],['admin','Administración','cog']];
+document.getElementById('nav').innerHTML=NAV.map(([k,t,i])=>k==='@'?`<div class="grp">${t}</div>`:`<a data-v="${k}" role="button" tabindex="0">${ico(i)}${t}</a>`).join('');
+
+/* ---------- UI helpers ---------- */
+function toast(t,m,err){const w=document.getElementById('toast'),e=document.createElement('div');
+ e.className='tst'+(err?' err':'');
+ e.innerHTML=`<svg class="ic" viewBox="0 0 24 24">${err?'<circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/>':'<path d="M20 6 9 17l-5-5"/>'}</svg><div><b>${t}</b><p>${m}</p></div>`;
+ w.appendChild(e);setTimeout(()=>{e.style.opacity='0';e.style.transform='translateX(22px)';setTimeout(()=>e.remove(),260)},4000)}
+let lastFocus=null;
+function modal(h){lastFocus=document.activeElement;const ov=document.getElementById('ov');
+ document.getElementById('mdl').innerHTML=h;ov.classList.add('on');
+ setTimeout(()=>ov.querySelector('input,select,textarea,button')?.focus(),70)}
+function closeModal(){document.getElementById('ov').classList.remove('on');lastFocus?.focus()}
+document.getElementById('ov').addEventListener('click',e=>{if(e.target.id==='ov')closeModal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeDrawer()}
+ if(e.key==='Tab'&&document.getElementById('ov').classList.contains('on')){
+  const f=[...document.querySelectorAll('#mdl button,#mdl input,#mdl select,#mdl textarea')].filter(x=>!x.disabled);
+  if(!f.length)return;const first=f[0],last=f[f.length-1];
+  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}
+  else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});
+
+function formModal(t,s,campos,ok){
+ modal(`<div class="mh"><div><h3 id="mt">${t}</h3><p>${s}</p></div>
+  <button class="x" data-x aria-label="Cerrar"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+  <div class="mb"><form id="frm" novalidate><div class="fg">${campos.map(c=>{
+   const id='f_'+c.k, rq=c.req?' <span class="rq" aria-hidden="true">*</span>':'';
+   const attrs=`id="${id}" name="${c.k}"${c.req?' required aria-required="true"':''}`;
+   let ctl=c.tipo==='select'?`<select ${attrs}><option value="">Seleccionar…</option>${c.opts.map(o=>`<option>${o}</option>`).join('')}</select>`
+    :c.tipo==='textarea'?`<textarea ${attrs} placeholder="${c.ph||''}"></textarea>`
+    :`<input type="${c.tipo||'text'}" ${attrs} placeholder="${c.ph||''}"${c.min!=null?` min="${c.min}"`:''}>`;
+   return `<div class="fld${c.full?' full':''}"><label for="${id}">${c.lb}${rq}</label>${ctl}
+    ${c.hint?`<span class="hint">${c.hint}</span>`:''}
+    <span class="err" role="alert"><svg class="ic" style="width:12px;height:12px" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>${c.msg||'Campo obligatorio'}</span></div>`}).join('')}</div></form></div>
+  <div class="mf"><button class="btn ghost" data-x>Cancelar</button><button class="btn" id="ok">Guardar</button></div>`);
+ const frm=document.getElementById('frm');
+ document.querySelectorAll('[data-x]').forEach(b=>b.addEventListener('click',closeModal));
+ frm.querySelectorAll('input,select,textarea').forEach(el=>{
+  el.addEventListener('blur',()=>{if(el.required)el.closest('.fld').classList.toggle('bad',!el.value.trim())});
+  el.addEventListener('input',()=>{if(el.value.trim())el.closest('.fld').classList.remove('bad')})});
+ document.getElementById('ok').addEventListener('click',()=>{
+  let v=true;frm.querySelectorAll('[required]').forEach(el=>{const bad=!el.value.trim();el.closest('.fld').classList.toggle('bad',bad);if(bad)v=false});
+  if(!v){frm.querySelector('.fld.bad input,.fld.bad select,.fld.bad textarea')?.focus();return}
+  const b=document.getElementById('ok');b.disabled=true;b.textContent='Guardando…';
+  setTimeout(()=>{closeModal();ok()},620)})}
+
+/* ---------- Bloques ---------- */
+const kpi=(c,cb,i,lb,vl,dc,dt,s2,go)=>{const tag=go?'button':'div';
+ return `<${tag} class="kpi" style="--c:${c};--cb:${cb}"${go?` data-go="${go}" aria-label="${lb}: ${vl}. Ver detalle"`:''}>
+ <span class="ico">${ico(i)}</span><span class="lb">${lb}</span><div class="vl num">${vl}</div>
+ ${dt?`<span class="dl ${dc}">${dt}</span>`:''}${s2?`<div class="s2">${s2}</div>`:''}</${tag}>`};
+const ins=(k,i,t)=>`<div class="it ${k}">${ico(i)}<span>${t}</span></div>`;
+const empty=(t,d)=>`<div class="empty">${ico('box')}<h3>${t}</h3><p>${d}</p></div>`;
+const mini=arr=>`<div class="mini">${arr.map(([n,l])=>`<div class="m"><div class="n num">${n}</div><div class="l">${l}</div></div>`).join('')}</div>`;
+const panel=(t,i,s,body,cls='')=>`<div class="pnl ${cls}"><h2>${ico(i)}${t}</h2><p class="sub">${s}</p>${body}</div>`;
+
+/* ==========================================================================
+   VISTAS
+   ========================================================================== */
+const V={};
+
+V.exec=()=>`
+<div class="head"><div><h1>Dashboard Ejecutivo</h1>
+<p>Morbilidad y Salud Ocupacional · ejercicio 2026 · acumulado enero–junio</p></div>
+<div class="acts"><button class="btn ghost" data-go="rep">${ico('down')}Exportar</button>
+<button class="btn" data-act="cap">${ico('plus')}Nueva captura</button></div></div>
+<div class="filters">
+ <div class="ff"><label for="fa">Año</label><select id="fa"><option>2026</option><option>2025</option></select></div>
+ <div class="ff"><label for="fp">Periodo</label><select id="fp"><option>Acumulado ENE–JUN</option>${M6.map(m=>`<option>${m} 2026</option>`).join('')}</select></div>
+ <div class="ff"><label for="fpr">Predio</label><select id="fpr"><option>Todos los predios</option>${D.predios.map(p=>`<option>${p.n}</option>`).join('')}</select></div>
+ <div class="ff"><label for="fc">Cuenta</label><select id="fc"><option>Todas</option></select></div>
+ <p class="chip">${ico('info')}Captura disponible hasta junio 2026</p></div>
+<div class="kpis">
+ ${kpi(C.p,'#EFF6FF','shield','Atenciones médicas',nf(T.atenciones),'dn','▼ 2.8% vs. mayo','Junio 2,295 · pico mayo 2,362','aten')}
+ ${kpi(C.c,'#ECFEFF','user','Personas incapacitadas',nf(T.personasIMSS+T.personasInternas),'up','▲ 25.2% vs. mayo',`IMSS ${nf(T.personasIMSS)} · internas ${T.personasInternas}`,'incap')}
+ ${kpi(C.am,'#FFFBEB','clock','Días de incapacidad',nf(T.diasIncap),'up','▲ 16.9% vs. mayo',nf(T.horasNoTrab)+' horas no trabajadas','incap')}
+ ${kpi(C.r,'#FEF2F2','alert','Accidentes',nf(T.accidentes),'eq',`${T.accLab} laboral · ${T.accTray} trayecto`,nf(T.diasRT1+T.diasRT2)+' días perdidos','accid')}
+ ${kpi(C.g,'#ECFDF5','doc','Exámenes médicos',nf(T.examenes),'eq',pc(T.emApto,T.emIngreso)+' aptos',`Ingreso ${nf(T.emIngreso)} · periódico ${nf(T.emPeriodico)}`,'em')}
+ ${kpi(C.v,'#F5F3FF','money','Costo incapacidades','$3.75M','up','Acumulado 2026','Mayor: enfermedad general $1.65M','incap')}</div>
+<div class="g2">
+ <div class="pnl"><div class="ph"><div><h2>${ico('trend')}Evolución mensual de indicadores</h2>
+ <p class="sub">Atenciones, días de incapacidad y personas accidentadas</p></div>
+ <div class="tabs" id="tt" role="group" aria-label="Indicadores">
+ <button aria-pressed="true" data-s="all">Todos</button><button aria-pressed="false" data-s="aten">Atenciones</button><button aria-pressed="false" data-s="dias">Días incap.</button></div></div>
+ <div class="cw lg"><canvas id="c1" role="img" aria-label="Línea de evolución mensual de atenciones, días de incapacidad y accidentes"></canvas></div></div>
+ ${panel('Composición de días perdidos','pie',`${nf(T.diasIncap)} días acumulados por causa`,'<div class="cw lg"><canvas id="c2" role="img" aria-label="Dona de días perdidos por causa"></canvas></div>')}</div>
+<div class="g2">
+ <div class="pnl"><h2>${ico('bldg')}Ranking de predios</h2>
+ <p class="sub">Selecciona una fila para abrir su ficha · semáforo sobre umbrales configurables</p>
+ <div class="tw"><table><caption class="sr">Ranking de predios por carga de morbilidad</caption><thead><tr>
+ <th class="srt" data-k="n" aria-sort="none">Predio <span class="ar">▼</span></th>
+ <th class="srt r" data-k="a" aria-sort="descending">Atenciones <span class="ar">▼</span></th>
+ <th style="width:108px">Distribución</th>
+ <th class="srt r" data-k="d" aria-sort="none">Días incap. <span class="ar">▼</span></th>
+ <th class="srt r" data-k="acc" aria-sort="none">Accid. <span class="ar">▼</span></th>
+ <th class="srt r" data-k="e" aria-sort="none">Exámenes <span class="ar">▼</span></th>
+ <th>Riesgo</th></tr></thead><tbody id="tb"></tbody></table></div></div>
+ ${panel('Análisis Ejecutivo','spark','Insights derivados de los datos capturados',`<div class="ins">
+ ${ins('b','alert','<b>AIFA</b> concentra el <b>24.2%</b> de las atenciones (3,052 de 12,613) y el mayor número de accidentes (42).')}
+ ${ins('w','trend','Los días de incapacidad de junio (<b>2,394</b>) subieron <b>16.9%</b> frente a mayo — máximo del ejercicio.')}
+ ${ins('','clock','Las tres principales causas — <b>vacuna/seguimiento</b>, <b>digestivo</b> y <b>respiratorio</b> — suman el <b>44%</b> del total.')}
+ ${ins('w','alert','El <b>accidente de trayecto</b> genera 2,600 días perdidos, <b>79% más</b> que el laboral (1,454).')}
+ ${ins('g','check','Sin eventos graves: <b>0 amputaciones y 0 fracturas</b> en el acumulado del año.')}</div>`)}</div>
+<div class="g3">
+ ${panel('Top 8 causas','bars','Acumulado 2026','<div class="cw"><canvas id="c3" role="img" aria-label="Barras de las ocho principales causas"></canvas></div>')}
+ ${panel('Costo por tipo','money',`Total ${mxn(T.costoTotal)} MXN`,'<div class="cw"><canvas id="c4" role="img" aria-label="Barras de costo por tipo de incapacidad"></canvas></div>')}
+ ${panel('Resultado de exámenes','doc',`${nf(T.emIngreso)} exámenes de ingreso`,'<div class="cw"><canvas id="c5" role="img" aria-label="Dona de resultados de exámenes"></canvas></div>')}</div>
+<p class="note">${ico('info')}<span>Indicadores calculados desde <b>10 REPORTE MORBILIDAD 2026 GERENCIA.xlsm</b>. Julio–diciembre aparecen sin datos porque aún no tienen captura en el archivo origen.</span></p>`;
+
+let sk='a',sd=-1;
+function tabla(){const tb=document.getElementById('tb');if(!tb)return;
+ const rows=D.predios.filter(p=>p.a>0||p.d>0).map(p=>({...p,acc:p.al+p.at}));
+ rows.sort((x,y)=>typeof x[sk]==='string'?x[sk].localeCompare(y[sk])*-sd:(x[sk]-y[sk])*sd);
+ const mx=Math.max(...rows.map(r=>r.a));
+ tb.innerHTML=rows.map(p=>{const[rk,cl]=riesgo(p);
+  return `<tr class="clk" data-p="${p.n}" tabindex="0" role="button" aria-label="Ver ficha de ${p.n}">
+  <td class="nm">${p.n}</td><td class="r num">${nf(p.a)}</td>
+  <td><div class="bc"><div class="tr"><div class="fl" style="width:${mx?p.a/mx*100:0}%"></div></div></div></td>
+  <td class="r num">${nf(p.d)}</td><td class="r num">${p.acc}</td><td class="r num">${nf(p.e)}</td>
+  <td><span class="tag ${cl}">${rk}</span></td></tr>`}).join('');
+ tb.querySelectorAll('tr').forEach(tr=>{
+  tr.addEventListener('click',()=>abrirPredio(tr.dataset.p));
+  tr.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();abrirPredio(tr.dataset.p)}})})}
+const trend=m=>{const ds=[];
+ if(m==='all'||m==='aten')ds.push({label:'Atenciones',data:D.atencionesMes,borderColor:C.p,backgroundColor:'rgba(29,78,216,.09)',fill:m==='aten',tension:.34,borderWidth:2.5,pointRadius:3.5,pointHoverRadius:6,pointBackgroundColor:'#fff',pointBorderWidth:2,yAxisID:'y'});
+ if(m==='all'||m==='dias')ds.push({label:'Días de incapacidad',data:D.diasIncapMes,borderColor:C.am,backgroundColor:'rgba(180,83,9,.09)',fill:m==='dias',tension:.34,borderWidth:2.5,pointRadius:3.5,pointHoverRadius:6,pointBackgroundColor:'#fff',pointBorderWidth:2,yAxisID:'y'});
+ if(m==='all')ds.push({label:'Personas accidentadas',data:D.accidPersonasMes,borderColor:C.r,borderDash:[5,4],tension:.34,borderWidth:2,pointRadius:3,pointHoverRadius:5.5,pointBackgroundColor:'#fff',pointBorderWidth:2,yAxisID:'y1'});
+ return{type:'line',data:{labels:M6,datasets:ds},options:{interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',align:'end'}},scales:{y:{...GRID,beginAtZero:true},y1:{...GRID,position:'right',beginAtZero:true,grid:{display:false},display:m==='all'},x:GX}}}};
+V.exec.init=()=>{
+ mk('c1',trend('all'));
+ mk('c2',{type:'doughnut',data:{labels:['Enfermedad general','Acc. trayecto','Maternidad','Acc. laboral','Interna'],datasets:[{data:[T.diasEG,T.diasRT2,T.materDias,T.diasRT1,T.diasInt],backgroundColor:[C.p,C.am,C.pk,C.r,C.sl],borderWidth:3,borderColor:'#fff',hoverOffset:9}]},options:{cutout:'63%',plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:x=>` ${x.label}: ${nf(x.raw)} días (${pc(x.raw,T.diasIncap)})`}}}}});
+ mk('c3',{type:'bar',data:{labels:D.causas.slice(0,8).map(c=>c[0]),datasets:[{data:D.causas.slice(0,8).map(c=>c[1]),backgroundColor:[C.p,C.s,C.c,C.g,C.a,C.am,C.v,C.sl],borderRadius:5,barThickness:16}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{...GRID,beginAtZero:true},y:{...GX,ticks:{font:{size:10}}}}}});
+ mk('c4',{type:'bar',data:{labels:Object.keys(D.costos),datasets:[{data:Object.values(D.costos),backgroundColor:[C.p,C.am,C.pk,C.r,C.sl],borderRadius:5,barThickness:20}]},options:{indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>' '+mxn(x.raw)}}},scales:{x:{...GRID,beginAtZero:true,ticks:{callback:v=>'$'+v/1000+'k'}},y:{...GX,ticks:{font:{size:10}}}}}});
+ mk('c5',{type:'doughnut',data:{labels:['Condicionado','Apto','No apto','Inclusión'],datasets:[{data:[T.emCondic,T.emApto,T.emNoApto,T.emInclusion],backgroundColor:[C.a,C.g,C.r,C.v],borderWidth:3,borderColor:'#fff',hoverOffset:9}]},options:{cutout:'59%',plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:x=>` ${x.label}: ${nf(x.raw)} (${pc(x.raw,T.emIngreso)})`}}}}});
+ tabla();
+ document.querySelectorAll('#tt button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#tt button').forEach(x=>x.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true');mk('c1',trend(b.dataset.s))}));
+ document.querySelectorAll('th.srt').forEach(th=>th.addEventListener('click',()=>{
+  const k=th.dataset.k;if(sk===k)sd*=-1;else{sk=k;sd=-1}
+  document.querySelectorAll('th.srt').forEach(t=>t.setAttribute('aria-sort','none'));
+  th.setAttribute('aria-sort',sd===-1?'descending':'ascending');
+  th.querySelector('.ar').textContent=sd===-1?'▼':'▲';tabla()}));
+ document.querySelector('[data-act="cap"]')?.addEventListener('click',nuevaAtencion)};
+
+/* ---------- PREDIO ---------- */
+let pSel='AIFA';
+const abrirPredio=n=>{pSel=n;go('predio')};
+V.predio=()=>{const p=D.predios.find(x=>x.n===pSel)||D.predios[0],[rk,cl]=riesgo(p);
+ return `<nav class="crumb" aria-label="Ruta"><button data-go="exec">Dashboard</button><span aria-hidden="true">›</span><span>Predio ${p.n}</span></nav>
+ <div class="head"><div><h1>${p.n}<span class="tag ${cl}">${rk}</span></h1><p>Ficha 360° · acumulado enero–junio 2026</p></div>
+ <div class="ff"><label for="sp">Cambiar predio</label><select id="sp">${D.predios.map(x=>`<option${x.n===p.n?' selected':''}>${x.n}</option>`).join('')}</select></div></div>
+ <div class="kpis">
+  ${kpi(C.p,'#EFF6FF','shield','Atenciones',nf(p.a),'eq',pc(p.a,T.atenciones)+' del total','')}
+  ${kpi(C.am,'#FFFBEB','clock','Días incapacidad',nf(p.d),'eq',pc(p.d,12828)+' del total IMSS','')}
+  ${kpi(C.r,'#FEF2F2','alert','Accidentes',nf(p.al+p.at),'eq',`${p.al} laboral · ${p.at} trayecto`,'')}
+  ${kpi(C.g,'#ECFDF5','doc','Exámenes',nf(p.e),'eq',p.e?pc(p.ap,p.e)+' aptos':'sin registro','')}
+  ${kpi(C.v,'#F5F3FF','flask','Antidoping',nf(p.ad),'eq',p.alc?`${p.alc} alcoholimetrías`:'sin alcoholimetría','')}
+  ${kpi(C.c,'#ECFEFF','user','Personal inclusión',nf(p.inc),'eq',p.a?pc(p.inc,p.a)+' de atenciones':'','')}</div>
+ <div class="g2">
+  ${panel(`Atenciones mensuales de ${p.n}`,'trend','Comparado con el promedio corporativo por predio','<div class="cw lg"><canvas id="p1" role="img" aria-label="Atenciones mensuales del predio"></canvas></div>')}
+  ${panel('Perfil del predio','spark','Distribución relativa frente al máximo corporativo','<div class="cw lg"><canvas id="p2" role="img" aria-label="Radar de perfil del predio"></canvas></div>')}</div>
+ <div class="g2b">
+  ${panel('Resultados de exámenes','doc',`${nf(p.e)} exámenes de ingreso`,p.e?'<div class="cw"><canvas id="p3" role="img" aria-label="Dona de resultados"></canvas></div>':empty('Sin exámenes registrados','Este predio no reporta exámenes médicos en el periodo.'))}
+  ${panel('Accidentabilidad','alert',`${p.al+p.at} eventos registrados`,(p.al+p.at)?'<div class="cw"><canvas id="p4" role="img" aria-label="Barras de accidentes"></canvas></div>':empty('Sin accidentes','Este predio no registra accidentes en el periodo — es un resultado positivo.'))}</div>`};
+V.predio.init=()=>{const p=D.predios.find(x=>x.n===pSel)||D.predios[0];
+ mk('p1',{type:'bar',data:{labels:M6,datasets:[{label:p.n,data:p.mes,backgroundColor:C.p,borderRadius:6,barThickness:28,order:2},
+  {type:'line',label:'Promedio por predio',data:M6.map((_,i)=>Math.round(D.atencionesMes[i]/14)),borderColor:C.a,borderWidth:2,borderDash:[5,4],pointRadius:3,pointBackgroundColor:'#fff',pointBorderWidth:2,tension:.3,order:1}]},
+  options:{interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',align:'end'}},scales:{y:{...GRID,beginAtZero:true},x:GX}}});
+ const M={a:Math.max(...D.predios.map(x=>x.a)),d:Math.max(...D.predios.map(x=>x.d)),acc:Math.max(...D.predios.map(x=>x.al+x.at)),e:Math.max(...D.predios.map(x=>x.e)),ad:Math.max(...D.predios.map(x=>x.ad))};
+ mk('p2',{type:'radar',data:{labels:['Atenciones','Días incap.','Accidentes','Exámenes','Antidoping'],datasets:[{label:p.n,data:[p.a/M.a*100,p.d/M.d*100,(p.al+p.at)/M.acc*100,p.e/M.e*100,p.ad/M.ad*100].map(v=>+(v||0).toFixed(1)),borderColor:C.p,backgroundColor:'rgba(29,78,216,.15)',borderWidth:2,pointBackgroundColor:C.p,pointRadius:3.5}]},
+  options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>` ${x.raw}% del máximo corporativo`}}},scales:{r:{beginAtZero:true,max:100,grid:{color:'#EFF3F8'},angleLines:{color:'#E5E9F0'},pointLabels:{font:{size:11}},ticks:{display:false}}}}});
+ if(p.e)mk('p3',{type:'doughnut',data:{labels:['Condicionado','Apto','No apto','Inclusión'],datasets:[{data:[p.co,p.ap,p.na,p.incl],backgroundColor:[C.a,C.g,C.r,C.v],borderWidth:3,borderColor:'#fff',hoverOffset:8}]},options:{cutout:'59%',plugins:{legend:{position:'bottom'}}}});
+ if(p.al+p.at)mk('p4',{type:'bar',data:{labels:['Laboral','Trayecto','Mujeres','Hombres'],datasets:[{data:[p.al,p.at,p.f,p.m],backgroundColor:[C.p,C.am,C.pk,C.c],borderRadius:6,barThickness:34}]},options:{plugins:{legend:{display:false}},scales:{y:{...GRID,beginAtZero:true},x:GX}}});
+ document.getElementById('sp')?.addEventListener('change',e=>{pSel=e.target.value;go('predio')})};
+
+/* ---------- ATENCIONES ---------- */
+V.aten=()=>`
+<div class="head"><div><h1>Atenciones Médicas</h1><p>${nf(T.atenciones)} atenciones acumuladas · ${T.inclusion} a personal de inclusión</p></div>
+<div class="acts"><button class="btn" data-act="na">${ico('plus')}Registrar atención</button></div></div>
+<div class="kpis k4">
+ ${kpi(C.p,'#EFF6FF','shield','Total atenciones',nf(T.atenciones),'eq','enero–junio 2026','')}
+ ${kpi(C.s,'#EFF6FF','trend','Promedio mensual','2,102','eq','sobre 6 meses con captura','')}
+ ${kpi(C.v,'#F5F3FF','user','Personal de inclusión',nf(T.inclusion),'eq',pc(T.inclusion,T.atenciones)+' del total','')}
+ ${kpi(C.g,'#ECFDF5','bldg','Predios activos','14','eq','de 17 registrados','')}</div>
+<div class="g2b">
+ ${panel('Atenciones por mes','bars','Volumen mensual 2026','<div class="cw"><canvas id="a1" role="img" aria-label="Barras de atenciones por mes"></canvas></div>')}
+ ${panel('Atenciones por predio','bldg','Acumulado enero–junio','<div class="cw"><canvas id="a2" role="img" aria-label="Barras de atenciones por predio"></canvas></div>')}</div>
+${panel('Evolución comparada (top 6 predios)','trend','Selecciona en la leyenda para aislar un predio','<div class="cw lg"><canvas id="a3" role="img" aria-label="Líneas comparadas por predio"></canvas></div>')}`;
+V.aten.init=()=>{
+ mk('a1',{type:'bar',data:{labels:M6,datasets:[{label:'Atenciones',data:D.atencionesMes,backgroundColor:C.p,borderRadius:6,barThickness:34}]},options:{plugins:{legend:{display:false}},scales:{y:{...GRID,beginAtZero:true},x:GX}}});
+ const t=D.predios.filter(p=>p.a>0);
+ mk('a2',{type:'bar',data:{labels:t.map(p=>p.n),datasets:[{data:t.map(p=>p.a),backgroundColor:C.s,borderRadius:5,barThickness:13}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{...GRID,beginAtZero:true},y:{...GX,ticks:{font:{size:10}}}}}});
+ const cs=[C.p,C.r,C.g,C.a,C.v,C.c];
+ mk('a3',{type:'line',data:{labels:M6,datasets:D.predios.slice(0,6).map((p,i)=>({label:p.n,data:p.mes,borderColor:cs[i],backgroundColor:cs[i],tension:.34,borderWidth:2.2,pointRadius:3,pointHoverRadius:5.5}))},options:{interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',align:'end'}},scales:{y:{...GRID,beginAtZero:true},x:GX}}});
+ document.querySelector('[data-act="na"]')?.addEventListener('click',nuevaAtencion)};
+function nuevaAtencion(){formModal('Registrar atención médica','La captura alimenta automáticamente morbilidad, causas y el dashboard ejecutivo.',[
+ {k:'fecha',lb:'Fecha de atención',tipo:'date',req:true},
+ {k:'emp',lb:'Empleado',ph:'Número o nombre',req:true,hint:'Se vincula al expediente único'},
+ {k:'predio',lb:'Predio',tipo:'select',opts:D.predios.map(p=>p.n),req:true},
+ {k:'cuenta',lb:'Cuenta',tipo:'select',opts:['COMEDOR','MANTENIMIENTO','STAFF','UNILEVER TEPALCAPA','ZARA ALMACEN','OTRA']},
+ {k:'causa',lb:'Causa médica',tipo:'select',opts:D.causas.map(c=>c[0]),req:true},
+ {k:'lesion',lb:'Tipo de lesión',tipo:'select',opts:['No aplica',...D.musc.map(m=>m[0])],hint:'Solo si es musculoesquelética'},
+ {k:'obs',lb:'Observaciones',tipo:'textarea',full:true,ph:'Notas clínicas relevantes…'}],
+ ()=>toast('Atención registrada','Morbilidad y dashboard actualizados.'))}
+
+/* ---------- CAUSAS ---------- */
+V.causas=()=>`
+<div class="head"><div><h1>Causas de Atención</h1><p>26 causas catalogadas · ${nf(T.atenciones)} atenciones clasificadas</p></div></div>
+<div class="g2">
+ ${panel('Ranking completo','bars','Todas las causas con registro en 2026','<div class="cw xl"><canvas id="u1" role="img" aria-label="Ranking completo de causas"></canvas></div>')}
+ ${panel('Concentración por grupo clínico','pie','Agrupación de las 26 causas','<div class="cw" style="height:274px"><canvas id="u2" role="img" aria-label="Área polar por grupo clínico"></canvas></div>'+mini([['1,982','Vacuna / PF'],['1,809','Digestivo'],['1,775','Respiratorio'],['1,594','Musculoesq.']]))}</div>
+${panel('Detalle tabular','doc','Ordenado por volumen',`<div class="tw"><table><caption class="sr">Detalle de causas</caption>
+<thead><tr><th>#</th><th>Causa</th><th class="r">Atenciones</th><th class="r">% del total</th><th style="width:130px">Peso</th></tr></thead><tbody>
+${D.causas.map((c,i)=>`<tr><td class="num">${i+1}</td><td class="nm">${c[0]}</td><td class="r num">${nf(c[1])}</td><td class="r num">${pc(c[1],T.atenciones)}</td>
+<td><div class="bc"><div class="tr"><div class="fl" style="width:${c[1]/D.causas[0][1]*100}%"></div></div></div></td></tr>`).join('')}</tbody></table></div>`)}`;
+V.causas.init=()=>{
+ mk('u1',{type:'bar',data:{labels:D.causas.map(c=>c[0]),datasets:[{data:D.causas.map(c=>c[1]),backgroundColor:D.causas.map((_,i)=>i<3?C.p:i<8?C.s:C.lt),borderRadius:4,barThickness:12}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{...GRID,beginAtZero:true},y:{...GX,ticks:{font:{size:9.5}}}}}});
+ mk('u2',{type:'polarArea',data:{labels:['Preventivo','Digestivo','Respiratorio','Musculoesq.','Neurológico','Cardiovascular','Otros'],datasets:[{data:[2051,1809,1775,1594,1401,991,2992],backgroundColor:['rgba(4,120,87,.72)','rgba(29,78,216,.72)','rgba(59,130,246,.72)','rgba(180,83,9,.72)','rgba(109,40,217,.72)','rgba(185,28,28,.72)','rgba(100,116,139,.55)'],borderWidth:2,borderColor:'#fff'}]},options:{plugins:{legend:{position:'right',labels:{font:{size:10.5}}}},scales:{r:{grid:{color:'#EFF3F8'},ticks:{display:false}}}}})};
+
+/* ---------- MUSCULOESQUELÉTICAS ---------- */
+V.musc=()=>`
+<div class="head"><div><h1>Lesiones Musculoesqueléticas</h1><p>${nf(T.musc)} lesiones · MT = miembro torácico · MP = miembro pélvico</p></div></div>
+<div class="kpis k5">
+ ${kpi(C.p,'#EFF6FF','spine','Total lesiones',nf(T.musc),'eq','','')}
+ ${kpi(C.am,'#FFFBEB','alert','Algias/contusiones','997','eq','62.5% del total','')}
+ ${kpi(C.s,'#EFF6FF','doc','Columna','494','eq','cervical/dorsal/lumbar','')}
+ ${kpi(C.r,'#FEF2F2','alert','Traumatismos','63','eq','cabeza y tronco','')}
+ ${kpi(C.g,'#ECFDF5','check','Fracturas / amput.','0','dn','sin eventos graves','')}</div>
+<div class="g2">
+ ${panel('Distribución por tipo','bars','Solo tipos con registro','<div class="cw lg"><canvas id="s1" role="img" aria-label="Lesiones por tipo"></canvas></div>')}
+ ${panel('Por región corporal','pie','Agrupación clínica','<div class="cw lg"><canvas id="s2" role="img" aria-label="Dona por región corporal"></canvas></div>')}</div>`;
+V.musc.init=()=>{const d=D.musc.filter(m=>m[1]>0);
+ mk('s1',{type:'bar',data:{labels:d.map(m=>m[0]),datasets:[{data:d.map(m=>m[1]),backgroundColor:d.map(m=>m[1]>400?C.am:m[1]>40?C.a:C.sl),borderRadius:5,barThickness:18}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{...GRID,beginAtZero:true},y:{...GX,ticks:{font:{size:10}}}}}});
+ mk('s2',{type:'doughnut',data:{labels:['Miembro torácico','Miembro pélvico','Columna','Cabeza/tronco','Múltiple'],datasets:[{data:[523,496,494,63,18],backgroundColor:[C.p,C.c,C.am,C.r,C.sl],borderWidth:3,borderColor:'#fff',hoverOffset:9}]},options:{cutout:'59%',plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:x=>` ${x.label}: ${nf(x.raw)} (${pc(x.raw,T.musc)})`}}}}})};
+
+/* ---------- EXÁMENES ---------- */
+V.em=()=>`
+<div class="head"><div><h1>Exámenes Médicos</h1><p>${nf(T.examenes)} exámenes · ingreso, periódico y post-incapacidad</p></div>
+<div class="acts"><button class="btn" data-act="ne">${ico('plus')}Nuevo examen</button></div></div>
+<div class="kpis k5">
+ ${kpi(C.p,'#EFF6FF','doc','Total exámenes',nf(T.examenes),'eq','','')}
+ ${kpi(C.g,'#ECFDF5','check','Aptos',nf(T.emApto),'dn',pc(T.emApto,T.emIngreso),'')}
+ ${kpi(C.r,'#FEF2F2','alert','No aptos',nf(T.emNoApto),'up',pc(T.emNoApto,T.emIngreso),'')}
+ ${kpi(C.am,'#FFFBEB','clock','Condicionados',nf(T.emCondic),'eq',pc(T.emCondic,T.emIngreso),'')}
+ ${kpi(C.v,'#F5F3FF','user','Inclusión',nf(T.emInclusion),'eq',pc(T.emInclusion,T.emIngreso),'')}</div>
+<div class="g2b">
+ ${panel('Tipo de examen por mes','bars','Barras apiladas','<div class="cw"><canvas id="e1" role="img" aria-label="Exámenes por tipo y mes"></canvas></div>')}
+ ${panel('Resultado por predio','bldg','Exámenes de ingreso','<div class="cw"><canvas id="e2" role="img" aria-label="Resultados por predio"></canvas></div>')}</div>
+${panel('Modalidad EMNI vs. Pretest','doc',`${nf(T.emEMNI)} EMNI y ${nf(T.emPretest)} pretest`,'<div class="cw"><canvas id="e3" role="img" aria-label="EMNI contra pretest"></canvas></div>')}`;
+V.em.init=()=>{
+ mk('e1',{type:'bar',data:{labels:M6,datasets:[{label:'Ingreso',data:D.emIngreso,backgroundColor:C.p,borderRadius:5,barThickness:26},{label:'Periódico',data:D.emPeriodico,backgroundColor:C.s,borderRadius:5,barThickness:26},{label:'Post-incapacidad',data:D.emPost,backgroundColor:C.c,borderRadius:5,barThickness:26}]},options:{plugins:{legend:{position:'top',align:'end'}},scales:{y:{...GRID,beginAtZero:true,stacked:true},x:{...GX,stacked:true}}}});
+ const p=D.predios.filter(x=>x.e>0);
+ mk('e2',{type:'bar',data:{labels:p.map(x=>x.n),datasets:[{label:'Apto',data:p.map(x=>x.ap),backgroundColor:C.g},{label:'No apto',data:p.map(x=>x.na),backgroundColor:C.r},{label:'Condicionado',data:p.map(x=>x.co),backgroundColor:C.a}]},options:{indexAxis:'y',plugins:{legend:{position:'top',align:'end'}},scales:{x:{...GRID,beginAtZero:true,stacked:true},y:{...GX,stacked:true,ticks:{font:{size:10}}}}}});
+ mk('e3',{type:'bar',data:{labels:p.map(x=>x.n),datasets:[{label:'EMNI',data:p.map(x=>x.emni),backgroundColor:C.p,borderRadius:4},{label:'Pretest',data:p.map(x=>x.pre),backgroundColor:C.v,borderRadius:4}]},options:{plugins:{legend:{position:'top',align:'end'}},scales:{y:{...GRID,beginAtZero:true,stacked:true},x:{...GX,stacked:true,ticks:{font:{size:10},maxRotation:40}}}}});
+ document.querySelector('[data-act="ne"]')?.addEventListener('click',()=>formModal('Registrar examen médico','El resultado impacta directamente los KPIs de aptitud.',[
+  {k:'fecha',lb:'Fecha del examen',tipo:'date',req:true},{k:'emp',lb:'Empleado',ph:'Número o nombre',req:true},
+  {k:'predio',lb:'Predio',tipo:'select',opts:D.predios.map(p=>p.n),req:true},
+  {k:'tipo',lb:'Tipo de examen',tipo:'select',opts:['Nuevo ingreso','Periódico','Post incapacidad','Pretest'],req:true},
+  {k:'res',lb:'Resultado',tipo:'select',opts:['Apto','No apto','Condicionado','Inclusión'],req:true},
+  {k:'obs',lb:'Observaciones',tipo:'textarea',full:true}],()=>toast('Examen registrado','Indicadores de aptitud actualizados.')))};
+
+/* ---------- INCAPACIDADES ---------- */
+V.incap=()=>`
+<div class="head"><div><h1>Incapacidades</h1><p>${nf(T.diasIncap)} días acumulados · IMSS e internas · ${mxn(T.costoTotal)} MXN</p></div>
+<div class="acts"><button class="btn" data-act="ni">${ico('plus')}Nuevo caso</button></div></div>
+<div class="kpis">
+ ${kpi(C.p,'#EFF6FF','user','Personas IMSS',nf(T.personasIMSS),'eq','','')}
+ ${kpi(C.sl,'#F8FAFC','user','Personas internas',nf(T.personasInternas),'eq','','')}
+ ${kpi(C.am,'#FFFBEB','clock','Días acumulados',nf(T.diasIncap),'up','▲ 16.9% jun vs. may','')}
+ ${kpi(C.c,'#ECFEFF','clock','Horas no trabajadas',nf(T.horasNoTrab),'eq','días × 8 h','')}
+ ${kpi(C.v,'#F5F3FF','money','Costo total','$3.75M','eq','ejercicio 2026','')}
+ ${kpi(C.g,'#ECFDF5','trend','Promedio días/caso','6.9','eq','sobre 1,932 personas','')}</div>
+<div class="g2">
+ ${panel('Días por mes y causa','bars','Apiladas: enfermedad general, maternidad, RT1 laboral, RT2 trayecto, interna','<div class="cw lg"><canvas id="i1" role="img" aria-label="Días de incapacidad por mes y causa"></canvas></div>')}
+ ${panel('Costo por tipo','money','Distribución del gasto','<div class="cw lg"><canvas id="i2" role="img" aria-label="Dona de costo por tipo"></canvas></div>')}</div>
+<div class="g2b">
+ ${panel('Días IMSS por predio','bldg','Acumulado enero–junio','<div class="cw"><canvas id="i3" role="img" aria-label="Días IMSS por predio"></canvas></div>')}
+ ${panel('Personas incapacitadas por mes','user','IMSS frente a internas','<div class="cw"><canvas id="i4" role="img" aria-label="Personas incapacitadas por mes"></canvas></div>')}</div>`;
+V.incap.init=()=>{const N=D.incap;
+ mk('i1',{type:'bar',data:{labels:M6,datasets:[{label:'Enfermedad general',data:N.EG,backgroundColor:C.p},{label:'Acc. trayecto (RT2)',data:N.RT2,backgroundColor:C.am},{label:'Acc. laboral (RT1)',data:N.RT1,backgroundColor:C.r},{label:'Maternidad',data:N.MATER,backgroundColor:C.pk},{label:'Interna',data:N.INT,backgroundColor:C.sl}]},options:{plugins:{legend:{position:'top',align:'end'}},scales:{y:{...GRID,beginAtZero:true,stacked:true},x:{...GX,stacked:true}}}});
+ mk('i2',{type:'doughnut',data:{labels:Object.keys(D.costos),datasets:[{data:Object.values(D.costos),backgroundColor:[C.p,C.am,C.pk,C.r,C.sl],borderWidth:3,borderColor:'#fff',hoverOffset:9}]},options:{cutout:'61%',plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:x=>` ${x.label}: ${mxn(x.raw)}`}}}}});
+ const p=D.predios.filter(x=>x.d>0).sort((a,b)=>b.d-a.d);
+ mk('i3',{type:'bar',data:{labels:p.map(x=>x.n),datasets:[{data:p.map(x=>x.d),backgroundColor:p.map(x=>x.d>=250?C.r:x.d>=150?C.am:C.s),borderRadius:5,barThickness:22}]},options:{plugins:{legend:{display:false}},scales:{y:{...GRID,beginAtZero:true},x:{...GX,ticks:{font:{size:10},maxRotation:40}}}}});
+ mk('i4',{type:'bar',data:{labels:M6,datasets:[{label:'IMSS',data:D.personasIncapMes,backgroundColor:C.p,borderRadius:5,barThickness:24},{label:'Internas',data:D.internasMes,backgroundColor:C.sl,borderRadius:5,barThickness:24}]},options:{plugins:{legend:{position:'top',align:'end'}},scales:{y:{...GRID,beginAtZero:true},x:GX}}});
+ document.querySelector('[data-act="ni"]')?.addEventListener('click',()=>formModal('Registrar incapacidad','Solo para casos manuales. Las derivadas de accidente o maternidad se generan desde su propio módulo, sin recaptura.',[
+  {k:'emp',lb:'Empleado',ph:'Número o nombre',req:true},{k:'predio',lb:'Predio',tipo:'select',opts:D.predios.map(p=>p.n),req:true},
+  {k:'tipo',lb:'Tipo',tipo:'select',opts:['Enfermedad general','Interna'],req:true,hint:'Maternidad y RT se capturan en su módulo'},
+  {k:'folio',lb:'Folio IMSS',ph:'Ej. 26-004512'},{k:'ini',lb:'Fecha de inicio',tipo:'date',req:true},
+  {k:'dias',lb:'Días autorizados',tipo:'number',min:0,req:true,msg:'Indica un número mayor o igual a 0'},
+  {k:'obs',lb:'Observaciones',tipo:'textarea',full:true}],()=>toast('Incapacidad registrada','Días, horas y costo recalculados.')))};
+
+/* ---------- ACCIDENTABILIDAD ---------- */
+V.accid=()=>`
+<div class="head"><div><h1>Accidentabilidad</h1><p>${T.accidentes} accidentes · ${nf(T.diasRT1+T.diasRT2)} días perdidos acumulados</p></div>
+<div class="acts"><button class="btn" data-act="nac">${ico('plus')}Registrar accidente</button></div></div>
+<div class="kpis k5">
+ ${kpi(C.r,'#FEF2F2','alert','Accidentes totales',nf(T.accidentes),'eq','','')}
+ ${kpi(C.p,'#EFF6FF','bldg','Laborales (RT1)',nf(T.accLab),'eq',pc(T.accLab,T.accidentes),nf(T.diasRT1)+' días perdidos')}
+ ${kpi(C.am,'#FFFBEB','alert','Trayecto (RT2)',nf(T.accTray),'eq',pc(T.accTray,T.accidentes),nf(T.diasRT2)+' días perdidos')}
+ ${kpi(C.pk,'#FDF2F8','user','Mujeres',nf(T.accFem),'eq',pc(T.accFem,T.accidentes),'')}
+ ${kpi(C.c,'#ECFEFF','user','Hombres',nf(T.accMasc),'eq',pc(T.accMasc,T.accidentes),'')}</div>
+<div class="g2b">
+ ${panel('Por predio y tipo','bldg','Laboral frente a trayecto','<div class="cw"><canvas id="x1" role="img" aria-label="Accidentes por predio y tipo"></canvas></div>')}
+ ${panel('Causas de riesgo de trabajo','alert','Mecanismo del accidente','<div class="cw"><canvas id="x2" role="img" aria-label="Causas de riesgo de trabajo"></canvas></div>')}</div>
+${panel('Días perdidos por mes','trend','El accidente de trayecto genera 79% más días que el laboral','<div class="cw lg"><canvas id="x3" role="img" aria-label="Días perdidos por mes"></canvas></div>')}`;
+V.accid.init=()=>{const p=D.predios.filter(x=>x.al+x.at>0).sort((a,b)=>(b.al+b.at)-(a.al+a.at));
+ mk('x1',{type:'bar',data:{labels:p.map(x=>x.n),datasets:[{label:'Laboral',data:p.map(x=>x.al),backgroundColor:C.p,borderRadius:4},{label:'Trayecto',data:p.map(x=>x.at),backgroundColor:C.am,borderRadius:4}]},options:{plugins:{legend:{position:'top',align:'end'}},scales:{y:{...GRID,beginAtZero:true,stacked:true},x:{...GX,stacked:true,ticks:{font:{size:10},maxRotation:40}}}}});
+ mk('x2',{type:'bar',data:{labels:D.accidCausas.map(c=>c[0]),datasets:[{data:D.accidCausas.map(c=>c[1]),backgroundColor:[C.r,C.am,C.a,C.v,C.sl,C.c,C.pk],borderRadius:5,barThickness:20}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{...GRID,beginAtZero:true},y:GX}}});
+ mk('x3',{type:'line',data:{labels:M6,datasets:[{label:'Días por acc. trayecto',data:D.accidDiasTray,borderColor:C.am,backgroundColor:'rgba(180,83,9,.11)',fill:true,tension:.34,borderWidth:2.5,pointRadius:3.5,pointHoverRadius:6,pointBackgroundColor:'#fff',pointBorderWidth:2},{label:'Días por acc. laboral',data:D.accidDiasLab,borderColor:C.r,backgroundColor:'rgba(185,28,28,.11)',fill:true,tension:.34,borderWidth:2.5,pointRadius:3.5,pointHoverRadius:6,pointBackgroundColor:'#fff',pointBorderWidth:2}]},options:{interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',align:'end'}},scales:{y:{...GRID,beginAtZero:true},x:GX}}});
+ document.querySelector('[data-act="nac"]')?.addEventListener('click',()=>formModal('Registrar accidente','Si genera incapacidad, el caso se crea automáticamente vinculado — nunca se captura dos veces.',[
+  {k:'fecha',lb:'Fecha del accidente',tipo:'date',req:true},{k:'emp',lb:'Empleado',ph:'Número o nombre',req:true},
+  {k:'predio',lb:'Predio',tipo:'select',opts:D.predios.map(p=>p.n),req:true},
+  {k:'tipo',lb:'Tipo de riesgo',tipo:'select',opts:['Laboral','Trayecto'],req:true},
+  {k:'causa',lb:'Causa',tipo:'select',opts:D.accidCausas.map(c=>c[0]),req:true},
+  {k:'status',lb:'Status',tipo:'select',opts:['Pendiente','Calificado','Improcedente','Baja inconcluso'],req:true},
+  {k:'dias',lb:'Días de incapacidad',tipo:'number',min:0,hint:'Si es mayor a 0 se genera la incapacidad vinculada'},
+  {k:'desc',lb:'Descripción del evento',tipo:'textarea',full:true}],()=>toast('Accidente registrado','Incapacidad vinculada generada y días actualizados.')))};
+
+/* ---------- ANTIDOPING ---------- */
+V.antid=()=>`
+<div class="head"><div><h1>Antidoping y Alcoholimetría</h1><p>${T.antidoping} pruebas aplicadas · ${T.alcoholemia} alcoholimetrías</p></div>
+<div class="acts"><button class="btn" data-act="nad">${ico('plus')}Registrar prueba</button></div></div>
+<div class="kpis k4">
+ ${kpi(C.p,'#EFF6FF','flask','Pruebas aplicadas',nf(T.antidoping),'eq','antidoping enero–junio','')}
+ ${kpi(C.c,'#ECFEFF','flask','Alcoholimetrías',nf(T.alcoholemia),'eq','Mercurio concentra 167','')}
+ ${kpi(C.g,'#ECFDF5','box','Kits suministrados',nf(T.kits),'eq','acumulado anual','')}
+ ${kpi(C.am,'#FFFBEB','trend','Tasa de uso','51.1%','eq','aplicados / suministrados','')}</div>
+<div class="g2b">
+ ${panel('Pruebas por predio','bldg','Antidoping acumulado','<div class="cw"><canvas id="n1" role="img" aria-label="Antidoping por predio"></canvas></div>')}
+ ${panel('Aplicados frente a suministrados','box','Balance mensual','<div class="cw"><canvas id="n2" role="img" aria-label="Aplicados contra suministrados"></canvas></div>')}</div>
+${panel('Alcoholimetría por predio','flask','Mercurio concentra el 89% — conviene verificar si responde a un programa específico','<div class="cw"><canvas id="n3" role="img" aria-label="Alcoholimetría por predio"></canvas></div>')}`;
+V.antid.init=()=>{const p=D.predios.filter(x=>x.ad>0).sort((a,b)=>b.ad-a.ad);
+ mk('n1',{type:'bar',data:{labels:p.map(x=>x.n),datasets:[{data:p.map(x=>x.ad),backgroundColor:p.map(x=>x.ad>200?C.v:C.s),borderRadius:5,barThickness:16}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{...GRID,beginAtZero:true},y:{...GX,ticks:{font:{size:10}}}}}});
+ mk('n2',{type:'bar',data:{labels:M6,datasets:[{label:'Suministrados',data:D.antidopingSum,backgroundColor:C.lt,borderRadius:5,barThickness:24},{label:'Aplicados',data:D.antidopingMes,backgroundColor:C.p,borderRadius:5,barThickness:24}]},options:{plugins:{legend:{position:'top',align:'end'}},scales:{y:{...GRID,beginAtZero:true},x:GX}}});
+ const a=D.predios.filter(x=>x.alc>0).sort((x,y)=>y.alc-x.alc);
+ mk('n3',{type:'bar',data:{labels:a.map(x=>x.n),datasets:[{data:a.map(x=>x.alc),backgroundColor:a.map(x=>x.alc>100?C.c:C.s),borderRadius:5,barThickness:30}]},options:{plugins:{legend:{display:false}},scales:{y:{...GRID,beginAtZero:true},x:GX}}});
+ document.querySelector('[data-act="nad"]')?.addEventListener('click',()=>formModal('Registrar prueba','El consumo de inventario se descuenta automáticamente del lote seleccionado.',[
+  {k:'fecha',lb:'Fecha',tipo:'date',req:true},{k:'emp',lb:'Empleado',ph:'Número o nombre',req:true},
+  {k:'predio',lb:'Predio',tipo:'select',opts:D.predios.map(p=>p.n),req:true},
+  {k:'tipo',lb:'Tipo de prueba',tipo:'select',opts:['Antidoping','Alcoholemia'],req:true},
+  {k:'lote',lb:'Lote',tipo:'select',opts:D.lotes.map(l=>`${l.l} (${l.pr})`),req:true,hint:'Se descuenta 1 unidad'},
+  {k:'res',lb:'Resultado',tipo:'select',opts:['Negativo','Positivo'],req:true},
+  {k:'ag',lb:'Agencia',tipo:'select',opts:['GLI','Orlamex','Valle Lerma','Onest','Otro']}],()=>toast('Prueba registrada','Inventario descontado y movimiento auditado.')))};
+
+/* ---------- INVENTARIO ---------- */
+V.inv=()=>{const rows=D.lotes.map(l=>{const disp=l.ini-l.con,niv=disp/l.ini*100;
+  const[et,cl]=l.dias<=30?['Crítico','t-crit']:l.dias<=60?['Advertencia','t-med']:l.dias<=90?['Vigilar','t-alt']:['Vigente','t-baj'];
+  return{...l,disp,niv,et,cl}});
+ const al=rows.filter(r=>r.dias<=60||r.niv<20);
+ return `<div class="head"><div><h1>Inventario de Antidoping</h1><p>Lotes, caducidades y movimientos · el stock nunca se edita a mano, se calcula desde movimientos</p></div>
+ <div class="acts"><button class="btn" data-act="nmv">${ico('plus')}Registrar movimiento</button></div></div>
+ <div class="kpis k4">
+  ${kpi(C.g,'#ECFDF5','box','Disponible total',nf(rows.reduce((s,r)=>s+r.disp,0)),'eq','unidades en 5 lotes','')}
+  ${kpi(C.p,'#EFF6FF','box','Existencia inicial',nf(rows.reduce((s,r)=>s+r.ini,0)),'eq','año 2026','')}
+  ${kpi(C.am,'#FFFBEB','trend','Consumo acumulado',nf(rows.reduce((s,r)=>s+r.con,0)),'eq','','')}
+  ${kpi(C.r,'#FEF2F2','alert','Lotes en alerta',String(al.length),'up','caducidad ≤60 días o stock <20%','')}</div>
+ ${al.length?panel('Alertas activas','alert','Umbrales configurables desde Administración',
+  `<div class="ins">${al.map(a=>ins(a.dias<=30?'b':'w','alert',
+  `<b>Lote ${a.l}</b> · predio ${a.pr} — ${a.disp} de ${a.ini} unidades (${a.niv.toFixed(0)}% de stock)${a.dias<=60?` · caduca en <b>${a.dias} días</b>, el ${a.cad}`:''}`)).join('')}</div>`):''}
+ <div class="g2b" style="margin-top:var(--s3)">
+  ${panel('Disponible por lote','box','Consumido frente a disponible','<div class="cw"><canvas id="v1" role="img" aria-label="Inventario por lote"></canvas></div>')}
+  ${panel('Días para caducar','clock','Color según umbral de alerta','<div class="cw"><canvas id="v2" role="img" aria-label="Días para caducidad"></canvas></div>')}</div>
+ ${panel('Detalle de lotes','doc','Existencia calculada: inicial − consumo',`<div class="tw"><table><caption class="sr">Detalle de lotes</caption>
+ <thead><tr><th>Lote</th><th>Predio</th><th class="r">Inicial</th><th class="r">Consumo</th><th class="r">Disponible</th><th style="width:130px">Nivel</th><th>Caducidad</th><th>Estado</th></tr></thead><tbody>
+ ${rows.map(r=>`<tr><td class="nm num">${r.l}</td><td>${r.pr}</td><td class="r num">${nf(r.ini)}</td><td class="r num">${nf(r.con)}</td><td class="r num">${nf(r.disp)}</td>
+ <td><div class="bc"><div class="tr"><div class="fl" style="width:${r.niv}%;background:${r.niv<20?'var(--danger)':r.niv<40?'var(--warn)':'var(--ok)'}"></div></div><span class="pv num">${r.niv.toFixed(0)}%</span></div></td>
+ <td class="num">${r.cad}</td><td><span class="tag ${r.cl}">${r.et} · ${r.dias}d</span></td></tr>`).join('')}</tbody></table></div>`)}`};
+V.inv.init=()=>{const rows=D.lotes.map(l=>({...l,disp:l.ini-l.con}));
+ mk('v1',{type:'bar',data:{labels:rows.map(r=>r.l),datasets:[{label:'Consumido',data:rows.map(r=>r.con),backgroundColor:'#CBD5E1',borderRadius:4},{label:'Disponible',data:rows.map(r=>r.disp),backgroundColor:C.g,borderRadius:4}]},options:{plugins:{legend:{position:'top',align:'end'}},scales:{y:{...GRID,beginAtZero:true,stacked:true},x:{...GX,stacked:true,ticks:{font:{size:10}}}}}});
+ mk('v2',{type:'bar',data:{labels:rows.map(r=>r.l),datasets:[{data:rows.map(r=>r.dias),backgroundColor:rows.map(r=>r.dias<=30?C.r:r.dias<=60?C.am:r.dias<=90?C.a:C.g),borderRadius:5,barThickness:26}]},options:{indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>` ${x.raw} días para caducar`}}},scales:{x:{...GRID,beginAtZero:true},y:{...GX,ticks:{font:{size:10}}}}}});
+ document.querySelector('[data-act="nmv"]')?.addEventListener('click',()=>formModal('Registrar movimiento de inventario','El stock se calcula desde los movimientos; no se edita directamente.',[
+  {k:'lote',lb:'Lote',tipo:'select',opts:D.lotes.map(l=>`${l.l} (${l.pr})`),req:true},
+  {k:'tipo',lb:'Tipo de movimiento',tipo:'select',opts:['Entrada','Consumo','Ajuste'],req:true},
+  {k:'cant',lb:'Cantidad',tipo:'number',min:1,req:true,msg:'Indica una cantidad mayor a 0'},
+  {k:'fecha',lb:'Fecha',tipo:'date',req:true},{k:'ref',lb:'Referencia',ph:'Folio o motivo',full:true}],
+  ()=>toast('Movimiento registrado','Existencia recalculada y movimiento auditado.')))};
+
+/* ---------- MATERNIDAD ---------- */
+V.mater=()=>`
+<div class="head"><div><h1>Maternidad</h1><p>${T.materCasos} casos · ${nf(T.materDias)} días incapacitantes</p></div>
+<div class="acts"><button class="btn" data-act="nmt">${ico('plus')}Registrar caso</button></div></div>
+<div class="kpis k4">
+ ${kpi(C.pk,'#FDF2F8','heart','Casos acumulados',nf(T.materCasos),'eq','enero–junio 2026','')}
+ ${kpi(C.v,'#F5F3FF','clock','Días incapacitantes',nf(T.materDias),'eq',pc(T.materDias,T.diasIncap)+' del total','')}
+ ${kpi(C.p,'#EFF6FF','trend','Promedio días/caso','21.6','eq','','')}
+ ${kpi(C.g,'#ECFDF5','money','Costo asociado','$505K','eq','13.5% del costo total','')}</div>
+${panel('Casos y días por mes','heart','Los días se extienden más allá del mes de alta por la duración de cada incapacidad','<div class="cw lg"><canvas id="m1" role="img" aria-label="Casos y días de maternidad por mes"></canvas></div>')}
+<p class="note">${ico('info')}<span>El archivo origen marca el total de días de maternidad como <b>0</b> por un error de fórmula heredado; aquí se usa la suma real de los meses (<b>${nf(T.materDias)}</b>). Debe corregirse durante la migración.</span></p>`;
+V.mater.init=()=>mk('m1',{type:'bar',data:{labels:MESES,datasets:[
+ {type:'bar',label:'Días incapacitantes',data:D.materDias,backgroundColor:'rgba(190,24,93,.72)',borderRadius:5,barThickness:24,yAxisID:'y'},
+ {type:'line',label:'Casos nuevos',data:D.materCasos,borderColor:C.v,backgroundColor:C.v,tension:.34,borderWidth:2.5,pointRadius:4,pointHoverRadius:6.5,pointBackgroundColor:'#fff',pointBorderWidth:2,yAxisID:'y1'}]},
+ options:{interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',align:'end'}},scales:{y:{...GRID,beginAtZero:true},y1:{...GRID,position:'right',beginAtZero:true,grid:{display:false}},x:GX}}})&&
+ document.querySelector('[data-act="nmt"]')?.addEventListener('click',()=>formModal('Registrar caso de maternidad','La incapacidad asociada se genera automáticamente vinculada al caso.',[
+  {k:'emp',lb:'Empleada',ph:'Número o nombre',req:true},{k:'predio',lb:'Predio',tipo:'select',opts:D.predios.map(p=>p.n),req:true},
+  {k:'ini',lb:'Inicio de incapacidad',tipo:'date',req:true},{k:'fpp',lb:'Fecha probable de parto',tipo:'date'},
+  {k:'dias',lb:'Días autorizados',tipo:'number',min:0,req:true},
+  {k:'est',lb:'Estatus',tipo:'select',opts:['Activo','Concluido'],req:true}],()=>toast('Caso registrado','Incapacidad por maternidad generada y vinculada.')));
+
+/* ---------- EMPLEADOS ---------- */
+V.emp=()=>`
+<div class="head"><div><h1>Empleados</h1><p>Expediente único · cada persona concentra atenciones, exámenes, incapacidades, accidentes y pruebas</p></div>
+<div class="acts"><button class="btn" data-act="nem">${ico('plus')}Nuevo empleado</button></div></div>
+${panel('Buscar empleado','user','La ficha muestra el timeline consolidado de todos los módulos',
+ `<div class="filters" style="margin:0;border:0;padding:0;box-shadow:none">
+ <div class="ff"><label for="qe">Nombre o número</label><input id="qe" placeholder="Ej. 000123 o García"></div>
+ <div class="ff"><label for="qp">Predio</label><select id="qp"><option>Todos</option>${D.predios.map(p=>`<option>${p.n}</option>`).join('')}</select></div>
+ <button class="btn ghost" style="align-self:flex-end" data-act="bus">Buscar</button></div>`)}
+<div class="g2" style="margin-top:var(--s3)">
+ ${panel('Ficha de ejemplo','user','Así se ve el expediente unificado de un colaborador',
+ `<div style="display:flex;gap:14px;align-items:center;padding:15px;background:linear-gradient(135deg,var(--brand-700),var(--brand-400));border-radius:var(--r);color:#fff;margin-bottom:var(--s3)">
+ <div style="width:54px;height:54px;border-radius:var(--r);background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:18px;font-weight:600">LG</div>
+ <div><div style="font-size:var(--f-lg);font-weight:600">García Pérez, Luis Antonio</div>
+ <div style="font-size:var(--f-sm);opacity:.92;margin-top:3px">No. 000123 · Macro II · Operación · ingreso 14/03/2021</div></div></div>
+ ${mini([['7','Atenciones'],['1','Incapacidades'],['12','Días perdidos'],['1','Accidentes'],['2','Exámenes'],['1','Antidoping']])}`)}
+ ${panel('Timeline consolidado','clock','Todos los eventos de salud ocupacional del colaborador',
+ `<ol style="list-style:none">${[['2026-01-12','Examen médico periódico — Apto',C.g],['2026-02-02','Atención médica — Respiratorio',C.p],
+ ['2026-03-01','Accidente laboral → incapacidad de 12 días',C.r],['2026-03-14','Atención médica — Curación',C.p],
+ ['2026-05-12','Prueba antidoping — Negativo',C.v],['2026-07-08','Atención médica — Respiratorio',C.p]]
+ .map((e,i,ar)=>`<li style="display:flex;gap:13px;padding-bottom:${i===ar.length-1?0:'var(--s4)'};position:relative">
+ ${i<ar.length-1?'<span style="position:absolute;left:7px;top:19px;bottom:0;width:2px;background:var(--line)" aria-hidden="true"></span>':''}
+ <span style="width:16px;height:16px;border-radius:50%;background:var(--surface);border:3px solid ${e[2]};flex-shrink:0;margin-top:3px;z-index:1" aria-hidden="true"></span>
+ <div><div class="num" style="font-size:var(--f-xs);color:var(--ink-3);font-weight:600">${e[0]}</div>
+ <div style="font-size:var(--f-md);font-weight:500;margin-top:1px;color:var(--ink)">${e[1]}</div></div></li>`).join('')}</ol>`)}</div>`;
+V.emp.init=()=>{
+ document.querySelector('[data-act="bus"]')?.addEventListener('click',()=>toast('Demo sin backend','La búsqueda real se habilita cuando el backend exponga /api/employees.',true));
+ document.querySelector('[data-act="nem"]')?.addEventListener('click',()=>formModal('Registrar empleado','Entidad central: todos los módulos se relacionan con este registro.',[
+  {k:'num',lb:'Número de empleado',req:true,ph:'Ej. 000123'},{k:'nom',lb:'Nombre completo',req:true},
+  {k:'gen',lb:'Género',tipo:'select',opts:['Femenino','Masculino']},
+  {k:'nac',lb:'Fecha de nacimiento',tipo:'date',hint:'La edad se calcula, no se almacena fija'},
+  {k:'predio',lb:'Predio',tipo:'select',opts:D.predios.map(p=>p.n),req:true},
+  {k:'cuenta',lb:'Cuenta',tipo:'select',opts:['COMEDOR','MANTENIMIENTO','STAFF','UNILEVER TEPALCAPA','OTRA']},
+  {k:'area',lb:'Área',tipo:'select',opts:['OPERACION','STAFF','CALIDAD','COMEDOR','MTTO','EMBARQUES','SALUD OCUP']},
+  {k:'puesto',lb:'Puesto',tipo:'select',opts:['AUX ALMACEN / AYUDANTE GRAL','MONTACARGISTA','SUPERVISOR','ANALISTA','CHOFER','LIMPIEZA / INTENDENCIA']},
+  {k:'ing',lb:'Fecha de ingreso',tipo:'date'}],()=>toast('Empleado registrado','Disponible para todos los módulos operativos.')))};
+
+/* ---------- IMPORTAR ---------- */
+V.imp=()=>`
+<div class="head"><div><h1>Importar Información</h1><p>Migración desde Excel · valida, previsualiza y confirma antes de escribir en la base</p></div></div>
+<div class="g2">
+ ${panel('Cargar archivo','up','Formatos aceptados: .xlsx, .xlsm, .csv',
+ `<button id="drop" style="border:2px dashed var(--line-2);border-radius:var(--r);padding:34px var(--s5);text-align:center;background:var(--surface-2);cursor:pointer;width:100%;transition:border-color var(--t),background var(--t)">
+ <svg class="ic" style="width:34px;height:34px;margin:0 auto 11px;color:var(--brand);stroke-width:1.5" viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M20 16v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3"/></svg>
+ <div style="font-size:var(--f-base);font-weight:600;margin-bottom:3px;color:var(--ink)">Arrastra el archivo o selecciónalo</div>
+ <div style="font-size:var(--f-sm);color:var(--ink-3)">Se detectan automáticamente las 13 hojas del reporte gerencial</div></button>
+ <div style="margin-top:var(--s4)"><div style="font-size:var(--f-sm);font-weight:600;margin-bottom:var(--s2)">Proceso de importación</div>
+ <ol style="list-style:none;display:flex;flex-direction:column;gap:5px">${['Leer archivo y detectar hojas','Validar formato y catálogos','Identificar duplicados','Mostrar vista previa','Confirmar e importar en transacción','Registrar en auditoría']
+ .map((s,i)=>`<li style="display:flex;gap:10px;align-items:center;font-size:var(--f-md);color:var(--ink-2)">
+ <span class="num" style="width:20px;height:20px;border-radius:50%;background:${i<2?'var(--brand)':'var(--surface-2)'};color:${i<2?'#fff':'var(--ink-3)'};display:grid;place-items:center;font-size:10px;font-weight:600;flex-shrink:0;border:1px solid ${i<2?'transparent':'var(--line)'}">${i+1}</span>${s}</li>`).join('')}</ol></div>`)}
+ ${panel('Calidad de datos','check','Resultado de la última validación simulada',
+ mini([['12,613','Procesados'],['12,455','Correctos'],['142','Advertencia'],['16','Rechazados']])+
+ '<div class="cw sm" style="margin-top:var(--s3)"><canvas id="q1" role="img" aria-label="Dona de calidad de datos"></canvas></div>')}</div>
+${panel('Incidencias detectadas en el archivo origen','alert','Problemas reales encontrados durante el análisis del .xlsm',
+`<div class="tw"><table><caption class="sr">Incidencias del archivo origen</caption>
+<thead><tr><th>Hoja</th><th>Incidencia</th><th>Impacto</th><th>Resolución propuesta</th></tr></thead><tbody>
+${[['ABAST ANTDP','Predios abreviados (M1, M2, TULTI, UT, WP)','t-med','Bajo','Tabla de alias en catálogo de predios'],
+ ['INCAP / ACUMULADO','Meses inconsistentes: MZO/MAR, MYO/MAY, AGS/AGO','t-med','Bajo','Normalizar a catálogo único de periodos'],
+ ['MATER','Total de días marca 0 pese a sumar 1,515','t-crit','Alto','Usar suma real y corregir en la migración'],
+ ['MUSC-ESQU','Rangos de SUM inconsistentes (17 frente a 15 filas)','t-alt','Medio','Recalcular totales desde el detalle'],
+ ['ABAST ANTDP','Tipos mixtos en una misma columna (cantidad/folio/fecha)','t-alt','Medio','Separar en columnas tipadas'],
+ ['ACCID','Costos improcedentes negativos','t-med','Bajo','Confirmar con negocio si son ajustes'],
+ ['Todas','Vínculos a 8 libros externos','t-crit','Alto','Migrar a PostgreSQL como fuente única']]
+ .map(r=>`<tr><td class="nm">${r[0]}</td><td>${r[1]}</td><td><span class="tag ${r[2]}">${r[3]}</span></td><td>${r[4]}</td></tr>`).join('')}</tbody></table></div>`)}`;
+V.imp.init=()=>{
+ mk('q1',{type:'doughnut',data:{labels:['Correctos','Advertencia','Rechazados'],datasets:[{data:[12455,142,16],backgroundColor:[C.g,C.a,C.r],borderWidth:3,borderColor:'#fff',hoverOffset:8}]},options:{cutout:'63%',plugins:{legend:{position:'bottom'}}}});
+ document.getElementById('drop')?.addEventListener('click',()=>toast('Demo sin backend','La carga real se habilita cuando el backend exponga /api/imports.',true))};
+
+/* ---------- REPORTES ---------- */
+V.rep=()=>`
+<div class="head"><div><h1>Reportes</h1><p>PDF, Excel y CSV — generados desde la misma capa analítica del dashboard, nunca con fórmulas paralelas</p></div></div>
+<div class="g3">${[['Reporte Ejecutivo','KPIs consolidados, tendencias e insights',C.p],['Morbilidad','Atenciones, causas y lesiones musculoesqueléticas',C.s],
+['Incapacidades','Días, personas y costos por tipo y predio',C.am],['Accidentabilidad','Eventos, causas RT, días perdidos y género',C.r],
+['Exámenes Médicos','Resultados por tipo, predio y periodo',C.g],['Antidoping','Pruebas, inventario y alcoholimetría',C.v],
+['Maternidad','Casos, días incapacitantes y costo',C.pk],['Por Predio','Ficha 360° de un predio específico',C.c],
+['Calidad de Datos','Registros procesados, advertencias y rechazos',C.sl]]
+.map(([t,d,c])=>`<div class="pnl" data-rep="${t}"><h2><svg class="ic" viewBox="0 0 24 24" style="color:${c}">${I.file}</svg>${t}</h2>
+<p class="sub">${d}</p><div style="display:flex;gap:6px;margin-top:var(--s3);flex-wrap:wrap">
+<button class="btn ghost sm" data-f="PDF">PDF</button><button class="btn ghost sm" data-f="Excel">Excel</button><button class="btn ghost sm" data-f="CSV">CSV</button></div></div>`).join('')}</div>`;
+V.rep.init=()=>document.querySelectorAll('[data-rep]').forEach(c=>c.querySelectorAll('[data-f]').forEach(b=>
+ b.addEventListener('click',()=>toast('Generando reporte',`${c.dataset.rep} en ${b.dataset.f} — se descargará al conectar el backend.`))));
+
+/* ---------- AUDITORÍA ---------- */
+V.aud=()=>`
+<div class="head"><div><h1>Auditoría</h1><p>Bitácora única para toda la plataforma · solo visible para perfiles autorizados</p></div></div>
+<div class="filters">
+ <div class="ff"><label for="au">Usuario</label><select id="au"><option>Todos</option><option>José Alemán</option><option>Salud Ocupacional</option></select></div>
+ <div class="ff"><label for="am">Módulo</label><select id="am"><option>Todos</option><option>Atenciones</option><option>Incapacidades</option><option>Accidentes</option><option>Inventario</option></select></div>
+ <div class="ff"><label for="ac">Acción</label><select id="ac"><option>Todas</option><option>create</option><option>update</option><option>delete</option><option>export</option><option>login</option></select></div>
+ <div class="ff"><label for="af">Desde</label><input type="date" id="af" value="2026-09-01"></div></div>
+${panel('Registro de eventos','audit','Cada escritura guarda usuario, fecha, módulo, valor anterior y nuevo',
+`<div class="tw"><table><caption class="sr">Registro de auditoría</caption>
+<thead><tr><th>Fecha y hora</th><th>Usuario</th><th>Acción</th><th>Módulo</th><th>Registro</th><th>Detalle</th><th>IP</th></tr></thead><tbody>
+${[['2026-09-07 13:42','José Alemán','create','Incapacidades','INC-2026-0341','12 días · enfermedad general','10.0.4.21'],
+ ['2026-09-07 12:18','Salud Ocupacional','create','Accidentes','A-2026-0118','laboral → incapacidad 21 días','10.0.4.33'],
+ ['2026-09-07 11:05','Salud Ocupacional','update','Inventario','D2412111','consumo −1 unidad','10.0.4.33'],
+ ['2026-09-07 09:50','José Alemán','export','Reportes','Ejecutivo','PDF · enero–junio 2026','10.0.4.21'],
+ ['2026-09-06 18:22','Gerencia Salud','login','Sistema','—','sesión iniciada','10.0.7.14'],
+ ['2026-09-06 16:40','Salud Ocupacional','create','Atenciones','ATN-8841','respiratorio · AIFA','10.0.4.33'],
+ ['2026-09-06 15:12','José Alemán','update','Administración','Umbrales','crítico 280 → 300 días','10.0.4.21']]
+ .map(r=>{const cl=r[2]==='create'?'t-baj':r[2]==='update'?'t-med':r[2]==='delete'?'t-crit':r[2]==='export'?'t-inf':'t-neu';
+ return `<tr><td class="num">${r[0]}</td><td class="nm">${r[1]}</td><td><span class="tag ${cl}">${r[2]}</span></td><td>${r[3]}</td><td class="num">${r[4]}</td><td>${r[5]}</td><td class="num">${r[6]}</td></tr>`}).join('')}</tbody></table></div>`)}`;
+
+/* ---------- ADMINISTRACIÓN ---------- */
+V.admin=()=>`
+<div class="head"><div><h1>Administración</h1><p>Catálogos únicos compartidos por todos los módulos · nada hardcodeado en el código</p></div></div>
+<div class="g3">
+ ${panel('Predios','bldg','Catálogo maestro',mini([['17','Registrados'],['14','Con actividad'],['7','Con alias']]))}
+ ${panel('Cuentas','doc','Clientes corporativos',mini([['56','Registradas']]))}
+ ${panel('Catálogos clínicos','shield','Configurables sin código',mini([['26','Causas'],['15','Lesiones'],['7','Causas RT']]))}
+ ${panel('Áreas y puestos','user','Estructura organizacional',mini([['19','Áreas'],['36','Puestos'],['5','Agencias']]))}
+ ${panel('Usuarios y roles','user','RBAC configurable',mini([['6','Roles'],['21','Permisos']]))}
+ ${panel('Periodos','clock','Control de captura',mini([['6','Con datos'],['12','Del año']]))}</div>
+<div class="g2b">
+ ${panel('Umbrales de riesgo','spark','Valores que alimentan el semáforo y las alertas — editables, nunca en código',
+ `<div class="tw"><table><caption class="sr">Umbrales configurables</caption><thead><tr><th>Clave</th><th>Descripción</th><th class="r">Valor</th><th></th></tr></thead><tbody>
+ ${[['morbilidad_critico','Días de incapacidad para riesgo crítico','280'],['morbilidad_alto','Días de incapacidad para riesgo alto','180'],
+ ['morbilidad_medio','Días de incapacidad para riesgo medio','60'],['antidoping_cad_critico','Días para alerta crítica de caducidad','30'],
+ ['antidoping_cad_alerta','Días para advertencia de caducidad','60'],['antidoping_stock_min','Porcentaje mínimo de stock','20'],
+ ['variacion_relevante','Variación % que dispara un insight','15']]
+ .map(r=>`<tr><td class="nm num">${r[0]}</td><td>${r[1]}</td><td class="r num">${r[2]}</td><td class="r"><button class="btn ghost sm">Editar</button></td></tr>`).join('')}</tbody></table></div>`)}
+ ${panel('Roles y permisos','user','Matriz base — el alcance por predio acota a Gerencia de Predio',
+ `<div class="tw"><table><caption class="sr">Roles y permisos</caption><thead><tr><th>Rol</th><th>Permisos</th><th>Alcance</th></tr></thead><tbody>
+ ${[['SUPER_ADMIN','Todos (21)','Global','t-crit'],['SALUD_OCUPACIONAL','Lectura y captura operativa','Global','t-inf'],
+ ['GERENTE_SALUD','Lectura completa + reportes','Global','t-inf'],['GERENTE_PREDIO','Lectura + reportes','Solo sus predios','t-med'],
+ ['DIRECCION','Dashboard ejecutivo + reportes','Solo agregados','t-baj'],['CONSULTA','Solo lectura agregada','Solo agregados','t-neu']]
+ .map(r=>`<tr><td class="nm num">${r[0]}</td><td>${r[1]}</td><td><span class="tag ${r[3]}">${r[2]}</span></td></tr>`).join('')}</tbody></table></div>`)}</div>`;
+
+/* ==========================================================================
+   ROUTER
+   ========================================================================== */
+const TT={exec:'Dashboard Ejecutivo',predio:'Vista por Predio',aten:'Atenciones',causas:'Causas',musc:'Musculoesqueléticas',
+ em:'Exámenes Médicos',incap:'Incapacidades',accid:'Accidentabilidad',antid:'Antidoping',inv:'Inventario',mater:'Maternidad',
+ emp:'Empleados',imp:'Importar',rep:'Reportes',aud:'Auditoría',admin:'Administración'};
+function go(v){
+ if(!V[v])v='exec';
+ Object.keys(charts).forEach(k=>{charts[k].destroy();delete charts[k]});
+ document.querySelectorAll('#nav a').forEach(a=>a.dataset.v===v?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current'));
+ const c=document.getElementById('main');
+ c.innerHTML=`<div class="view">${V[v]()}</div>`;
+ V[v].init?.();
+ c.querySelectorAll('[data-go]').forEach(el=>{
+  el.addEventListener('click',()=>go(el.dataset.go));
+  if(el.tagName!=='BUTTON'){el.setAttribute('role','button');el.tabIndex=0;
+   el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go(el.dataset.go)}})}});
+ document.title=TT[v]+' — Portal Salud Ocupacional';
+ closeSb();history.replaceState(null,'','#'+v);
+ window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'})}
+document.querySelectorAll('#nav a').forEach(a=>{
+ a.addEventListener('click',()=>go(a.dataset.v));
+ a.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go(a.dataset.v)}})});
+
+/* ---------- Menú móvil / drawer ---------- */
+const sb=document.getElementById('sb'),bgb=document.getElementById('bg'),drw=document.getElementById('drw'),alr=document.getElementById('alr');
+const closeSb=()=>{sb.classList.remove('on');bgb.setAttribute('aria-expanded','false')};
+bgb.addEventListener('click',()=>{sb.classList.add('on');bgb.setAttribute('aria-expanded','true');sb.querySelector('a')?.focus()});
+document.getElementById('sbx').addEventListener('click',()=>{closeSb();bgb.focus()});
+const closeDrawer=()=>{drw.classList.remove('on');drw.setAttribute('aria-hidden','true');alr.setAttribute('aria-expanded','false')};
+alr.addEventListener('click',()=>{drw.classList.add('on');drw.setAttribute('aria-hidden','false');alr.setAttribute('aria-expanded','true');drw.querySelector('.al')?.focus()});
+document.getElementById('drwx').addEventListener('click',()=>{closeDrawer();alr.focus()});
+document.getElementById('alist').innerHTML=ALERTAS.map((a,i)=>{
+ const col=a.t==='crit'?'var(--danger)':a.t==='warn'?'var(--warn)':'var(--brand)';
+ return `<button class="al" data-i="${i}"><span class="dot" style="background:${col}"></span>
+ <span><b>${a.ti}</b><p>${a.d}</p><time>${a.w}</time></span></button>`}).join('');
+document.querySelectorAll('#alist .al').forEach(el=>el.addEventListener('click',()=>{
+ const a=ALERTAS[+el.dataset.i];closeDrawer();if(a.p)pSel=a.p;go(a.v)}));
+
+/* ---------- Búsqueda ---------- */
+const IDX=[...Object.entries(TT).map(([v,t])=>({t,s:'Módulo',v})),
+ ...D.predios.map(p=>({t:p.n,s:`${nf(p.a)} atenciones`,v:'predio',p:p.n})),
+ ...D.causas.slice(0,12).map(c=>({t:c[0],s:`${nf(c[1])} atenciones`,v:'causas'}))];
+const q=document.getElementById('q'),qr=document.getElementById('qr');
+q.addEventListener('input',()=>{
+ const s=q.value.trim().toLowerCase();
+ if(s.length<2){qr.classList.remove('on');q.setAttribute('aria-expanded','false');return}
+ const hits=IDX.filter(x=>x.t.toLowerCase().includes(s)).slice(0,8);
+ qr.innerHTML=hits.length?'<div class="hd">Resultados</div>'+hits.map((h,i)=>`<button data-i="${i}" role="option">${h.t}<span>${h.s}</span></button>`).join('')
+  :'<div class="hd">Sin resultados</div>';
+ qr.classList.add('on');q.setAttribute('aria-expanded','true');
+ qr.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+  const h=hits[+b.dataset.i];if(h.p)pSel=h.p;go(h.v);qr.classList.remove('on');q.value='';q.setAttribute('aria-expanded','false')}))});
+q.addEventListener('blur',()=>setTimeout(()=>{qr.classList.remove('on');q.setAttribute('aria-expanded','false')},170));
+q.addEventListener('keydown',e=>{if(e.key==='ArrowDown'){e.preventDefault();qr.querySelector('button')?.focus()}});
+
+go((location.hash||'#exec').slice(1));
+</script>
+</body>
+</html>

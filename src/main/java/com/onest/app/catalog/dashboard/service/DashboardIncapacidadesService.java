@@ -1,7 +1,10 @@
 package com.onest.app.catalog.dashboard.service;
 
 import com.onest.app.catalog.dashboard.dto.ConteoDto;
+import com.onest.app.catalog.dashboard.dto.ConteoSimpleDto;
+import com.onest.app.catalog.dashboard.dto.SerieMensualDto;
 import com.onest.app.catalog.dashboard.dto.DashboardIncapacidadesDto;
+import com.onest.app.catalog.dashboard.dto.PuntoMensualDiasDto;
 import com.onest.app.catalog.dashboard.dto.PuntoMensualDto;
 import com.onest.app.catalog.incapacidad.dto.IncapacidadReporteDto;
 import com.onest.app.catalog.incapacidad.service.IncapacidadService;
@@ -14,7 +17,9 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 import org.springframework.stereotype.Service;
 
@@ -29,20 +34,40 @@ import org.springframework.stereotype.Service;
 public class DashboardIncapacidadesService {
 
     private final IncapacidadService incapacidadService;
+    private final DashboardPredioFiltro predioFiltro;
 
-    public DashboardIncapacidadesService(IncapacidadService incapacidadService) {
+    public DashboardIncapacidadesService(IncapacidadService incapacidadService, DashboardPredioFiltro predioFiltro) {
         this.incapacidadService = incapacidadService;
+        this.predioFiltro = predioFiltro;
     }
 
+    /** Sin corte por predio/cuenta - el que usa /home. */
     public DashboardIncapacidadesDto resumen(String fechaInicial, String fechaFinal) {
-        List<IncapacidadReporteDto> filas = incapacidadService.reportePorFecha(fechaInicial, fechaFinal);
+        return resumen(fechaInicial, fechaFinal, null, null);
+    }
+
+    /**
+     * Con corte opcional por predio y/o cuenta. Posible desde el 10-sep-2026: el WS
+     * _cta devuelve CUENTA por registro (docs/ords-cuenta-en-reportes.sql). Filtro
+     * vacio = sin corte, identico al comportamiento anterior.
+     */
+    public DashboardIncapacidadesDto resumen(String fechaInicial, String fechaFinal, String predio, String cuenta) {
+        List<IncapacidadReporteDto> filas = incapacidadService.reportePorFecha(fechaInicial, fechaFinal).stream()
+                .filter(f -> predioFiltro.coincide(f.cuenta(), predio, cuenta))
+                .toList();
 
         long totalDias = 0;
         double totalCosto = 0;
         Map<String, Acumulador> porRamo = new LinkedHashMap<>();
         Map<String, Acumulador> porRubro = new LinkedHashMap<>();
         Map<String, Acumulador> porEstado = new LinkedHashMap<>();
+        Map<String, Acumulador> porPredio = new LinkedHashMap<>();
         Map<String, Long> porMes = new TreeMap<>();
+        Map<String, Long> porMesDias = new TreeMap<>();
+        // ramo -> mes -> dias; rubro -> NSS distintos; rubro -> mes -> NSS distintos
+        Map<String, Map<String, Long>> diasRamoMes = new LinkedHashMap<>();
+        Map<String, Set<String>> nssPorRubro = new LinkedHashMap<>();
+        Map<String, Map<String, Set<String>>> nssRubroMes = new LinkedHashMap<>();
         long sinFecha = 0;
 
         for (IncapacidadReporteDto fila : filas) {
@@ -54,10 +79,26 @@ public class DashboardIncapacidadesService {
             acumular(porRamo, etiqueta(fila.ramo()), dias, costo);
             acumular(porRubro, etiqueta(fila.rubro()), dias, costo);
             acumular(porEstado, etiqueta(fila.estadoDictamen()), dias, costo);
+            // Predio resuelto desde la cuenta que ahora trae el WS _cta. Sin llamadas
+            // extra: PredioService cachea el mapeo 2 minutos.
+            acumular(porPredio, predioFiltro.predioDe(fila.cuenta()), dias, costo);
+
+            String rubro = etiqueta(fila.rubro());
+            String nss = fila.nss() == null ? "" : fila.nss().trim();
+            if (!nss.isEmpty()) {
+                nssPorRubro.computeIfAbsent(rubro, k -> new HashSet<>()).add(nss);
+            }
 
             Optional<YearMonth> mes = mesDe(fila.fechaInicio());
             if (mes.isPresent()) {
-                porMes.merge(mes.get().toString(), 1L, Long::sum);
+                String clave = mes.get().toString();
+                porMes.merge(clave, 1L, Long::sum);
+                porMesDias.merge(clave, dias, Long::sum);
+                diasRamoMes.computeIfAbsent(etiqueta(fila.ramo()), k -> new TreeMap<>()).merge(clave, dias, Long::sum);
+                if (!nss.isEmpty()) {
+                    nssRubroMes.computeIfAbsent(rubro, k -> new TreeMap<>())
+                            .computeIfAbsent(clave, k -> new HashSet<>()).add(nss);
+                }
             } else {
                 sinFecha++;
             }
@@ -69,11 +110,47 @@ public class DashboardIncapacidadesService {
             tendencia.add(new PuntoMensualDto("Sin fecha", sinFecha));
         }
 
+        // Serie separada de dias (no conteo de casos) para el chart "Evolucion mensual de
+        // indicadores" del Dashboard Ejecutivo - mismo dato ya calculado arriba por
+        // ramo/rubro/estado, solo re-agrupado por mes.
+        List<PuntoMensualDiasDto> tendenciaDias = new ArrayList<>();
+        porMesDias.forEach((mes, dias) -> tendenciaDias.add(new PuntoMensualDiasDto(mes, dias)));
+
+        // Personas != registros: una misma persona puede tener varias incapacidades en el rango.
+        // La tarjeta del dashboard dice "Personas incapacitadas" y venia mostrando filas.size().
+        long totalPersonas = filas.stream()
+                .map(IncapacidadReporteDto::nss)
+                .filter(nss -> nss != null && !nss.isBlank())
+                .distinct()
+                .count();
+
         return new DashboardIncapacidadesDto(
                 fechaInicial, fechaFinal,
-                filas.size(), totalDias, totalCosto,
-                aConteo(porRamo), aConteo(porRubro), aConteo(porEstado),
-                tendencia);
+                filas.size(), totalPersonas, totalDias, totalCosto,
+                aConteo(porRamo), aConteo(porRubro), aConteo(porEstado), aConteo(porPredio),
+                tendencia, tendenciaDias,
+                aSeries(diasRamoMes),
+                nssPorRubro.entrySet().stream()
+                        .map(e -> new ConteoSimpleDto(e.getKey(), e.getValue().size()))
+                        .sorted(Comparator.comparingLong(ConteoSimpleDto::cantidad).reversed())
+                        .toList(),
+                nssRubroMes.entrySet().stream()
+                        .map(e -> new SerieMensualDto(e.getKey(), e.getValue().entrySet().stream()
+                                .map(m -> new PuntoMensualDto(m.getKey(), m.getValue().size()))
+                                .toList()))
+                        .toList());
+    }
+
+    /** Series por clave ordenadas por total descendente (la mas pesada primero en la pila). */
+    private static List<SerieMensualDto> aSeries(Map<String, Map<String, Long>> porClaveMes) {
+        return porClaveMes.entrySet().stream()
+                .sorted(Comparator.comparingLong(
+                        (Map.Entry<String, Map<String, Long>> e) -> e.getValue().values().stream()
+                                .mapToLong(Long::longValue).sum()).reversed())
+                .map(e -> new SerieMensualDto(e.getKey(), e.getValue().entrySet().stream()
+                        .map(m -> new PuntoMensualDto(m.getKey(), m.getValue()))
+                        .toList()))
+                .toList();
     }
 
     private static final class Acumulador {

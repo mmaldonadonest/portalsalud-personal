@@ -16,6 +16,11 @@ public record DashboardExamenDto(
         long totalNoApto,
         long totalAptoCondicionado,
         long totalAptoRestringido,
-        List<PuntoMensualDto> tendenciaMensual
+        /** Desglose por predio (via el mapeo cuenta->predio). Alimenta el ranking del
+         *  Dashboard Ejecutivo y el modulo Vista por Predio. */
+        List<ConteoDictamenDto> porPredio,
+        List<PuntoMensualDto> tendenciaMensual,
+        /** Dictamenes por mes, para la barra apilada del modulo Examenes. */
+        List<ConteoDictamenDto> tendenciaDictamen
 ) {
 }

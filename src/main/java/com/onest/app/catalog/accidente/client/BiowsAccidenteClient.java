@@ -29,7 +29,9 @@ public class BiowsAccidenteClient implements AccidenteClient {
     private static final Logger log = LoggerFactory.getLogger(BiowsAccidenteClient.class);
     private static final String PATH_ACCIDENTE = "/Servcio/accidente";
     private static final String PATH_CONSULTA_ACCIDENTE = "/Servcio/consulta_accidente";
-    private static final String PATH_REPORTE_FECHA = "/Servcio/consulta_accidentes_fecha";
+    // _cta = clon del WS original que ademas devuelve CUENTA por registro (10-sep-2026,
+    // docs/ords-cuenta-en-reportes.sql). El original sigue publicado e intacto.
+    private static final String PATH_REPORTE_FECHA = "/Servcio/consulta_accidentes_fecha_cta";
     private static final String PATH_SEGUIMIENTO = "/Servcio/accidente_seguimiento";
     private static final String PATH_CONSULTA_SEGUIMIENTO = "/Servcio/consulta_accidente_seguimiento";
 
@@ -139,7 +141,7 @@ public class BiowsAccidenteClient implements AccidenteClient {
 
     private static AccidenteReporteDto toReporte(BiowsAccidenteReporteResponse.Dato d) {
         return new AccidenteReporteDto(
-                d.idRegistro(), d.fechaRegistro(), d.nss(), d.nombre(), d.rfc(), d.curp(),
+                d.idRegistro(), d.fechaRegistro(), d.nss(), d.nombre(), d.rfc(), d.curp(), d.cuenta(),
                 d.fechaAccidente(), d.tipoRiesgo(), d.causaRt(), d.diagnostico(), d.sdi(),
                 d.statusCalificacion(), d.costo(), d.observaciones(), d.usuario());
     }

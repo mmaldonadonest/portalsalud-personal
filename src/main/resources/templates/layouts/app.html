@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="Portal Salud Personal dashboard">
     <meta name="author" content="Portal Salud Personal">
+    <!-- Fuente de verdad del context path para el JS de las paginas (ver contextPath
+         mas abajo). Es un atributo HTML (content="...") a proposito: el sub_filter de
+         nginx en produccion ya reescribe ="/portal-salud/ -> ="/ en atributos (por eso
+         los th:href de abajo funcionan detras del proxy); un "var x = " en JS no lo
+         cubre. Asi que local (Tomcat directo, context-path=/portal-salud) y produccion
+         (detras de nginx, que expone la app en raiz) resuelven correctamente sin
+         hardcodear ningun valor.-->
+    <meta name="app-context-path" th:content="@{/}" content="/">
     <link rel="shortcut icon" type="image/x-icon" th:href="@{/theme/assets/img/favicon.png}" href="/theme/assets/img/favicon.png">
     <title th:replace="${pageTitle}">Portal Salud Personal</title>
     <link rel="stylesheet" th:href="@{/theme/lib/remixicon/fonts/remixicon.css}" href="/theme/lib/remixicon/fonts/remixicon.css">
@@ -15,8 +23,8 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Inter:wght@400;500;600&display=swap">
     <link rel="stylesheet" th:href="@{/css/onest-skin.css}" href="/css/onest-skin.css">
     <th:block th:replace="${pageStyles}"></th:block>
-    <script  th:inline="javascript" >
-        var contextPath = /*[[@{/}]]*/ '';
+    <script>
+        var contextPath = document.querySelector('meta[name="app-context-path"]').content;
     </script>
 </head>
 <body>

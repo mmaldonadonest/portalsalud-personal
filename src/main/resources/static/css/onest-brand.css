@@ -80,6 +80,20 @@ a {
     color: var(--onest-blue);
 }
 
+/* Divisor de grupo dentro de un .nav-sub (ej. "Morbilidad"/"Clinico"/"Control"/"Sistema"
+   en el submenu de Analisis) - el theme no trae esta variante, solo .nav-sub-link
+   (los items reales). Texto pequeno/mayusculas para diferenciarlo de un link real
+   sin que parezca clickeable (no tiene href ni cursor pointer). */
+.nav-sub-group {
+    display: block;
+    padding: .5rem 1.75rem .25rem;
+    font-size: .6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #9aa5b1;
+}
+
 /* #moduleContent (nss-search.html): al seleccionar un modulo del submenu,
    loadModuleView() hace scrollIntoView hacia aqui - el header (.header-main)
    es fixed de 72px, se monta encima de los primeros px del contenido cargado

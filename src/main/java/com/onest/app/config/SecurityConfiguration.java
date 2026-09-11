@@ -45,8 +45,9 @@ public class SecurityConfiguration {
         http
                 .authenticationManager(authenticationManager)
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/theme/**", "/css/**", "/js/**", "/img/**", "/login", "/error", "/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/theme/**", "/css/**", "/js/**", "/img/**", "/login", "/sso/login", "/error", "/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/analisis/**", "/api/analisis/**").hasRole("MEDICO_ANALISTA")
                         .anyRequest().authenticated())
                 // Matriz de permisos - Rol + Tipo de informacion (docs/checklist-bloqueadores-negocio.html #7):
                 // bloquea con 403 real el acceso a rutas clinicas si el rol no tiene el id_menu
@@ -73,6 +74,10 @@ public class SecurityConfiguration {
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID")
                         .permitAll())
+                // /sso/login lo llama el launcher externo (SsoLoginController) - no tiene forma
+                // de traer un token CSRF de una sesion nuestra que todavia no existe. La proteccion
+                // real de ese endpoint es la firma del JWT (SsoJwtConfiguration), no el token CSRF.
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/sso/login"))
                 .headers(headers -> headers
                         // X-XSS-Protection desactivado (header obsoleto; valor 0 es el correcto moderno)
                         .xssProtection(xss -> xss.disable())

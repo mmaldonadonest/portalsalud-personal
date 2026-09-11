@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: analisisModuloContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title th:text="${moduloTitulo} + ' | Análisis | Portal Salud Personal'">Análisis | Portal Salud Personal</title>
+</head>
+<body>
+
+<th:block id="pageStyles"></th:block>
+
+<!--
+  Placeholder generico compartido por los 15 modulos de /analisis/{modulo} (fase 1 -
+  esqueleto navegable, migracion de cambios/Dashboard Salud). Cuando se construya el
+  contenido real de un modulo, este archivo se reemplaza por uno dedicado para ESE
+  modulo (o se le agrega th:switch aqui si varios comparten estructura) - no se
+  disena para quedarse generico para siempre.
+-->
+<th:block th:fragment="analisisModuloContent">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/home}" href="/home">Dashboard</a></li>
+                <li class="breadcrumb-item"><span>Análisis</span></li>
+                <li class="breadcrumb-item active" aria-current="page" th:text="${moduloTitulo}">Módulo</li>
+            </ol>
+            <h4 class="main-title mb-0" th:text="${moduloTitulo}">Módulo</h4>
+        </div>
+    </div>
+
+    <div class="card card-one">
+        <div class="card-body text-center py-5 text-muted">
+            <i class="ri-tools-line fs-1 d-block mb-2"></i>
+            <span th:text="${moduloTitulo}">Módulo</span> — en construcción.
+        </div>
+    </div>
+</th:block>
+
+<th:block id="pageScripts"></th:block>
+</body>
+</html>

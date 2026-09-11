@@ -1,13 +1,44 @@
 package com.onest.app.web;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.server.ResponseStatusException;
 
 @Controller
 public class PortalViewController {
+
+    /**
+     * Modulos del dashboard analitico (rol MEDICO_ANALISTA) - clave de ruta -> titulo.
+     * Estructura tomada del prototipo original (cambios/Dashboard Salud/public/index.html,
+     * const NAV), sin "Administracion" (ya existe en /admin/**, no se duplica aqui).
+     * Fase 1 (esqueleto navegable, ver fragments/menu.html): cada modulo es su propia URL
+     * bookmarkeable, todos comparten el mismo template placeholder hasta que se construya
+     * el contenido real de cada uno (siguiente fase, empezando por Ejecutivo+Morbilidad).
+     */
+    private static final Map<String, String> MODULOS_ANALISIS = new LinkedHashMap<>();
+    static {
+        MODULOS_ANALISIS.put("ejecutivo", "Dashboard Ejecutivo");
+        MODULOS_ANALISIS.put("predio", "Vista por Predio");
+        MODULOS_ANALISIS.put("atenciones", "Atenciones");
+        MODULOS_ANALISIS.put("causas", "Causas");
+        MODULOS_ANALISIS.put("musculoesqueleticas", "Musculoesqueléticas");
+        MODULOS_ANALISIS.put("examenes", "Exámenes Médicos");
+        MODULOS_ANALISIS.put("incapacidades", "Incapacidades");
+        MODULOS_ANALISIS.put("accidentabilidad", "Accidentabilidad");
+        MODULOS_ANALISIS.put("antidoping", "Antidoping");
+        MODULOS_ANALISIS.put("inventario", "Inventario");
+        MODULOS_ANALISIS.put("maternidad", "Maternidad");
+        MODULOS_ANALISIS.put("empleados", "Empleados");
+        MODULOS_ANALISIS.put("importar", "Importar Excel");
+        MODULOS_ANALISIS.put("reportes", "Reportes");
+        MODULOS_ANALISIS.put("auditoria", "Auditoría");
+    }
 
     @GetMapping("/")
     public String root() {
@@ -100,5 +131,59 @@ public class PortalViewController {
     @GetMapping("/admin/usuarios")
     public String adminUsuarios() {
         return "pages/admin-usuarios";
+    }
+
+    /**
+     * Mapeo cuenta-&gt;predio para el dashboard analitico (docs/ords-predio-cuenta.sql).
+     * Bajo /admin/** (hasRole("ADMIN")) porque asignar predio es una tarea de configuracion,
+     * no del uso diario del rol MEDICO_ANALISTA que consume el resultado en /analisis.
+     */
+    @GetMapping("/admin/predios")
+    public String adminPredios() {
+        return "pages/admin-predios";
+    }
+
+    /**
+     * Dashboard analitico (metricas/graficas por predio - migracion de
+     * cambios/Dashboard Salud, ver docs/onest-skin-guide.md y docs/ords-predio-cuenta.sql).
+     * Protegido con hasRole("MEDICO_ANALISTA") en SecurityConfiguration - rol nuevo, se crea
+     * desde /admin/roles (RoleAdminService.crear ya existente, sin seed SQL necesario).
+     * Un modulo = una URL (no tabs, ver fragments/menu.html) - bookmarkeable/compartible.
+     */
+    @GetMapping("/analisis/{modulo}")
+    public String analisis(@PathVariable String modulo, Model model) {
+        String titulo = MODULOS_ANALISIS.get(modulo);
+        if (titulo == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Modulo de analisis desconocido: " + modulo);
+        }
+        // "ejecutivo" ya tiene contenido real (fase 2, 09-sep-2026) - reusa los mismos
+        // endpoints /api/dashboard/** que /home, sin WS/controller nuevo. El resto de los
+        // 14 modulos sigue en el placeholder generico hasta que se construyan.
+        if ("ejecutivo".equals(modulo)) {
+            return "pages/analisis-ejecutivo";
+        }
+        // "predio" (fase 3, 10-sep-2026): ficha por predio. Reusa los mismos 4 endpoints
+        // /api/dashboard/** con el parametro predio, que ya aceptan desde que los WS _cta
+        // devuelven CUENTA por registro. Sin WS ni controller nuevo.
+        if ("predio".equals(modulo)) {
+            return "pages/analisis-predio";
+        }
+        if ("atenciones".equals(modulo)) {
+            return "pages/analisis-atenciones";
+        }
+        if ("causas".equals(modulo)) {
+            return "pages/analisis-causas";
+        }
+        if ("examenes".equals(modulo)) {
+            return "pages/analisis-examenes";
+        }
+        if ("incapacidades".equals(modulo)) {
+            return "pages/analisis-incapacidades";
+        }
+        if ("accidentabilidad".equals(modulo)) {
+            return "pages/analisis-accidentabilidad";
+        }
+        model.addAttribute("moduloTitulo", titulo);
+        return "pages/analisis-modulo";
     }
 }

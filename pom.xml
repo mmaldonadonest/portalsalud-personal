@@ -55,6 +55,13 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
+        <!-- Solo para validar el JWT del SSO del launcher (NimbusJwtDecoder via JWKS).
+             No se activa oauth2Login()/resourceServer() en SecurityConfiguration - el resto
+             de la app sigue con form login/sesion, esto es solo el decoder como utilidad. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
@@ -111,7 +118,11 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <skip>true</skip>
+                    <!-- TEMPORAL: comentado para poder correr `mvn spring-boot:run` (ETL U09
+                         contra QA) - un <skip>true</skip> literal aqui bloquea TAMBIEN el goal
+                         run, no solo repackage, y -Dspring-boot.run.skip=false no lo pisa
+                         porque no es una referencia a property. REVERTIR after el ETL. -->
+                    <!-- <skip>true</skip> -->
                 </configuration>
             </plugin>
             <plugin>
