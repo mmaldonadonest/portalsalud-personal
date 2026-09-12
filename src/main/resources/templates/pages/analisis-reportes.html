@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: analisisRepContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Reportes | Análisis | Portal Salud Personal</title>
+</head>
+<body>
+
+<!--
+  Reportes (modulo Analisis, rol MEDICO_ANALISTA). Equivale a V.rep del prototipo: una rejilla
+  de reportes descargables, "generados desde la misma capa analitica del dashboard, nunca con
+  formulas paralelas". Aqui eso es literal: cada tarjeta descarga el CSV del MISMO endpoint
+  /api/dashboard/** que pinta su pantalla, con el mismo periodo y predio. Cero WS nuevo.
+
+  Verificado contra la captura del prototipo el 11-sep-2026. Diferencias:
+  - Solo CSV. El mock ofrece PDF y Excel (mockeados); generarlos aqui exige una libreria del
+    lado servidor que no esta en el proyecto. El CSV se abre directo en Excel; se deja dicho
+    en pantalla en vez de poner dos botones muertos.
+  - "Calidad de datos" SI se construye, y es real: cuenta los buckets "Sin dato", "Sin
+    fecha", "Sin asignar", los rubros fuera de IMSS/Interna y las causas fuera del catalogo,
+    que son justo las anomalias encontradas al construir los otros modulos.
+  - "Morbilidad" incluye atenciones y causas; sin musculoesqueleticas (pendiente por ICD).
+-->
+<th:block id="pageStyles">
+    <style>
+        .rep-card { border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; background: #fff; height: 100%;
+                    display: flex; flex-direction: column; transition: box-shadow .15s, transform .15s; }
+        .rep-card:hover { box-shadow: 0 8px 22px rgba(15, 23, 42, .08); transform: translateY(-1px); }
+        .rep-card h6 { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; margin: 0 0 4px; }
+        .rep-card h6 i { font-size: 17px; color: var(--c, #64748b); }
+        .rep-card .desc { font-size: 12px; color: #64748b; line-height: 1.45; flex: 1; }
+        .rep-card .acts { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+        .rep-card .est { font-size: 11px; color: #94a3b8; margin-left: auto; }
+        .vacio { text-align: center; padding: 24px 16px; color: #94a3b8; font-size: 12.5px; }
+        #tbCalidad td { font-size: 12.5px; }
+    </style>
+</th:block>
+
+<th:block th:fragment="analisisRepContent">
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/analisis/ejecutivo}" href="/analisis/ejecutivo">Dashboard Ejecutivo</a></li>
+                <li class="breadcrumb-item"><span>Sistema</span></li>
+                <li class="breadcrumb-item active" aria-current="page">Reportes</li>
+            </ol>
+            <h4 class="main-title mb-0">Reportes</h4>
+            <p class="fs-12 text-muted mb-0">CSV generado desde la misma capa analítica del dashboard, nunca con fórmulas paralelas</p>
+        </div>
+    </div>
+
+    <div class="card card-one mb-3">
+        <div class="card-body d-flex flex-wrap align-items-end gap-3">
+            <div>
+                <label class="form-label fs-12 mb-1">Año</label>
+                <select id="fAnio" class="form-select form-select-sm"></select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Periodo</label>
+                <select id="fPeriodo" class="form-select form-select-sm">
+                    <option value="0">Acumulado (todo el año)</option>
+                    <option value="1">Enero</option><option value="2">Febrero</option>
+                    <option value="3">Marzo</option><option value="4">Abril</option>
+                    <option value="5">Mayo</option><option value="6">Junio</option>
+                    <option value="7">Julio</option><option value="8">Agosto</option>
+                    <option value="9">Septiembre</option><option value="10">Octubre</option>
+                    <option value="11">Noviembre</option><option value="12">Diciembre</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Predio</label>
+                <select id="fPredio" class="form-select form-select-sm" style="min-width:200px">
+                    <option value="">Todos los predios</option>
+                </select>
+            </div>
+            <span class="fs-11 text-muted ms-auto">El periodo y el predio aplican a todos los reportes</span>
+        </div>
+    </div>
+
+    <div class="row g-3" id="rejilla"></div>
+
+    <div class="card card-one mt-3" id="cardCalidad" hidden>
+        <div class="card-header"><h6 class="card-title mb-0">Calidad de datos · vista previa</h6></div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead><tr><th class="ps-3">Dominio</th><th>Anomalía</th><th class="text-end pe-3">Registros</th></tr></thead>
+                    <tbody id="tbCalidad"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <p class="fs-11 text-muted mt-3 mb-0">
+        <i class="ri-information-line"></i>
+        Los archivos son CSV (UTF-8 con BOM) y se abren directo en Excel. PDF y Excel nativo
+        no están disponibles: requieren generación del lado servidor.
+    </p>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:inline="javascript">
+        (function () {
+            var contextPath = /*[[@{/}]]*/ '/';
+            var NOMBRES_MES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
+                'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+            var REPORTES = [
+                { id: 'ejecutivo', titulo: 'Reporte Ejecutivo', desc: 'KPIs consolidados de los 5 dominios y tendencias', icono: 'ri-dashboard-line', color: '#1D4ED8',
+                  fuentes: ['resumen-general', 'consultas', 'incapacidades', 'accidentes', 'examen', 'antidoping'] },
+                { id: 'morbilidad', titulo: 'Morbilidad', desc: 'Atenciones, causas y desglose por predio, género y edad', icono: 'ri-stethoscope-line', color: '#0EA5E9',
+                  fuentes: ['consultas'], extra: '&topCausas=9999' },
+                { id: 'incapacidades', titulo: 'Incapacidades', desc: 'Días, personas y costos por ramo, rubro y predio', icono: 'ri-time-line', color: '#B45309',
+                  fuentes: ['incapacidades'] },
+                { id: 'accidentabilidad', titulo: 'Accidentabilidad', desc: 'Eventos, causas de riesgo, tipo y costo por predio', icono: 'ri-alert-line', color: '#DC2626',
+                  fuentes: ['accidentes'] },
+                { id: 'examenes', titulo: 'Exámenes Médicos', desc: 'Dictámenes por predio y periodo', icono: 'ri-file-list-3-line', color: '#047857',
+                  fuentes: ['examen'] },
+                { id: 'antidoping', titulo: 'Antidoping', desc: 'Pruebas, sustancias, resultados y predio', icono: 'ri-flask-line', color: '#7C3AED',
+                  fuentes: ['antidoping'] },
+                { id: 'maternidad', titulo: 'Maternidad', desc: 'Casos, estatus, trimestre y partos probables', icono: 'ri-heart-line', color: '#DB2777',
+                  fuentes: ['maternidad'] },
+                { id: 'predio', titulo: 'Por Predio', desc: 'Ficha 360° del predio seleccionado en el filtro', icono: 'ri-building-line', color: '#0E7490',
+                  fuentes: ['consultas', 'incapacidades', 'accidentes', 'examen', 'antidoping'], requierePredio: true },
+                { id: 'calidad', titulo: 'Calidad de Datos', desc: 'Registros sin dato, sin fecha, sin predio y valores fuera de catálogo', icono: 'ri-shield-check-line', color: '#64748B',
+                  calidad: true }
+            ];
+
+            function pad(n) { return n < 10 ? '0' + n : '' + n; }
+            function calcularRango() {
+                var anio = parseInt(document.getElementById('fAnio').value, 10);
+                var periodo = parseInt(document.getElementById('fPeriodo').value, 10);
+                var hoy = new Date();
+                if (periodo === 0) {
+                    var fin = anio === hoy.getFullYear() ? hoy : new Date(anio, 11, 31);
+                    return { fechaInicial: anio + '-01-01', fechaFinal: fin.getFullYear() + '-' + pad(fin.getMonth() + 1) + '-' + pad(fin.getDate()), texto: 'ejercicio-' + anio };
+                }
+                var ultimo = new Date(anio, periodo, 0).getDate();
+                return { fechaInicial: anio + '-' + pad(periodo) + '-01', fechaFinal: anio + '-' + pad(periodo) + '-' + pad(ultimo), texto: NOMBRES_MES[periodo - 1] + '-' + anio };
+            }
+            function qs(rango, extra) {
+                var predio = document.getElementById('fPredio').value;
+                return 'fechaInicial=' + encodeURIComponent(rango.fechaInicial) + '&fechaFinal=' + encodeURIComponent(rango.fechaFinal)
+                     + (predio ? '&predio=' + encodeURIComponent(predio) : '') + (extra || '');
+            }
+
+            async function cargarPredios() {
+                try {
+                    var res = await fetch(contextPath + 'api/analisis/filtros');
+                    if (!res.ok) { return; }
+                    var data = await res.json();
+                    var select = document.getElementById('fPredio');
+                    (data.predios || []).forEach(function (nombre) {
+                        var opt = document.createElement('option');
+                        opt.value = nombre;
+                        opt.textContent = nombre;
+                        select.appendChild(opt);
+                    });
+                } catch (e) { /* sin filtro de predio */ }
+            }
+
+            function pintarRejilla() {
+                document.getElementById('rejilla').innerHTML = REPORTES.map(function (r) {
+                    return '<div class="col-md-6 col-xl-4"><div class="rep-card" style="--c:' + r.color + '" data-id="' + r.id + '">'
+                         + '<h6><i class="' + r.icono + '"></i>' + r.titulo + '</h6>'
+                         + '<div class="desc">' + r.desc + '</div>'
+                         + '<div class="acts">'
+                         + '<button type="button" class="btn btn-outline-secondary btn-sm" data-csv="' + r.id + '"><i class="ri-download-2-line me-1"></i>CSV</button>'
+                         + (r.calidad ? '<button type="button" class="btn btn-outline-secondary btn-sm" data-ver="' + r.id + '"><i class="ri-eye-line me-1"></i>Ver</button>' : '')
+                         + '<span class="est" data-est="' + r.id + '"></span>'
+                         + '</div></div></div>';
+                }).join('');
+                document.querySelectorAll('[data-csv]').forEach(function (b) { b.addEventListener('click', function () { descargar(this.dataset.csv); }); });
+                document.querySelectorAll('[data-ver]').forEach(function (b) { b.addEventListener('click', function () { verCalidad(); }); });
+            }
+
+            function estado(id, texto) { var e = document.querySelector('[data-est="' + id + '"]'); if (e) { e.textContent = texto; } }
+
+            /**
+             * Vuelca un DTO de dashboard a secciones CSV de forma generica: los escalares van
+             * a una tabla Indicador/Valor; cada lista de objetos va a su propia tabla con
+             * encabezados tomados de las claves. Asi el reporte refleja EXACTAMENTE lo que
+             * devuelve el endpoint, sin una segunda capa de formulas.
+             */
+            function seccionesDe(nombre, d) {
+                var filas = [ ['## ' + nombre], ['Indicador', 'Valor'] ];
+                var listas = [];
+                Object.keys(d).forEach(function (k) {
+                    var v = d[k];
+                    if (Array.isArray(v)) { if (v.length && typeof v[0] === 'object') { listas.push([k, v]); } }
+                    else if (v !== null && typeof v !== 'object') { filas.push([k, v]); }
+                });
+                listas.forEach(function (par) {
+                    var lista = par[1];
+                    // Series anidadas (clave + puntos[]) se aplanan a clave,mes,cantidad.
+                    if (lista[0].puntos) {
+                        filas.push([]); filas.push(['## ' + nombre + ' · ' + par[0]]); filas.push(['clave', 'mes', 'cantidad']);
+                        lista.forEach(function (s) { (s.puntos || []).forEach(function (p) { filas.push([s.clave || s.predio, p.mes, p.cantidad]); }); });
+                        return;
+                    }
+                    var cols = Object.keys(lista[0]);
+                    filas.push([]); filas.push(['## ' + nombre + ' · ' + par[0]]); filas.push(cols);
+                    lista.forEach(function (o) { filas.push(cols.map(function (c) { return o[c]; })); });
+                });
+                return filas;
+            }
+
+            function aCsv(filas) {
+                return filas.map(function (f) {
+                    return f.map(function (v) { return '"' + String(v === undefined || v === null ? '' : v).replace(/"/g, '""') + '"'; }).join(',');
+                }).join('\r\n');
+            }
+
+            function bajar(nombreArchivo, csv) {
+                var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = nombreArchivo;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                auditarExportacion('Reportes', nombreArchivo);
+            }
+
+            async function descargar(id) {
+                var r = REPORTES.find(function (x) { return x.id === id; });
+                var rango = calcularRango();
+                var predio = document.getElementById('fPredio').value;
+                if (r.requierePredio && !predio) { estado(id, 'elige un predio en el filtro'); return; }
+                estado(id, 'generando...');
+                try {
+                    var filas = [ ['Reporte', r.titulo], ['Periodo', rango.fechaInicial + ' a ' + rango.fechaFinal], ['Predio', predio || 'Todos'], ['Generado', new Date().toISOString()], [] ];
+                    if (r.calidad) {
+                        filas = filas.concat(await calidad(rango));
+                    } else {
+                        for (var i = 0; i < r.fuentes.length; i++) {
+                            var res = await fetch(contextPath + 'api/dashboard/' + r.fuentes[i] + '?' + qs(rango, r.extra));
+                            if (!res.ok) { filas.push(['## ' + r.fuentes[i], 'ERROR HTTP ' + res.status]); continue; }
+                            filas = filas.concat(seccionesDe(r.fuentes[i], await res.json()), [ [] ]);
+                        }
+                    }
+                    bajar(r.id + '_' + rango.texto + (predio ? '_' + predio.replace(/[^\w-]+/g, '_') : '') + '.csv', aCsv(filas));
+                    estado(id, 'descargado');
+                } catch (e) {
+                    console.error('[analisis-reportes]', e);
+                    estado(id, 'error: ' + e.message);
+                }
+            }
+
+            /**
+             * Anomalias detectables desde los propios DTOs: buckets "Sin dato"/"Sin fecha"/
+             * "Sin asignar", rubros fuera de IMSS/Interna. Devuelve filas [dominio, anomalia, n].
+             */
+            async function calidad(rango) {
+                var filas = [ ['Dominio', 'Anomalía', 'Registros'] ];
+                var fuentes = { consultas: 'Atenciones', incapacidades: 'Incapacidades', accidentes: 'Accidentes', examen: 'Exámenes', antidoping: 'Antidoping', maternidad: 'Maternidad' };
+                for (var f in fuentes) {
+                    var res = await fetch(contextPath + 'api/dashboard/' + f + '?' + qs(rango, f === 'consultas' ? '&topCausas=9999' : ''));
+                    if (!res.ok) { filas.push([fuentes[f], 'no disponible (HTTP ' + res.status + ')', '']); continue; }
+                    var d = await res.json();
+                    Object.keys(d).forEach(function (k) {
+                        var v = d[k];
+                        if (!Array.isArray(v) || !v.length || typeof v[0] !== 'object' || v[0].puntos) { return; }
+                        v.forEach(function (o) {
+                            var clave = String(o.clave || o.mes || '');
+                            var n = o.cantidad;
+                            if (/^(sin dato|sin fecha|sin asignar|sin rubro|0)$/i.test(clave)) { filas.push([fuentes[f], k + ' = «' + clave + '»', n]); }
+                            else if (k === 'porRubro' && !/imss|interna/i.test(clave)) { filas.push([fuentes[f], 'rubro fuera de IMSS/Interna: «' + clave + '»', n]); }
+                            else if (k === 'porRamo' && !/enfermedad_general|rt1|rt2|profesional|maternidad/i.test(clave)) { filas.push([fuentes[f], 'ramo fuera de catálogo: «' + clave + '»', n]); }
+                            else if (k === 'porCausa' && clave.length <= 4) { filas.push([fuentes[f], 'causa sospechosa (texto muy corto): «' + clave + '»', n]); }
+                        });
+                    });
+                }
+                if (filas.length === 1) { filas.push(['—', 'Sin anomalías detectadas en el periodo', '']); }
+                return filas;
+            }
+
+            async function verCalidad() {
+                estado('calidad', 'analizando...');
+                try {
+                    var filas = await calidad(calcularRango());
+                    var tb = document.getElementById('tbCalidad');
+                    tb.innerHTML = filas.slice(1).map(function (f) {
+                        return '<tr><td class="ps-3 fw-medium">' + f[0] + '</td><td>' + f[1] + '</td><td class="text-end pe-3">' + (f[2] === '' ? '' : Number(f[2]).toLocaleString('es-MX')) + '</td></tr>';
+                    }).join('');
+                    document.getElementById('cardCalidad').hidden = false;
+                    estado('calidad', (filas.length - 1) + ' hallazgos');
+                } catch (e) {
+                    estado('calidad', 'error: ' + e.message);
+                }
+            }
+
+            var selectAnio = document.getElementById('fAnio');
+            var actual = new Date().getFullYear();
+            for (var y = actual; y >= 2023; y--) {
+                var opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = y;
+                selectAnio.appendChild(opt);
+            }
+            pintarRejilla();
+            cargarPredios();
+        })();
+    </script>
+</th:block>
+</body>
+</html>

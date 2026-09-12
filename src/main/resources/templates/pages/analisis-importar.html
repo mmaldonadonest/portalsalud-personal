@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: analisisImpContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Importar Excel | Análisis | Portal Salud Personal</title>
+</head>
+<body>
+
+<!--
+  Importar Excel (modulo Analisis, rol MEDICO_ANALISTA). Equivale a V.imp del prototipo:
+  Cargar archivo (.xlsx/.xlsm/.csv) + Proceso de importacion (6 pasos) + Calidad de datos
+  (procesados/correctos/advertencia/rechazados + dona) + Incidencias por hoja. Aqui el
+  proceso es REAL: /api/analisis/importar lee el archivo con POI, valida, detecta duplicados
+  y deja todo en staging (APP_IMPORT_LOTE/FILA, db/sql/app_domain/app-import.sql); el binario
+  va al filesystem como los PDF (APP_FS_FILE, FILE_TYPE=importacion, versionado por nombre).
+
+  Lo que NO hace, y lo dice en pantalla: escribir en tablas finales. No existen los layouts
+  destino todavia; cuando lleguen, el mapeo hoja -> tabla sale de la temporal.
+  Adicional al mock: vista previa por hoja, confirmar/descartar e historial de lotes.
+-->
+<th:block id="pageStyles">
+    <link rel="stylesheet" th:href="@{/theme/lib/apexcharts/apexcharts.css}" href="/theme/lib/apexcharts/apexcharts.css">
+    <style>
+        .chart-card .card-header { border-bottom: none; padding-bottom: 0; display: block; }
+        .dropzone {
+            border: 2px dashed #cbd5e1; border-radius: 12px; background: #f8fafc; padding: 34px 16px; text-align: center;
+            cursor: pointer; transition: border-color .15s, background .15s;
+        }
+        .dropzone:hover, .dropzone.over { border-color: #1D4ED8; background: #EFF6FF; }
+        .dropzone .ico { font-size: 30px; color: #1D4ED8; line-height: 1; margin-bottom: 8px; }
+        .dropzone .t { font-weight: 600; color: #0f172a; font-size: 13.5px; }
+        .dropzone .s { font-size: 11.5px; color: #64748b; margin-top: 3px; }
+        .pasos { list-style: none; padding: 0; margin: 0; }
+        .pasos li { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 12.5px; color: #475569; }
+        .pasos .n {
+            width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 10.5px; font-weight: 700;
+            background: #f1f5f9; color: #64748b; flex: 0 0 20px;
+        }
+        .pasos li.activo .n { background: #1D4ED8; color: #fff; }
+        .pasos li.hecho .n { background: #047857; color: #fff; }
+        .pasos li.hecho { color: #0f172a; }
+        .pasos li.error .n { background: #B91C1C; color: #fff; }
+        .cal { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .cal .c { border: 1px solid #e5e9f2; border-radius: 10px; padding: 12px 6px; text-align: center; background: #fff; }
+        .cal .v { font-family: ui-monospace, monospace; font-size: 18px; font-weight: 700; color: #0f172a; }
+        .cal .l { font-size: 10.5px; color: #64748b; }
+        .inc-tabla, .prev-tabla { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .inc-tabla th, .prev-tabla th {
+            font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #64748b;
+            text-align: left; padding: 8px 10px; border-bottom: 1px solid #e5e9f2; white-space: nowrap;
+        }
+        .inc-tabla td, .prev-tabla td { padding: 9px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: top; color: #334155; }
+        .inc-tabla .hoja { font-weight: 700; color: #0f172a; white-space: nowrap; }
+        .imp { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+        .imp::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+        .imp--Alto { background: #FEF2F2; color: #B91C1C; }
+        .imp--Medio { background: #FFFBEB; color: #B45309; }
+        .imp--Bajo { background: #FEFCE8; color: #A16207; }
+        .est { font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+        .est--OK { background: #ECFDF5; color: #047857; }
+        .est--ADVERTENCIA { background: #FFFBEB; color: #B45309; }
+        .est--RECHAZADO { background: #FEF2F2; color: #B91C1C; }
+        .est--VALIDADO { background: #EFF6FF; color: #1D4ED8; }
+        .est--CONFIRMADO { background: #ECFDF5; color: #047857; }
+        .est--DESCARTADO { background: #f1f5f9; color: #64748b; }
+        .est--SUSTITUIDO { background: #F5F3FF; color: #6D28D9; }
+        .hoja-chip {
+            display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; padding: 4px 10px; border-radius: 999px;
+            border: 1px solid #e5e9f2; background: #fff; cursor: pointer; margin: 0 6px 6px 0;
+        }
+        .hoja-chip.activa { border-color: #1D4ED8; background: #EFF6FF; color: #1D4ED8; font-weight: 600; }
+        .hoja-chip .no { color: #94a3b8; font-size: 10px; }
+        .prev-wrap { overflow: auto; max-height: 380px; }
+        .prev-tabla td.celda { white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+        .vacio { text-align: center; padding: 28px 16px; color: #94a3b8; font-size: 12.5px; }
+        .aviso { border-left: 4px solid #3B82F6; background: #EFF6FF; border-radius: 8px; padding: 10px 14px; font-size: 12px; }
+        .aviso strong { color: #1E40AF; }
+        .aviso--warn { border-left-color: #F59E0B; background: #FFFBEB; }
+        .aviso--warn strong { color: #92400E; }
+        .hist-tabla { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .hist-tabla th { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #64748b; text-align: left; padding: 8px 10px; border-bottom: 1px solid #e5e9f2; }
+        .hist-tabla td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
+        .hist-tabla tr.sel td { background: #EFF6FF; }
+        .mono { font-family: ui-monospace, monospace; font-size: 11.5px; }
+    </style>
+</th:block>
+
+<th:block th:fragment="analisisImpContent">
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/analisis/ejecutivo}" href="/analisis/ejecutivo">Dashboard Ejecutivo</a></li>
+                <li class="breadcrumb-item"><span>Sistema</span></li>
+                <li class="breadcrumb-item active" aria-current="page">Importar Excel</li>
+            </ol>
+            <h4 class="main-title mb-0">Importar Información</h4>
+            <p class="fs-12 text-muted mb-0">Migración desde Excel · valida, previsualiza y confirma antes de escribir en la base</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" id="btnDescartar" class="btn btn-outline-danger btn-sm" disabled>
+                <i class="ri-delete-bin-line me-1"></i>Descartar
+            </button>
+            <button type="button" id="btnConfirmar" class="btn btn-primary btn-sm" disabled>
+                <i class="ri-check-double-line me-1"></i>Confirmar importación
+            </button>
+        </div>
+    </div>
+
+    <div class="aviso mb-3">
+        <strong>Los datos quedan en una tabla temporal.</strong> Todavía no hay layouts ni tablas destino del
+        reporte gerencial: cada carga se lee, se valida y se guarda completa (una fila por renglón de cada hoja) junto
+        con el archivo original. Cuando existan los layouts, el mapeo se hace desde ahí sin volver a pedir el archivo.
+        Si se vuelve a cargar un archivo con el mismo nombre, la versión anterior se conserva.
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-7">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <div class="card-title-lg"><i class="ri-upload-2-line me-1 text-primary"></i>Cargar archivo</div>
+                    <p class="fs-11 text-muted mb-0">Formatos aceptados: .xlsx, .xlsm, .csv · máximo 25 MB</p>
+                </div>
+                <div class="card-body">
+                    <div id="dropzone" class="dropzone">
+                        <div class="ico"><i class="ri-upload-cloud-2-line"></i></div>
+                        <div class="t">Arrastra el archivo o selecciónalo</div>
+                        <div class="s">Se detectan automáticamente las 13 hojas del reporte gerencial</div>
+                        <input type="file" id="inputArchivo" accept=".xlsx,.xlsm,.csv" hidden>
+                    </div>
+                    <p class="fs-12 fw-semibold mt-3 mb-1">Proceso de importación</p>
+                    <ol class="pasos" id="pasos">
+                        <li data-paso="1"><span class="n">1</span>Leer archivo y detectar hojas</li>
+                        <li data-paso="2"><span class="n">2</span>Validar formato y catálogos</li>
+                        <li data-paso="3"><span class="n">3</span>Identificar duplicados</li>
+                        <li data-paso="4"><span class="n">4</span>Mostrar vista previa</li>
+                        <li data-paso="5"><span class="n">5</span>Confirmar e importar en transacción</li>
+                        <li data-paso="6"><span class="n">6</span>Registrar en auditoría</li>
+                    </ol>
+                    <p id="estado" class="fs-12 text-muted mt-2 mb-0"></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <div class="card-title-lg"><i class="ri-check-line me-1 text-success"></i>Calidad de datos</div>
+                    <p class="fs-11 text-muted mb-0" id="subCalidad">Resultado de la última validación</p>
+                </div>
+                <div class="card-body">
+                    <div class="cal mb-3">
+                        <div class="c"><div class="v" id="cProcesados">—</div><div class="l">Procesados</div></div>
+                        <div class="c"><div class="v" id="cCorrectos">—</div><div class="l">Correctos</div></div>
+                        <div class="c"><div class="v" id="cAdvertencia">—</div><div class="l">Advertencia</div></div>
+                        <div class="c"><div class="v" id="cRechazados">—</div><div class="l">Rechazados</div></div>
+                    </div>
+                    <div id="chartCalidad"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card-one chart-card mb-3">
+        <div class="card-header">
+            <div class="card-title-lg"><i class="ri-alert-line me-1 text-warning"></i>Incidencias detectadas en el archivo origen</div>
+            <p class="fs-11 text-muted mb-0" id="subIncidencias">Problemas reales encontrados durante el análisis</p>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive"><table class="inc-tabla">
+                <thead><tr><th>Hoja</th><th>Incidencia</th><th>Impacto</th><th>Resolución propuesta</th></tr></thead>
+                <tbody id="incidencias"></tbody>
+            </table></div>
+            <div id="incVacio" class="vacio">Carga un archivo para analizarlo.</div>
+        </div>
+    </div>
+
+    <div class="card card-one chart-card mb-3">
+        <div class="card-header">
+            <div class="card-title-lg"><i class="ri-table-line me-1 text-primary"></i>Vista previa por hoja</div>
+            <p class="fs-11 text-muted mb-0" id="subPrevia">Primeras filas de cada hoja con su estado</p>
+        </div>
+        <div class="card-body">
+            <div id="hojas" class="mb-2"></div>
+            <div class="prev-wrap"><table class="prev-tabla">
+                <thead id="prevHead"></thead>
+                <tbody id="prevBody"></tbody>
+            </table></div>
+            <div id="prevVacio" class="vacio">Sin archivo cargado.</div>
+        </div>
+    </div>
+
+    <div class="card card-one chart-card">
+        <div class="card-header">
+            <div class="card-title-lg"><i class="ri-history-line me-1 text-secondary"></i>Historial de cargas</div>
+            <p class="fs-11 text-muted mb-0">Cada archivo cargado, con su versión y estado · clic para volver a ver su resultado</p>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive"><table class="hist-tabla">
+                <thead><tr><th>Fecha</th><th>Archivo</th><th>Ver.</th><th>Hojas</th><th>Filas</th><th>Correctos</th><th>Adv.</th><th>Rech.</th><th>Estado</th><th>Usuario</th></tr></thead>
+                <tbody id="historial"></tbody>
+            </table></div>
+            <div id="histVacio" class="vacio" hidden>Todavía no se ha cargado ningún archivo.</div>
+        </div>
+    </div>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:src="@{/theme/lib/apexcharts/apexcharts.min.js}" src="/theme/lib/apexcharts/apexcharts.min.js"></script>
+    <script th:inline="javascript">
+        (function () {
+            var contextPath = /*[[@{/}]]*/ '/';
+            var csrfToken = /*[[${_csrf.token}]]*/ '';
+            var csrfHeader = /*[[${_csrf.headerName}]]*/ 'X-CSRF-TOKEN';
+            var API = contextPath + 'api/analisis/importar';
+            var chart = null, actual = null, hojaActiva = null;
+
+            function numero(n) { return (n || 0).toLocaleString('es-MX'); }
+            function escapar(s) {
+                return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+            function fecha(iso) { return iso ? iso.replace('T', ' ').substring(0, 16) : '—'; }
+            function headers() { var h = {}; h[csrfHeader] = csrfToken; return h; }
+
+            function marcarPaso(n, clase) {
+                document.querySelectorAll('#pasos li').forEach(function (li) {
+                    var p = parseInt(li.dataset.paso, 10);
+                    li.className = p < n ? 'hecho' : (p === n ? (clase || 'activo') : '');
+                });
+            }
+            function pasosHechos(hasta) {
+                document.querySelectorAll('#pasos li').forEach(function (li) {
+                    li.className = parseInt(li.dataset.paso, 10) <= hasta ? 'hecho' : '';
+                });
+            }
+
+            // ---------- carga
+            async function subir(file) {
+                if (!file) { return; }
+                var estado = document.getElementById('estado');
+                var ext = (file.name.split('.').pop() || '').toLowerCase();
+                if (['xlsx', 'xlsm', 'csv'].indexOf(ext) < 0) { estado.textContent = 'Formato no aceptado: .' + ext; return; }
+                marcarPaso(1);
+                estado.textContent = 'Leyendo ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)…';
+                var body = new FormData();
+                body.append('file', file);
+                body.append('nombre', file.name);
+                try {
+                    var res = await fetch(API, { method: 'POST', headers: headers(), body: body });
+                    if (!res.ok) {
+                        var msg = 'HTTP ' + res.status;
+                        try { var t = (await res.text()).trim(); if (t && t.length < 500 && t.charAt(0) !== '<') { msg = t; } } catch (e) { /* sin cuerpo */ }
+                        marcarPaso(1, 'error');
+                        estado.textContent = 'No se pudo cargar: ' + msg;
+                        return;
+                    }
+                    var r = await res.json();
+                    pasosHechos(4);
+                    estado.textContent = 'Archivo validado. Revisa incidencias y vista previa; luego confirma o descarta.';
+                    pintar(r);
+                    cargarHistorial();
+                } catch (e) {
+                    marcarPaso(1, 'error');
+                    estado.textContent = 'Error de red: ' + e.message;
+                }
+            }
+
+            function pintar(r) {
+                actual = r;
+                var l = r.lote;
+                document.getElementById('cProcesados').textContent = numero(l.procesados);
+                document.getElementById('cCorrectos').textContent = numero(l.correctos);
+                document.getElementById('cAdvertencia').textContent = numero(l.advertencias);
+                document.getElementById('cRechazados').textContent = numero(l.rechazados);
+                document.getElementById('subCalidad').textContent = l.nombreArchivo + ' · v' + l.version + ' · ' + l.hojas
+                    + (l.hojas === 1 ? ' hoja' : ' hojas') + ' · ' + fecha(l.creadoEn);
+                pintarDona(l);
+                pintarIncidencias(r);
+                pintarHojas(r);
+                var validado = l.estado === 'VALIDADO';
+                document.getElementById('btnConfirmar').disabled = !validado;
+                document.getElementById('btnDescartar').disabled = !validado;
+                if (l.estado === 'CONFIRMADO') { pasosHechos(6); }
+                else if (l.estado === 'VALIDADO') { pasosHechos(4); }
+                else { pasosHechos(0); }
+            }
+
+            function pintarDona(l) {
+                var el = document.getElementById('chartCalidad');
+                el.innerHTML = '';
+                if (chart) { chart.destroy(); chart = null; }
+                if (!l.procesados) { el.innerHTML = '<p class="vacio mb-0">Sin filas procesadas.</p>'; return; }
+                chart = new ApexCharts(el, {
+                    chart: { type: 'donut', height: 230 },
+                    series: [l.correctos, l.advertencias, l.rechazados],
+                    labels: ['Correctos', 'Advertencia', 'Rechazados'],
+                    colors: ['#047857', '#F59E0B', '#B91C1C'],
+                    legend: { position: 'bottom', fontSize: '11px', markers: { radius: 12 } },
+                    dataLabels: { enabled: false },
+                    plotOptions: { pie: { donut: { size: '68%' } } }
+                });
+                chart.render();
+            }
+
+            function pintarIncidencias(r) {
+                var lista = r.incidencias || [];
+                var tb = document.getElementById('incidencias');
+                document.getElementById('subIncidencias').textContent = lista.length
+                    ? lista.length + (lista.length === 1 ? ' incidencia' : ' incidencias') + ' en ' + r.lote.nombreArchivo
+                    : 'Sin incidencias en ' + r.lote.nombreArchivo;
+                document.getElementById('incVacio').hidden = lista.length > 0;
+                document.getElementById('incVacio').textContent = 'Sin incidencias: el archivo se leyó limpio.';
+                tb.innerHTML = lista.map(function (i) {
+                    return '<tr><td class="hoja">' + escapar(i.hoja) + '</td><td>' + escapar(i.incidencia) + '</td>'
+                        + '<td><span class="imp imp--' + escapar(i.impacto) + '">' + escapar(i.impacto) + '</span></td>'
+                        + '<td>' + escapar(i.resolucion) + '</td></tr>';
+                }).join('');
+            }
+
+            function pintarHojas(r) {
+                var cont = document.getElementById('hojas');
+                var hojas = r.hojas || [];
+                document.getElementById('prevVacio').hidden = hojas.length > 0;
+                cont.innerHTML = hojas.map(function (h, i) {
+                    return '<span class="hoja-chip' + (i === 0 ? ' activa' : '') + '" data-hoja="' + escapar(h.nombre) + '">'
+                        + (h.reconocida ? '<i class="ri-checkbox-circle-line text-success"></i>' : '<i class="ri-question-line no"></i>')
+                        + escapar(h.nombre) + ' <span class="no">' + numero(h.filas) + ' filas · ' + h.columnas + ' col'
+                        + (h.rechazados ? ' · ' + h.rechazados + ' rech.' : '') + (h.advertencias ? ' · ' + h.advertencias + ' adv.' : '') + '</span></span>';
+                }).join('') + ((r.hojasOmitidas || []).length
+                    ? '<span class="fs-11 text-muted">Omitidas: ' + escapar(r.hojasOmitidas.join(', ')) + '</span>' : '');
+                cont.querySelectorAll('.hoja-chip').forEach(function (chip) {
+                    chip.addEventListener('click', function () {
+                        cont.querySelectorAll('.hoja-chip').forEach(function (c) { c.classList.remove('activa'); });
+                        chip.classList.add('activa');
+                        pintarPrevia(chip.dataset.hoja);
+                    });
+                });
+                if (hojas.length) { pintarPrevia(hojas[0].nombre); }
+                else { document.getElementById('prevHead').innerHTML = ''; document.getElementById('prevBody').innerHTML = ''; }
+            }
+
+            function pintarPrevia(nombre) {
+                hojaActiva = nombre;
+                var h = (actual.hojas || []).filter(function (x) { return x.nombre === nombre; })[0];
+                if (!h) { return; }
+                var cols = h.encabezados || [];
+                document.getElementById('subPrevia').textContent = nombre + ' · encabezado en la fila ' + h.filaEncabezado
+                    + ' · mostrando ' + Math.min(h.muestra.length, h.filas) + ' de ' + numero(h.filas) + ' filas';
+                document.getElementById('prevHead').innerHTML = '<tr><th>#</th><th>Estado</th>' + cols.map(function (c) {
+                    return '<th>' + escapar(c) + '</th>';
+                }).join('') + '</tr>';
+                document.getElementById('prevBody').innerHTML = (h.muestra || []).map(function (f) {
+                    return '<tr><td class="mono">' + f.numero + '</td><td><span class="est est--' + escapar(f.estado) + '" title="'
+                        + escapar(f.mensajes || '') + '">' + escapar(f.estado) + '</span>'
+                        + (f.mensajes ? '<div class="fs-11 text-muted">' + escapar(f.mensajes) + '</div>' : '') + '</td>'
+                        + cols.map(function (c) { var v = f.valores ? f.valores[c] : null; return '<td class="celda">' + escapar(v == null ? '' : v) + '</td>'; }).join('')
+                        + '</tr>';
+                }).join('');
+            }
+
+            // ---------- confirmar / descartar
+            async function accion(tipo) {
+                if (!actual) { return; }
+                var estado = document.getElementById('estado');
+                if (tipo === 'descartar' && !window.confirm('¿Descartar el lote v' + actual.lote.version + ' de ' + actual.lote.nombreArchivo + '? Se borran sus filas temporales; el archivo se conserva.')) { return; }
+                if (tipo === 'confirmar') { marcarPaso(5); }
+                estado.textContent = tipo === 'confirmar' ? 'Confirmando…' : 'Descartando…';
+                try {
+                    var res = await fetch(API + '/' + actual.lote.id + '/' + tipo, { method: 'POST', headers: headers() });
+                    if (!res.ok) {
+                        var msg = 'HTTP ' + res.status;
+                        try { var t = (await res.text()).trim(); if (t && t.length < 500 && t.charAt(0) !== '<') { msg = t; } } catch (e) { /* sin cuerpo */ }
+                        estado.textContent = 'No se pudo ' + tipo + ': ' + msg;
+                        return;
+                    }
+                    actual.lote = await res.json();
+                    pintar(actual);
+                    estado.textContent = tipo === 'confirmar'
+                        ? 'Lote confirmado y registrado en auditoría. Los datos quedan en la tabla temporal hasta que existan los layouts destino.'
+                        : 'Lote descartado. El archivo se conserva en el historial.';
+                    cargarHistorial();
+                } catch (e) {
+                    estado.textContent = 'Error de red: ' + e.message;
+                }
+            }
+
+            // ---------- historial
+            async function cargarHistorial() {
+                try {
+                    var res = await fetch(API);
+                    if (!res.ok) { return; }
+                    var lista = await res.json();
+                    var tb = document.getElementById('historial');
+                    document.getElementById('histVacio').hidden = lista.length > 0;
+                    tb.innerHTML = lista.map(function (l) {
+                        return '<tr data-id="' + l.id + '"' + (actual && actual.lote.id === l.id ? ' class="sel"' : '') + ' style="cursor:pointer">'
+                            + '<td class="mono">' + escapar(fecha(l.creadoEn)) + '</td><td>' + escapar(l.nombreArchivo) + '</td>'
+                            + '<td class="mono">v' + l.version + '</td><td>' + l.hojas + '</td><td>' + numero(l.procesados) + '</td>'
+                            + '<td>' + numero(l.correctos) + '</td><td>' + numero(l.advertencias) + '</td><td>' + numero(l.rechazados) + '</td>'
+                            + '<td><span class="est est--' + escapar(l.estado) + '">' + escapar(l.estado) + '</span></td>'
+                            + '<td class="fs-11">' + escapar(l.creadoPor || '') + '</td></tr>';
+                    }).join('');
+                    tb.querySelectorAll('tr').forEach(function (tr) {
+                        tr.addEventListener('click', async function () {
+                            var r = await fetch(API + '/' + tr.dataset.id);
+                            if (r.ok) { pintar(await r.json()); cargarHistorial(); document.getElementById('estado').textContent = 'Mostrando el resultado guardado del lote.'; }
+                        });
+                    });
+                } catch (e) { /* el historial no bloquea */ }
+            }
+
+            document.addEventListener('DOMContentLoaded', function () {
+                var dz = document.getElementById('dropzone');
+                var input = document.getElementById('inputArchivo');
+                dz.addEventListener('click', function () { input.click(); });
+                input.addEventListener('change', function () { subir(input.files[0]); input.value = ''; });
+                ['dragenter', 'dragover'].forEach(function (ev) { dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.add('over'); }); });
+                ['dragleave', 'drop'].forEach(function (ev) { dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.remove('over'); }); });
+                dz.addEventListener('drop', function (e) { subir(e.dataTransfer.files[0]); });
+                document.getElementById('btnConfirmar').addEventListener('click', function () { accion('confirmar'); });
+                document.getElementById('btnDescartar').addEventListener('click', function () { accion('descartar'); });
+                cargarHistorial();
+            });
+        })();
+    </script>
+</th:block>
+</body>
+</html>

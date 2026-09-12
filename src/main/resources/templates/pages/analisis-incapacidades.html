@@ -528,6 +528,7 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
+                auditarExportacion('Incapacidades', a.download);
             }
 
             inicializar();

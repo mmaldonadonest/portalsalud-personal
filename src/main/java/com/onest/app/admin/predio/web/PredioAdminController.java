@@ -1,5 +1,6 @@
 package com.onest.app.admin.predio.web;
 
+import com.onest.app.audit.web.Auditado;
 import com.onest.app.catalog.predio.dto.CuentaPredioDto;
 import com.onest.app.catalog.predio.dto.PredioDto;
 import com.onest.app.catalog.predio.service.PredioService;
@@ -41,6 +42,7 @@ public class PredioAdminController {
     }
 
     @PostMapping(path = "/asignar", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    @Auditado(modulo = "Administracion", accion = "update", entidad = "Cuenta-predio", registro = "cuentaNombre", detalle = {"predioId"})
     public String asignar(
             @RequestParam("cuentaNombre") String cuentaNombre,
             @RequestParam("predioId") Long predioId) {

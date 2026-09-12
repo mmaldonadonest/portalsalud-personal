@@ -1,5 +1,6 @@
 package com.onest.app.catalog.incapacidad.web;
 
+import com.onest.app.audit.web.Auditado;
 import com.onest.app.catalog.file.service.FileStoreService;
 import com.onest.app.catalog.incapacidad.service.IncapacidadService;
 import java.util.List;
@@ -81,6 +82,7 @@ public class IncapacidadController {
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = "text/plain;charset=UTF-8")
     @ResponseBody
+    @Auditado(modulo = "Incapacidades", accion = "create", entidad = "Incapacidad", registro = "nss", detalle = {"ramo", "diasAutorizados"})
     public String save(@ModelAttribute IncapacidadAltaForm form) {
         try {
             String proceso = incapacidadService.crearIncapacidad(form);

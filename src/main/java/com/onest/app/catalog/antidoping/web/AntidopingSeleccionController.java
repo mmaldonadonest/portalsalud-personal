@@ -1,5 +1,6 @@
 package com.onest.app.catalog.antidoping.web;
 
+import com.onest.app.audit.web.Auditado;
 import com.onest.app.catalog.antidoping.dto.AntidopingSeleccionDto;
 import com.onest.app.catalog.antidoping.service.AntidopingService;
 import java.util.List;
@@ -36,6 +37,7 @@ public class AntidopingSeleccionController {
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = "text/plain;charset=UTF-8")
+    @Auditado(modulo = "Antidoping", accion = "create", entidad = "Seleccion aleatoria", registro = "nss", detalle = {"tamanoPool"})
     public String registrar(
             @RequestParam("nss") String nss,
             @RequestParam(name = "tamanoPool", required = false) Integer tamanoPool) {

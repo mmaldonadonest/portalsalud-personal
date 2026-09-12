@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: analisisMuscContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Musculoesqueléticas | Análisis | Portal Salud Personal</title>
+</head>
+<body>
+
+<!--
+  Lesiones Musculoesqueleticas (modulo Analisis, rol MEDICO_ANALISTA). Equivale a V.musc del
+  prototipo: 5 KPIs (total, algias/contusiones, columna, traumatismos, fracturas/amputaciones)
+  + distribucion por tipo (barras) + region corporal (dona). El mock clasifica a mano; aqui la
+  clasificacion sale de la clave CIE-10 que encabeza el DIAGNOSTICO de cada consulta
+  (LesionMusculoesqueletica.java) y, para el capitulo M, del area involucrada capturada.
+
+  Fuente: /api/dashboard/musculoesqueleticas -> Servcio/consulta_medica_fecha, que devuelve
+  DIAGNOSTICO desde el 11-sep-2026 (docs/ords-diagnostico-en-consultas.sql). En el historico
+  ninguna consulta trae clave CIE-10 (se captura en el portal PHP productivo; sera obligatoria
+  al lanzar este portal), asi que el modulo arranca vacio y lo dice en pantalla en vez de
+  inventar datos. Adicional al mock: tendencia mensual y top de claves CIE-10.
+-->
+<th:block id="pageStyles">
+    <link rel="stylesheet" th:href="@{/theme/lib/apexcharts/apexcharts.css}" href="/theme/lib/apexcharts/apexcharts.css">
+    <style>
+        .chart-card .card-header { border-bottom: none; padding-bottom: 0; display: block; }
+        .chart-eyebrow {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        .chart-eyebrow::before {
+            content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+            box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+        }
+        .chart-eyebrow--tipo { color: #C2410C; }
+        .chart-eyebrow--region { color: #1D4ED8; }
+        .chart-eyebrow--mes { color: #0F766E; }
+        .chart-eyebrow--cie { color: #6D28D9; }
+
+        .kpi-card { border-top: 3px solid var(--kc, #94a3b8); transition: transform .15s, box-shadow .15s; }
+        .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15, 23, 42, .08); }
+        .kpi-ico {
+            width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
+            background: var(--kcbg, #f1f5f9); color: var(--kc, #64748b); margin-bottom: 9px; font-size: 16px;
+        }
+        .kpi-card--total { --kc: #1D4ED8; --kcbg: #EFF6FF; }
+        .kpi-card--algia { --kc: #C2410C; --kcbg: #FFF7ED; }
+        .kpi-card--columna { --kc: #1E40AF; --kcbg: #EEF2FF; }
+        .kpi-card--trauma { --kc: #B91C1C; --kcbg: #FEF2F2; }
+        .kpi-card--fract { --kc: #047857; --kcbg: #ECFDF5; }
+        .kpi-value { font-size: 1.6rem; font-weight: 700; letter-spacing: -.02em; color: #0f172a; line-height: 1.15; margin: 2px 0 6px; }
+        .kpi-tag {
+            display: inline-block; font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 6px;
+            background: var(--kcbg, #f1f5f9); color: var(--kc, #64748b); margin-top: 4px;
+        }
+        .kpi-tag--muted { background: #f1f5f9; color: #64748b; }
+        .vacio { text-align: center; padding: 32px 16px; color: #94a3b8; font-size: 12.5px; }
+        .aviso-vacio { border-left: 4px solid #F59E0B; background: #FFFBEB; border-radius: 8px; padding: 12px 16px; }
+        .aviso-vacio strong { color: #92400E; }
+        .cie-lista { list-style: none; padding: 0; margin: 0; }
+        .cie-lista li { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px dashed #e5e9f2; font-size: 12px; }
+        .cie-lista li:last-child { border-bottom: none; }
+        .cie-clave { font-family: ui-monospace, monospace; font-weight: 700; color: #6D28D9; min-width: 38px; }
+        .cie-texto { flex: 1; color: #334155; }
+        .cie-barra { flex: 0 0 120px; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
+        .cie-barra span { display: block; height: 100%; background: #6D28D9; border-radius: 3px; }
+        .cie-n { font-weight: 700; color: #0f172a; min-width: 28px; text-align: right; }
+    </style>
+</th:block>
+
+<th:block th:fragment="analisisMuscContent">
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/analisis/ejecutivo}" href="/analisis/ejecutivo">Dashboard Ejecutivo</a></li>
+                <li class="breadcrumb-item"><span>Morbilidad</span></li>
+                <li class="breadcrumb-item active" aria-current="page">Musculoesqueléticas</li>
+            </ol>
+            <h4 class="main-title mb-0">Lesiones Musculoesqueléticas</h4>
+            <p class="fs-12 text-muted mb-0" id="subtitulo">MT = miembro torácico · MP = miembro pélvico</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" id="btnExportar" class="btn btn-outline-secondary btn-sm">
+                <i class="ri-download-2-line me-1"></i>Exportar
+            </button>
+            <button type="button" id="btnAtenciones" class="btn btn-primary btn-sm"
+                    th:attr="data-url=@{/analisis/atenciones}" data-url="/analisis/atenciones">
+                <i class="ri-stethoscope-line me-1"></i>Ver atenciones
+            </button>
+        </div>
+    </div>
+
+    <div class="card card-one mb-3">
+        <div class="card-body d-flex flex-wrap align-items-end gap-3">
+            <div>
+                <label class="form-label fs-12 mb-1">Año</label>
+                <select id="fAnio" class="form-select form-select-sm"></select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Periodo</label>
+                <select id="fPeriodo" class="form-select form-select-sm">
+                    <option value="0">Acumulado (todo el año)</option>
+                    <option value="1">Enero</option><option value="2">Febrero</option>
+                    <option value="3">Marzo</option><option value="4">Abril</option>
+                    <option value="5">Mayo</option><option value="6">Junio</option>
+                    <option value="7">Julio</option><option value="8">Agosto</option>
+                    <option value="9">Septiembre</option><option value="10">Octubre</option>
+                    <option value="11">Noviembre</option><option value="12">Diciembre</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Predio</label>
+                <select id="fPredio" class="form-select form-select-sm" style="min-width:200px">
+                    <option value="">Todos los predios</option>
+                </select>
+            </div>
+            <span id="estado" class="fs-12 text-muted ms-auto"></span>
+            <input type="hidden" id="fFechaInicial" value="">
+            <input type="hidden" id="fFechaFinal" value="">
+        </div>
+    </div>
+
+    <div id="avisoVacio" class="aviso-vacio fs-12 mb-3" hidden>
+        <strong>Sin lesiones clasificables en el periodo.</strong>
+        <span id="avisoVacioTexto"></span>
+        La clasificación usa la clave CIE-10 que encabeza el diagnóstico de cada consulta
+        (capítulos M, S y T); hoy el diagnóstico se captura en el portal PHP productivo y será
+        obligatorio al lanzar este portal. El módulo se llena solo conforme se capture.
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-xl-4">
+            <div class="card card-one kpi-card kpi-card--total"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-body-scan-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Total lesiones</span>
+                <h3 class="kpi-value" id="kpiTotal">—</h3>
+                <span class="kpi-tag kpi-tag--muted" id="kpiTotalSub">—</span>
+            </div></div>
+        </div>
+        <div class="col-6 col-xl-4">
+            <div class="card card-one kpi-card kpi-card--algia"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-alert-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Algias/contusiones</span>
+                <h3 class="kpi-value" id="kpiAlgia">—</h3>
+                <span class="kpi-tag" id="kpiAlgiaSub">—</span>
+            </div></div>
+        </div>
+        <div class="col-6 col-xl-4">
+            <div class="card card-one kpi-card kpi-card--columna"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-file-list-3-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Columna</span>
+                <h3 class="kpi-value" id="kpiColumna">—</h3>
+                <span class="kpi-tag">cervical/dorsal/lumbar</span>
+            </div></div>
+        </div>
+        <div class="col-6 col-xl-4">
+            <div class="card card-one kpi-card kpi-card--trauma"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-error-warning-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Traumatismos</span>
+                <h3 class="kpi-value" id="kpiTrauma">—</h3>
+                <span class="kpi-tag">cabeza, tronco y extremidades</span>
+            </div></div>
+        </div>
+        <div class="col-6 col-xl-4">
+            <div class="card card-one kpi-card kpi-card--fract"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-check-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Fracturas / amput.</span>
+                <h3 class="kpi-value" id="kpiFract">—</h3>
+                <span class="kpi-tag" id="kpiFractSub">—</span>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-7">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--tipo">Tipo</span>
+                    <div class="card-title-lg">Distribución por tipo</div>
+                    <p class="fs-11 text-muted mb-0">Solo tipos con registro</p>
+                </div>
+                <div class="card-body"><div id="chartTipo"></div></div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--region">Región</span>
+                    <div class="card-title-lg">Por región corporal</div>
+                    <p class="fs-11 text-muted mb-0">Agrupación clínica</p>
+                </div>
+                <div class="card-body"><div id="chartRegion"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--mes">Tendencia</span>
+                    <div class="card-title-lg">Lesiones por mes</div>
+                    <p class="fs-11 text-muted mb-0" id="subMes"></p>
+                </div>
+                <div class="card-body"><div id="chartMes"></div></div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--cie">CIE-10</span>
+                    <div class="card-title-lg">Diagnósticos más frecuentes</div>
+                    <p class="fs-11 text-muted mb-0">Categoría de 3 caracteres, texto tal como se capturó</p>
+                </div>
+                <div class="card-body"><div id="listaCie"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <p class="fs-11 text-muted mt-3 mb-0">
+        <i class="ri-information-line"></i>
+        Fuente: consultas médicas con clave CIE-10 al inicio del diagnóstico. Capítulo M
+        (osteomuscular; M40–M54 = columna, el resto toma la región del área involucrada),
+        capítulo S (traumatismos por región: segundo dígito = contusión, fractura, esguince…)
+        y T00–T14 (regiones múltiples). Consultas sin clave no se cuentan ni se adivinan.
+    </p>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:src="@{/theme/lib/apexcharts/apexcharts.min.js}" src="/theme/lib/apexcharts/apexcharts.min.js"></script>
+    <script th:inline="javascript">
+        (function () {
+            var contextPath = /*[[@{/}]]*/ '/';
+            var chartTipo = null, chartRegion = null, chartMes = null, ultimoExport = null;
+
+            var NOMBRES_MES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
+                'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            // Mismos colores por region que el mock: MT azul, MP teal, columna naranja,
+            // cabeza/tronco rojo, multiple gris.
+            var COLOR_REGION = {
+                'Miembro torácico': '#1D4ED8', 'Miembro pélvico': '#0E7490', 'Columna': '#C2410C',
+                'Cabeza/tronco': '#B91C1C', 'Múltiple': '#64748B'
+            };
+            function colorTipo(tipo) {
+                if (/ MT$/.test(tipo)) { return '#C2410C'; }
+                if (/ MP$/.test(tipo)) { return '#C2410C'; }
+                if (/cervical|vertebral|lumbalgia/i.test(tipo)) { return '#C2410C'; }
+                if (/cabeza/i.test(tipo)) { return '#F59E0B'; }
+                return '#475569';
+            }
+
+            function numero(n) { return (n || 0).toLocaleString('es-MX'); }
+            function pct(parte, total) { return total ? Math.round((parte / total) * 1000) / 10 + '% del total' : '—'; }
+            function etiquetaMes(clave) {
+                var p = String(clave).split('-');
+                return p.length === 2 ? NOMBRES_MES[parseInt(p[1], 10) - 1] + ' ' + p[0].substring(2) : clave;
+            }
+            function vaciar(id, texto) {
+                document.getElementById(id).innerHTML = '<p class="vacio mb-0">' + texto + '</p>';
+            }
+
+            function calcularRango() {
+                var anio = parseInt(document.getElementById('fAnio').value, 10);
+                var periodo = parseInt(document.getElementById('fPeriodo').value, 10);
+                var hoy = new Date();
+                var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+                if (periodo === 0) {
+                    var fin = anio === hoy.getFullYear() ? hoy : new Date(anio, 11, 31);
+                    return {
+                        fechaInicial: anio + '-01-01',
+                        fechaFinal: fin.getFullYear() + '-' + pad(fin.getMonth() + 1) + '-' + pad(fin.getDate()),
+                        texto: 'ejercicio ' + anio
+                    };
+                }
+                var ultimo = new Date(anio, periodo, 0).getDate();
+                return {
+                    fechaInicial: anio + '-' + pad(periodo) + '-01',
+                    fechaFinal: anio + '-' + pad(periodo) + '-' + pad(ultimo),
+                    texto: NOMBRES_MES[periodo - 1] + ' ' + anio
+                };
+            }
+
+            async function cargarPredios() {
+                try {
+                    var res = await fetch(contextPath + 'api/analisis/filtros');
+                    if (!res.ok) { return; }
+                    var data = await res.json();
+                    var select = document.getElementById('fPredio');
+                    (data.predios || []).forEach(function (nombre) {
+                        var opt = document.createElement('option');
+                        opt.value = nombre;
+                        opt.textContent = nombre;
+                        select.appendChild(opt);
+                    });
+                } catch (e) { /* sin filtro de predio, la pagina sigue */ }
+            }
+
+            function inicializar() {
+                var selectAnio = document.getElementById('fAnio');
+                var actual = new Date().getFullYear();
+                for (var y = actual; y >= 2023; y--) {
+                    var opt = document.createElement('option');
+                    opt.value = y;
+                    opt.textContent = y;
+                    selectAnio.appendChild(opt);
+                }
+                ['fAnio', 'fPeriodo', 'fPredio'].forEach(function (id) {
+                    document.getElementById(id).addEventListener('change', aplicar);
+                });
+                document.getElementById('btnExportar').addEventListener('click', exportarCsv);
+                document.getElementById('btnAtenciones').addEventListener('click', function () { window.location.href = this.dataset.url; });
+            }
+
+            function aplicar() {
+                var rango = calcularRango();
+                document.getElementById('fFechaInicial').value = rango.fechaInicial;
+                document.getElementById('fFechaFinal').value = rango.fechaFinal;
+                cargar(rango);
+            }
+
+            async function cargar(rango) {
+                var estado = document.getElementById('estado');
+                var predio = document.getElementById('fPredio').value;
+                var qs = 'fechaInicial=' + encodeURIComponent(rango.fechaInicial)
+                       + '&fechaFinal=' + encodeURIComponent(rango.fechaFinal)
+                       + (predio ? '&predio=' + encodeURIComponent(predio) : '');
+                estado.textContent = 'Cargando...';
+                try {
+                    var res = await fetch(contextPath + 'api/dashboard/musculoesqueleticas?' + qs);
+                    if (!res.ok) { estado.textContent = 'Error al consultar (HTTP ' + res.status + ').'; return; }
+                    var d = await res.json();
+                    document.getElementById('subtitulo').textContent =
+                        numero(d.totalLesiones) + (d.totalLesiones === 1 ? ' lesión · ' : ' lesiones · ')
+                        + 'MT = miembro torácico · MP = miembro pélvico · '
+                        + rango.texto + (predio ? ' · ' + predio : '');
+                    pintarAviso(d);
+                    pintarKpis(d);
+                    pintarTipo(d);
+                    pintarRegion(d);
+                    pintarMes(d);
+                    pintarCie(d);
+                    ultimoExport = d;
+                    estado.textContent = 'Actualizado.';
+                } catch (e) {
+                    console.error('[analisis-musculoesqueleticas] error en cargar():', e);
+                    estado.textContent = 'Error de red: ' + e.message;
+                }
+            }
+
+            function pintarAviso(d) {
+                var aviso = document.getElementById('avisoVacio');
+                if (d.totalLesiones > 0) { aviso.hidden = true; return; }
+                var texto = numero(d.totalConsultas) + (d.totalConsultas === 1 ? ' consulta' : ' consultas')
+                    + ' en el periodo, ' + numero(d.sinDiagnostico) + ' sin clave CIE-10 en el diagnóstico';
+                var otras = d.totalConsultas - d.sinDiagnostico;
+                if (otras > 0) { texto += ' y ' + numero(otras) + ' de otros capítulos'; }
+                document.getElementById('avisoVacioTexto').textContent = texto + '. ';
+                aviso.hidden = false;
+            }
+
+            function pintarKpis(d) {
+                var t = d.totalLesiones;
+                document.getElementById('kpiTotal').textContent = numero(t);
+                document.getElementById('kpiTotalSub').textContent = t
+                    ? numero(d.totalPersonas) + (d.totalPersonas === 1 ? ' persona' : ' personas')
+                    : 'sin registros con clave CIE-10';
+                document.getElementById('kpiAlgia').textContent = numero(d.algiasContusiones);
+                document.getElementById('kpiAlgiaSub').textContent = pct(d.algiasContusiones, t);
+                document.getElementById('kpiColumna').textContent = numero(d.columna);
+                document.getElementById('kpiTrauma').textContent = numero(d.traumatismos);
+                document.getElementById('kpiFract').textContent = numero(d.fracturasAmputaciones);
+                document.getElementById('kpiFractSub').textContent = d.fracturasAmputaciones
+                    ? pct(d.fracturasAmputaciones, t) : 'sin eventos graves';
+            }
+
+            function pintarTipo(d) {
+                var lista = d.porTipo || [];
+                if (!lista.length) { vaciar('chartTipo', 'Sin lesiones clasificadas en el periodo.'); return; }
+                var options = {
+                    chart: { type: 'bar', height: Math.max(260, 34 * lista.length + 60), toolbar: { show: false } },
+                    series: [{ name: 'Lesiones', data: lista.map(function (r) { return r.cantidad; }) }],
+                    xaxis: { categories: lista.map(function (r) { return r.clave; }), labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#475569', fontSize: '11px' }, maxWidth: 220 } },
+                    colors: lista.map(function (r) { return colorTipo(r.clave); }),
+                    plotOptions: { bar: { horizontal: true, distributed: true, borderRadius: 4, barHeight: '60%' } },
+                    legend: { show: false },
+                    dataLabels: { enabled: false },
+                    tooltip: { y: { formatter: function (v) { return numero(v) + (v === 1 ? ' lesión' : ' lesiones'); } } },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3, xaxis: { lines: { show: true } }, yaxis: { lines: { show: false } } }
+                };
+                document.getElementById('chartTipo').innerHTML = '';
+                if (chartTipo) { chartTipo.destroy(); }
+                chartTipo = new ApexCharts(document.querySelector('#chartTipo'), options);
+                chartTipo.render();
+            }
+
+            function pintarRegion(d) {
+                var lista = d.porRegion || [];
+                if (!lista.length) { vaciar('chartRegion', 'Sin lesiones clasificadas en el periodo.'); return; }
+                var options = {
+                    chart: { type: 'donut', height: 300 },
+                    series: lista.map(function (r) { return r.cantidad; }),
+                    labels: lista.map(function (r) { return r.clave; }),
+                    colors: lista.map(function (r) { return COLOR_REGION[r.clave] || '#94a3b8'; }),
+                    legend: { position: 'bottom', fontSize: '11px', markers: { radius: 12 } },
+                    dataLabels: { enabled: true, formatter: function (v) { return Math.round(v) + '%'; } },
+                    plotOptions: { pie: { donut: { size: '59%' } } }
+                };
+                document.getElementById('chartRegion').innerHTML = '';
+                if (chartRegion) { chartRegion.destroy(); }
+                chartRegion = new ApexCharts(document.querySelector('#chartRegion'), options);
+                chartRegion.render();
+            }
+
+            function pintarMes(d) {
+                var lista = d.tendenciaMensual || [];
+                document.getElementById('subMes').textContent = lista.length
+                    ? lista.length + (lista.length === 1 ? ' mes con registro' : ' meses con registro') : '';
+                if (!lista.length) { vaciar('chartMes', 'Sin lesiones clasificadas en el periodo.'); return; }
+                var options = {
+                    chart: { type: 'bar', height: 280, toolbar: { show: false } },
+                    series: [{ name: 'Lesiones', data: lista.map(function (p) { return p.cantidad; }) }],
+                    colors: ['#0F766E'],
+                    xaxis: { categories: lista.map(function (p) { return etiquetaMes(p.mes); }), labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' }, formatter: function (v) { return numero(Math.round(v)); } } },
+                    plotOptions: { bar: { borderRadius: 4, columnWidth: '45%' } },
+                    dataLabels: { enabled: false },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 }
+                };
+                document.getElementById('chartMes').innerHTML = '';
+                if (chartMes) { chartMes.destroy(); }
+                chartMes = new ApexCharts(document.querySelector('#chartMes'), options);
+                chartMes.render();
+            }
+
+            function pintarCie(d) {
+                var lista = d.topDiagnosticos || [];
+                if (!lista.length) { vaciar('listaCie', 'Sin diagnósticos con clave CIE-10 en el periodo.'); return; }
+                var max = lista[0].cantidad || 1;
+                var html = '<ul class="cie-lista">';
+                lista.forEach(function (r) {
+                    var sep = r.clave.indexOf(' - ');
+                    var clave = sep > 0 ? r.clave.substring(0, sep) : r.clave;
+                    var texto = sep > 0 ? r.clave.substring(sep + 3) : '';
+                    html += '<li><span class="cie-clave">' + escapar(clave) + '</span>'
+                          + '<span class="cie-texto">' + escapar(texto) + '</span>'
+                          + '<span class="cie-barra"><span style="width:' + Math.round((r.cantidad / max) * 100) + '%"></span></span>'
+                          + '<span class="cie-n">' + numero(r.cantidad) + '</span></li>';
+                });
+                document.getElementById('listaCie').innerHTML = html + '</ul>';
+            }
+
+            function escapar(s) {
+                return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+
+            function exportarCsv() {
+                if (!ultimoExport) { return; }
+                var d = ultimoExport;
+                var filas = [
+                    ['Periodo', document.getElementById('fFechaInicial').value + ' a ' + document.getElementById('fFechaFinal').value],
+                    ['Predio', document.getElementById('fPredio').value || 'Todos'],
+                    [],
+                    ['Indicador', 'Valor'],
+                    ['Consultas en el periodo', d.totalConsultas],
+                    ['Consultas sin clave CIE-10', d.sinDiagnostico],
+                    ['Lesiones musculoesqueléticas', d.totalLesiones],
+                    ['Personas', d.totalPersonas],
+                    ['Algias/contusiones', d.algiasContusiones],
+                    ['Columna', d.columna],
+                    ['Traumatismos', d.traumatismos],
+                    ['Fracturas/amputaciones', d.fracturasAmputaciones],
+                    [],
+                    ['Tipo', 'Lesiones']
+                ];
+                (d.porTipo || []).forEach(function (r) { filas.push([r.clave, r.cantidad]); });
+                filas.push([]);
+                filas.push(['Región', 'Lesiones']);
+                (d.porRegion || []).forEach(function (r) { filas.push([r.clave, r.cantidad]); });
+                filas.push([]);
+                filas.push(['Predio', 'Lesiones']);
+                (d.porPredio || []).forEach(function (r) { filas.push([r.clave, r.cantidad]); });
+                filas.push([]);
+                filas.push(['CIE-10', 'Lesiones']);
+                (d.topDiagnosticos || []).forEach(function (r) { filas.push([r.clave, r.cantidad]); });
+                var csv = filas.map(function (f) {
+                    return f.map(function (v) { return '"' + String(v === undefined ? '' : v).replace(/"/g, '""') + '"'; }).join(',');
+                }).join('\r\n');
+                var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'musculoesqueleticas_' + document.getElementById('fFechaInicial').value + '.csv';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                auditarExportacion('Musculoesqueléticas', a.download);
+            }
+
+            document.addEventListener('DOMContentLoaded', async function () {
+                inicializar();
+                await cargarPredios();
+                aplicar();
+            });
+        })();
+    </script>
+</th:block>
+</body>
+</html>

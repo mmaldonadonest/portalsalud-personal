@@ -3,6 +3,7 @@ package com.onest.app.catalog.dashboard.service;
 import com.onest.app.catalog.predio.dto.CuentaPredioDto;
 import com.onest.app.catalog.predio.service.PredioService;
 import java.util.Locale;
+import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 
 /**
@@ -34,9 +35,24 @@ public class DashboardPredioFiltro {
      * mapear en vez de un dato inventado.
      */
     public String predioDe(String cuenta) {
-        return predioService.predioFinoPorCuenta(cuenta)
+        return predioService.predioFinoPorCuenta(sinSufijoHistorico(cuenta))
                 .map(CuentaPredioDto::predioNombre)
                 .orElse(SIN_ASIGNAR);
+    }
+
+    /** "47 BRAND - BIOANTERIOR" / "X -BIOANTERIOR" -> cuenta vigente, con o sin espacio. */
+    private static final Pattern SUFIJO_HISTORICO =
+            Pattern.compile("\\s*-\\s*BIO\\s*ANTERIOR\\s*$", Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Las cuentas historicas del biometrico anterior vienen como "47 BRAND - BIOANTERIOR" (33
+     * en el catalogo, 21 con gemela vigente). Desde el 11-sep-2026 ya no salen en
+     * cuenta_predio_lista (docs/ords-cuenta-predio-lista-sin-historicas.sql), asi que se les
+     * quita el sufijo para que hereden el predio de la cuenta vigente en vez de caer todas a
+     * "Sin asignar". Si la gemela no existe o no tiene predio, caen igual que cualquier otra.
+     */
+    static String sinSufijoHistorico(String cuenta) {
+        return cuenta == null ? null : SUFIJO_HISTORICO.matcher(cuenta).replaceFirst("").trim();
     }
 
     /**

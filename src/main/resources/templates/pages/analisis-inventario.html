@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: analisisInvContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Inventario | Análisis | Portal Salud Personal</title>
+</head>
+<body>
+
+<!--
+  Inventario de Antidoping (modulo Analisis, rol MEDICO_ANALISTA). Equivale a V.inv del
+  prototipo. Reusa /api/consumibles - cero WS nuevo.
+
+  Verificado contra la captura del prototipo el 11-sep-2026. Aqui la diferencia es de MODELO,
+  no de campos: el mock maneja LOTES con CADUCIDAD (lote, fecha de vencimiento, dias para
+  caducar, alerta por caducidad). Nuestro inventario (SERV_MED_ANTIDOPING_INVENTARIO) es un
+  libro MENSUAL por predio: inicial, entrega, consumo. No hay lotes ni caducidades en ninguna
+  tabla. Construir el diseno del mock seria fabricar un modelo que no existe. Por eso:
+  - "Disponible por lote"   -> "Disponible por predio" (consumido vs disponible del ultimo mes).
+  - "Dias para caducar"     -> "Movimiento mensual" (entregas vs consumo por mes).
+  - "Lotes en alerta"       -> "Predios en alerta" solo por nivel de stock (<20%), sin caducidad.
+  - "Detalle de lotes"      -> "Detalle por predio y mes".
+  El predio del inventario es texto libre y NO casa con el catalogo de predios (deuda tecnica
+  ya documentada en docs/ords-predio-empleado.sql): se muestra tal cual y no hay filtro de
+  predio del catalogo en esta pantalla.
+-->
+<th:block id="pageStyles">
+    <link rel="stylesheet" th:href="@{/theme/lib/apexcharts/apexcharts.css}" href="/theme/lib/apexcharts/apexcharts.css">
+    <style>
+        .chart-card .card-header { border-bottom: none; padding-bottom: 0; display: block; }
+        .chart-eyebrow {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        .chart-eyebrow::before {
+            content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+            box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+        }
+        .chart-eyebrow--stock { color: #047857; }
+        .chart-eyebrow--mov { color: #2563EB; }
+        .chart-eyebrow--tabla { color: #0F766E; }
+        .chart-eyebrow--alerta { color: #DC2626; }
+
+        .kpi-card { border-top: 3px solid var(--kc, #94a3b8); transition: transform .15s, box-shadow .15s; }
+        .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15, 23, 42, .08); }
+        .kpi-ico {
+            width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
+            background: var(--kcbg, #f1f5f9); color: var(--kc, #64748b); margin-bottom: 9px; font-size: 16px;
+        }
+        .kpi-card--disp { --kc: #047857; --kcbg: #ECFDF5; }
+        .kpi-card--ini { --kc: #1D4ED8; --kcbg: #EFF6FF; }
+        .kpi-card--cons { --kc: #B45309; --kcbg: #FFFBEB; }
+        .kpi-card--alerta { --kc: #DC2626; --kcbg: #FEF2F2; }
+        .kpi-value { font-size: 1.6rem; font-weight: 700; letter-spacing: -.02em; color: #0f172a; line-height: 1.15; margin: 2px 0 6px; }
+        .kpi-sub { font-size: 11px; color: #64748b; margin-top: 5px; line-height: 1.4; display: block; }
+
+        #listaAlertas li { display: flex; gap: 9px; padding: 10px 12px; border-radius: 8px; font-size: 12.5px; margin-bottom: 8px; border: 1px solid; }
+        #listaAlertas li:last-child { margin-bottom: 0; }
+        #listaAlertas .al-crit { background: #FEF2F2; border-color: #FECACA; color: #7F1D1D; }
+        #listaAlertas .al-warn { background: #FFFBEB; border-color: #FDE68A; color: #78350F; }
+
+        #tbInv td { font-size: 12.5px; }
+        #tbInv .bar-track { background: #f1f5f9; border-radius: 5px; height: 8px; overflow: hidden; min-width: 60px; }
+        #tbInv .bar-fill { height: 100%; border-radius: 5px; }
+        .nivel-tag { font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+        .nivel-crit { color: #B91C1C; background: #FEF2F2; }
+        .nivel-warn { color: #B45309; background: #FFFBEB; }
+        .nivel-ok { color: #047857; background: #ECFDF5; }
+        .vacio { text-align: center; padding: 32px 16px; color: #94a3b8; font-size: 12.5px; }
+    </style>
+</th:block>
+
+<th:block th:fragment="analisisInvContent">
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/analisis/ejecutivo}" href="/analisis/ejecutivo">Dashboard Ejecutivo</a></li>
+                <li class="breadcrumb-item"><span>Control</span></li>
+                <li class="breadcrumb-item active" aria-current="page">Inventario</li>
+            </ol>
+            <h4 class="main-title mb-0">Inventario de Antidoping</h4>
+            <p class="fs-12 text-muted mb-0" id="subtitulo">Existencia, entregas y consumo por predio y mes</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" id="btnExportar" class="btn btn-outline-secondary btn-sm">
+                <i class="ri-download-2-line me-1"></i>Exportar
+            </button>
+            <button type="button" id="btnNuevo" class="btn btn-primary btn-sm"
+                    th:attr="data-url=@{/consumibles}" data-url="/consumibles">
+                <i class="ri-add-line me-1"></i>Registrar movimiento
+            </button>
+        </div>
+    </div>
+
+    <div class="card card-one mb-3">
+        <div class="card-body d-flex flex-wrap align-items-end gap-3">
+            <div>
+                <label class="form-label fs-12 mb-1">Año</label>
+                <select id="fAnio" class="form-select form-select-sm"></select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Periodo</label>
+                <select id="fPeriodo" class="form-select form-select-sm">
+                    <option value="0">Acumulado (todo el año)</option>
+                    <option value="1">Enero</option><option value="2">Febrero</option>
+                    <option value="3">Marzo</option><option value="4">Abril</option>
+                    <option value="5">Mayo</option><option value="6">Junio</option>
+                    <option value="7">Julio</option><option value="8">Agosto</option>
+                    <option value="9">Septiembre</option><option value="10">Octubre</option>
+                    <option value="11">Noviembre</option><option value="12">Diciembre</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Predio (del inventario)</label>
+                <select id="fPredio" class="form-select form-select-sm" style="min-width:200px">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <span id="estado" class="fs-12 text-muted ms-auto"></span>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-xl-3">
+            <div class="card card-one kpi-card kpi-card--disp"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-archive-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Disponible total</span>
+                <h3 class="kpi-value" id="kpiDisp">—</h3>
+                <span class="kpi-sub" id="kpiDispSub"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card card-one kpi-card kpi-card--ini"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-inbox-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Existencia inicial</span>
+                <h3 class="kpi-value" id="kpiIni">—</h3>
+                <span class="kpi-sub" id="kpiIniSub"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card card-one kpi-card kpi-card--cons"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-line-chart-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Consumo acumulado</span>
+                <h3 class="kpi-value" id="kpiCons">—</h3>
+                <span class="kpi-sub" id="kpiConsSub"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card card-one kpi-card kpi-card--alerta"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-alert-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Predios en alerta</span>
+                <h3 class="kpi-value" id="kpiAlerta">—</h3>
+                <span class="kpi-sub">stock &lt; 20%</span>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="card card-one chart-card mb-3" id="cardAlertas" hidden>
+        <div class="card-header">
+            <span class="chart-eyebrow chart-eyebrow--alerta">Alertas</span>
+            <div class="card-title-lg">Alertas activas</div>
+            <p class="fs-11 text-muted mb-0">Predios con menos del 20% de stock al cierre del último mes registrado</p>
+        </div>
+        <div class="card-body"><ul class="list-unstyled mb-0" id="listaAlertas"></ul></div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-6">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--stock">Stock</span>
+                    <div class="card-title-lg">Disponible por predio</div>
+                    <p class="fs-11 text-muted mb-0">Consumido frente a disponible · último mes registrado</p>
+                </div>
+                <div class="card-body"><div id="chartStock"></div></div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--mov">Movimiento</span>
+                    <div class="card-title-lg">Movimiento mensual</div>
+                    <p class="fs-11 text-muted mb-0">Entregas frente a consumo</p>
+                </div>
+                <div class="card-body"><div id="chartMov"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card-one chart-card">
+        <div class="card-header">
+            <span class="chart-eyebrow chart-eyebrow--tabla">Detalle</span>
+            <div class="card-title-lg">Detalle por predio y mes</div>
+            <p class="fs-11 text-muted mb-0">Disponible calculado: inicial + entrega − consumo</p>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <caption class="visually-hidden">Detalle de inventario por predio y mes</caption>
+                    <thead>
+                    <tr>
+                        <th class="ps-3">Predio</th>
+                        <th>Mes</th>
+                        <th class="text-end">Inicial</th>
+                        <th class="text-end">Entrega</th>
+                        <th class="text-end">Consumo</th>
+                        <th class="text-end">Disponible</th>
+                        <th style="width:150px">Nivel</th>
+                        <th class="pe-3">Estado</th>
+                    </tr>
+                    </thead>
+                    <tbody id="tbInv"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <p class="fs-11 text-muted mt-3 mb-0">
+        <i class="ri-information-line"></i>
+        El inventario se captura por mes y predio en
+        <a th:href="@{/consumibles}" href="/consumibles">Consumibles</a>; no maneja lotes ni
+        fechas de caducidad, por eso las alertas son solo por nivel de stock. El predio aquí es
+        el texto capturado en el inventario, no el catálogo de predios.
+    </p>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:src="@{/theme/lib/apexcharts/apexcharts.min.js}" src="/theme/lib/apexcharts/apexcharts.min.js"></script>
+    <script th:inline="javascript">
+        (function () {
+            var contextPath = /*[[@{/}]]*/ '/';
+            var chartStock = null, chartMov = null, todos = [], ultimoExport = null;
+
+            var NOMBRES_MES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
+                'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+            function numero(n) { return (n || 0).toLocaleString('es-MX'); }
+            function escapeHtml(v) {
+                if (v === null || v === undefined) { return ''; }
+                return String(v).replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+            function vaciar(id, texto) {
+                document.getElementById(id).innerHTML = '<p class="vacio mb-0">' + texto + '</p>';
+            }
+            function claveMes(r) { return r.anio + '-' + (r.mes < 10 ? '0' : '') + r.mes; }
+            function etiquetaMes(clave) {
+                var p = String(clave).split('-');
+                return NOMBRES_MES[parseInt(p[1], 10) - 1] + ' ' + p[0].substring(2);
+            }
+            function disponible(r) { return (r.cantidadInicial || 0) + (r.entregaMensual || 0) - (r.consumoMensual || 0); }
+            function nivel(r) {
+                var base = (r.cantidadInicial || 0) + (r.entregaMensual || 0);
+                return base ? Math.max(0, Math.round((disponible(r) / base) * 100)) : 0;
+            }
+            function estadoNivel(n) {
+                if (n < 20) { return { texto: 'Crítico', clase: 'nivel-crit', color: '#DC2626' }; }
+                if (n < 40) { return { texto: 'Advertencia', clase: 'nivel-warn', color: '#D97706' }; }
+                return { texto: 'Vigente', clase: 'nivel-ok', color: '#047857' };
+            }
+
+            function inicializar() {
+                var selectAnio = document.getElementById('fAnio');
+                var actual = new Date().getFullYear();
+                for (var y = actual; y >= 2023; y--) {
+                    var opt = document.createElement('option');
+                    opt.value = y;
+                    opt.textContent = y;
+                    selectAnio.appendChild(opt);
+                }
+                ['fAnio', 'fPeriodo', 'fPredio'].forEach(function (id) {
+                    document.getElementById(id).addEventListener('change', pintar);
+                });
+                document.getElementById('btnExportar').addEventListener('click', exportarCsv);
+                document.getElementById('btnNuevo').addEventListener('click', function () { window.location.href = this.dataset.url; });
+            }
+
+            async function cargar() {
+                var estado = document.getElementById('estado');
+                estado.textContent = 'Cargando...';
+                try {
+                    var res = await fetch(contextPath + 'api/consumibles');
+                    if (!res.ok) { estado.textContent = 'Error al consultar (HTTP ' + res.status + ').'; return; }
+                    todos = await res.json();
+                    // Predios del inventario (texto libre), no del catalogo.
+                    var select = document.getElementById('fPredio');
+                    var vistos = {};
+                    todos.forEach(function (r) { if (r.predio && !vistos[r.predio]) { vistos[r.predio] = true; } });
+                    Object.keys(vistos).sort().forEach(function (p) {
+                        var opt = document.createElement('option');
+                        opt.value = p;
+                        opt.textContent = p;
+                        select.appendChild(opt);
+                    });
+                    pintar();
+                    estado.textContent = 'Actualizado.';
+                } catch (e) {
+                    console.error('[analisis-inventario] error en cargar():', e);
+                    estado.textContent = 'Error de red: ' + e.message;
+                }
+            }
+
+            function filas() {
+                var anio = parseInt(document.getElementById('fAnio').value, 10);
+                var periodo = parseInt(document.getElementById('fPeriodo').value, 10);
+                var predio = document.getElementById('fPredio').value;
+                return todos.filter(function (r) {
+                    return r.anio === anio && (!periodo || r.mes === periodo) && (!predio || r.predio === predio);
+                });
+            }
+
+            /** Ultimo mes registrado de cada predio dentro del rango: ahi esta el stock "actual". */
+            function ultimoPorPredio(lista) {
+                var mapa = {};
+                lista.forEach(function (r) {
+                    var k = r.predio || '(sin predio)';
+                    if (!mapa[k] || claveMes(r) > claveMes(mapa[k])) { mapa[k] = r; }
+                });
+                return mapa;
+            }
+
+            function pintar() {
+                var lista = filas();
+                var anio = document.getElementById('fAnio').value;
+                var periodo = parseInt(document.getElementById('fPeriodo').value, 10);
+                document.getElementById('subtitulo').textContent = 'Existencia, entregas y consumo · '
+                    + (periodo ? NOMBRES_MES[periodo - 1] + ' ' + anio : 'ejercicio ' + anio);
+                pintarKpis(lista);
+                pintarAlertas(lista);
+                pintarStock(lista);
+                pintarMov(lista);
+                pintarTabla(lista);
+                ultimoExport = lista;
+            }
+
+            function pintarKpis(lista) {
+                var ultimos = ultimoPorPredio(lista);
+                var predios = Object.keys(ultimos);
+                var disp = predios.reduce(function (a, p) { return a + disponible(ultimos[p]); }, 0);
+                var ini = predios.reduce(function (a, p) {
+                    // Inicial = el del PRIMER mes de cada predio en el rango.
+                    var primero = lista.filter(function (r) { return (r.predio || '(sin predio)') === p; })
+                        .sort(function (x, y) { return claveMes(x) < claveMes(y) ? -1 : 1; })[0];
+                    return a + (primero ? primero.cantidadInicial || 0 : 0);
+                }, 0);
+                var cons = lista.reduce(function (a, r) { return a + (r.consumoMensual || 0); }, 0);
+                var ent = lista.reduce(function (a, r) { return a + (r.entregaMensual || 0); }, 0);
+                var alerta = predios.filter(function (p) { return nivel(ultimos[p]) < 20; }).length;
+
+                document.getElementById('kpiDisp').textContent = numero(disp);
+                document.getElementById('kpiDispSub').textContent = predios.length
+                    ? 'unidades en ' + predios.length + (predios.length === 1 ? ' predio' : ' predios') : 'sin registros';
+                document.getElementById('kpiIni').textContent = numero(ini);
+                document.getElementById('kpiIniSub').textContent = ent ? '+ ' + numero(ent) + ' entregadas' : '';
+                document.getElementById('kpiCons').textContent = numero(cons);
+                document.getElementById('kpiConsSub').textContent = (ini + ent) ? Math.round(cons / (ini + ent) * 100) + '% de lo disponible' : '';
+                document.getElementById('kpiAlerta').textContent = numero(alerta);
+            }
+
+            function pintarAlertas(lista) {
+                var ultimos = ultimoPorPredio(lista);
+                var al = Object.keys(ultimos).filter(function (p) { return nivel(ultimos[p]) < 20; })
+                    .sort(function (a, b) { return nivel(ultimos[a]) - nivel(ultimos[b]); });
+                var card = document.getElementById('cardAlertas');
+                card.hidden = !al.length;
+                document.getElementById('listaAlertas').innerHTML = al.map(function (p) {
+                    var r = ultimos[p], n = nivel(r);
+                    return '<li class="' + (n < 10 ? 'al-crit' : 'al-warn') + '"><i class="ri-alert-line"></i><span>'
+                         + '<strong>' + escapeHtml(p) + '</strong> · ' + numero(disponible(r)) + ' de '
+                         + numero((r.cantidadInicial || 0) + (r.entregaMensual || 0)) + ' unidades (' + n + '% de stock) · '
+                         + etiquetaMes(claveMes(r)) + '</span></li>';
+                }).join('');
+            }
+
+            function pintarStock(lista) {
+                var ultimos = ultimoPorPredio(lista);
+                var predios = Object.keys(ultimos).sort(function (a, b) { return disponible(ultimos[b]) - disponible(ultimos[a]); });
+                if (!predios.length) { vaciar('chartStock', 'Sin inventario en el periodo.'); return; }
+                var options = {
+                    chart: { type: 'bar', height: 300, stacked: true, toolbar: { show: false } },
+                    series: [
+                        { name: 'Consumido', data: predios.map(function (p) { return ultimos[p].consumoMensual || 0; }) },
+                        { name: 'Disponible', data: predios.map(function (p) { return disponible(ultimos[p]); }) }
+                    ],
+                    colors: ['#CBD5E1', '#047857'],
+                    xaxis: { categories: predios, labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    plotOptions: { bar: { borderRadius: 4, columnWidth: '45%' } },
+                    legend: { position: 'top', horizontalAlign: 'right', fontSize: '11px', markers: { radius: 12 } },
+                    dataLabels: { enabled: false },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 }
+                };
+                document.getElementById('chartStock').innerHTML = '';
+                if (chartStock) { chartStock.destroy(); }
+                chartStock = new ApexCharts(document.querySelector('#chartStock'), options);
+                chartStock.render();
+            }
+
+            function pintarMov(lista) {
+                var porMes = {};
+                lista.forEach(function (r) {
+                    var k = claveMes(r);
+                    porMes[k] = porMes[k] || { ent: 0, con: 0 };
+                    porMes[k].ent += r.entregaMensual || 0;
+                    porMes[k].con += r.consumoMensual || 0;
+                });
+                var claves = Object.keys(porMes).sort();
+                if (!claves.length) { vaciar('chartMov', 'Sin movimientos en el periodo.'); return; }
+                var options = {
+                    chart: { type: 'bar', height: 300, toolbar: { show: false } },
+                    series: [
+                        { name: 'Entregas', data: claves.map(function (k) { return porMes[k].ent; }) },
+                        { name: 'Consumo', data: claves.map(function (k) { return porMes[k].con; }) }
+                    ],
+                    colors: ['#2563EB', '#D97706'],
+                    xaxis: { categories: claves.map(etiquetaMes), labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    plotOptions: { bar: { borderRadius: 4, columnWidth: '50%' } },
+                    legend: { position: 'top', horizontalAlign: 'right', fontSize: '11px', markers: { radius: 12 } },
+                    dataLabels: { enabled: false },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 }
+                };
+                document.getElementById('chartMov').innerHTML = '';
+                if (chartMov) { chartMov.destroy(); }
+                chartMov = new ApexCharts(document.querySelector('#chartMov'), options);
+                chartMov.render();
+            }
+
+            function pintarTabla(lista) {
+                var tb = document.getElementById('tbInv');
+                if (!lista.length) {
+                    tb.innerHTML = '<tr><td colspan="8" class="text-muted fs-12 ps-3">Sin inventario en el periodo.</td></tr>';
+                    return;
+                }
+                var orden = lista.slice().sort(function (a, b) {
+                    var pa = a.predio || '', pb = b.predio || '';
+                    return pa !== pb ? pa.localeCompare(pb) : (claveMes(b) < claveMes(a) ? -1 : 1);
+                });
+                tb.innerHTML = orden.map(function (r) {
+                    var n = nivel(r), e = estadoNivel(n);
+                    return '<tr>'
+                         + '<td class="ps-3 fw-medium">' + escapeHtml(r.predio || '(sin predio)') + '</td>'
+                         + '<td>' + etiquetaMes(claveMes(r)) + '</td>'
+                         + '<td class="text-end">' + numero(r.cantidadInicial) + '</td>'
+                         + '<td class="text-end">' + numero(r.entregaMensual) + '</td>'
+                         + '<td class="text-end">' + numero(r.consumoMensual) + '</td>'
+                         + '<td class="text-end fw-semibold">' + numero(disponible(r)) + '</td>'
+                         + '<td><div class="d-flex align-items-center gap-2"><div class="bar-track flex-grow-1"><div class="bar-fill" style="width:' + n + '%;background:' + e.color + '"></div></div><span class="fs-11 text-muted">' + n + '%</span></div></td>'
+                         + '<td class="pe-3"><span class="nivel-tag ' + e.clase + '">' + e.texto + '</span></td>'
+                         + '</tr>';
+                }).join('');
+            }
+
+            function exportarCsv() {
+                if (!ultimoExport) { return; }
+                // OJO: nunca dos corchetes de apertura seguidos en un th:inline=javascript -
+                // Thymeleaf lo toma como expresion inline y se traga el resto del script
+                // (ya paso aqui el 11-sep-2026). Por eso el array va en varias lineas.
+                var filas = [
+                    ['Predio', 'Año', 'Mes', 'Inicial', 'Entrega', 'Consumo', 'Disponible', 'Nivel %']
+                ];
+                ultimoExport.forEach(function (r) {
+                    filas.push([r.predio, r.anio, r.mes, r.cantidadInicial, r.entregaMensual, r.consumoMensual, disponible(r), nivel(r)]);
+                });
+                var csv = filas.map(function (f) {
+                    return f.map(function (v) { return '"' + String(v === undefined || v === null ? '' : v).replace(/"/g, '""') + '"'; }).join(',');
+                }).join('\r\n');
+                var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'inventario_' + document.getElementById('fAnio').value + '.csv';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                auditarExportacion('Inventario', a.download);
+            }
+
+            inicializar();
+            cargar();
+        })();
+    </script>
+</th:block>
+</body>
+</html>

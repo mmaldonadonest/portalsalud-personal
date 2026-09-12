@@ -37,13 +37,29 @@ public class FsFileRepository {
     public long insert(String nss, String businessKey, String originalName, String extension, String mimeType,
                        long sizeBytes, String checksumSha256, String storagePath, String storageProvider,
                        String fileType, String createdBy, LocalDateTime dateUpload) {
+        return insert(nss, businessKey, originalName, extension, mimeType, sizeBytes, checksumSha256, storagePath,
+                storageProvider, fileType, createdBy, dateUpload, 1);
+    }
+
+    /** Siguiente VERSION para un archivo del mismo nombre y tipo (importador Excel: se versiona, nunca se pisa). */
+    public int siguienteVersion(String fileType, String originalName) {
+        Integer max = jdbc.queryForObject(
+                "SELECT COALESCE(MAX(VERSION), 0) FROM APP_FS_FILE WHERE FILE_TYPE = ? AND UPPER(ORIGINAL_NAME) = UPPER(?)",
+                Integer.class, fileType, originalName);
+        return (max == null ? 0 : max) + 1;
+    }
+
+    /** Variante con VERSION explicita (el importador Excel conserva todas las versiones de un mismo nombre). */
+    public long insert(String nss, String businessKey, String originalName, String extension, String mimeType,
+                       long sizeBytes, String checksumSha256, String storagePath, String storageProvider,
+                       String fileType, String createdBy, LocalDateTime dateUpload, int version) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbc.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(
                     "INSERT INTO APP_FS_FILE (NSS, BUSINESS_KEY, FILE_TYPE, ORIGINAL_NAME, EXTENSION, MIME_TYPE, "
                             + "SIZE_BYTES, CHECKSUM_SHA256, STORAGE_PATH, STORAGE_PROVIDER, STATUS, VERSION, "
                             + "DATE_UPLOAD, CREATED_BY) "
-                            + "VALUES (?,?,?,?,?,?,?,?,?,?, 'ACTIVE', 1, ?, ?)",
+                            + "VALUES (?,?,?,?,?,?,?,?,?,?, 'ACTIVE', ?, ?, ?)",
                     new String[]{"ID"});
             int i = 1;
             ps.setString(i++, nss);
@@ -56,6 +72,7 @@ public class FsFileRepository {
             ps.setString(i++, checksumSha256);
             ps.setString(i++, storagePath);
             ps.setString(i++, storageProvider);
+            ps.setInt(i++, version);
             ps.setTimestamp(i++, Timestamp.valueOf(dateUpload == null ? LocalDateTime.now() : dateUpload));
             ps.setString(i, createdBy);
             return ps;

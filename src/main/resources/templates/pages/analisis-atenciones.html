@@ -421,6 +421,7 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
+                auditarExportacion('Atenciones', a.download);
             }
 
             document.getElementById('btnExportar').addEventListener('click', exportarCsv);

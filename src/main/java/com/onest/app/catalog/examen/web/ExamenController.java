@@ -1,8 +1,11 @@
 package com.onest.app.catalog.examen.web;
 
+import com.onest.app.audit.web.Auditado;
 import com.onest.app.catalog.examen.service.ContactoEmergenciaService;
 import com.onest.app.catalog.examen.service.DiagnosticoSecundarioService;
+import com.onest.app.catalog.examen.service.ExamenDocumentoService;
 import com.onest.app.catalog.examen.service.ExamenService;
+import com.onest.app.catalog.nss.service.NssSearchService;
 import com.onest.app.catalog.restriccion.service.RestriccionService;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -11,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -29,16 +33,41 @@ public class ExamenController {
     private final ContactoEmergenciaService contactoEmergenciaService;
     private final DiagnosticoSecundarioService diagnosticoSecundarioService;
     private final RestriccionService restriccionService;
+    private final NssSearchService nssSearchService;
+    private final ExamenDocumentoService examenDocumentoService;
 
     public ExamenController(
             ExamenService examenService,
             ContactoEmergenciaService contactoEmergenciaService,
             DiagnosticoSecundarioService diagnosticoSecundarioService,
-            RestriccionService restriccionService) {
+            RestriccionService restriccionService,
+            NssSearchService nssSearchService,
+            ExamenDocumentoService examenDocumentoService) {
         this.examenService = examenService;
         this.contactoEmergenciaService = contactoEmergenciaService;
         this.diagnosticoSecundarioService = diagnosticoSecundarioService;
         this.restriccionService = restriccionService;
+        this.nssSearchService = nssSearchService;
+        this.examenDocumentoService = examenDocumentoService;
+    }
+
+    /**
+     * "Imprimir expediente" (menu Examen medico del PHP -> pdf/pdfGenerator.php?nss=): el mismo
+     * documento de 15 paginas del legacy (consentimiento, aviso de privacidad, examen FT-SO-04),
+     * armado por ExamenDocumentoService con la logica del PHP. El PDF lo genera el navegador
+     * (window.print), igual que el legacy; {@code auto=1} lanza el dialogo al cargar.
+     */
+    @GetMapping(path = "/examen/imprimir", produces = MediaType.TEXT_HTML_VALUE)
+    @Auditado(modulo = "Examenes", accion = "export", entidad = "Expediente impreso", registro = "nss")
+    public String imprimir(@RequestParam("nss") String nss,
+                           @RequestParam(name = "auto", required = false) String auto, Model model) {
+        String nssLimpio = nss == null ? "" : nss.trim();
+        if (nssLimpio.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "nss es obligatorio");
+        }
+        model.addAttribute("d", examenDocumentoService.armar(nssLimpio));
+        model.addAttribute("auto", auto != null && !auto.isBlank() && !"0".equals(auto));
+        return "pages/examen-documento";
     }
 
     /** Shell del examen: navegacion de secciones + contenedor in-page. */
@@ -88,6 +117,7 @@ public class ExamenController {
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = "text/plain;charset=UTF-8")
     @ResponseBody
+    @Auditado(modulo = "Examenes", accion = "create", entidad = "Examen medico", registro = "nss")
     public String save(@RequestParam MultiValueMap<String, String> params) {
         try {
             String nss = params.getFirst("nss");
@@ -114,6 +144,7 @@ public class ExamenController {
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = "text/plain;charset=UTF-8")
     @ResponseBody
+    @Auditado(modulo = "Examenes", accion = "update", entidad = "Contactos de emergencia", registro = "nss")
     public String guardarContactosEmergencia(@RequestParam MultiValueMap<String, String> params) {
         try {
             String nss = params.getFirst("nss");
@@ -139,6 +170,7 @@ public class ExamenController {
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = "text/plain;charset=UTF-8")
     @ResponseBody
+    @Auditado(modulo = "Examenes", accion = "update", entidad = "Diagnosticos secundarios", registro = "nss")
     public String guardarDiagnosticosSecundarios(@RequestParam MultiValueMap<String, String> params) {
         try {
             String nss = params.getFirst("nss");

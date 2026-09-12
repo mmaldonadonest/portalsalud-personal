@@ -1,5 +1,6 @@
 package com.onest.app.catalog.causaconsulta.web;
 
+import com.onest.app.audit.web.Auditado;
 import com.onest.app.catalog.causaconsulta.dto.CausaConsultaDto;
 import com.onest.app.catalog.causaconsulta.service.CausaConsultaService;
 import java.util.List;
@@ -35,6 +36,7 @@ public class CausaConsultaController {
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = "text/plain;charset=UTF-8")
+    @Auditado(modulo = "Catalogos", accion = "create", entidad = "Causa de consulta", registro = "nombre")
     public String crear(@RequestParam("nombre") String nombre) {
         try {
             String proceso = causaConsultaService.crear(nombre);
@@ -48,6 +50,7 @@ public class CausaConsultaController {
             path = "/{id}/estado",
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = "text/plain;charset=UTF-8")
+    @Auditado(modulo = "Catalogos", accion = "update", entidad = "Causa de consulta", registro = "id", detalle = {"activo"})
     public String cambiarEstado(@PathVariable String id, @RequestParam("activo") boolean activo) {
         try {
             String proceso = causaConsultaService.cambiarEstado(id, activo);

@@ -57,7 +57,7 @@
      El avance se mide por <strong>esfuerzo</strong>, no por número de tareas. Las subtareas se listan como
      referencia pero no se cuentan aparte: su esfuerzo ya está dentro del bloque que las contiene.</p>
 
-  <h2>Terminado <span class="pct">58 h</span></h2>
+  <h2>Terminado <span class="pct">100 h</span></h2>
   <table>
     <thead><tr><th>Bloque</th><th class="est">Estado</th><th class="hrs">Est.</th></tr></thead>
     <tbody>
@@ -73,8 +73,8 @@
           <span class="subt"><code>predios</code> · <code>cuenta_predio_lista</code> ·
           <code>cuenta_predio_asignar</code> · los 3 clones <code>_cta</code> con CUENTA por registro ·
           fix de unión de los 2 catálogos de cuentas (187 → 292) · campo <code>diagnostico</code>
-          en <code>consulta_medica_fecha</code></span></td>
-        <td class="est"><span class="tag t-ok">Hecho</span></td><td class="hrs">3 h</td>
+          en <code>consulta_medica_fecha</code> · <code>consulta_antidoping_fecha_cta</code> · <code>consulta_maternidad_fecha</code></span></td>
+        <td class="est"><span class="tag t-ok">Hecho</span></td><td class="hrs">5 h</td>
       </tr>
       <tr>
         <td><span class="mod">Filtro por predio y cuenta</span>
@@ -140,58 +140,102 @@
           costo y estado de calificación</span></td>
         <td class="est"><span class="tag t-ok">Hecho</span></td><td class="hrs">4 h</td>
       </tr>
+      <tr>
+        <td><span class="mod">Antidoping</span>
+          <span class="subt">4 KPIs, pruebas por predio, aplicados vs suministrados (cruza con el inventario
+          de kits), alcoholimetría por predio · WS <code>consulta_antidoping_fecha_cta</code> nuevo
+          (el último dominio sin cuenta) · de paso el radar de Vista por Predio quedó con los 5 ejes
+          del prototipo · kits y tasa solo corporativos: el predio del inventario no casa con el catálogo</span></td>
+        <td class="est"><span class="tag t-ok">Hecho</span></td><td class="hrs">4 h</td>
+      </tr>
+      <tr>
+        <td><span class="mod">Inventario</span>
+          <span class="subt">Libro mensual por predio: 4 KPIs, alertas por stock &lt; 20%, disponible por
+          predio, movimiento mensual, detalle · el modelo de lotes con caducidad del prototipo no existe
+          en el sistema; se sustituyó sin inventarlo · predio del inventario sigue siendo texto libre</span></td>
+        <td class="est"><span class="tag t-ok">Hecho</span></td><td class="hrs">4 h</td>
+      </tr>
+      <tr>
+        <td><span class="mod">Maternidad</span>
+          <span class="subt">Sobre el seguimiento propio del portal, no sobre incapacidades (ese ramo no
+          existe en los datos): personas, semanas de gestación, revisiones próximas, reincorporadas,
+          casos y partos probables por mes, estatus, trimestre · WS nuevo
+          <code>consulta_maternidad_fecha</code> + cliente, DTOs, servicio y endpoint nuevos</span></td>
+        <td class="est"><span class="tag t-ok">Hecho</span></td><td class="hrs">5 h</td>
+      </tr>
+      <tr>
+        <td><span class="mod">Empleados</span>
+          <span class="subt">Expediente unificado: buscar por NSS → ficha con 7 contadores → timeline
+          consolidado de los 6 dominios · <code>EmpleadoResumenService</code> cruza los servicios por NSS
+          existentes, sin WS nuevo · solo por NSS (no hay búsqueda por nombre)</span></td>
+        <td class="est"><span class="tag t-ok">Hecho</span></td><td class="hrs">4 h</td>
+      </tr>
+      <tr>
+        <td><span class="mod">Reportes</span>
+          <span class="subt">9 tarjetas con CSV del mismo endpoint que pinta cada pantalla (volcador
+          genérico, sin fórmulas paralelas) · «Calidad de datos» real: lista buckets sin dato, rubros y
+          ramos fuera de catálogo, causas sospechosas · sin PDF/Excel (requieren servidor)</span></td>
+        <td class="est"><span class="tag t-ok">Hecho</span></td><td class="hrs">4 h</td>
+      </tr>
+      <tr>
+        <td><span class="mod">Musculoesqueléticas</span>
+          <span class="subt">5 KPIs + tipo (barras) + región corporal (dona) como el demo, más tendencia
+          mensual y top CIE-10 · clasifica por la clave CIE-10 que encabeza el diagnóstico (capítulos M, S,
+          T00–T14; <code>LesionMusculoesqueletica</code>) y por área involucrada · sin WS nuevo · arranca
+          vacío a propósito y lo explica en pantalla (0 de 83 consultas 2024 con clave; obligatoria al lanzar)
+          · gráficas validadas con Playwright interceptando el API, no con datos inventados</span></td>
+        <td class="est"><span class="tag t-ok">Hecho</span></td><td class="hrs">4 h</td>
+      </tr>
+      <tr>
+        <td><span class="mod">Auditoría</span>
+          <span class="subt">Bitácora sobre <code>APP_AUD_EVENT</code> (ya existía, nadie escribía): 25 escrituras
+          reales del portal marcadas con <code>@Auditado</code> y registradas por un interceptor (sin AOP), los
+          dos logins (password y SSO) y las exportaciones CSV de las 13 pantallas · pantalla como el demo:
+          filtros usuario/módulo/acción/desde + tabla fecha, usuario, acción, módulo, registro, detalle, IP;
+          adicional: hasta, búsqueda y paginación · verificado en QA con login, export y un cambio real</span></td>
+        <td class="est"><span class="tag t-ok">Hecho</span></td><td class="hrs">5 h</td>
+      </tr>
+      <tr>
+        <td><span class="mod">Criterio de fecha en incapacidades</span>
+          <span class="subt">Decisión de negocio 11-sep: manda la <strong>fecha de inicio</strong> del certificado.
+          WS <code>_cta</code> ya aplicado y verificado con curl (2024: 221 → 179 filas, las 41 que iniciaron en 2023
+          pasan a 2023; histórico 290 de 291, la que falta es un typo <code>2923-09</code> en el reg 385) · Java agrupa
+          con el mismo criterio · pendiente menor: quitar los <code>insert into bug</code> heredados</span></td>
+        <td class="est"><span class="tag t-ok">Hecho</span></td><td class="hrs">1 h</td>
+      </tr>
+      <tr>
+        <td><span class="mod">Importar Excel</span>
+          <span class="subt">Proceso real de 6 pasos como el demo: lee .xlsx/.xlsm/.csv (POI), detecta las 13 hojas del
+          reporte gerencial, valida formato y catálogo de predios, duplicados, tipos mixtos, meses MZO/MYO/AGS, costos
+          negativos, fórmulas a libros externos; vista previa, confirmar/descartar auditados e historial · sin layouts
+          destino todavía: todo queda en tablas temporales <code>APP_IMPORT_LOTE/FILA</code> (DDL aplicado en QA) y el
+          archivo en el filesystem <strong>versionado por nombre</strong>, nunca se pisa · verificado con archivo sintético
+          de 14 hojas · pendiente cuando existan layouts: mapeo hoja → tabla final</span></td>
+        <td class="est"><span class="tag t-ok">Hecho</span></td><td class="hrs">8 h</td>
+      </tr>
+      <tr>
+        <td><span class="mod">Web services pendientes</span>
+          <span class="subt">Cuentas históricas: 33 «- BIOANTERIOR» (21 con gemela vigente) salen de
+          <code>cuenta_predio_lista</code> — SQL en <code>docs/ords-cuenta-predio-lista-sin-historicas.sql</code>
+          (ORDS, un <code>where</code>, lo aplica el usuario) · en Java los registros de una cuenta histórica
+          heredan el predio de su gemela vigente en vez de caer a «Sin asignar» · el WS del inventario va
+          contado dentro de su módulo</span></td>
+        <td class="est"><span class="tag t-ok">Hecho</span></td><td class="hrs">1 h</td>
+      </tr>
     </tbody>
   </table>
 
-  <h2>Pendiente <span class="pct">37 h</span></h2>
+  <h2>Pendiente <span class="pct">0 h</span></h2>
   <table>
     <thead><tr><th>Bloque</th><th class="est">Estado</th><th class="hrs">Est.</th></tr></thead>
     <tbody>
       <tr>
-        <td><span class="mod">Criterio de fecha en incapacidades</span>
-          <span class="subt"><strong>Bloqueado</strong>: espera decisión de negocio sobre si el periodo
-          se cuenta por fecha de inicio o de captura — ver
-          <code>docs/consulta-criterio-fecha-incapacidades.md</code></span></td>
-        <td class="est"><span class="tag t-no">Bloqueado</span></td><td class="hrs">1 h</td>
-      </tr>
-      <tr>
-        <td><span class="mod">Musculoesqueléticas</span>
-          <span class="subt"><strong>Se construye al final, antes de liberar.</strong> Filtra el capítulo M
-          de la CIE-10 sobre el diagnóstico, que el WS ya entrega. Hoy no hay consultas con ICD porque la
-          captura vive en el PHP productivo, que no lo exige; será obligatorio al lanzar este portal
-          (confirmado por el PO 11-sep). Construirlo ahora sería construir a ciegas</span></td>
-        <td class="est"><span class="tag t-no">Pendiente</span></td><td class="hrs">4 h</td>
-      </tr>
-      <tr><td><span class="mod">Antidoping</span><span class="subt">Reusa el dashboard de antidoping</span></td>
-          <td class="est"><span class="tag t-no">Pendiente</span></td><td class="hrs">4 h</td></tr>
-      <tr>
-        <td><span class="mod">Inventario</span>
-          <span class="subt">Incluye reconciliar el predio del inventario en ORDS (deuda técnica ya
-          documentada)</span></td>
-        <td class="est"><span class="tag t-no">Pendiente</span></td><td class="hrs">4 h</td>
-      </tr>
-      <tr><td><span class="mod">Maternidad</span><span class="subt">Reusa el módulo de maternidad</span></td>
-          <td class="est"><span class="tag t-no">Pendiente</span></td><td class="hrs">4 h</td></tr>
-      <tr><td><span class="mod">Empleados</span><span class="subt">Reusa la búsqueda por NSS</span></td>
-          <td class="est"><span class="tag t-no">Pendiente</span></td><td class="hrs">4 h</td></tr>
-      <tr>
-        <td><span class="mod">Importar Excel</span>
-          <span class="subt"><strong>Alcance por confirmar</strong>: el portal lee ORDS en vivo, puede que no
-          aplique — igual que el botón «Nueva captura» que ya se omitió</span></td>
-        <td class="est"><span class="tag t-no">Pendiente</span></td><td class="hrs">6 h</td>
-      </tr>
-      <tr><td><span class="mod">Reportes</span><span class="subt">Export sobre los agregados existentes</span></td>
-          <td class="est"><span class="tag t-no">Pendiente</span></td><td class="hrs">4 h</td></tr>
-      <tr>
-        <td><span class="mod">Auditoría</span>
-          <span class="subt">La tabla <code>APP_AUD_EVENT</code> ya existe en la BD local (junto a roles y menús), así que no hay que crear tabla ni WS. Falta escribir los eventos —hoy nadie la usa— y la pantalla de consulta</span></td>
-        <td class="est"><span class="tag t-no">Pendiente</span></td><td class="hrs">5 h</td>
-      </tr>
-      <tr>
-        <td><span class="mod">Web services pendientes</span>
-          <span class="subt">Filtrar las 35 cuentas históricas del catálogo · el WS del inventario va contado
-          dentro de su módulo</span></td>
-        <td class="est"><span class="tag t-no">Pendiente</span></td><td class="hrs">1 h</td>
+        <td><span class="subt">Sin pendientes en este alcance. Fuera de él (no cuenta en el %):
+          <strong>Imprimir examen médico</strong> hecho el 11-sep — botones «Abrir todo» e «Imprimir expediente» en
+          el card del examen, vista de impresión con las 46 secciones + contactos, diagnósticos secundarios y
+          restricciones, PDF por el navegador como en el PHP · queda el mapeo hoja → tabla del importador cuando
+          existan los layouts.</span></td>
+        <td class="est"></td><td class="hrs"></td>
       </tr>
     </tbody>
   </table>
@@ -215,9 +259,9 @@
   </table>
 
   <div class="total">
-    <div class="n">61%</div>
-    <div class="d">40 h de 89 h · 49 h pendientes · ≈ 11 jornadas de 8 h · quedan ≈ 6<br><span style="font-size:11.5px">+ 6 h fuera del conteo (captura operativa y revisión de alcance), que no entran en el porcentaje</span></div>
-    <div class="barra"><span style="width:61%"></span></div>
+    <div class="n">100%</div>
+    <div class="d">100 h de 100 h · 0 h pendientes · ≈ 12 jornadas de 8 h · quedan 0<br><span style="font-size:11.5px">+ 6 h fuera del conteo (captura operativa y revisión de alcance), que no entran en el porcentaje</span></div>
+    <div class="barra"><span style="width:100%"></span></div>
   </div>
 
   <p class="aviso">

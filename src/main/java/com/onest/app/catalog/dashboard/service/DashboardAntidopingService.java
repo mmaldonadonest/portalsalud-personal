@@ -2,6 +2,7 @@ package com.onest.app.catalog.dashboard.service;
 
 import com.onest.app.catalog.antidoping.dto.AntidopingReporteDto;
 import com.onest.app.catalog.antidoping.service.AntidopingService;
+import com.onest.app.catalog.dashboard.dto.ConteoCruzadoDto;
 import com.onest.app.catalog.dashboard.dto.ConteoSimpleDto;
 import com.onest.app.catalog.dashboard.dto.DashboardAntidopingDto;
 import com.onest.app.catalog.dashboard.dto.PuntoMensualDto;
@@ -30,16 +31,25 @@ public class DashboardAntidopingService {
     private static final int ANIO_MAXIMO = LocalDate.now().getYear() + 1;
 
     private final AntidopingService antidopingService;
+    private final DashboardPredioFiltro predioFiltro;
 
-    public DashboardAntidopingService(AntidopingService antidopingService) {
+    public DashboardAntidopingService(AntidopingService antidopingService, DashboardPredioFiltro predioFiltro) {
         this.antidopingService = antidopingService;
+        this.predioFiltro = predioFiltro;
     }
 
+    /** Sin corte por predio/cuenta - el que usa /home. */
     public DashboardAntidopingDto resumen(String fechaInicial, String fechaFinal) {
+        return resumen(fechaInicial, fechaFinal, null, null);
+    }
+
+    /** Con corte opcional por predio y/o cuenta. Posible desde el 11-sep-2026 (WS _cta). */
+    public DashboardAntidopingDto resumen(String fechaInicial, String fechaFinal, String predio, String cuenta) {
         List<AntidopingReporteDto> filas = antidopingService.reportePorFecha(fechaInicial, fechaFinal).stream()
                 // Mismo bug de "fila fantasma" ya visto en Accidentes/Consulta: sin datos en
                 // el rango, el WS regresa un objeto con todos los campos null.
                 .filter(f -> f.nss() != null && !f.nss().isBlank())
+                .filter(f -> predioFiltro.coincide(f.cuenta(), predio, cuenta))
                 .toList();
 
         long totalPositivos = 0;
@@ -47,6 +57,8 @@ public class DashboardAntidopingService {
         Map<String, Long> porSustancia = new LinkedHashMap<>();
         Map<String, Long> porResultado = new LinkedHashMap<>();
         Map<String, Long> porStatus = new LinkedHashMap<>();
+        Map<String, Long> porPredio = new LinkedHashMap<>();
+        Map<String, Map<String, Long>> predioTipo = new LinkedHashMap<>();
         Map<String, Long> porMes = new TreeMap<>();
         long sinFecha = 0;
 
@@ -58,6 +70,11 @@ public class DashboardAntidopingService {
             incrementar(porSustancia, etiqueta(fila.sustancia()));
             incrementar(porResultado, etiqueta(fila.resultado()));
             incrementar(porStatus, etiqueta(fila.statusConclusion()));
+            // Predio resuelto desde la cuenta que trae el WS _cta (PredioService cachea 2 min).
+            String predioFila = predioFiltro.predioDe(fila.cuenta());
+            incrementar(porPredio, predioFila);
+            predioTipo.computeIfAbsent(predioFila, k -> new LinkedHashMap<>())
+                    .merge(etiqueta(fila.tipoPrueba()), 1L, Long::sum);
 
             Optional<YearMonth> mes = mesDe(fila.fechaRegistro());
             if (mes.isPresent()) {
@@ -77,6 +94,11 @@ public class DashboardAntidopingService {
                 fechaInicial, fechaFinal,
                 filas.size(), totalPositivos,
                 aConteo(porTipoPrueba), aConteo(porSustancia), aConteo(porResultado), aConteo(porStatus),
+                aConteo(porPredio),
+                predioTipo.entrySet().stream()
+                        .flatMap(p -> p.getValue().entrySet().stream()
+                                .map(t -> new ConteoCruzadoDto(p.getKey(), t.getKey(), t.getValue(), 0)))
+                        .toList(),
                 tendencia);
     }
 

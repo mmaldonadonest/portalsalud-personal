@@ -567,6 +567,7 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
+                auditarExportacion('Dashboard Ejecutivo', a.download);
             }
 
             async function cargar() {

@@ -183,6 +183,30 @@ public class PortalViewController {
         if ("accidentabilidad".equals(modulo)) {
             return "pages/analisis-accidentabilidad";
         }
+        if ("antidoping".equals(modulo)) {
+            return "pages/analisis-antidoping";
+        }
+        if ("inventario".equals(modulo)) {
+            return "pages/analisis-inventario";
+        }
+        if ("maternidad".equals(modulo)) {
+            return "pages/analisis-maternidad";
+        }
+        if ("musculoesqueleticas".equals(modulo)) {
+            return "pages/analisis-musculoesqueleticas";
+        }
+        if ("auditoria".equals(modulo)) {
+            return "pages/analisis-auditoria";
+        }
+        if ("importar".equals(modulo)) {
+            return "pages/analisis-importar";
+        }
+        if ("empleados".equals(modulo)) {
+            return "pages/analisis-empleados";
+        }
+        if ("reportes".equals(modulo)) {
+            return "pages/analisis-reportes";
+        }
         model.addAttribute("moduloTitulo", titulo);
         return "pages/analisis-modulo";
     }

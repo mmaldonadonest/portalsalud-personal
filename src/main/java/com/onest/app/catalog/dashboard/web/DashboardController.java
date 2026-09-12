@@ -5,12 +5,16 @@ import com.onest.app.catalog.dashboard.dto.DashboardAntidopingDto;
 import com.onest.app.catalog.dashboard.dto.DashboardConsultaDto;
 import com.onest.app.catalog.dashboard.dto.DashboardExamenDto;
 import com.onest.app.catalog.dashboard.dto.DashboardIncapacidadesDto;
+import com.onest.app.catalog.dashboard.dto.DashboardMaternidadDto;
+import com.onest.app.catalog.dashboard.dto.DashboardMusculoesqueleticoDto;
 import com.onest.app.catalog.dashboard.dto.DashboardResumenGeneralDto;
 import com.onest.app.catalog.dashboard.service.DashboardAccidentesService;
 import com.onest.app.catalog.dashboard.service.DashboardAntidopingService;
 import com.onest.app.catalog.dashboard.service.DashboardConsultaService;
 import com.onest.app.catalog.dashboard.service.DashboardExamenService;
 import com.onest.app.catalog.dashboard.service.DashboardIncapacidadesService;
+import com.onest.app.catalog.dashboard.service.DashboardMaternidadService;
+import com.onest.app.catalog.dashboard.service.DashboardMusculoesqueleticoService;
 import com.onest.app.catalog.dashboard.service.DashboardResumenGeneralService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,6 +38,8 @@ public class DashboardController {
     private final DashboardAntidopingService antidopingService;
     private final DashboardExamenService examenService;
     private final DashboardResumenGeneralService resumenGeneralService;
+    private final DashboardMaternidadService maternidadService;
+    private final DashboardMusculoesqueleticoService musculoesqueleticoService;
 
     public DashboardController(
             DashboardIncapacidadesService incapacidadesService,
@@ -41,13 +47,17 @@ public class DashboardController {
             DashboardConsultaService consultaService,
             DashboardAntidopingService antidopingService,
             DashboardExamenService examenService,
-            DashboardResumenGeneralService resumenGeneralService) {
+            DashboardResumenGeneralService resumenGeneralService,
+            DashboardMaternidadService maternidadService,
+            DashboardMusculoesqueleticoService musculoesqueleticoService) {
         this.incapacidadesService = incapacidadesService;
         this.accidentesService = accidentesService;
         this.consultaService = consultaService;
         this.antidopingService = antidopingService;
         this.examenService = examenService;
         this.resumenGeneralService = resumenGeneralService;
+        this.maternidadService = maternidadService;
+        this.musculoesqueleticoService = musculoesqueleticoService;
     }
 
     /** KPIs de incapacidades en un rango de fechas (ISO yyyy-MM-dd, igual que el reporte existente). */
@@ -102,9 +112,11 @@ public class DashboardController {
     @GetMapping("/antidoping")
     public DashboardAntidopingDto antidoping(
             @RequestParam("fechaInicial") String fechaInicial,
-            @RequestParam("fechaFinal") String fechaFinal) {
+            @RequestParam("fechaFinal") String fechaFinal,
+            @RequestParam(name = "predio", required = false) String predio,
+            @RequestParam(name = "cuenta", required = false) String cuenta) {
         try {
-            return antidopingService.resumen(fechaInicial, fechaFinal);
+            return antidopingService.resumen(fechaInicial, fechaFinal, predio, cuenta);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }
@@ -139,6 +151,33 @@ public class DashboardController {
             @RequestParam(name = "cuenta", required = false) String cuenta) {
         try {
             return resumenGeneralService.resumen(fechaInicial, fechaFinal, predio, cuenta);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        }
+    }
+
+    /** KPIs de seguimiento de maternidad en un rango de fechas (ISO yyyy-MM-dd). */
+    @GetMapping("/maternidad")
+    public DashboardMaternidadDto maternidad(
+            @RequestParam("fechaInicial") String fechaInicial,
+            @RequestParam("fechaFinal") String fechaFinal,
+            @RequestParam(name = "predio", required = false) String predio,
+            @RequestParam(name = "cuenta", required = false) String cuenta) {
+        try {
+            return maternidadService.resumen(fechaInicial, fechaFinal, predio, cuenta);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        }
+    }
+    /** Lesiones musculoesqueleticas (consultas con clave CIE-10 M/S/T) en un rango de fechas. */
+    @GetMapping("/musculoesqueleticas")
+    public DashboardMusculoesqueleticoDto musculoesqueleticas(
+            @RequestParam("fechaInicial") String fechaInicial,
+            @RequestParam("fechaFinal") String fechaFinal,
+            @RequestParam(name = "predio", required = false) String predio,
+            @RequestParam(name = "cuenta", required = false) String cuenta) {
+        try {
+            return musculoesqueleticoService.resumen(fechaInicial, fechaFinal, predio, cuenta);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }

@@ -18,7 +18,9 @@ public record ConsultaReporteDto(
         String tipoConsulta,
         String areaAccidente,
         String areaInvolucrada,
-        String causa
+        String causa,
+        /** Diagnostico capturado (clave CIE-10 + descripcion); null/vacio en la carga historica. */
+        String diagnostico
 ) {
     /** Mismo criterio que ConsultaDto.esAccidente() - ver ese comentario. */
     public boolean esAccidente() {

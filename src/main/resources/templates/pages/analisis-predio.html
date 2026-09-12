@@ -15,12 +15,10 @@
   (docs/ords-cuenta-en-reportes.sql). El selector de predios sale de /api/analisis/filtros.
 
   Diferencias contra el prototipo, por falta de dato real - se omiten en vez de inventarse:
-  - KPI "Antidoping": /api/dashboard/antidoping no acepta corte por predio (su WS no trae
-    cuenta por registro, es el unico de los 5 que quedo fuera).
+  - Antidoping entro el 11-sep-2026 (WS _cta): es el 5o eje del radar.
   - KPI "Personal inclusion": no existe ese concepto en el modelo de datos.
-  - Radar "Perfil del predio": SI se construyo, pero con 4 ejes en vez de 5 - falta el de
-    Antidoping, por la misma razon del KPI. Se normaliza contra el maximo corporativo de cada
-    eje, que sale de la carga sin corte de predio.
+  - Radar "Perfil del predio": los 5 ejes del prototipo. Se normaliza contra el maximo
+    corporativo de cada eje, que sale de la carga sin corte de predio.
   - Accidentabilidad: el mock parte en Laboral/Trayecto/Mujeres/Hombres. El corte por sexo no
     se puede hacer: AccidenteReporteDto no trae el sexo del empleado.
 -->
@@ -367,7 +365,7 @@
                     var conPredio = '&predio=' + encodeURIComponent(predio);
                     // 4 con corte (el detalle del predio) + 4 sin corte (el universo contra el
                     // que se compara: promedio por predio y maximos de cada eje del radar).
-                    var [cRes, iRes, aRes, eRes, cAll, iAll, aAll, eAll] = await Promise.all([
+                    var [cRes, iRes, aRes, eRes, cAll, iAll, aAll, eAll, dRes, dAll] = await Promise.all([
                         fetch(contextPath + 'api/dashboard/consultas?' + qs + conPredio),
                         fetch(contextPath + 'api/dashboard/incapacidades?' + qs + conPredio),
                         fetch(contextPath + 'api/dashboard/accidentes?' + qs + conPredio),
@@ -375,7 +373,9 @@
                         fetch(contextPath + 'api/dashboard/consultas?' + qs),
                         fetch(contextPath + 'api/dashboard/incapacidades?' + qs),
                         fetch(contextPath + 'api/dashboard/accidentes?' + qs),
-                        fetch(contextPath + 'api/dashboard/examen?' + qs)
+                        fetch(contextPath + 'api/dashboard/examen?' + qs),
+                        fetch(contextPath + 'api/dashboard/antidoping?' + qs + conPredio),
+                        fetch(contextPath + 'api/dashboard/antidoping?' + qs)
                     ]);
                     if (!cRes.ok || !iRes.ok || !aRes.ok || !eRes.ok) {
                         estado.textContent = 'Error al consultar los endpoints (HTTP ' + cRes.status + ').';
@@ -387,12 +387,14 @@
                         consultas: cAll.ok ? await cAll.json() : null,
                         incap: iAll.ok ? await iAll.json() : null,
                         accid: aAll.ok ? await aAll.json() : null,
-                        examen: eAll.ok ? await eAll.json() : null
+                        examen: eAll.ok ? await eAll.json() : null,
+                        antidoping: dAll.ok ? await dAll.json() : null
                     };
+                    var antidoping = dRes.ok ? await dRes.json() : null;
 
                     pintarKpis(consultas, incap, accid, examen, corp.consultas);
                     pintarEvolucion(consultas, corp.consultas);
-                    pintarRadar(consultas, incap, accid, examen, corp);
+                    pintarRadar(consultas, incap, accid, examen, antidoping, corp);
                     pintarExamen(examen);
                     pintarAccid(accid);
                     pintarCausaRt(accid);
@@ -494,11 +496,10 @@
 
             /**
              * Radar "Perfil del predio" (mk('p2') del prototipo): cada eje normalizado 0-100
-             * contra el MAXIMO corporativo de ese eje. El prototipo tiene 5 ejes; aqui son 4 -
-             * falta Antidoping porque su WS es el unico que no trae cuenta por registro, asi
-             * que no se puede cortar por predio.
+             * contra el MAXIMO corporativo de ese eje. Los mismos 5 ejes del prototipo desde el
+             * 11-sep-2026, cuando antidoping gano CUENTA por registro (WS _cta).
              */
-            function pintarRadar(consultas, incap, accid, examen, corp) {
+            function pintarRadar(consultas, incap, accid, examen, antidoping, corp) {
                 function maximo(dto, campo) {
                     var max = 0;
                     ((dto && dto.porPredio) || []).forEach(function (r) {
@@ -510,7 +511,8 @@
                     { nombre: 'Atenciones', valor: consultas.totalConsultas, max: maximo(corp.consultas, 'cantidad') },
                     { nombre: 'Dias incap.', valor: incap.totalDiasAutorizados, max: maximo(corp.incap, 'diasAutorizados') },
                     { nombre: 'Accidentes', valor: accid.totalAccidentes, max: maximo(corp.accid, 'cantidad') },
-                    { nombre: 'Examenes', valor: examen.totalExamenes, max: maximo(corp.examen, 'cantidad') }
+                    { nombre: 'Examenes', valor: examen.totalExamenes, max: maximo(corp.examen, 'cantidad') },
+                    { nombre: 'Antidoping', valor: antidoping ? antidoping.totalPruebas : 0, max: maximo(corp.antidoping, 'cantidad') }
                 ];
                 if (!ejes.some(function (e) { return e.max > 0; })) {
                     vaciar('chartRadar', 'Todavia no hay otros predios con actividad contra los cuales comparar.');
@@ -664,6 +666,7 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
+                auditarExportacion('Vista por Predio', a.download);
             }
 
             document.getElementById('btnExportar').addEventListener('click', exportarCsv);

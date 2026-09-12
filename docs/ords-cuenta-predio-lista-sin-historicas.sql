@@ -1,0 +1,68 @@
+-- =============================================================================
+-- VA EN ORDS (esquema legacy, 10.249.249.3), NO en la base del portal.
+--
+-- cuenta_predio_lista: excluir las cuentas historicas "- BIOANTERIOR".
+-- Cierra la fila "Web services pendientes" de docs/avance-dashboard-salud.html.
+-- =============================================================================
+--
+-- SITUACION (verificado con curl 11-sep-2026): la lista trae 292 cuentas, de las
+-- cuales 33 son copias historicas del biometrico anterior, con ids 90000xx y el
+-- sufijo "- BIOANTERIOR" (o "-BIOANTERIOR" sin espacio):
+--     47 BRAND - BIOANTERIOR, ALBATROS - BIOANTERIOR, CARTERS - BIOANTERIOR, ...
+-- 21 de ellas tienen su gemela vigente sin sufijo ("47 BRAND", "CARTERS"...).
+-- Hoy ensucian el select de Predio de los 15 modulos y la pantalla /admin/predios,
+-- y nadie deberia asignarles predio por separado.
+--
+-- QUE CAMBIA: solo el "for x in (...)" del handler POST /Servcio/cuenta_predio_lista
+-- (el que quedo con docs/ords-cuenta-predio-lista-union.sql). Se agrega UN where.
+-- Nada mas cambia: ni APEX_JSON, ni el chunking, ni el left join del mapeo.
+--
+-- QUE NO CAMBIA: los registros clinicos que traen cuenta "X - BIOANTERIOR" siguen
+-- llegando en los reportes. Del lado Java (DashboardPredioFiltro.predioDe) desde hoy
+-- se les quita el sufijo y heredan el predio asignado a "X"; si "X" no existe o no
+-- tiene predio, caen a "Sin asignar", como cualquier otra.
+-- =============================================================================
+
+
+-- ---- ANTES (asi esta hoy) ---------------------------------------------------
+--
+--   for x in (
+--     select c.cuenta_id, c.cuenta_nombre, v.predio_id, v.predio_nombre
+--       from (
+--         select min(bc.cuenta_id) cuenta_id, min(bc.cuenta_nombre) cuenta_nombre
+--           from ( select to_char(cuenta_id) cuenta_id, cuenta_nombre from biometrico_cuenta_SAP
+--                  union all
+--                  select to_char(cuenta_id) cuenta_id, cuenta_nombre from biometrico_cuenta ) bc
+--          group by upper(bc.cuenta_nombre)
+--       ) c
+--       left join ( ... ) v on upper(v.cuenta_nombre) = upper(c.cuenta_nombre) and v.rn = 1
+--      order by c.cuenta_nombre
+--   ) loop
+
+-- ---- DESPUES (dejarlo asi: solo se agrega el "where" dentro de bc) ------------
+--
+--   for x in (
+--     select c.cuenta_id, c.cuenta_nombre, v.predio_id, v.predio_nombre
+--       from (
+--         select min(bc.cuenta_id) cuenta_id, min(bc.cuenta_nombre) cuenta_nombre
+--           from ( select to_char(cuenta_id) cuenta_id, cuenta_nombre from biometrico_cuenta_SAP
+--                  union all
+--                  select to_char(cuenta_id) cuenta_id, cuenta_nombre from biometrico_cuenta ) bc
+--          where upper(replace(bc.cuenta_nombre, ' ', '')) not like '%BIOANTERIOR%'
+--          group by upper(bc.cuenta_nombre)
+--       ) c
+--       left join ( ... ) v on upper(v.cuenta_nombre) = upper(c.cuenta_nombre) and v.rn = 1
+--      order by c.cuenta_nombre
+--   ) loop
+--
+-- El replace(' ', '') es para atrapar tanto "- BIOANTERIOR" como "-BIOANTERIOR"
+-- (CARVAJAL EDUCACION viene sin el espacio).
+
+
+-- =============================================================================
+-- VERIFICACION (yo la corro con curl cuando me digas que ya esta)
+-- =============================================================================
+--   POST http://10.249.249.3/biows/ords/security/Servcio/cuenta_predio_lista   Body: {}
+--   Esperado: 292 - 33 = 259 cuentas; ninguna con "BIOANTERIOR"; "47 BRAND" sigue
+--   con su predio (AIFA) y DIRECCION DE SISTEMAS / PREMENA siguen apareciendo.
+-- =============================================================================

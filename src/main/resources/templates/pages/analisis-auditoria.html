@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: analisisAudContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Auditoría | Análisis | Portal Salud Personal</title>
+</head>
+<body>
+
+<!--
+  Auditoria (modulo Analisis, rol MEDICO_ANALISTA). Equivale a V.aud del prototipo: filtros
+  Usuario / Modulo / Accion / Desde + tabla fecha, usuario, accion, modulo, registro, detalle, IP.
+  Adicional: Hasta, busqueda de texto y paginacion.
+
+  Fuente: APP_AUD_EVENT (existia desde 00_init_oracle21c.sql pero nadie escribia en ella hasta
+  el 11-sep-2026). Escriben: AuditoriaInterceptor (handlers marcados @Auditado = escrituras
+  reales del portal), los dos logins (password y SSO) y las exportaciones CSV del dashboard
+  (POST /api/auditoria/exportacion desde cada pantalla). La bitacora arranca vacia y se llena
+  con el uso; no hay historico que migrar porque el PHP legacy no audita.
+-->
+<th:block id="pageStyles">
+    <style>
+        .aud-tabla { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .aud-tabla th {
+            font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+            color: #64748b; text-align: left; padding: 8px 10px; border-bottom: 1px solid #e5e9f2; white-space: nowrap;
+        }
+        .aud-tabla td { padding: 9px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: top; color: #334155; }
+        .aud-tabla tr:last-child td { border-bottom: none; }
+        .aud-tabla tr:hover td { background: #f8fafc; }
+        .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: #475569; white-space: nowrap; }
+        .usr { font-weight: 600; color: #0f172a; white-space: nowrap; }
+        .acc {
+            display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600;
+            padding: 2px 8px; border-radius: 999px; background: #f1f5f9; color: #475569; white-space: nowrap;
+        }
+        .acc::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+        .acc--create { background: #ECFDF5; color: #047857; }
+        .acc--update { background: #FFFBEB; color: #B45309; }
+        .acc--delete { background: #FEF2F2; color: #B91C1C; }
+        .acc--export { background: #EFF6FF; color: #1D4ED8; }
+        .acc--login  { background: #EEF2FF; color: #4338CA; }
+        .det { max-width: 420px; word-break: break-word; }
+        .vacio { text-align: center; padding: 40px 16px; color: #94a3b8; font-size: 12.5px; }
+        .aviso-vacio { border-left: 4px solid #3B82F6; background: #EFF6FF; border-radius: 8px; padding: 12px 16px; }
+        .aviso-vacio strong { color: #1E40AF; }
+        .pag { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #64748b; }
+    </style>
+</th:block>
+
+<th:block th:fragment="analisisAudContent">
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/analisis/ejecutivo}" href="/analisis/ejecutivo">Dashboard Ejecutivo</a></li>
+                <li class="breadcrumb-item"><span>Sistema</span></li>
+                <li class="breadcrumb-item active" aria-current="page">Auditoría</li>
+            </ol>
+            <h4 class="main-title mb-0">Auditoría</h4>
+            <p class="fs-12 text-muted mb-0" id="subtitulo">Bitácora única para toda la plataforma · solo visible para perfiles autorizados</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" id="btnExportar" class="btn btn-outline-secondary btn-sm">
+                <i class="ri-download-2-line me-1"></i>Exportar
+            </button>
+            <button type="button" id="btnRefrescar" class="btn btn-primary btn-sm">
+                <i class="ri-refresh-line me-1"></i>Actualizar
+            </button>
+        </div>
+    </div>
+
+    <div class="card card-one mb-3">
+        <div class="card-body d-flex flex-wrap align-items-end gap-3">
+            <div>
+                <label class="form-label fs-12 mb-1">Usuario</label>
+                <select id="fUsuario" class="form-select form-select-sm" style="min-width:150px">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Módulo</label>
+                <select id="fModulo" class="form-select form-select-sm" style="min-width:150px">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Acción</label>
+                <select id="fAccion" class="form-select form-select-sm" style="min-width:120px">
+                    <option value="">Todas</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Desde</label>
+                <input type="date" id="fDesde" class="form-control form-control-sm">
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Hasta</label>
+                <input type="date" id="fHasta" class="form-control form-control-sm">
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Buscar</label>
+                <input type="search" id="fTexto" class="form-control form-control-sm" placeholder="NSS, registro, detalle…" style="min-width:200px">
+            </div>
+            <span id="estado" class="fs-12 text-muted ms-auto"></span>
+        </div>
+    </div>
+
+    <div id="avisoVacio" class="aviso-vacio fs-12 mb-3" hidden>
+        <strong>La bitácora todavía no tiene eventos.</strong>
+        Se llena con el uso del portal: cada alta, cambio o borrado, cada inicio de sesión y cada
+        exportación queda registrada con usuario, fecha, módulo, registro y dirección IP. No hay
+        histórico que migrar: el portal PHP no auditaba.
+    </div>
+
+    <div class="card card-one">
+        <div class="card-header d-block" style="border-bottom:none;padding-bottom:0">
+            <div class="card-title-lg"><i class="ri-checkbox-multiple-line me-1 text-primary"></i>Registro de eventos</div>
+            <p class="fs-11 text-muted mb-0">Cada escritura guarda usuario, fecha, módulo, registro y detalle · <span id="totalTexto"></span></p>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive"><table class="aud-tabla">
+                <thead><tr>
+                    <th>Fecha y hora</th><th>Usuario</th><th>Acción</th><th>Módulo</th>
+                    <th>Registro</th><th>Detalle</th><th>IP</th>
+                </tr></thead>
+                <tbody id="cuerpo"></tbody>
+            </table></div>
+            <div id="vacio" class="vacio" hidden>Sin eventos con esos filtros.</div>
+            <div class="pag mt-3">
+                <button type="button" id="btnAnterior" class="btn btn-outline-secondary btn-sm">‹ Anterior</button>
+                <span id="pagTexto"></span>
+                <button type="button" id="btnSiguiente" class="btn btn-outline-secondary btn-sm">Siguiente ›</button>
+            </div>
+        </div>
+    </div>
+
+    <p class="fs-11 text-muted mt-3 mb-0">
+        <i class="ri-information-line"></i>
+        Fuente: tabla <code>APP_AUD_EVENT</code> del portal. Los registros que se capturan en el
+        portal PHP productivo no aparecen aquí. Detrás del proxy la IP es la del cliente
+        (<code>X-Forwarded-For</code>).
+    </p>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:inline="javascript">
+        (function () {
+            var contextPath = /*[[@{/}]]*/ '/';
+            var csrfToken = /*[[${_csrf.token}]]*/ '';
+            var csrfHeader = /*[[${_csrf.headerName}]]*/ 'X-CSRF-TOKEN';
+            var POR_PAGINA = 50;
+            var pagina = 0, total = 0, ultimo = null;
+
+            function numero(n) { return (n || 0).toLocaleString('es-MX'); }
+            function escapar(s) {
+                return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+            function fecha(iso) {
+                if (!iso) { return '—'; }
+                return iso.replace('T', ' ').substring(0, 16);
+            }
+            function llenarSelect(id, valores) {
+                var s = document.getElementById(id);
+                var actual = s.value;
+                while (s.options.length > 1) { s.remove(1); }
+                (valores || []).forEach(function (v) {
+                    var o = document.createElement('option');
+                    o.value = v; o.textContent = v;
+                    s.appendChild(o);
+                });
+                s.value = actual;
+            }
+
+            async function cargarFiltros() {
+                try {
+                    var res = await fetch(contextPath + 'api/auditoria/filtros');
+                    if (!res.ok) { return; }
+                    var d = await res.json();
+                    llenarSelect('fUsuario', d.usuarios);
+                    llenarSelect('fModulo', d.modulos);
+                    llenarSelect('fAccion', d.acciones);
+                } catch (e) { /* sin selects, la tabla sigue */ }
+            }
+
+            function query() {
+                var q = { pagina: pagina, porPagina: POR_PAGINA };
+                var v = function (id) { return document.getElementById(id).value; };
+                if (v('fUsuario')) { q.usuario = v('fUsuario'); }
+                if (v('fModulo')) { q.modulo = v('fModulo'); }
+                if (v('fAccion')) { q.accion = v('fAccion'); }
+                if (v('fDesde')) { q.desde = v('fDesde'); }
+                if (v('fHasta')) { q.hasta = v('fHasta'); }
+                if (v('fTexto').trim()) { q.texto = v('fTexto').trim(); }
+                return Object.keys(q).map(function (k) { return k + '=' + encodeURIComponent(q[k]); }).join('&');
+            }
+
+            async function cargar() {
+                var estado = document.getElementById('estado');
+                estado.textContent = 'Cargando...';
+                try {
+                    var res = await fetch(contextPath + 'api/auditoria?' + query());
+                    if (!res.ok) { estado.textContent = 'Error al consultar (HTTP ' + res.status + ').'; return; }
+                    var d = await res.json();
+                    ultimo = d;
+                    total = d.total;
+                    pintar(d);
+                    estado.textContent = 'Actualizado.';
+                } catch (e) {
+                    console.error('[analisis-auditoria] error en cargar():', e);
+                    estado.textContent = 'Error de red: ' + e.message;
+                }
+            }
+
+            function pintar(d) {
+                var cuerpo = document.getElementById('cuerpo');
+                var lista = d.eventos || [];
+                var sinFiltros = !query().replace(/pagina=\d+&porPagina=\d+/, '');
+                document.getElementById('avisoVacio').hidden = !(d.total === 0 && sinFiltros);
+                document.getElementById('vacio').hidden = lista.length > 0;
+                document.getElementById('totalTexto').textContent = numero(d.total) + (d.total === 1 ? ' evento' : ' eventos');
+                cuerpo.innerHTML = lista.map(function (e) {
+                    var acc = (e.accion || '').toLowerCase();
+                    return '<tr>'
+                        + '<td class="mono">' + escapar(fecha(e.fecha)) + '</td>'
+                        + '<td class="usr">' + escapar(e.usuario || '—') + '</td>'
+                        + '<td><span class="acc acc--' + escapar(acc) + '">' + escapar(acc || '—') + '</span></td>'
+                        + '<td>' + escapar(e.modulo || '—') + (e.entidad ? '<br><span class="fs-11 text-muted">' + escapar(e.entidad) + '</span>' : '') + '</td>'
+                        + '<td class="mono">' + escapar(e.registro || '—') + '</td>'
+                        + '<td class="det">' + escapar(e.detalle || '—') + '</td>'
+                        + '<td class="mono">' + escapar(e.ip || '—') + '</td>'
+                        + '</tr>';
+                }).join('');
+                var paginas = Math.max(1, Math.ceil(d.total / d.porPagina));
+                document.getElementById('pagTexto').textContent = 'Página ' + (d.pagina + 1) + ' de ' + paginas;
+                document.getElementById('btnAnterior').disabled = d.pagina <= 0;
+                document.getElementById('btnSiguiente').disabled = d.pagina + 1 >= paginas;
+            }
+
+            function aplicar() { pagina = 0; cargar(); }
+
+            async function exportarCsv() {
+                if (!ultimo) { return; }
+                // Exporta lo filtrado completo (hasta 200 por pagina del API, varias paginas).
+                var filas = [ ['Fecha y hora', 'Usuario', 'Acción', 'Módulo', 'Entidad', 'Registro', 'Detalle', 'IP']];
+                var p = 0, paginas = 1;
+                do {
+                    var res = await fetch(contextPath + 'api/auditoria?' + query().replace(/pagina=\d+&porPagina=\d+/, 'pagina=' + p + '&porPagina=200'));
+                    if (!res.ok) { break; }
+                    var d = await res.json();
+                    (d.eventos || []).forEach(function (e) {
+                        filas.push([fecha(e.fecha), e.usuario, e.accion, e.modulo, e.entidad, e.registro, e.detalle, e.ip]);
+                    });
+                    paginas = Math.max(1, Math.ceil(d.total / d.porPagina));
+                    p++;
+                } while (p < paginas && p < 50);
+                var csv = filas.map(function (f) {
+                    return f.map(function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }).join(',');
+                }).join('\r\n');
+                var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'auditoria_' + new Date().toISOString().substring(0, 10) + '.csv';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                // La exportacion tambien se audita (mismo criterio que el resto del dashboard).
+                var body = new URLSearchParams({ modulo: 'Auditoría', detalle: (filas.length - 1) + ' eventos' });
+                var headers = {}; headers[csrfHeader] = csrfToken;
+                fetch(contextPath + 'api/auditoria/exportacion', { method: 'POST', headers: headers, body: body })
+                    .then(function () { cargar(); }).catch(function () { /* la bitacora no bloquea */ });
+            }
+
+            document.addEventListener('DOMContentLoaded', async function () {
+                ['fUsuario', 'fModulo', 'fAccion', 'fDesde', 'fHasta'].forEach(function (id) {
+                    document.getElementById(id).addEventListener('change', aplicar);
+                });
+                var timer = null;
+                document.getElementById('fTexto').addEventListener('input', function () {
+                    clearTimeout(timer); timer = setTimeout(aplicar, 400);
+                });
+                document.getElementById('btnRefrescar').addEventListener('click', function () { cargarFiltros(); cargar(); });
+                document.getElementById('btnExportar').addEventListener('click', exportarCsv);
+                document.getElementById('btnAnterior').addEventListener('click', function () { if (pagina > 0) { pagina--; cargar(); } });
+                document.getElementById('btnSiguiente').addEventListener('click', function () { pagina++; cargar(); });
+                await cargarFiltros();
+                cargar();
+            });
+        })();
+    </script>
+</th:block>
+</body>
+</html>

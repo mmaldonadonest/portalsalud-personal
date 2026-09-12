@@ -1,0 +1,2472 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <!--
+      "Imprimir expediente" del examen medico. PORT 1:1 de php-old/pdf/pdfGenerator.php (el
+      documento de 15 paginas: consentimiento FT-SO-11, aviso de privacidad FT-SO-32 y examen
+      FT-SO-04). Generado con un script a partir del PHP: cada echo de variable pasa a inline d.v('X'),
+      comprobarValor -> d.negado, comprobarValor2 -> d.noValorado, evaluarCondicionDental ->
+      d.diente. Los valores los arma ExamenDocumentoService con la misma logica del PHP (WS
+      consulta_examen + WS empleado + MED_TAG). No editar a mano el cuerpo: regenerar.
+    -->
+    <link rel="stylesheet" th:href="@{/theme/assets/css/style.min.css}" href="/theme/assets/css/style.min.css">
+    <style>
+        /* El PHP usaba Bootstrap puro con la fuente por defecto del navegador (serif); el
+           style.min.css del theme trae Bootstrap pero con su propia fuente y cabeceras de tabla
+           azules. Estas reglas devuelven el aspecto del documento original. */
+        body { font-family: "Times New Roman", Times, serif; background: #fff; color: #000; }
+        .table > :not(caption) > * > * { background: transparent; color: #000; }
+        .table thead th, .table th { background: #fff; font-weight: 700; }
+        h4, h5, h6 { font-family: "Times New Roman", Times, serif; font-weight: 400; color: #000; }
+    </style>
+    <title>SISTEMA MEDICO ONEST</title>
+    <style>
+        td,
+        th,
+        p {
+            font-size: 9px;
+        }
+
+        .footerTxt {
+            font-size: 7px;
+        }
+
+        .draggable {
+
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            position: relative;
+            cursor: move;
+        }
+    </style>
+    <style  media="print" >
+	 @media print {
+
+               .page, .page-break { break-after: page; }
+
+	   body{
+		font-family: "system-ui, sans-serif";
+	   }  
+	 }
+
+	 @page {
+           
+         
+         @top-left {
+         content: "";
+         };
+         @top-center {
+	 	content: "SISTEMA MEDICO ONEST";
+	font-size:13px;
+		font-weight: bold;
+            font-family: sans-serif;		
+        
+         };
+         @top-right {
+	  content: "[[${d.ahora}]] ";
+ 	  font-weight: bold;
+          font-size:10px;
+	  font-family: system-ui, sans-serif;
+          text-align: left;
+         };
+         @bottom-left {
+         content: "";
+         };
+         @bottom-center {
+         content: "  ";
+         };
+         @bottom-right {
+	 	content: "Página " counter(page) " de " counter(pages);
+		text-align: center;
+         }
+         }
+       
+      </style>
+
+</head>
+
+
+
+<body class="container border">
+    <!-- <div class="col-12 draggable" id="miDiv"></div> -->
+    <div class="row" id="">
+        <div class="navbar-brand col-3 " href="#">
+            <center><img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" width="100%" class="mt-2"></center>
+        </div>
+
+        <div class="col-9">
+            <table class="table table-bordered table-sm border-top border-dark">
+                <thead>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="font-size: 12px;font-weight:bold;">
+                            <center>CONSENTIMIENTO DE REALIZACIÓN DE EXAMEN MÉDICO<br/> ([[${d.v('tipoExamenInputO')}]]).</center>
+                        </td>
+                    </tr>
+                    <tr class="">
+                        <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                        <td>Revisión: 03</td>
+
+
+                    </tr>
+                    <td>Clave de control: FT-SO-11</td>
+                    <td>Reemplaza a: 02</td>
+                    <tr>
+
+                    </tr>
+                    <tr class="">
+
+                        <td>Motivo del cambio: Revisión por vigencia.</td>
+                        <td></td>
+
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="row mt-3 ">
+        <div class="col-4">
+            <p  style="font-size: 13px;">Agencia: <b>[[${d.v('empresa')}]]</b></p>
+        </div>
+        <div class="col-4">
+            <p  style="font-size: 13px;">Departamento: [[${d.v('cuenta')}]]</p>
+        </div>
+        <div class="col-4">
+            <p  style="font-size: 13px;">Puesto: <b>[[${d.v('puesto')}]]</b></p>
+        </div>
+    </div>
+    <div class="container">
+        <p style="font-size: 11px; margin-top: 150px;">
+            Entiendo que, de acuerdo con la Política de la Compañía sobre proporcionar y mantener un ambiente de trabajo seguro y saludable para sus empleados, me someteré a la realización de un Examen Médico.
+        </p>
+        <p style="font-size: 11px;">Por medio del presente autorizo la realización del Examen Médico de Admisión, Periódico o Especiales, el cual consiste en 2 etapas, exploración física e Interrogación Verbal que consta de: </p>
+        <p style="font-size: 11px;">
+            Ficha de Identificación, Antecedentes Laborales, Antecedentes Heredo familiares, Antecedentes Personales no patológicos, Antecedentes Ginecoobstetricos, Antecedentes Personales Patológicos.
+        </p>
+        <p style="font-size: 11px;">
+            Exploración Física que consta de: Peso, Talla, Toma de Signos Vitales, revisión de Cráneo, Nariz, Boca, Oídos, Cuello, Tórax , Columna Vertebral, Abdomen, Urinario, Extremidades y Piel. Tomando en cuenta que para ello, me tendré que retirar la ropa conservando mi ropa interior, así como se me pedirá que realice algunos movimientos.
+        </p>
+        <p style="font-size: 11px;">
+            Esto será realizado por personal altamente calificado y profesional.
+        </p>
+    </div>
+    <hr style="margin-top: 350px;">
+<br/><br/>
+    <div class="row mt-3">
+        <div class="col-6">
+            <center>
+                <h6>Nombre y firma</h6>
+                <img th:if="${d.firmaTrabajador != null}" th:src="${d.firmaTrabajador}" class="img-fluid" width="50px" alt=""><br>
+                <p style="font-size:12px;font-weight:bold">[[${d.v('apellidoP')}]] [[${d.v('apellidoM')}]] [[${d.v('nombre')}]]</p>
+            </center>
+        </div>
+        <div class="col-6">
+            <center>
+                <h6>Fecha</h6><br/>
+                <p  style="font-size:13px;font-weight:bold">[[${d.v('FECHAExam')}]]</p>
+            </center>
+
+        </div>
+    </div>
+<div class="page"></div>
+    <div class="row">
+        <div class="navbar-brand col-3 " href="#">
+            <center><img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" width="100%" class="mt-2"></center>
+        </div>
+
+        <div class="col-9">
+            <table class="table table-bordered table-sm border-top border-dark">
+                <thead>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="2">
+                            <center>AVISO DE PRIVACIDAD</center>
+                        </td>
+                    </tr>
+                    <tr class="">
+                        <td>F. Implementación: 18 DE OCTUBRE DE 2022</td>
+                        <td>Revisión: 01</td>
+
+
+                    </tr>
+                    <td>Clave de control: FT-SO-32</td>
+                    <td>Reemplaza a: 00</td>
+                    <tr>
+
+                    </tr>
+                    <tr class="">
+
+                        <td>Motivo del cambio: Actualización por vigencia.</td>
+                        <td></td>
+
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class=" mt-3 mb-3 ">
+        <center>
+            <h6>AVISO DE PRIVACIDAD</h6>
+        </center>
+        <p style="font-size: 11px;">SALUD OCUPACIONAL DE GRUPO LOGISTICO INTEGRAL, mejor conocido como ONEST LOGISTICS, con domicilio en calle
+            Autopista México Querétaro Km 34.5 Nave 5, colonia San Isidro, ciudad Cuautitlán Izcalli, municipio o delegación Cuautitlán Izcalli,
+            c.p. 54730, en la entidad de Estado de México, país México, y portal de internet https://www.onestlogistics.com, es el responsable del
+            uso y protección de sus datos personales, y al respecto le informamos lo siguiente:</p>
+        <p style="font-size: 11px;">
+            ¿Para qué fines utilizaremos sus datos personales? Los datos personales que recabamos de usted, los utilizaremos para las
+            siguientes finalidades que son necesarias para el servicio que solicita: Conservar información médica de otras instituciones en
+            expediente médico laboral. De manera adicional, utilizaremos su información personal para las siguientes finalidades secundarias que
+            no son necesarias para el servicio solicitado, pero que nos permiten y facilitan brindarle una mejor atención: Obtener muestras
+            biológicas en los casos que sean necesarios para evaluar las aptitudes médicas o para algún tamizaje de diagnóstico Conocer los
+            datos de índole médico para evaluar el estado de salud para ingresar, cambiar de puesto, ascender, de manera periódica o concluir
+            su relación laboral. En caso de que no desee que sus datos personales se utilicen para estos fines secundarios, indíquelo a
+            continuación:
+        </p>
+        <p style="font-size: 11px;">
+            Sí consiento que mis datos personales se utilicen para los siguientes fines:
+            <br>
+            <b>[*]Obtener muestras biológicas en los casos que sean necesarios para evaluar las aptitudes médicas o para algún tamizaje
+                de diagnóstico.</b><br>
+            <b>[*]Conocer los datos de índole médico para evaluar el estado de salud para ingresar, cambiar de puesto, ascender, de
+                manera periódica o concluir su relación laboral.</b>
+        </p>
+        <p style="font-size: 11px;">
+            La negativa para el uso de sus datos personales para estas finalidades no podrá ser un motivo para que le neguemos los servicios y
+            productos que solicita o contrata con nosotros. ¿Qué datos personales utilizaremos para estos fines? Para llevar a cabo las finalidades
+            descritas en el presente aviso de privacidad, utilizaremos los siguientes datos personales: Nombre, Estado Civil, Lugar de nacimiento,
+            Fecha de nacimiento, Nacionalidad, Domicilio, Teléfono particular, Teléfono celular, Correo electrónico, Firma autógrafa, Edad,
+            Fotografía, Señas particulares, Estatura, Peso, Cicatrices, Tipo de sangre, Puesto o cargo que desempeña, Domicilio de trabajo,
+            Correo electrónico institucional, Teléfono institucional, Referencias laborales, Información generada durante los procesos de
+            reclutamiento, selección y contratación, Capacitación laboral, Trayectoria educativa, Títulos, Bienes muebles, Pasatiempos, Aficiones,
+            Deportes que practica, Juegos de su interés. Además de los datos personales mencionados anteriormente, para las finalidades
+            informadas en el presente aviso de privacidad utilizaremos los siguientes datos personales considerados como sensibles, que
+            requieren de especial protección: Religión que profesa, Pertenencia a un sindicato, Estado de salud físico presente, pasado o futuro,
+            Estado de salud mental presente, pasado o futuro, Información genética, Preferencias sexuales, Prácticas o hábitos sexuales,
+            Pertenencia a un pueblo, etnia o región ¿Con quién compartimos su información personal y para qué fines?
+        </p>
+        <p style="font-size: 11px;">
+            Le informamos que sus datos personales son compartidos dentro del país con las siguientes personas, empresas, organizaciones o
+            autoridades distintas a nosotros, para los siguientes fines: Destinatario de los datos personales: P&G Certificación de Aptitud Médica
+            Laboral, Unilever de México, Certificación de Aptitud Médica Laboral, Inditex, Certificación de Aptitud Médica Laboral, u Otros clientes
+            Certificación de Aptitud Médica Laboral.
+        </p>
+        <p style="font-size: 11px;">
+            Con relación a las transferencias que requieren de su consentimiento, por favor indique a continuación si nos lo otorga:
+        </p>
+        <b class="form-check-label" style="font-size: 11px;" for="exampleCheck1">[*]Sí otorgo mi consentimiento para las siguientes transferencias de mis datos personales: P&G, Unilever de México, Inditex
+            y Otros clientes.</b>
+        <p style="font-size: 11px;">
+            ¿Cómo puede acceder, rectificar o cancelar sus datos personales, u oponerse a su uso?
+        </p>
+        <p style="font-size: 11px;">
+            Usted tiene derecho a conocer qué datos personales tenemos de usted, para qué los utilizamos y las condiciones del uso que les
+            damos (Acceso). Asimismo, es su derecho solicitar la corrección de su información personal en caso de que esté desactualizada, sea
+            inexacta o incompleta (Rectificación); que la eliminemos de nuestros registros o bases de datos cuando considere que la misma no
+            está siendo utilizada adecuadamente (Cancelación); así como oponerse al uso de sus datos personales para fines específicos
+            (Oposición). Estos derechos se conocen como derechos ARCO. Para el ejercicio de cualquiera de los derechos ARCO, usted deberá
+            presentar la solicitud respectiva a través del siguiente medio: Número telefónico 5563595902 Para conocer el procedimiento y
+            requisitos para el ejercicio de los derechos ARCO, ponemos a su disposición el siguiente medio: Número telefónico 5563595902 Los
+            datos de contacto de la persona o departamento de datos personales, que está a cargo de dar trámite a las solicitudes de derechos
+            ARCO, son los siguientes:
+        </p>
+        <div class="row" style="margin-top: 50px;">
+            <div class="navbar-brand col-3 " href="#">
+                <center><img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" width="100%" class="mt-2"></center>
+            </div>
+
+            <div class="col-9">
+                <table class="table table-bordered table-sm border-top border-dark">
+                    <thead>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="2">
+                                <center>EXAMEN MEDICO LABORAL</center>
+                            </td>
+                        </tr>
+                        <tr class="">
+                            <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                            <td>Revisión: 03</td>
+
+
+                        </tr>
+                        <td>Clave de control: FT-SO-04</td>
+                        <td>Reemplaza a: 02</td>
+                        <tr>
+
+                        </tr>
+                        <tr class="">
+
+                            <td>Motivo del cambio: Actualización por vigencia.</td>
+                            <td></td>
+
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <p style="font-size: 11px;">
+            a) Nombre de la persona o departamento de datos personales: Salud Ocupacional
+        </p>
+        <p style="font-size: 11px;">
+            b) Domicilio: calle Carretera México Querétaro Km 34.5 Nave 5, colonia San Isidro, ciudad Cuautitlán Izcalli, municipio o delegación
+            Cuautitlán Izcalli, C.P. 54730, en la entidad de Estado de México, país México
+        </p>
+        <p style="font-size: 11px;">
+            C) Correo electrónico: saludocupacional@grupoonest.com d) Número telefónico: 5563595902.
+        </p>
+        <p style="font-size: 11px;">
+            Usted puede revocar su consentimiento para el uso de sus datos personales, Usted puede revocar el consentimiento que, en su caso,
+            nos haya otorgado para el tratamiento de sus datos personales. Sin embargo, es importante que tenga en cuenta que no en todos los
+            casos podremos atender su solicitud o concluir el uso de forma inmediata, ya que es posible que por alguna obligación legal requiramos
+            seguir tratando sus datos personales. Asimismo, usted deberá considerar que, para ciertos fines, la revocación de su consentimiento
+            implicará que no le podamos seguir prestando el servicio que nos solicitó, o la conclusión de su relación con nosotros. Para revocar
+            su consentimiento deberá presentar su solicitud a través del siguiente medio: Número telefónico 5563595902 Con relación al
+            procedimiento y requisitos para la revocación de su consentimiento, le informamos lo siguiente:
+        </p>
+        <p style="font-size: 11px;">
+            a) ¿A través de qué medios pueden acreditar su identidad el titular y, en su caso, su representante, así como la personalidad este
+            último? Identificación oficial
+
+        </p>
+        <p style="font-size: 11px;">
+            b) ¿Qué información y/o documentación deberá contener la solicitud? Solicitud puntual
+        </p>
+        <p style="font-size: 11px;">
+            c) ¿En cuántos días le daremos respuesta a su solicitud? 72 horas hábiles
+        </p>
+        <p style="font-size: 11px;">d) ¿Por qué medio le comunicaremos la respuesta a su solicitud? Correo electrónico</p>
+        <p style="font-size: 11px;">
+            e) Para más información sobre el procedimiento, ponemos a disposición los siguientes medios: Número telefónico 5563595902
+        </p>
+        <p style="font-size: 11px;">
+            ¿Cómo puede limitar el uso o divulgación de su información personal? Con objeto de que usted pueda limitar el uso y divulgación de
+            su información personal, le ofrecemos los siguientes medios: Número telefónico 5563595902 ¿Cómo puede conocer los cambios en
+            este aviso de privacidad? El presente aviso de privacidad puede sufrir modificaciones, cambios o actualizaciones derivadas de nuevos
+            requerimientos legales; de nuestras propias necesidades por los productos o servicios que ofrecemos; de nuestras prácticas de
+            privacidad; de cambios en nuestro modelo de negocio, o por otras causas. Nos comprometemos a mantenerlo informado sobre los
+            cambios que pueda sufrir el presente aviso de privacidad, a través de: Carteles a través de cada consultorio médico.
+        </p>
+        <p style="font-size: 11px;">El procedimiento a través del cual se llevarán a cabo las notificaciones sobre cambios o actualizaciones al presente aviso de privacidad
+            es el siguiente:
+        </p>
+        <p style="font-size: 11px;">Por medio de cartel en el consultorio médico Su consentimiento para el tratamiento de sus datos personal</p>
+        <b class="form-check-label" style="font-size: 11px;" for="exampleCheck2">[*]Sí consiento que mis datos personales sean tratados de conformidad con los términos y condiciones informados en el
+	    presente aviso de privacidad.</b>
+<br/><br/>
+        <center>
+            <h6>Nombre y firma</h6>
+            <img th:if="${d.firmaTrabajador != null}" th:src="${d.firmaTrabajador}" class="img-fluid" width="50px" alt=""><br>
+            <p  style="font-size: 12px;font-weight:bold" >[[${d.v('apellidoP')}]] [[${d.v('apellidoM')}]] [[${d.v('nombre')}]]</p>
+        </center>
+    </div>
+<div class="page"></div>
+
+    <div class="row" style="margin-top: 130px;">
+        <div class="navbar-brand col-3 " href="#">
+            <center><img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" width="100%" class="mt-2"></center>
+        </div>
+
+        <div class="col-9">
+            <table class="table table-bordered table-sm border-top border-dark">
+                <thead>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="2">
+                            <center>EXAMEN MEDICO LABORAL</center>
+                        </td>
+                    </tr>
+                    <tr class="">
+                        <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                        <td>Revisión: 03</td>
+
+
+                    </tr>
+                    <td>Clave de control: FT-SO-04</td>
+                    <td>Reemplaza a: 02</td>
+                    <tr>
+
+                    </tr>
+                    <tr class="">
+
+                        <td>Motivo del cambio: Actualización por vigencia.</td>
+                        <td>Hoja 1 de 5</td>
+
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+
+
+
+    </div>
+
+
+    <div class="col-12">
+        <h6>Información Personal</h6>
+        <div class="row">
+            <div class="col-6">
+                <table class="table table-bordered table-sm">
+                    <tr>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                    <tr>
+                        <td>Nombre</td>
+                        <td>[[${d.v('nombre')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>Apellido Paterno</td>
+                        <td>[[${d.v('apellidoP')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>Apellido Materno</td>
+                        <td>[[${d.v('apellidoM')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>RFC</td>
+                        <td>[[${d.v('RFC')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>NSS</td>
+                        <td>[[${d.v('NSS')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>Sexo</td>
+                        <td>[[${d.v('sexo')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>Cuenta</td>
+                        <td>[[${d.v('cuenta')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>Empresa</td>
+                        <td>[[${d.v('empresa')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>Puesto</td>
+                        <td>[[${d.v('puesto')}]]</td>
+                    </tr>
+
+                </table>
+            </div>
+            <div class="col-6">
+                <table class="table table-bordered table-sm">
+                    <tr>
+                        <th></th>
+                        <th></th>
+                    <tr>
+                        <td>Edad</td>
+                        <td>[[${d.v('edad')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>Fecha de Nacimiento</td>
+                        <td>[[${d.v('fechaNacimiento')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>Estado Civil</td>
+                        <td>[[${d.v('edoCivil')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>Dirección</td>
+                        <td>[[${d.v('direccion')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>Teléfono Celular</td>
+                        <td>[[${d.v('telefono')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>Turno</td>
+                        <td>[[${d.v('turno')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>Teléfono Fijo</td>
+                        <td>[[${d.v('telefonoF')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>Completo</td>
+                        <td>[[${d.v('check')}]]</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+    </div>
+    <hr>
+    <h6>Contacto de emergencias</h6>
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+
+                    <th>Nombre</th>
+                    <th>Apellido Paterno</th>
+                    <th>Apellido Materno</th>
+                    <th>Parentesco</th>
+                    <th>Teléfono</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+
+                    <td>[[${d.v('contactoEmernombre1')}]]</td>
+                    <td>[[${d.v('contactoEmerapellido_paterno1')}]]</td>
+                    <td>[[${d.v('contactoEmerapellido_materno1')}]]</td>
+                    <td>[[${d.v('contactoEmerparentesco1')}]]</td>
+                    <td>[[${d.v('contactoEmertelefono1')}]]</td>
+                </tr>
+                <tr>
+
+                    <td>[[${d.v('contactoEmernombre2')}]]</td>
+                    <td>[[${d.v('contactoEmerapellido_paterno2')}]]</td>
+                    <td>[[${d.v('contactoEmerapellido_materno2')}]]</td>
+                    <td>[[${d.v('contactoEmerparentesco2')}]]</td>
+                    <td>[[${d.v('contactoEmertelefono2')}]]</td>
+                </tr>
+                <tr>
+
+                    <td>[[${d.v('contactoEmernombre3')}]]</td>
+                    <td>[[${d.v('contactoEmerapellido_paterno3')}]]</td>
+                    <td>[[${d.v('contactoEmerapellido_materno3')}]]</td>
+                    <td>[[${d.v('contactoEmerparentesco3')}]]</td>
+                    <td>[[${d.v('contactoEmertelefono3')}]]</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <hr>
+    <h6>Antecedentes Laborales</h6>
+    <hr>
+    <table class="table table-bordered table-sm">
+        <tr>
+            <th>Edad de inicio al trabajar</th>
+            <td>[[${d.v('edad_inicio_laborar')}]]</td>
+        </tr>
+        <tr>
+            <th>Cantidad de trabajos</th>
+            <td>[[${d.v('cantidad_trabajos')}]]</td>
+        </tr>
+        <tr>
+            <th>Pensión</th>
+            <td>[[${d.v('pension')}]]</td>
+        </tr>
+    </table>
+
+    <h6>Detalles de Trabajos Anteriores</h6>
+    <table class="table table-bordered table-sm">
+        <tr>
+            <th>Nombre</th>
+            <th>Giro</th>
+            <th>Puesto</th>
+            <th>Turno</th>
+            <th>Antigüedad</th>
+            <th>Salida</th>
+            <th>Descripción</th>
+            <th>Riesgos</th>
+            <th>EPP (Equipo de Protección Personal)</th>
+            <th>Observaciones</th>
+        </tr>
+        <tr>
+            <td>[[${d.v('nombre1')}]]</td>
+            <td>[[${d.v('giro1')}]]</td>
+            <td>[[${d.v('puesto1')}]]</td>
+            <td>[[${d.v('turno1')}]]</td>
+            <td>[[${d.v('antiguedad1')}]]</td>
+            <td>[[${d.v('salida1')}]]</td>
+            <td>[[${d.v('descripcion1')}]]</td>
+            <td>[[${d.v('riesgos1')}]]</td>
+            <td>[[${d.v('epp1')}]]</td>
+            <td>[[${d.v('observaciones1')}]]</td>
+        </tr>
+        <tr>
+            <td>[[${d.v('nombre2')}]]</td>
+            <td>[[${d.v('giro2')}]]</td>
+            <td>[[${d.v('puesto2')}]]</td>
+            <td>[[${d.v('turno2')}]]</td>
+            <td>[[${d.v('antiguedad2')}]]</td>
+            <td>[[${d.v('salida2')}]]</td>
+            <td>[[${d.v('descripcion2')}]]</td>
+            <td>[[${d.v('riesgos2')}]]</td>
+            <td>[[${d.v('epp2')}]]</td>
+            <td>[[${d.v('observaciones2')}]]</td>
+        </tr>
+        <tr>
+            <td>[[${d.v('nombre3')}]]</td>
+            <td>[[${d.v('giro3')}]]</td>
+            <td>[[${d.v('puesto3')}]]</td>
+            <td>[[${d.v('turno3')}]]</td>
+            <td>[[${d.v('antiguedad3')}]]</td>
+            <td>[[${d.v('salida3')}]]</td>
+            <td>[[${d.v('descripcion3')}]]</td>
+            <td>[[${d.v('riesgos3')}]]</td>
+            <td>[[${d.v('epp3')}]]</td>
+            <td>[[${d.v('observaciones3')}]]</td>
+        </tr>
+        <tr>
+            <td>[[${d.v('nombre4')}]]</td>
+            <td>[[${d.v('giro4')}]]</td>
+            <td>[[${d.v('puesto4')}]]</td>
+            <td>[[${d.v('turno4')}]]</td>
+            <td>[[${d.v('antiguedad4')}]]</td>
+            <td>[[${d.v('salida4')}]]</td>
+            <td>[[${d.v('descripcion4')}]]</td>
+            <td>[[${d.v('riesgos4')}]]</td>
+            <td>[[${d.v('epp4')}]]</td>
+            <td>[[${d.v('observaciones4')}]]</td>
+        </tr>
+    </table>
+<div class="page"></div>
+
+    <div class="col-12" style="">
+        <div class="row">
+            <div class="navbar-brand col-3 " href="#">
+                <center><img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" width="100%" class="mt-2"></center>
+            </div>
+
+            <div class="col-9">
+                <table class="table table-bordered table-sm border-top border-dark">
+                    <thead>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="2">
+                                <center>EXAMEN MEDICO LABORAL</center>
+                            </td>
+                        </tr>
+                        <tr class="">
+                            <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                            <td>Revisión: 03</td>
+
+
+                        </tr>
+                        <td>Clave de control: FT-SO-04</td>
+                        <td>Reemplaza a: 02</td>
+                        <tr>
+
+                        </tr>
+                        <tr class="">
+
+                            <td>Motivo del cambio: Actualización por vigencia.</td>
+                            <td>Hoja 1 de 5</td>
+
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+
+
+
+        </div>
+    </div>
+    <hr>
+    <h6>Antecedentes Heredofamiliares</h6>
+    <hr>
+
+
+    <div class="row">
+        <div class="col-6">
+            <h6>Neurología</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>AVC (Accidente Cerebrovascular)</td>
+                    <td>[[${d.negado('avc')}]]</td>
+                    <td>[[${d.negado('AVC_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Epilepsia</td>
+                    <td>[[${d.negado('EPILEPSIA')}]]</td>
+                    <td>[[${d.negado('EPILEPSIA_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Parálisis Facial</td>
+                    <td>[[${d.negado('PARALISIS_FACIAL')}]]</td>
+                    <td>[[${d.negado('PARALISIS_FACIAL_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Parkinson</td>
+                    <td>[[${d.negado('PARKINSON')}]]</td>
+                    <td>[[${d.negado('PARKINSON_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Alzheimer</td>
+                    <td>[[${d.negado('ALZHEIMER')}]]</td>
+                    <td>[[${d.negado('ALZHEIMER_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Migraña</td>
+                    <td>[[${d.negado('MIGRAÑA')}]]</td>
+                    <td>[[${d.negado('MIGRAÑA_OBS')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Cardiopatía</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Cardiopatía Isquémica</td>
+                    <td>[[${d.negado('CARDIOPATIA_ISQUEMICA')}]]</td>
+                    <td>[[${d.negado('CARDIOPATIA_ISQUEMICA_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Hipertensión</td>
+                    <td>[[${d.negado('HIPERTENSION')}]]</td>
+                    <td>[[${d.negado('HIPERTENSION_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Hipotensión</td>
+                    <td>[[${d.negado('HIPOTENSION')}]]</td>
+                    <td>[[${d.negado('HIPOTENSION_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Insuficiencia Cardíaca</td>
+                    <td>[[${d.negado('INSUFICIENCIA_CARDIACA')}]]</td>
+                    <td>[[${d.negado('INSUFICIENCIA_CARDIACA_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Insuficiencia Vascular Periférica</td>
+                    <td>[[${d.negado('INSUFICIENCIA_VASCULAR_PERIFERICA')}]]</td>
+                    <td>[[${d.negado('INSUFICIENCIA_VASCULAR_PERIFERICA_OBS')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Neumopatía</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Bronquitis</td>
+                    <td>[[${d.negado('BRONQUITIS')}]]</td>
+                    <td>[[${d.negado('BRONQUITIS_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Tuberculosis</td>
+                    <td>[[${d.negado('TUBERCULOSIS')}]]</td>
+                    <td>[[${d.negado('TUBERCULOSIS_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Asma</td>
+                    <td>[[${d.negado('ASMA')}]]</td>
+                    <td>[[${d.negado('ASMA_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Insuficiencia Respiratoria</td>
+                    <td>[[${d.negado('INSUFICIENCIA_RESPIRATORIA')}]]</td>
+                    <td>[[${d.negado('INSUFICIENCIA_RESPIRATORIA_OBS')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Toxicología</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Alcoholismo</td>
+                    <td>[[${d.negado('ALCOHOLISMO')}]]</td>
+                    <td>[[${d.negado('ALCOHOLISMO_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Tabaquismo</td>
+                    <td>[[${d.negado('TABAQUISMO')}]]</td>
+                    <td>[[${d.negado('TABAQUISMO_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Drogas</td>
+                    <td>[[${d.negado('DROGAS')}]]</td>
+                    <td>[[${d.negado('DROGAS_OBS')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Nefropatía</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>IRC (Insuficiencia Renal Crónica)</td>
+                    <td>[[${d.negado('IRC')}]]</td>
+                    <td>[[${d.negado('IRC_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Litiasis Renal</td>
+                    <td>[[${d.negado('LITASIS')}]]</td>
+                    <td>[[${d.negado('LITASIS_OBS')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Endocrina</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Diabetes Mellitus (DM)</td>
+                    <td>[[${d.negado('DM')}]]</td>
+                    <td>[[${d.negado('DM_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Hipertiroidismo</td>
+                    <td>[[${d.negado('HIPERTIROIDISMO')}]]</td>
+                    <td>[[${d.negado('HIPERTIROIDISMO_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Hipotiroidismo</td>
+                    <td>[[${d.negado('HIPOTIROIDISMO')}]]</td>
+                    <td>[[${d.negado('HIPOTIROIDISMO_OBS')}]]</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="col-6">
+            <h6>Obesidad</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Trastorno de Crecimiento</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Trastorno de Crecimiento</td>
+                    <td>[[${d.negado('TRANSTORNO_DE_CRECIMIENTO')}]]</td>
+                    <td>[[${d.negado('TRANSTORNO_DE_CRECIMIENTO_OBS')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Salud Mental</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Neurosis</td>
+                    <td>[[${d.negado('NEUROSIS')}]]</td>
+                    <td>[[${d.negado('NEUROSIS_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Psicosis</td>
+                    <td>[[${d.negado('PSICOSIS')}]]</td>
+                    <td>[[${d.negado('PSICOSIS_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Intento de Suicidio</td>
+                    <td>[[${d.negado('INTENTO_DE_SUICIDIO')}]]</td>
+                    <td>[[${d.negado('INTENTO_DE_SUICIDIO_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Esquizofrenia</td>
+                    <td>[[${d.negado('ESQUIZOFRENIA')}]]</td>
+                    <td>[[${d.negado('ESQUIZOFRENIA_OBS')}]]</td>
+                </tr>
+            </table>
+	</div>
+<div class="page"></div>
+        <div class="col-12" style="">
+            <div class="row">
+                <div class="navbar-brand col-3 " href="#">
+                    <center><img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" width="100%" class="mt-2"></center>
+                </div>
+
+                <div class="col-9">
+                    <table class="table table-bordered table-sm border-top border-dark">
+                        <thead>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="2">
+                                    <center>EXAMEN MEDICO LABORAL</center>
+                                </td>
+                            </tr>
+                            <tr class="">
+                                <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                                <td>Revisión: 03</td>
+
+
+                            </tr>
+                            <td>Clave de control: FT-SO-04</td>
+                            <td>Reemplaza a: 02</td>
+                            <tr>
+
+                            </tr>
+                            <tr class="">
+
+                                <td>Motivo del cambio: Actualización por vigencia.</td>
+                                <td>Hoja 2 de 5</td>
+
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+
+
+
+            </div>
+        </div>
+        <div class="col-6">
+            <h6>Generales</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Cáncer</td>
+                    <td>[[${d.negado('CANCER')}]]</td>
+                    <td>[[${d.negado('CANCER_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Alergias</td>
+                    <td>[[${d.negado('ALERGIAS')}]]</td>
+                    <td>[[${d.negado('ALERGIAS_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Malformaciones</td>
+                    <td>[[${d.negado('MALFORMACIONES')}]]</td>
+                    <td>[[${d.negado('MALFORMACIONES_OBS')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Otras Condiciones</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Otras</td>
+                    <td>[[${d.negado('OTRAS')}]]</td>
+                    <td>[[${d.negado('OTRAS_OBS')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-12">
+            <hr>
+            <h6>Antecedentes personales no Patológicos</h6>
+            <div class="row">
+                <div class="col-6">
+                    <table class="table table table-bordered table-sm">
+                        <tr>
+                            <th class="table-primary">Aspecto</th>
+                            <th class="table-primary">Valor</th>
+                        </tr>
+                        <tr>
+                            <td>Habitación</td>
+                            <td>[[${d.v('HABITACION')}]]</td>
+                        </tr>
+                        <tr>
+                            <td>Número de Dormitorios</td>
+                            <td>[[${d.v('NO_DORMITORIOS')}]]</td>
+                        </tr>
+                        <tr>
+                            <td>Número de Habitantes</td>
+                            <td>[[${d.v('NO_HABITANTES')}]]</td>
+                        </tr>
+                        <tr>
+                            <td>Piso</td>
+                            <td>[[${d.v('PISO')}]]</td>
+                        </tr>
+                        <tr>
+                            <td>Techo</td>
+                            <td>[[${d.v('TECHO')}]]</td>
+                        </tr>
+                        <tr>
+                            <td>Agua Potable</td>
+                            <td>[[${d.v('AGUA_POTABLE')}]]</td>
+                        </tr>
+                        <tr>
+                            <td>Luz Eléctrica</td>
+                            <td>[[${d.v('LUZ')}]]</td>
+                        </tr>
+                        <tr>
+                            <td>Drenaje</td>
+                            <td>[[${d.v('DRENAJE')}]]</td>
+                        </tr>
+                        <tr>
+                            <td>Convivencia con Animales</td>
+                            <td>[[${d.v('CONVIVENCIA_CON_ANIMALES')}]]</td>
+                        </tr>
+                        <tr>
+                            <td>Aire Acondicionado</td>
+                            <td>[[${d.v('AIRE_ACONDICIONADO')}]]</td>
+                        </tr>
+                        <tr>
+                            <td>Religión</td>
+                            <td>[[${d.v('RELIGION')}]]</td>
+                        </tr>
+                        <tr>
+                            <td>Higiene Personal</td>
+                            <td>[[${d.v('HIGIENE_PERSONAL')}]]</td>
+                        </tr>
+
+                    </table>
+                </div>
+                <div class="col-6">
+                    <table class="table table table-bordered table-sm">
+                        <tr>
+                            <th class="table-primary">Aspecto</th>
+                            <th class="table-primary">Valor</th>
+                        </tr>
+
+                        <tr>
+                            <td>Baño</td>
+                            <td>[[${d.v('BAÑO')}]] veces por semana</td>
+                        </tr>
+                        <tr>
+                            <td>Cambio de Ropa</td>
+                            <td>[[${d.v('CAMBIO_DE_ROPA')}]] veces por dia</td>
+                        </tr>
+                        <tr>
+                            <td>Aseo Bucal</td>
+                            <td>[[${d.v('ASEO_BUCAL')}]] veces por dia</td>
+                        </tr>
+                        <tr>
+                            <td>Alimentación</td>
+                            <td>[[${d.v('ALIMENTACION')}]]</td>
+                        </tr>
+                        <tr>
+                            <td>Número de Comidas al Día</td>
+                            <td>[[${d.v('NO_COMIDAS_AL_DIA')}]]</td>
+                        </tr>
+                        <tr>
+                            <td>Alimentación Balanceada</td>
+                            <td>[[${d.v('BALANCEADA')}]]</td>
+                        </tr>
+                        <tr>
+                            <td>Alimentación Suficiente</td>
+                            <td>[[${d.v('SUFICIENTE')}]]</td>
+                        </tr>
+                        <tr>
+                            <td>Deporte</td>
+                            <td>[[${d.v('DEPORTE')}]]</td>
+                        </tr>
+                        <tr>
+                            <td>Frecuencia</td>
+                            <td>[[${d.v('FC1')}]] veces por [[${d.v('cadaCuandoDep')}]]</td>
+                        </tr>
+                        <tr>
+                            <td>Hobbies y Pasatiempos</td>
+                            <td>[[${d.v('HOBBIES_PASATIEMPOS')}]]</td>
+                        </tr>
+                        <tr>
+                            <td>Frecuencia</td>
+                            <td>[[${d.v('FC2')}]] veces por [[${d.v('cadaCuandoPasa')}]]</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="col-12">
+            <h6>Inmunizaciones</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Vacuna</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>BCG</td>
+                    <td>[[${d.v('BLG')}]]</td>
+                </tr>
+                <tr>
+                    <td>Sabin</td>
+                    <td>[[${d.v('SABIN')}]]</td>
+                </tr>
+                <tr>
+                    <td>DPT</td>
+                    <td>[[${d.v('DPT')}]]</td>
+                </tr>
+                <tr>
+                    <td>Hepatitis B</td>
+                    <td>[[${d.v('HEPATITIS_B')}]]</td>
+                </tr>
+                <tr>
+                    <td>SR</td>
+                    <td>[[${d.v('SR')}]]</td>
+                </tr>
+                <tr>
+                    <td>Influenza</td>
+                    <td>[[${d.v('INFLUENZA')}]]</td>
+                </tr>
+                <tr>
+                    <td>Fecha Influenza</td>
+                    <td>[[${d.v('fechaINFLUEN')}]]</td>
+                </tr>
+                <tr>
+                    <td>TD</td>
+                    <td>[[${d.v('TD')}]]</td>
+                </tr>
+                <tr>
+                    <td>COVID</td>
+                    <td>[[${d.v('COVID')}]]</td>
+                </tr>
+                <tr>
+                    <td>Fecha COVID</td>
+                    <td>[[${d.v('FECHA')}]]</td>
+                </tr>
+            </table>
+	</div>
+<div class="page"></div>
+
+        <div class="col-12" style="">
+            <div class="row">
+                <div class="navbar-brand col-3 " href="#">
+                    <center><img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" width="100%" class="mt-2"></center>
+                </div>
+
+                <div class="col-9">
+                    <table class="table table-bordered table-sm border-top border-dark">
+                        <thead>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="2">
+                                    <center>EXAMEN MEDICO LABORAL</center>
+                                </td>
+                            </tr>
+                            <tr class="">
+                                <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                                <td>Revisión: 03</td>
+
+
+                            </tr>
+                            <td>Clave de control: FT-SO-04</td>
+                            <td>Reemplaza a: 02</td>
+                            <tr>
+
+                            </tr>
+                            <tr class="">
+
+                                <td>Motivo del cambio: Actualización por vigencia.</td>
+                                <td>Hoja 2 de 5</td>
+
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+
+
+
+            </div>
+        </div>
+        <div class="col-12">
+            <h6>Antecedentes Ginecológicos y Obstétricos</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Variable</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Menarca</td>
+                    <td>[[${d.v('MENARCA')}]]</td>
+                </tr>
+                <tr>
+                    <td>Ritmo Menstrual</td>
+                    <td>[[${d.v('RITMO')}]]</td>
+                </tr>
+                <tr>
+                    <td>IVSA (Inicio de Vida Sexual Activa)</td>
+                    <td>[[${d.v('IVSA')}]]</td>
+                </tr>
+                <tr>
+                    <td>FUM (Fecha de Última Menstruación)</td>
+                    <td>[[${d.v('FUM')}]]</td>
+                </tr>
+                <tr>
+                    <td>G (Gestas)</td>
+                    <td>[[${d.negado('G')}]]</td>
+                </tr>
+                <tr>
+                    <td>A (Abortos)</td>
+                    <td>[[${d.negado('A')}]]</td>
+                </tr>
+                <tr>
+                    <td>P (Partos)</td>
+                    <td>[[${d.negado('P')}]]</td>
+                </tr>
+                <tr>
+                    <td>C (Cesáreas)</td>
+                    <td>[[${d.negado('C')}]]</td>
+                </tr>
+                <tr>
+                    <td>Método de Planificación</td>
+                    <td>[[${d.negado('MET_PLANIFICACION')}]]</td>
+                </tr>
+                <tr>
+                    <td>Papanicolaou</td>
+                    <td>[[${d.negado('PAPANICOLAOU')}]]</td>
+                </tr>
+                <tr>
+                    <td>Infecciones Repetitivas</td>
+                    <td>[[${d.negado('INFECC_REP')}]]</td>
+                </tr>
+                <tr>
+                    <td>Fecha de Última Consulta Ginecológica</td>
+                    <td>[[${d.negado('FUP')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-12">
+            <h6>Antecedentes Personales Patológicos</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Enfermedades Congénitas</td>
+                    <td>[[${d.negado('ENF_CONGENITAS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Genital</td>
+                    <td>[[${d.negado('GENITAL')}]]</td>
+                </tr>
+                <tr>
+                    <td>Enfermedades Propias de la Infancia</td>
+                    <td>[[${d.negado('ENF_PROP_INF')}]]</td>
+                </tr>
+                <tr>
+                    <td>Dermatopatías</td>
+                    <td>[[${d.negado('DERMATOPATIAS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Sistema Auditivo</td>
+                    <td>[[${d.negado('SIST_AUDITIVO')}]]</td>
+                </tr>
+                <tr>
+                    <td>Sistema Respiratorio</td>
+                    <td>[[${d.negado('RESPIRATORIO')}]]</td>
+                </tr>
+                <tr>
+                    <td>Sistema Olfativo</td>
+                    <td>[[${d.negado('SIS_OLFATIVO')}]]</td>
+                </tr>
+                <tr>
+                    <td>Traumatismos</td>
+                    <td>[[${d.negado('TRAUMATICOS')}]]</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="col-6">
+            <h6>Oftalmológico</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Uso de Lentes</td>
+                    <td>[[${d.negado('USO_LENTES')}]]</td>
+                    <td>[[${d.negado('USO_LENTES_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Astigmatismo</td>
+                    <td>[[${d.negado('ASTIGMATISMO')}]]</td>
+                    <td>[[${d.negado('ASTIGMATISMO_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Presbicia</td>
+                    <td>[[${d.negado('PRESBICIA')}]]</td>
+                    <td>[[${d.negado('PRESBICIA_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Estrabismo</td>
+                    <td>[[${d.negado('ESTRABISMO')}]]</td>
+                    <td>[[${d.negado('ESTRABISMO_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Daltonismo</td>
+                    <td>[[${d.negado('DALTONISMO')}]]</td>
+                    <td>[[${d.negado('DALTONISMO_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Desprendimiento de Retina</td>
+                    <td>[[${d.negado('DESPENDIMIENTO_RET')}]]</td>
+                    <td>[[${d.negado('DESPENDIMIENTO_RET_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Miopia</td>
+                    <td>[[${d.negado('MIOPIA')}]]</td>
+                    <td>[[${d.negado('MIOPIA_OBS')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Trastornos Digestivos</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Hernias</td>
+                    <td>[[${d.negado('HERNIAS')}]]</td>
+                    <td>[[${d.negado('HERNIAS_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Cirrosis</td>
+                    <td>[[${d.negado('CIRROSIS')}]]</td>
+                    <td>[[${d.negado('CIRROSIS_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Colitis</td>
+                    <td>[[${d.negado('COLITIS')}]]</td>
+                    <td>[[${d.negado('COLITIS_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Gastritis</td>
+                    <td>[[${d.negado('GASTRITIS')}]]</td>
+                    <td>[[${d.negado('GASTRITIS_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Hemorroides</td>
+                    <td>[[${d.negado('HEMORROIDES')}]]</td>
+                    <td>[[${d.negado('HEMORROIDES_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Cirugías</td>
+                    <td>[[${d.negado('CIRUGIAS')}]]</td>
+                    <td>[[${d.negado('CIRUGIAS_OBS')}]]</td>
+                </tr>
+            </table>
+
+	</div>
+<div class="page"></div>
+
+        <div class="col-12" style="">
+            <div class="row">
+                <div class="navbar-brand col-3 " href="#">
+                    <center><img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" width="100%" class="mt-2"></center>
+                </div>
+
+                <div class="col-9">
+                    <table class="table table-bordered table-sm border-top border-dark">
+                        <thead>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="2">
+                                    <center>EXAMEN MEDICO LABORAL</center>
+                                </td>
+                            </tr>
+                            <tr class="">
+                                <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                                <td>Revisión: 03</td>
+
+
+                            </tr>
+                            <td>Clave de control: FT-SO-04</td>
+                            <td>Reemplaza a: 02</td>
+                            <tr>
+
+                            </tr>
+                            <tr class="">
+
+                                <td>Motivo del cambio: Actualización por vigencia.</td>
+                                <td>Hoja 3 de 5</td>
+
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+
+
+
+            </div>
+        </div>
+        <div class="col-6">
+            <h6>Renal</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Incontinencia</td>
+                    <td>[[${d.negado('INCONTINENSIA')}]]</td>
+                    <td>[[${d.negado('INCONTINENSIA_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Insuficiencia Renal</td>
+                    <td>[[${d.negado('INSUFICIENCIA')}]]</td>
+                    <td>[[${d.negado('INSUFICIENCIA_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Litiasis Renal</td>
+                    <td>[[${d.negado('LITIASIS')}]]</td>
+                    <td>[[${d.negado('LITIASIS_OBS')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Sistema Nervioso</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Aneurisma</td>
+                    <td>[[${d.negado('ANEURISMA')}]]</td>
+                    <td>[[${d.negado('ANEURISMA_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Enfermedad Degenerativa Muscular/Nerviosa</td>
+                    <td>[[${d.negado('ENF_DEG_MUS_NEU')}]]</td>
+                    <td>[[${d.negado('ENF_DEG_MUS_NEU_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Accidente Cerebrovascular</td>
+                    <td>[[${d.negado('ACC_CER_VASCU')}]]</td>
+                    <td>[[${d.negado('ACC_CER_VASCU_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Epilepsia</td>
+                    <td>[[${d.negado('EPILEPSIA2')}]]</td>
+                    <td>[[${d.negado('EPILEPSIA_OBS2')}]]</td>
+                </tr>
+                <tr>
+                    <td>Parálisis Facial</td>
+                    <td>[[${d.negado('PAR_FACIAL')}]]</td>
+                    <td>[[${d.negado('PAR_FACIAL_OBS')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Musculoesquelético</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Escoliosis</td>
+                    <td>[[${d.negado('ESCOLIOSIS')}]]</td>
+                    <td>[[${d.negado('ESCOLIOSIS_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Xifosis</td>
+                    <td>[[${d.negado('XIFOSIS')}]]</td>
+                    <td>[[${d.negado('XIFOSIS_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Lordosis</td>
+                    <td>[[${d.negado('LORDOSISI')}]]</td>
+                    <td>[[${d.negado('LORDOSISI_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Lumbalgia</td>
+                    <td>[[${d.negado('LUMBALGIA')}]]</td>
+                    <td>[[${d.negado('LUMBALGIA_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Basculamiento</td>
+                    <td>[[${d.negado('BASCULAMIENTO')}]]</td>
+                    <td>[[${d.negado('BASCULAMIENTO_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Alteración Discal</td>
+                    <td>[[${d.negado('ALTERACION_DISCAL')}]]</td>
+                    <td>[[${d.negado('ALTERACION_DISCAL_OBS')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Cardiopatía</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Aneurisma</td>
+                    <td>[[${d.negado('ANEURISMA2')}]]</td>
+                    <td>[[${d.negado('ANEURISMA_OBS2')}]]</td>
+                </tr>
+                <tr>
+                    <td>Hipertensión</td>
+                    <td>[[${d.negado('HIPERTENSION2')}]]</td>
+                    <td>[[${d.negado('HIPERTENSION_OBS2')}]]</td>
+                </tr>
+                <tr>
+                    <td>Hipotensión</td>
+                    <td>[[${d.negado('HIPOTENSION2')}]]</td>
+                    <td>[[${d.negado('HIPOTENSION_OBS2')}]]</td>
+                </tr>
+                <tr>
+                    <td>Infartos</td>
+                    <td>[[${d.negado('INFARTOS')}]]</td>
+                    <td>[[${d.negado('INFARTOS_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Insuficiencia Cardíaca</td>
+                    <td>[[${d.negado('INSUFIC_CAR')}]]</td>
+                    <td>[[${d.negado('INSUFIC_CAR_OBS')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Toxicológicos</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Factor</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Alergias</td>
+                    <td>[[${d.negado('ALRGNEWINP')}]]</td>
+                    <td>[[${d.negado('ALRGNEWINPOBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Tabaquismo</td>
+                    <td>[[${d.negado('TABAQUISMO2')}]]</td>
+                    <td>[[${d.negado('TABAQUISMO_OBS2')}]]</td>
+                </tr>
+                <tr>
+                    <td>Alcoholismo</td>
+                    <td>[[${d.negado('ALCOHOLISMO2')}]]</td>
+                    <td>[[${d.negado('ALCOHOLISMO_OBS2')}]]</td>
+                </tr>
+                <tr>
+                    <td>Drogas</td>
+                    <td>[[${d.negado('DROGAS2')}]]</td>
+                    <td>[[${d.negado('DROGAS_OBS2')}]]</td>
+                </tr>
+                <tr>
+                    <td>Alteración de Carga</td>
+                    <td>[[${d.negado('ALT_CARGA')}]]</td>
+                    <td>[[${d.negado('ALT_CARGA_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Perforaciones</td>
+                    <td>[[${d.negado('PERFORACIONES')}]]</td>
+                    <td>[[${d.negado('PERFORACIONES_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Tatuajes</td>
+                    <td>[[${d.negado('TATUAJES')}]]</td>
+                    <td>[[${d.negado('TATUAJES_OBS')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Endocrinología</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>Diabetes</td>
+                    <td>[[${d.negado('DIABETES')}]]</td>
+                    <td>[[${d.negado('DIABETES_OBS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Hipertiroidismo</td>
+                    <td>[[${d.negado('HIPERTIROIDISMO2')}]]</td>
+                    <td>[[${d.negado('HIPERTIROIDISMO_OBS2')}]]</td>
+                </tr>
+                <tr>
+                    <td>Hipotiroidismo</td>
+                    <td>[[${d.negado('HIPOTIROIDISMO2')}]]</td>
+                    <td>[[${d.negado('HIPOTIROIDISMO_OBS2')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-12">
+            <hr>
+        </div>
+
+        <div class="col-12">
+            <h6>Padecimiento Actual</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>[[${d.v('OBSERVACIONES')}]]</td>
+                </tr>
+            </table>
+
+            <h6>Interrogatorio por Aparatos y Sistemas</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>[[${d.v('OBSERVACIONES2')}]]</td>
+                </tr>
+            </table>
+	</div>
+<div class="page"></div>
+
+        <div class="col-12" style="">
+            <div class="row">
+                <div class="navbar-brand col-3 " href="#">
+                    <center><img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" width="100%" class="mt-2"></center>
+                </div>
+
+                <div class="col-9">
+                    <table class="table table-bordered table-sm border-top border-dark">
+                        <thead>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="2">
+                                    <center>EXAMEN MEDICO LABORAL</center>
+                                </td>
+                            </tr>
+                            <tr class="">
+                                <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                                <td>Revisión: 03</td>
+
+
+                            </tr>
+                            <td>Clave de control: FT-SO-04</td>
+                            <td>Reemplaza a: 02</td>
+                            <tr>
+
+                            </tr>
+                            <tr class="">
+
+                                <td>Motivo del cambio: Actualización por vigencia.</td>
+                                <td>Hoja 3 de 5</td>
+
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+
+
+
+            </div>
+        </div>
+        <div class="col-12">
+
+            <h6>Exploración Física</h6>
+        </div>
+        <div class="col-6">
+
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Medición</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Peso</td>
+                    <td>[[${d.v('PESO')}]] Kg</td>
+                </tr>
+                <tr>
+                    <td>Talla</td>
+                    <td>[[${d.v('TALLA')}]] m</td>
+                </tr>
+                <tr>
+                    <td>IMC (Índice de Masa Corporal)</td>
+                    <td>[[${d.v('IMC')}]]</td>
+                </tr>
+                <tr>
+                    <td>Frecuencia Cardíaca (FC)</td>
+                    <td>[[${d.v('FC')}]] x minuto</td>
+                </tr>
+                <tr>
+                    <td>Frecuencia Respiratoria (FR)</td>
+                    <td>[[${d.v('FR')}]] x minuto</td>
+                </tr>
+                <tr>
+                    <td>Tensión Arterial (TA)</td>
+                    <td>[[${d.v('TA')}]] mmHg</td>
+                </tr>
+                <tr>
+                    <td>Temperatura</td>
+                    <td>[[${d.v('TEMP')}]]°C</td>
+                </tr>
+                <tr>
+                    <td>STPO2</td>
+                    <td>[[${d.v('STPO2')}]]%</td>
+                </tr>
+                <tr>
+                    <td>Constitución</td>
+                    <td>[[${d.v('ECTOMORFICO')}]]</td>
+                </tr>
+                <tr>
+                    <td>Satisfacción</td>
+                    <td>[[${d.v('SATISFACCION')}]]</td>
+                </tr>
+                <tr>
+                    <td>Compromiso con el Trabajo</td>
+                    <td>[[${d.v('COMP_TRABAJO')}]]</td>
+                </tr>
+                <tr>
+                    <td>Compromiso con la Organización</td>
+                    <td>[[${d.v('COMP_ORGANIZACION')}]]</td>
+                </tr>
+                <tr>
+                    <td>Tiempo</td>
+                    <td>[[${d.v('TIEMPO')}]]</td>
+                </tr>
+                <tr>
+                    <td>Espacio Personal</td>
+                    <td>[[${d.v('ESPACIO')}]]</td>
+                </tr>
+                <tr>
+                    <td>Persona</td>
+                    <td>[[${d.v('PERSONA')}]]</td>
+                </tr>
+                <tr>
+                    <td>Estado emocional</td>
+                    <td>[[${d.v('SERENIDAD')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Aspecto</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Fascies</td>
+                    <td>[[${d.v('HIPOCRITA')}]]</td>
+                </tr>
+                <tr>
+                    <td>Marcha</td>
+                    <td>[[${d.v('PARKINSON2')}]]</td>
+                </tr>
+                <tr>
+                    <td>Voz clara y fuerte</td>
+                    <td>[[${d.v('VOZCLARAYFUERTE')}]]</td>
+                </tr>
+                <tr>
+                    <td>Lenguaje</td>
+                    <td>[[${d.v('LENGUAJE')}]]</td>
+                </tr>
+                <tr>
+                    <td>Conversación Fluida</td>
+                    <td>[[${d.v('CONVER_FLUIDA')}]]</td>
+                </tr>
+                <tr>
+                    <td>Coherencia Palabras</td>
+                    <td>[[${d.v('COHERENCIA_PALABLAS')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <hr>
+        <div class="col-12">
+            <h6>Cráneo</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Ítem</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Ojos</td>
+                    <td>[[${d.v('OJOS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Pupilas</td>
+                    <td>[[${d.v('PUPILAS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Conjuntivas</td>
+                    <td>[[${d.v('CONJUNTIVAS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Reflejos</td>
+                    <td>[[${d.v('REFLEJOS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Fondo de Ojo</td>
+                    <td>[[${d.v('FONDO_OJO')}]]</td>
+                </tr>
+            </table>
+
+            <h6>Agudeza Visual</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Ítem</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>OD (Ojo Derecho)</td>
+                    <td>[[${d.v('OD')}]]</td>
+                </tr>
+                <tr>
+                    <td>Lente (Ojo Derecho)</td>
+                    <td>[[${d.v('LENTEOJODERECHOEXP')}]]</td>
+                </tr>
+                <tr>
+                    <td>OIZ (Ojo Izquierdo)</td>
+                    <td>[[${d.v('OIZ')}]]</td>
+                </tr>
+                <tr>
+                    <td>Lente (Ojo Izquierdo)</td>
+                    <td>[[${d.v('LENTEOJOIZQUIERDOEXP')}]]</td>
+                </tr>
+                <tr>
+                    <td>ROMBERG</td>
+                    <td>[[${d.v('ROMBERGEXFIS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Colores</td>
+                    <td>[[${d.v('COLORES')}]]</td>
+                </tr>
+                <tr>
+                    <td>Visión cercana con lentes</td>
+                    <td>[[${d.v('ODEXFISINPCERC')}]]</td>
+                </tr>
+                <tr>
+                    <td>Visión cercana sin lentes</td>
+                    <td>[[${d.v('ODEXFISINPCERCIZQ')}]]</td>
+                </tr>
+	    </table> 
+<div class="page"></div>
+            <div class="col-12" style="">
+                <div class="row">
+                    <div class="navbar-brand col-3 " href="#">
+                        <center><img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" width="100%" class="mt-2"></center>
+                    </div>
+
+                    <div class="col-9">
+                        <table class="table table-bordered table-sm border-top border-dark">
+                            <thead>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="2">
+                                        <center>EXAMEN MEDICO LABORAL</center>
+                                    </td>
+                                </tr>
+                                <tr class="">
+                                    <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                                    <td>Revisión: 03</td>
+
+
+                                </tr>
+                                <td>Clave de control: FT-SO-04</td>
+                                <td>Reemplaza a: 02</td>
+                                <tr>
+
+                                </tr>
+                                <tr class="">
+
+                                    <td>Motivo del cambio: Actualización por vigencia.</td>
+                                    <td>Hoja 4 de 5</td>
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+
+
+
+                </div>
+            </div>
+            <h6>Nariz</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Ítem</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Cavidad Nasal</td>
+                    <td>[[${d.v('CAVIDAD_NASAL')}]]</td>
+                </tr>
+                <tr>
+                    <td>Mucosa</td>
+                    <td>[[${d.v('MUCOSA')}]]</td>
+                </tr>
+                <tr>
+                    <td>Tabique Nasal</td>
+                    <td>[[${d.v('TABIQUE_NASAL')}]]</td>
+                </tr>
+                <tr>
+                    <td>Olfato</td>
+                    <td>[[${d.v('OLFATO')}]]</td>
+                </tr>
+            </table>
+
+            <h6>Columna Vertebral</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Ítem</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Cervical</td>
+                    <td>[[${d.v('CERVICAL')}]]</td>
+                </tr>
+                <tr>
+                    <td>Dorsal</td>
+                    <td>[[${d.v('DORSAL')}]]</td>
+                </tr>
+                <tr>
+                    <td>Lumbar</td>
+                    <td>[[${d.v('LUMBAR')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-12">
+            <!-- Lesiones en la Boca -->
+            <h6>Lesiones en la Boca</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Lesiones</th>
+                    <th class="table-primary">Encías</th>
+                    <th class="table-primary">Orofaringe</th>
+                </tr>
+                <tr>
+                    <td>[[${d.v('LESIONES')}]]</td>
+                    <td>[[${d.v('ENCIAS')}]]</td>
+                    <td>[[${d.v('OROIFARINGE')}]]</td>
+                </tr>
+            </table>
+
+            <!-- Oídos -->
+            <h6>Oídos</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">CAE</th>
+                    <th class="table-primary">Membrana Timpanica</th>
+                    <th class="table-primary">Agudeza Auditiva</th>
+                    <th class="table-primary">Oído Derecho (OD)</th>
+                    <th class="table-primary">Oído Izquierdo (OI)</th>
+                </tr>
+                <tr>
+                    <td>[[${d.v('ODCAEINPEXP')}]]</td>
+                    <td>[[${d.v('ODMEMTIMINPEXP')}]]</td>
+                    <td>[[${d.v('ODAGAUDIINPEXP')}]]</td>
+                    <td>[[${d.v('OIMEMTIMINPEXP')}]]</td>
+                    <td>[[${d.v('OIAGAUDIINPEXP')}]]</td>
+                </tr>
+            </table>
+
+            <!-- Tórax -->
+            <h6>Tórax</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Ruidos Cardiacos</th>
+                    <th class="table-primary">Región Precordial</th>
+                    <th class="table-primary">Campos Pulmonares</th>
+                </tr>
+                <tr>
+                    <td>[[${d.v('RUIDOS_CARDIACOS')}]]</td>
+                    <td>[[${d.v('REG_PRECORDIAL')}]]</td>
+                    <td>[[${d.v('CAMPOS_PULM')}]]</td>
+                </tr>
+            </table>
+
+            <!-- Columna Vertebral -->
+            <h6>Columna Vertebral</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Deformaciones</th>
+                    <th class="table-primary">Dolor</th>
+                    <th class="table-primary">Movimientos</th>
+                    <th class="table-primary">Marcha</th>
+                    <th class="table-primary">Lasègue</th>
+                    <th class="table-primary">Punta del Talón</th>
+                </tr>
+                <tr>
+                    <td>[[${d.v('DEFORMACIONES')}]]</td>
+                    <td>[[${d.v('DOLOR')}]]</td>
+                    <td>[[${d.v('MOVIMIENTOS')}]]</td>
+                    <td>[[${d.v('MARCHA')}]]</td>
+                    <td>[[${d.v('LASSEGUE')}]]</td>
+                    <td>[[${d.v('PUNTA_TALON')}]]</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="col-12">
+            <h6>Abdomen</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Forma</td>
+                    <td>[[${d.v('FORMA')}]]</td>
+                </tr>
+                <tr>
+                    <td>Visceromegalias</td>
+                    <td>[[${d.v('VISCEROMEGALIAS')}]]</td>
+                </tr>
+                <tr>
+                    <td>Hernias</td>
+                    <td>[[${d.v('HERNIAS2')}]]</td>
+                </tr>
+                <tr>
+                    <td>Dolor</td>
+                    <td>[[${d.v('DOLOR')}]]</td>
+                </tr>
+                <tr>
+                    <td>Peristalsis</td>
+                    <td>[[${d.v('PERISTALSIS')}]]</td>
+                </tr>
+	    </table>
+<div class="page"></div>
+            <div class="col-12" style="">
+                <div class="row">
+                    <div class="navbar-brand col-3 " href="#">
+                        <center><img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" width="100%" class="mt-2"></center>
+                    </div>
+
+                    <div class="col-9">
+                        <table class="table table-bordered table-sm border-top border-dark">
+                            <thead>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="2">
+                                        <center>EXAMEN MEDICO LABORAL</center>
+                                    </td>
+                                </tr>
+                                <tr class="">
+                                    <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                                    <td>Revisión: 03</td>
+
+
+                                </tr>
+                                <td>Clave de control: FT-SO-04</td>
+                                <td>Reemplaza a: 02</td>
+                                <tr>
+
+                                </tr>
+                                <tr class="">
+
+                                    <td>Motivo del cambio: Actualización por vigencia.</td>
+                                    <td>Hoja 4 de 5</td>
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+
+
+
+                </div>
+            </div>
+            <h6>Genitales</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Género</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Masculino</td>
+                    <td>[[${d.noValorado('MASCULINO')}]]</td>
+                </tr>
+                <tr>
+                    <td>Femenino</td>
+                    <td>[[${d.noValorado('FEMENINO')}]]</td>
+                </tr>
+            </table>
+
+            <h6>Urinario</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Puntos Ureterales</td>
+                    <td>[[${d.v('PUNTOS_URETRALES')}]]</td>
+                </tr>
+                <tr>
+                    <td>Fosas Renales</td>
+                    <td>[[${d.v('FOSAS_RENALES')}]]</td>
+                </tr>
+            </table>
+
+            <h6>Extremidades</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Extremidad</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Superior</td>
+                    <td>[[${d.v('SUPERIOR')}]]</td>
+                </tr>
+                <tr>
+                    <td>Inferior</td>
+                    <td>[[${d.v('INFERIOR')}]]</td>
+                </tr>
+                <tr>
+                    <td>IVP</td>
+                    <td>[[${d.v('IVP')}]]</td>
+                </tr>
+                <tr>
+                    <td>Edema</td>
+                    <td>[[${d.v('EDEMA')}]]</td>
+                </tr>
+            </table>
+
+            <h6>Piel</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Condición</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Lunares</td>
+                    <td>[[${d.v('LUNARES')}]]</td>
+                </tr>
+                <tr>
+                    <td>Pigmentación</td>
+                    <td>[[${d.v('PIGMENTACION')}]]</td>
+                </tr>
+                <tr>
+                    <td>Cicatrices Quirúrgicas</td>
+                    <td>[[${d.v('CICATRICES_QUIRUR')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-12">
+            <h6>Cuello</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Deformaciones</th>
+                    <th class="table-primary">Observaciones Tiroides</th>
+                    <th class="table-primary">Observaciones Tráquea</th>
+                </tr>
+                <tr>
+                    <td>[[${d.v('DEFORMACIONES_OBS')}]]</td>
+                    <td>[[${d.v('TIROIDES_OBS')}]]</td>
+                    <td>[[${d.v('TRAQUEA_OBS')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-12">
+            <h6>Observaciones generales</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>[[${d.v('OBSGENERALINPEX')}]]</td>
+                </tr>
+            </table>
+        </div>
+<div class="page"></div>
+        <div class="col-12" style="">
+            <div class="row">
+                <div class="navbar-brand col-3 " href="#">
+                    <center><img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" width="100%" class="mt-2"></center>
+                </div>
+
+                <div class="col-9">
+                    <table class="table table-bordered table-sm border-top border-dark">
+                        <thead>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="2">
+                                    <center>EXAMEN MEDICO LABORAL</center>
+                                </td>
+                            </tr>
+                            <tr class="">
+                                <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                                <td>Revisión: 03</td>
+
+
+                            </tr>
+                            <td>Clave de control: FT-SO-04</td>
+                            <td>Reemplaza a: 02</td>
+                            <tr>
+
+                            </tr>
+                            <tr class="">
+
+                                <td>Motivo del cambio: Actualización por vigencia.</td>
+                                <td>Hoja 5 de 5</td>
+
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+
+
+
+            </div>
+        </div>
+        <div class="col-6">
+            <h6>Dientes</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Diente</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Diente 11</td>
+                    <td>[[${d.diente('DIENTE_11')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 12</td>
+                    <td>[[${d.diente('DIENTE_12')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 13</td>
+                    <td>[[${d.diente('DIENTE_13')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 14</td>
+                    <td>[[${d.diente('DIENTE_14')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 15</td>
+                    <td>[[${d.diente('DIENTE_15')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 16</td>
+                    <td>[[${d.diente('DIENTE_16')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 17</td>
+                    <td>[[${d.diente('DIENTE_17')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 18</td>
+                    <td>[[${d.diente('DIENTE_18')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 41</td>
+                    <td>[[${d.diente('DIENTE_41')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 42</td>
+                    <td>[[${d.diente('DIENTE_42')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 43</td>
+                    <td>[[${d.diente('DIENTE_43')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 44</td>
+                    <td>[[${d.diente('DIENTE_44')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 45</td>
+                    <td>[[${d.diente('DIENTE_45')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 46</td>
+                    <td>[[${d.diente('DIENTE_46')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 47</td>
+                    <td>[[${d.diente('DIENTE_47')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 48</td>
+                    <td>[[${d.diente('DIENTE_48')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <h6>Dientes</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Diente</th>
+                    <th class="table-primary">Valor</th>
+                </tr>
+                <tr>
+                    <td>Diente 21</td>
+                    <td>[[${d.diente('DIENTE_2')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 22</td>
+                    <td>[[${d.diente('DIENTE_22')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 23</td>
+                    <td>[[${d.diente('DIENTE_23')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 24</td>
+                    <td>[[${d.diente('DIENTE_24')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 25</td>
+                    <td>[[${d.diente('DIENTE_25')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 26</td>
+                    <td>[[${d.diente('DIENTE_26')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 27</td>
+                    <td>[[${d.diente('DIENTE_27')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 28</td>
+                    <td>[[${d.diente('DIENTE_28')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 31</td>
+                    <td>[[${d.diente('DIENTE_31')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 32</td>
+                    <td>[[${d.diente('DIENTE_32')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 33</td>
+                    <td>[[${d.diente('DIENTE_33')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 34</td>
+                    <td>[[${d.diente('DIENTE_34')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 35</td>
+                    <td>[[${d.diente('DIENTE_35')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 36</td>
+                    <td>[[${d.diente('DIENTE_36')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 37</td>
+                    <td>[[${d.diente('DIENTE_37')}]]</td>
+                </tr>
+                <tr>
+                    <td>Diente 38</td>
+                    <td>[[${d.diente('DIENTE_38')}]]</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-12">
+            <hr>
+        </div>
+        <div class="col-6">
+            <h6>Resultados de Estudios Realizados</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Resultados</th>
+                </tr>
+                <tr>
+                    <td>[[${d.v('RESULTADOS3')}]]</td>
+                </tr>
+            </table>
+
+            <h6>Diagnóstico</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>[[${d.v('OBSERVACIONES3')}]]</td>
+                </tr>
+            </table>
+
+
+        </div>
+        <div class="col-6">
+            <h6>Plan de Terapia</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>[[${d.v('OBSERVACIONES32')}]]</td>
+                </tr>
+            </table>
+            <h6>Resultado de Examen</h6>
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Observaciones</th>
+                </tr>
+                <tr>
+                    <td>[[${d.v('OBSERVACIONESRESEXAM1')}]]</td>
+                </tr>
+            </table>
+        </div>
+
+
+        <div class="col-6">
+            <hr>
+            <center>
+                <p>Dr. Mauricio Cerón Solana CP 5154089 / 7237048
+                <p>
+                    <hr>
+                    <img th:src="@{/img/examen/firmaDoc.png}" src="/img/examen/firmaDoc.png" class="img-fluid" width="70px" alt="">
+                    <br>
+                    <hr>
+                <p class="footerTxt">Realizó</p>
+            </center>
+        </div>
+        <div class="col-6">
+            <hr>
+            <center>
+                <p>Firma del Trabajador
+                <p>
+                    <hr>
+                    <img th:if="${d.firmaTrabajador != null}" th:src="${d.firmaTrabajador}" class="img-fluid" width="50px" alt="">
+                    <br>
+                    <hr>
+                <p class="footerTxt">
+                    Bajo protesta de decir verdad, certifico que los datos anteriormente proporcionados son verdaderos y estoy consciente que cualquier omisión o falsificación pueden ser motivo de despido, y autorizo al servicio médico de la compañía para que realice exámenes necesarios con motivo de mi trabajo para protección para detección oportuna y estudio de enfermedades o accidentes.
+                </p>
+            </center>
+        </div>
+    </div>
+
+
+<script th:if="${auto}">window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 400); });</script>
+</body>
+
+
+</html>

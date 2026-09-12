@@ -400,6 +400,7 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
+                auditarExportacion('Causas', a.download);
             }
 
             inicializar();

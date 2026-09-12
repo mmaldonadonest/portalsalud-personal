@@ -1,5 +1,6 @@
 package com.onest.app.catalog.maternidad.web;
 
+import com.onest.app.audit.web.Auditado;
 import com.onest.app.catalog.maternidad.service.MaternidadService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -60,6 +61,7 @@ public class MaternidadController {
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = "text/plain;charset=UTF-8")
     @ResponseBody
+    @Auditado(modulo = "Maternidad", accion = "create", entidad = "Seguimiento de maternidad", registro = "nss", detalle = {"estatus"})
     public String save(@ModelAttribute MaternidadAltaForm form) {
         try {
             String proceso = maternidadService.crearSeguimiento(form);

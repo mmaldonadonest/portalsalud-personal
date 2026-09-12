@@ -1,5 +1,6 @@
 package com.onest.app.admin.rolemenu.web;
 
+import com.onest.app.audit.web.Auditado;
 import com.onest.app.admin.rolemenu.dto.RoleMenusResponse;
 import com.onest.app.admin.rolemenu.service.RoleMenuAdminService;
 import org.springframework.http.HttpStatus;
@@ -35,6 +36,7 @@ public class RoleMenuAdminController {
     }
 
     @PostMapping("/{menuId}")
+    @Auditado(modulo = "Administracion", accion = "create", entidad = "Menu de rol", registro = "roleId", detalle = {"menuId"})
     public void asignar(@PathVariable Long roleId, @PathVariable Long menuId) {
         try {
             roleMenuAdminService.asignar(roleId, menuId);
@@ -44,6 +46,7 @@ public class RoleMenuAdminController {
     }
 
     @DeleteMapping("/{menuId}")
+    @Auditado(modulo = "Administracion", accion = "delete", entidad = "Menu de rol", registro = "roleId", detalle = {"menuId"})
     public void quitar(@PathVariable Long roleId, @PathVariable Long menuId) {
         roleMenuAdminService.quitar(roleId, menuId);
     }

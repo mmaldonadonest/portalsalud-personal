@@ -370,7 +370,68 @@ public class ExamenService {
         if (sec == null) {
             throw new IllegalArgumentException("Seccion desconocida: " + seccion);
         }
+        return itemsDesde(sec, client.getExamenData(normalizeNss(nss)));
+    }
+
+    /** Una seccion ya resuelta, para la vista de impresion. */
+    public record SeccionImpresa(String nombre, List<ExamItem> items) {
+    }
+
+    public record GrupoImpreso(String nombre, List<SeccionImpresa> secciones) {
+    }
+
+    /** {@code fecha}: FECHA del examen tal como la devuelve el WS (puede venir vacia). */
+    public record ExpedienteImpreso(String fecha, List<GrupoImpreso> grupos) {
+    }
+
+    /**
+     * Examen completo (todos los grupos y secciones) con UNA sola llamada al WS - lo que el
+     * PHP hacia en pdf/pdfGenerator.php ("Imprimir expediente"). itemsDeSeccion() llama al WS
+     * por seccion porque el acordeon carga una a la vez; aqui serian 22 llamadas por nada.
+     */
+    public ExpedienteImpreso expedienteCompleto(String nss) {
         Map<String, String> data = client.getExamenData(normalizeNss(nss));
+        List<GrupoImpreso> grupos = new ArrayList<>();
+        for (Grupo g : grupos()) {
+            List<SeccionImpresa> secciones = new ArrayList<>();
+            for (String nombre : g.secciones()) {
+                List<ExamItem> items = new ArrayList<>();
+                for (ExamItem it : itemsDesde(CATALOGO.get(nombre), data)) {
+                    items.add(new ExamItem(it.type(), it.label(), it.fieldName(), legible(it.value()),
+                            it.obsName(), legible(it.obsValue())));
+                }
+                secciones.add(new SeccionImpresa(nombre, items));
+            }
+            grupos.add(new GrupoImpreso(g.nombre(), secciones));
+        }
+        String fecha = data.getOrDefault("FECHA", "");
+        return new ExpedienteImpreso("0".equals(fecha) ? "" : fecha, grupos);
+    }
+
+    /**
+     * Para impresion: el proc del WS usa COALESCE con textos de relleno ("sin observación",
+     * "sin datos", "0") y booleanos como "true"/"false"; en papel eso se lee como dato.
+     */
+    private static String legible(String v) {
+        if (v == null) {
+            return null;
+        }
+        String t = v.trim();
+        String u = t.toLowerCase();
+        if (u.isEmpty() || u.startsWith("sin obs") || u.equals("sin datos") || u.equals("null")
+                || u.contains("no existe en base de datos")) {
+            return "";
+        }
+        if (u.equals("true")) {
+            return "Sí";
+        }
+        if (u.equals("false")) {
+            return "No";
+        }
+        return t;
+    }
+
+    private static List<ExamItem> itemsDesde(Seccion sec, Map<String, String> data) {
         List<ExamItem> items = new ArrayList<>();
         for (Campo campo : sec.campos()) {
             String base = sec.dataKey() + "." + campo.field();

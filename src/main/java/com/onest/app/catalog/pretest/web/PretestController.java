@@ -1,5 +1,6 @@
 package com.onest.app.catalog.pretest.web;
 
+import com.onest.app.audit.web.Auditado;
 import com.onest.app.catalog.pretest.service.PretestService;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,6 +47,7 @@ public class PretestController {
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = "text/plain;charset=UTF-8")
     @ResponseBody
+    @Auditado(modulo = "Pretest", accion = "create", entidad = "Pretest", registro = "nss")
     public String save(@RequestParam MultiValueMap<String, String> params) {
         try {
             String nss = params.getFirst("nss");

@@ -89,7 +89,11 @@ public class DashboardIncapacidadesService {
                 nssPorRubro.computeIfAbsent(rubro, k -> new HashSet<>()).add(nss);
             }
 
-            Optional<YearMonth> mes = mesDe(fila.fechaInicio());
+            // Criterio de negocio (11-sep-2026): manda la FECHA DE INICIO del certificado; si
+            // no hay, la de registro. Es exactamente el coalesce que aplica el WS _cta al
+            // filtrar el periodo (docs/ords-incapacidades-criterio-fecha-inicio.sql), asi las
+            // tarjetas y la tendencia mensual cuentan las mismas filas en los mismos meses.
+            Optional<YearMonth> mes = mesDe(fila.fechaInicio()).or(() -> mesDe(fila.fechaConsulta()));
             if (mes.isPresent()) {
                 String clave = mes.get().toString();
                 porMes.merge(clave, 1L, Long::sum);
@@ -218,11 +222,11 @@ public class DashboardIncapacidadesService {
     private static final int ANIO_MAXIMO = LocalDate.now().getYear() + 1;
 
     /**
-     * Formato real de fecha_inicio en la respuesta del WS NO confirmado (distinto del formato
-     * dd/MM/yy que se manda en el REQUEST, ver BiowsIncapacidadReporteRequest) - se probaron
-     * formatos ISO (con o sin hora) y dd/MM/yyyy o dd/MM/yy por si acaso. Cualquier formato no
-     * reconocido, o con un anio fuera de rango plausible, cae en el bucket "Sin fecha" en vez
-     * de tronar o ensuciar la tendencia.
+     * Formatos reales de fecha_inicio en el WS (verificado 11-sep-2026 sobre las 291 filas del
+     * historico): 'yyyy-MM-dd' (263), 'dd/MM/yyyy HH:mm:ss' (11, carga vieja) y '0' por null (17).
+     * fecha_consulta (= fecha_registro) viene ISO con hora. Cualquier formato no reconocido, o
+     * con un anio fuera de rango plausible, cae en el bucket "Sin fecha" en vez de tronar o
+     * ensuciar la tendencia.
      */
     private static Optional<YearMonth> mesDe(String fecha) {
         if (fecha == null || fecha.isBlank()) {
@@ -233,8 +237,10 @@ public class DashboardIncapacidadesService {
             YearMonth mes = null;
             if (valor.matches("^\\d{4}-\\d{2}-\\d{2}.*")) {
                 mes = YearMonth.parse(valor.substring(0, 7));
-            } else if (valor.matches("^\\d{1,2}/\\d{1,2}/\\d{4}$")) {
-                mes = YearMonth.from(LocalDate.parse(valor, DateTimeFormatter.ofPattern("d/M/yyyy")));
+            } else if (valor.matches("^\\d{1,2}/\\d{1,2}/\\d{4}( .*)?$")) {
+                // con o sin hora ("20/06/2023 10:23:32"): solo importa el dia
+                String dia = valor.contains(" ") ? valor.substring(0, valor.indexOf(' ')) : valor;
+                mes = YearMonth.from(LocalDate.parse(dia, DateTimeFormatter.ofPattern("d/M/yyyy")));
             } else if (valor.matches("^\\d{1,2}/\\d{1,2}/\\d{2}$")) {
                 mes = YearMonth.from(LocalDate.parse(valor, DateTimeFormatter.ofPattern("d/M/yy")));
             }

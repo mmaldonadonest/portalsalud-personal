@@ -1,5 +1,6 @@
 package com.onest.app.catalog.antidoping.web;
 
+import com.onest.app.audit.web.Auditado;
 import com.onest.app.catalog.antidoping.service.AntidopingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -56,6 +57,7 @@ public class AntidopingController {
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = "text/plain;charset=UTF-8")
     @ResponseBody
+    @Auditado(modulo = "Antidoping", accion = "create", entidad = "Prueba antidoping", registro = "nss", detalle = {"tipoPrueba"})
     public String save(@ModelAttribute AntidopingAltaForm form) {
         try {
             String proceso = antidopingService.crearAntidoping(form);

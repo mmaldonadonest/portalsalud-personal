@@ -1,5 +1,6 @@
 package com.onest.app.catalog.accidente.web;
 
+import com.onest.app.audit.web.Auditado;
 import com.onest.app.catalog.accidente.dto.AccidenteDto;
 import com.onest.app.catalog.accidente.dto.AccidenteSeguimientoDto;
 import com.onest.app.catalog.accidente.service.AccidenteService;
@@ -87,6 +88,7 @@ public class AccidenteController {
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = "text/plain;charset=UTF-8")
     @ResponseBody
+    @Auditado(modulo = "Accidentes", accion = "update", entidad = "Seguimiento de accidente", registro = "accidenteRegId", detalle = {"tipo"})
     public String guardarSeguimiento(
             @RequestParam("accidenteRegId") String accidenteRegId,
             @RequestParam("tipo") String tipo,
@@ -115,6 +117,7 @@ public class AccidenteController {
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = "text/plain;charset=UTF-8")
     @ResponseBody
+    @Auditado(modulo = "Accidentes", accion = "create", entidad = "Accidente", registro = "nss", detalle = {"tipoRiesgo"})
     public String save(@ModelAttribute AccidenteAltaForm form) {
         try {
             String proceso = accidenteService.crearAccidente(form);

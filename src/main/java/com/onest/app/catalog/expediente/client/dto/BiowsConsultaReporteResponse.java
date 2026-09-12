@@ -29,7 +29,9 @@ public record BiowsConsultaReporteResponse(
             @JsonProperty("tipo_consulta") String tipoConsulta,
             @JsonProperty("area_accidente") String areaAccidente,
             @JsonProperty("area_involucrada") String areaInvolucrada,
-            @JsonProperty("causa") String causa
+            @JsonProperty("causa") String causa,
+            /** Texto tal cual se captura: "M54.5 - Lumbago" (clave CIE-10 al inicio). Ver docs/ords-diagnostico-en-consultas.sql. */
+            @JsonProperty("diagnostico") String diagnostico
     ) {
     }
 }

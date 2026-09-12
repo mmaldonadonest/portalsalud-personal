@@ -1,0 +1,161 @@
+-- =============================================================================
+-- Incapacidades: el periodo se filtra por FECHA DE INICIO (la del certificado),
+-- no por fecha de registro. Decision de negocio del 11-sep-2026.
+-- Cierra docs/consulta-criterio-fecha-incapacidades.md (Opcion A).
+-- =============================================================================
+--
+-- DONDE: SQL Developer > conexion ORDS > RESTful Services > modulo "Servcio"
+--        > template consulta_incapacidades_fecha_cta > handler POST > Source.
+--        (Es NUESTRO clon. El productivo consulta_incapacidades_fecha NO se toca.)
+--
+-- QUE: dentro del Source hay DOS consultas sobre TBL_SERV_INCAPACIDAD_MEDICA y
+--      las dos filtran por fecha_registro. Hay que cambiar el WHERE de las dos.
+--      Todo lo demas del handler queda igual.
+--
+-- El contrato del WS NO cambia: mismo body {"fecha_inicial":"dd/mm/yy",
+-- "fecha_final":"dd/mm/yy"}, misma respuesta. Java no necesita otro cliente.
+-- =============================================================================
+
+
+-- =============================================================================
+-- CAMBIO 1 de 2: el conteo "kexiste" (esta cerca del inicio del Source)
+-- =============================================================================
+
+-- ---- ANTES (asi esta hoy) ---------------------------------------------------
+--
+-- select
+-- count(*) into kexiste
+-- from TBL_SERV_INCAPACIDAD_MEDICA a left join bio_empleado b
+-- on a.nss=b.emp_nss
+-- where trunc(a.fecha_registro)>=to_date(kfechaini,'dd/mm/yy')
+-- and trunc(a.fecha_registro)<=to_date(kfechafin,'dd/mm/yy');
+
+-- ---- DESPUES (dejarlo asi) --------------------------------------------------
+--
+-- select
+-- count(*) into kexiste
+-- from TBL_SERV_INCAPACIDAD_MEDICA a left join bio_empleado b
+-- on a.nss=b.emp_nss
+-- where coalesce(
+--         case
+--           when regexp_like(a.fecha_inicio, '^[0-9]{4}-[0-9]{2}-[0-9]{2}')
+--             then to_date(substr(a.fecha_inicio, 1, 10), 'yyyy-mm-dd')
+--           when regexp_like(a.fecha_inicio, '^[0-9]{2}/[0-9]{2}/[0-9]{4}')
+--             then to_date(substr(a.fecha_inicio, 1, 10), 'dd/mm/yyyy')
+--         end,
+--         trunc(a.fecha_registro)
+--       ) between to_date(kfechaini,'dd/mm/yy') and to_date(kfechafin,'dd/mm/yy');
+
+
+-- =============================================================================
+-- CAMBIO 2 de 2: el cursor del LOOP "for i in ( select ... )"
+-- =============================================================================
+-- Es el select largo (a.REG_ID, a.FECHA_REGISTRO, a.NSS, ... , la subconsulta
+-- de cuenta que agregamos, ... a.ALTA). Solo se toca su WHERE, al final.
+
+-- ---- ANTES (asi esta hoy) ---------------------------------------------------
+--
+-- for i in (select
+-- a.REG_ID,
+-- a.FECHA_REGISTRO,
+-- ...                                   <- todas las columnas, no se tocan
+-- a.ALTA
+-- from TBL_SERV_INCAPACIDAD_MEDICA a left join bio_empleado b
+-- on a.nss=b.emp_nss
+-- where  trunc(a.fecha_registro)>=to_date(kfechaini,'dd/mm/yy')
+-- and trunc(a.fecha_registro)<=to_date(kfechafin,'dd/mm/yy')
+-- )
+-- loop
+
+-- ---- DESPUES (dejarlo asi) --------------------------------------------------
+--
+-- for i in (select
+-- a.REG_ID,
+-- a.FECHA_REGISTRO,
+-- ...                                   <- todas las columnas, igual que antes
+-- a.ALTA
+-- from TBL_SERV_INCAPACIDAD_MEDICA a left join bio_empleado b
+-- on a.nss=b.emp_nss
+-- where coalesce(
+--         case
+--           when regexp_like(a.fecha_inicio, '^[0-9]{4}-[0-9]{2}-[0-9]{2}')
+--             then to_date(substr(a.fecha_inicio, 1, 10), 'yyyy-mm-dd')
+--           when regexp_like(a.fecha_inicio, '^[0-9]{2}/[0-9]{2}/[0-9]{4}')
+--             then to_date(substr(a.fecha_inicio, 1, 10), 'dd/mm/yyyy')
+--         end,
+--         trunc(a.fecha_registro)
+--       ) between to_date(kfechaini,'dd/mm/yy') and to_date(kfechafin,'dd/mm/yy')
+-- )
+-- loop
+
+
+-- =============================================================================
+-- RESUMEN: es el MISMO texto en los dos lugares. Estas 2 lineas ...
+-- =============================================================================
+--
+--   where trunc(a.fecha_registro)>=to_date(kfechaini,'dd/mm/yy')
+--   and trunc(a.fecha_registro)<=to_date(kfechafin,'dd/mm/yy')
+--
+-- ... se sustituyen por estas 9 (copiar tal cual):
+--
+--   where coalesce(
+--           case
+--             when regexp_like(a.fecha_inicio, '^[0-9]{4}-[0-9]{2}-[0-9]{2}')
+--               then to_date(substr(a.fecha_inicio, 1, 10), 'yyyy-mm-dd')
+--             when regexp_like(a.fecha_inicio, '^[0-9]{2}/[0-9]{2}/[0-9]{4}')
+--               then to_date(substr(a.fecha_inicio, 1, 10), 'dd/mm/yyyy')
+--           end,
+--           trunc(a.fecha_registro)
+--         ) between to_date(kfechaini,'dd/mm/yy') and to_date(kfechafin,'dd/mm/yy')
+--
+-- En el cambio 1 termina con ";" (como hoy); en el cambio 2 NO lleva ";" porque
+-- sigue el ")" que cierra el "for i in (".
+
+
+-- =============================================================================
+-- POR QUE ES ASI Y NO SIMPLEMENTE "fecha_inicio" en lugar de "fecha_registro"
+-- =============================================================================
+-- FECHA_INICIO es VARCHAR2 y trae formatos mezclados (verificado con curl sobre
+-- el historico completo, 291 filas, 11-sep-2026):
+--     263  'yyyy-mm-dd'              (captura normal; el portal Java tambien manda asi)
+--      11  'dd/mm/yyyy hh24:mi:ss'   (carga vieja)
+--      17  null                      (el WS lo devuelve como '0')
+-- Un trunc()/to_date() directo sobre la columna truena con esas 28.
+-- El CASE convierte segun el formato; el COALESCE hace que una incapacidad SIN
+-- fecha de inicio se cuente por su fecha de registro en vez de desaparecer de
+-- todos los reportes para siempre.
+
+
+-- =============================================================================
+-- OPCIONAL, MISMO HANDLER: quitar la depuracion heredada del productivo
+-- =============================================================================
+-- Si el clon trae estas lineas, borrarlas (escriben en una tabla "bug" en CADA
+-- llamada de lectura, o sea en cada carga del dashboard):
+--
+--   insert into bug values (kfechafin);
+--   insert into bug values (kfechaini);
+--   commit;
+--
+--   insert into bug values ('entro');
+--   commit;
+--
+--   insert into bug values (i.reg_id);
+--   commit;
+--   commit;
+--
+--   insert into bug values ('salio del proceso');
+--   commit;
+
+
+-- =============================================================================
+-- VERIFICACION (yo la corro con curl cuando me digas que ya esta)
+-- =============================================================================
+-- POST http://10.249.249.3/biows/ords/security/Servcio/consulta_incapacidades_fecha_cta
+-- Body: {"fecha_inicial":"01/01/24","fecha_final":"31/12/24"}
+--
+-- Antes del cambio (filtro por registro): 2024 = 221 filas, 51 con inicio fuera
+-- de 2024. Despues (filtro por inicio): salen las ~42 con inicio en 2023, quedan
+-- las 9 sin fecha de inicio (caen a registro) y entran las registradas en 2025
+-- con inicio en 2024. El historico completo (01/01/00 a 31/12/27) debe seguir
+-- en 291 filas: el criterio mueve filas entre anos, no las quita.
+-- =============================================================================

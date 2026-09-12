@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: analisisAntidContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Antidoping | Análisis | Portal Salud Personal</title>
+</head>
+<body>
+
+<!--
+  Antidoping y Alcoholimetria (modulo Analisis, rol MEDICO_ANALISTA). Equivale a V.antid del
+  prototipo. Cruza dos fuentes ya existentes:
+  - /api/dashboard/antidoping  (pruebas; con CUENTA por registro desde el 11-sep-2026, WS _cta)
+  - /api/consumibles           (kits: entrega y consumo mensual por predio)
+
+  Verificado contra la captura del prototipo el 11-sep-2026. Misma estructura: 4 KPIs, pruebas
+  por predio, aplicados vs suministrados, alcoholimetria por predio.
+
+  Limite real, documentado en pantalla: el PREDIO del inventario de kits es texto libre
+  (SERV_MED_ANTIDOPING_INVENTARIO.PREDIO, hoy "PLANTA_NORTE_TEST", "Tultipark III") y NO coincide
+  con el catalogo de predios - es la deuda tecnica ya anotada en docs/ords-predio-empleado.sql.
+  Por eso los kits y la tasa de uso se calculan solo en el total corporativo; con un predio
+  seleccionado esas dos tarjetas se marcan como no disponibles en vez de cruzar nombres que no
+  casan.
+-->
+<th:block id="pageStyles">
+    <link rel="stylesheet" th:href="@{/theme/lib/apexcharts/apexcharts.css}" href="/theme/lib/apexcharts/apexcharts.css">
+    <style>
+        .chart-card .card-header { border-bottom: none; padding-bottom: 0; display: block; }
+        .chart-eyebrow {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        .chart-eyebrow::before {
+            content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+            box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+        }
+        .chart-eyebrow--predio { color: #0EA5E9; }
+        .chart-eyebrow--kits { color: #047857; }
+        .chart-eyebrow--alcohol { color: #0E7490; }
+
+        .kpi-card { border-top: 3px solid var(--kc, #94a3b8); transition: transform .15s, box-shadow .15s; }
+        .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15, 23, 42, .08); }
+        .kpi-ico {
+            width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
+            background: var(--kcbg, #f1f5f9); color: var(--kc, #64748b); margin-bottom: 9px; font-size: 16px;
+        }
+        .kpi-card--pruebas { --kc: #1D4ED8; --kcbg: #EFF6FF; }
+        .kpi-card--alcohol { --kc: #0E7490; --kcbg: #ECFEFF; }
+        .kpi-card--kits { --kc: #047857; --kcbg: #ECFDF5; }
+        .kpi-card--tasa { --kc: #B45309; --kcbg: #FFFBEB; }
+        .kpi-value { font-size: 1.6rem; font-weight: 700; letter-spacing: -.02em; color: #0f172a; line-height: 1.15; margin: 2px 0 6px; }
+        .kpi-sub { font-size: 11px; color: #64748b; margin-top: 5px; line-height: 1.4; display: block; }
+        .vacio { text-align: center; padding: 32px 16px; color: #94a3b8; font-size: 12.5px; }
+    </style>
+</th:block>
+
+<th:block th:fragment="analisisAntidContent">
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/analisis/ejecutivo}" href="/analisis/ejecutivo">Dashboard Ejecutivo</a></li>
+                <li class="breadcrumb-item"><span>Control</span></li>
+                <li class="breadcrumb-item active" aria-current="page">Antidoping</li>
+            </ol>
+            <h4 class="main-title mb-0">Antidoping y Alcoholimetría</h4>
+            <p class="fs-12 text-muted mb-0" id="subtitulo">Pruebas aplicadas y kits</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" id="btnExportar" class="btn btn-outline-secondary btn-sm">
+                <i class="ri-download-2-line me-1"></i>Exportar
+            </button>
+            <button type="button" id="btnSeleccion" class="btn btn-outline-primary btn-sm"
+                    th:attr="data-url=@{/antidoping-seleccion}" data-url="/antidoping-seleccion">
+                <i class="ri-shuffle-line me-1"></i>Selección aleatoria
+            </button>
+            <button type="button" id="btnNuevo" class="btn btn-primary btn-sm"
+                    th:attr="data-url=@{/nss}" data-url="/nss">
+                <i class="ri-add-line me-1"></i>Registrar prueba
+            </button>
+        </div>
+    </div>
+
+    <div class="card card-one mb-3">
+        <div class="card-body d-flex flex-wrap align-items-end gap-3">
+            <div>
+                <label class="form-label fs-12 mb-1">Año</label>
+                <select id="fAnio" class="form-select form-select-sm"></select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Periodo</label>
+                <select id="fPeriodo" class="form-select form-select-sm">
+                    <option value="0">Acumulado (todo el año)</option>
+                    <option value="1">Enero</option><option value="2">Febrero</option>
+                    <option value="3">Marzo</option><option value="4">Abril</option>
+                    <option value="5">Mayo</option><option value="6">Junio</option>
+                    <option value="7">Julio</option><option value="8">Agosto</option>
+                    <option value="9">Septiembre</option><option value="10">Octubre</option>
+                    <option value="11">Noviembre</option><option value="12">Diciembre</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Predio</label>
+                <select id="fPredio" class="form-select form-select-sm" style="min-width:200px">
+                    <option value="">Todos los predios</option>
+                </select>
+            </div>
+            <span id="estado" class="fs-12 text-muted ms-auto"></span>
+            <input type="hidden" id="fFechaInicial" value="">
+            <input type="hidden" id="fFechaFinal" value="">
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-xl-3">
+            <div class="card card-one kpi-card kpi-card--pruebas"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-flask-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Pruebas aplicadas</span>
+                <h3 class="kpi-value" id="kpiPruebas">—</h3>
+                <span class="kpi-sub" id="kpiPruebasSub"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card card-one kpi-card kpi-card--alcohol"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-test-tube-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Alcoholimetrías</span>
+                <h3 class="kpi-value" id="kpiAlcohol">—</h3>
+                <span class="kpi-sub" id="kpiAlcoholSub"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card card-one kpi-card kpi-card--kits"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-archive-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Kits suministrados</span>
+                <h3 class="kpi-value" id="kpiKits">—</h3>
+                <span class="kpi-sub" id="kpiKitsSub"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card card-one kpi-card kpi-card--tasa"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-line-chart-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Tasa de uso</span>
+                <h3 class="kpi-value" id="kpiTasa">—</h3>
+                <span class="kpi-sub" id="kpiTasaSub"></span>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-6">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--predio">Predios</span>
+                    <div class="card-title-lg">Pruebas por predio</div>
+                    <p class="fs-11 text-muted mb-0" id="subPredio">Antidoping acumulado</p>
+                </div>
+                <div class="card-body"><div id="chartPredio"></div></div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--kits">Kits</span>
+                    <div class="card-title-lg">Aplicados frente a suministrados</div>
+                    <p class="fs-11 text-muted mb-0" id="subBalance">Balance mensual</p>
+                </div>
+                <div class="card-body"><div id="chartBalance"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card-one chart-card">
+        <div class="card-header">
+            <span class="chart-eyebrow chart-eyebrow--alcohol">Alcoholimetría</span>
+            <div class="card-title-lg">Alcoholimetría por predio</div>
+            <p class="fs-11 text-muted mb-0" id="subAlcohol"></p>
+        </div>
+        <div class="card-body"><div id="chartAlcohol"></div></div>
+    </div>
+
+    <p class="fs-11 text-muted mt-3 mb-0">
+        <i class="ri-information-line"></i>
+        Los kits salen del inventario de
+        <a th:href="@{/consumibles}" href="/consumibles">Consumibles</a>. Su campo predio es texto
+        libre y no coincide con el catálogo de predios, por eso kits y tasa de uso se calculan
+        solo sobre el total corporativo.
+    </p>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:src="@{/theme/lib/apexcharts/apexcharts.min.js}" src="/theme/lib/apexcharts/apexcharts.min.js"></script>
+    <script th:inline="javascript">
+        (function () {
+            var contextPath = /*[[@{/}]]*/ '/';
+            var chartPredio = null, chartBalance = null, chartAlcohol = null, ultimoExport = null;
+
+            var NOMBRES_MES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
+                'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            var PALETA = ['#2563EB', '#0EA5E9', '#047857', '#D97706', '#7C3AED', '#DC2626', '#0F766E', '#DB2777'];
+
+            function numero(n) { return (n || 0).toLocaleString('es-MX'); }
+            function etiquetaMes(clave) {
+                var p = String(clave).split('-');
+                return p.length === 2 ? NOMBRES_MES[parseInt(p[1], 10) - 1] + ' ' + p[0].substring(2) : clave;
+            }
+            function vaciar(id, texto) {
+                document.getElementById(id).innerHTML = '<p class="vacio mb-0">' + texto + '</p>';
+            }
+            function esAlcohol(tipo) { return /alcohol/i.test(String(tipo || '')); }
+
+            function calcularRango() {
+                var anio = parseInt(document.getElementById('fAnio').value, 10);
+                var periodo = parseInt(document.getElementById('fPeriodo').value, 10);
+                var hoy = new Date();
+                var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+                if (periodo === 0) {
+                    var fin = anio === hoy.getFullYear() ? hoy : new Date(anio, 11, 31);
+                    return {
+                        anio: anio, periodo: 0,
+                        fechaInicial: anio + '-01-01',
+                        fechaFinal: fin.getFullYear() + '-' + pad(fin.getMonth() + 1) + '-' + pad(fin.getDate()),
+                        texto: 'ejercicio ' + anio
+                    };
+                }
+                var ultimo = new Date(anio, periodo, 0).getDate();
+                return {
+                    anio: anio, periodo: periodo,
+                    fechaInicial: anio + '-' + pad(periodo) + '-01',
+                    fechaFinal: anio + '-' + pad(periodo) + '-' + pad(ultimo),
+                    texto: NOMBRES_MES[periodo - 1] + ' ' + anio
+                };
+            }
+
+            async function cargarPredios() {
+                try {
+                    var res = await fetch(contextPath + 'api/analisis/filtros');
+                    if (!res.ok) { return; }
+                    var data = await res.json();
+                    var select = document.getElementById('fPredio');
+                    (data.predios || []).forEach(function (nombre) {
+                        var opt = document.createElement('option');
+                        opt.value = nombre;
+                        opt.textContent = nombre;
+                        select.appendChild(opt);
+                    });
+                } catch (e) { /* sin filtro de predio, la pagina sigue */ }
+            }
+
+            function inicializar() {
+                var selectAnio = document.getElementById('fAnio');
+                var actual = new Date().getFullYear();
+                for (var y = actual; y >= 2023; y--) {
+                    var opt = document.createElement('option');
+                    opt.value = y;
+                    opt.textContent = y;
+                    selectAnio.appendChild(opt);
+                }
+                ['fAnio', 'fPeriodo', 'fPredio'].forEach(function (id) {
+                    document.getElementById(id).addEventListener('change', aplicar);
+                });
+                document.getElementById('btnExportar').addEventListener('click', exportarCsv);
+                ['btnNuevo', 'btnSeleccion'].forEach(function (id) {
+                    document.getElementById(id).addEventListener('click', function () { window.location.href = this.dataset.url; });
+                });
+            }
+
+            function aplicar() {
+                var rango = calcularRango();
+                document.getElementById('fFechaInicial').value = rango.fechaInicial;
+                document.getElementById('fFechaFinal').value = rango.fechaFinal;
+                cargar(rango);
+            }
+
+            /**
+             * Kits del inventario en el rango, agrupados por mes (clave yyyy-MM). El inventario
+             * se captura por anio+mes, no por fecha, asi que el corte se hace sobre esos dos.
+             */
+            function kitsEnRango(consumibles, rango) {
+                var porMes = {};
+                var total = 0;
+                (consumibles || []).forEach(function (c) {
+                    if (c.anio !== rango.anio) { return; }
+                    if (rango.periodo && c.mes !== rango.periodo) { return; }
+                    var clave = c.anio + '-' + (c.mes < 10 ? '0' : '') + c.mes;
+                    porMes[clave] = (porMes[clave] || 0) + (c.entregaMensual || 0);
+                    total += (c.entregaMensual || 0);
+                });
+                return { porMes: porMes, total: total };
+            }
+
+            async function cargar(rango) {
+                var estado = document.getElementById('estado');
+                var predio = document.getElementById('fPredio').value;
+                var qs = 'fechaInicial=' + encodeURIComponent(rango.fechaInicial)
+                       + '&fechaFinal=' + encodeURIComponent(rango.fechaFinal)
+                       + (predio ? '&predio=' + encodeURIComponent(predio) : '');
+                estado.textContent = 'Cargando...';
+                try {
+                    var [aRes, kRes] = await Promise.all([
+                        fetch(contextPath + 'api/dashboard/antidoping?' + qs),
+                        fetch(contextPath + 'api/consumibles')
+                    ]);
+                    if (!aRes.ok) { estado.textContent = 'Error al consultar (HTTP ' + aRes.status + ').'; return; }
+                    var d = await aRes.json();
+                    var kits = kitsEnRango(kRes.ok ? await kRes.json() : [], rango);
+                    var alcohol = (d.porTipoPrueba || []).filter(function (t) { return esAlcohol(t.clave); })
+                        .reduce(function (a, t) { return a + t.cantidad; }, 0);
+
+                    document.getElementById('subtitulo').textContent =
+                        numero(d.totalPruebas) + ' pruebas aplicadas · ' + numero(alcohol) + ' alcoholimetrías · '
+                        + rango.texto + (predio ? ' · ' + predio : '');
+                    pintarKpis(d, alcohol, kits, !!predio);
+                    pintarPredio(d);
+                    pintarBalance(d, kits, !!predio);
+                    pintarAlcohol(d);
+                    ultimoExport = { d: d, kits: kits, alcohol: alcohol };
+                    estado.textContent = 'Actualizado.';
+                } catch (e) {
+                    console.error('[analisis-antidoping] error en cargar():', e);
+                    estado.textContent = 'Error de red: ' + e.message;
+                }
+            }
+
+            function pintarKpis(d, alcohol, kits, hayPredio) {
+                document.getElementById('kpiPruebas').textContent = numero(d.totalPruebas);
+                document.getElementById('kpiPruebasSub').textContent = d.totalPositivos
+                    ? numero(d.totalPositivos) + ' positivos' : (d.totalPruebas ? 'sin positivos' : 'sin registros');
+                document.getElementById('kpiAlcohol').textContent = numero(alcohol);
+                document.getElementById('kpiAlcoholSub').textContent = d.totalPruebas
+                    ? Math.round((alcohol / d.totalPruebas) * 100) + '% de las pruebas' : '';
+
+                // Kits y tasa: solo corporativo (el predio del inventario no casa con el catalogo).
+                if (hayPredio) {
+                    document.getElementById('kpiKits').textContent = '—';
+                    document.getElementById('kpiKitsSub').textContent = 'no disponible por predio';
+                    document.getElementById('kpiTasa').textContent = '—';
+                    document.getElementById('kpiTasaSub').textContent = 'no disponible por predio';
+                    return;
+                }
+                document.getElementById('kpiKits').textContent = numero(kits.total);
+                document.getElementById('kpiKitsSub').textContent = 'entregados en el periodo';
+                var tasa = kits.total ? Math.round((d.totalPruebas / kits.total) * 100) : null;
+                document.getElementById('kpiTasa').textContent = tasa === null ? '—' : tasa + '%';
+                document.getElementById('kpiTasaSub').textContent = tasa === null ? 'sin kits registrados' : 'aplicadas / suministrados';
+            }
+
+            function pintarPredio(d) {
+                var lista = (d.porPredio || []).slice().sort(function (a, b) { return b.cantidad - a.cantidad; });
+                document.getElementById('subPredio').textContent = lista.length
+                    ? lista.length + (lista.length === 1 ? ' predio' : ' predios') + ' con pruebas' : 'Antidoping acumulado';
+                if (!lista.length) { vaciar('chartPredio', 'Sin pruebas en el periodo.'); return; }
+                var options = {
+                    chart: { type: 'bar', height: 300, toolbar: { show: false } },
+                    series: [{ name: 'Pruebas', data: lista.map(function (r) { return r.cantidad; }) }],
+                    xaxis: { categories: lista.map(function (r) { return r.clave; }), labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    colors: ['#2563EB'],
+                    plotOptions: { bar: { borderRadius: 4, horizontal: true, barHeight: '58%' } },
+                    dataLabels: { enabled: true, style: { fontSize: '11px', fontWeight: 700, colors: ['#1e293b'] } },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 }
+                };
+                document.getElementById('chartPredio').innerHTML = '';
+                if (chartPredio) { chartPredio.destroy(); }
+                chartPredio = new ApexCharts(document.querySelector('#chartPredio'), options);
+                chartPredio.render();
+            }
+
+            function pintarBalance(d, kits, hayPredio) {
+                if (hayPredio) { vaciar('chartBalance', 'El inventario de kits no se puede cortar por predio.'); return; }
+                var aplicadas = {};
+                (d.tendenciaMensual || []).forEach(function (p) { if (p.mes !== 'Sin fecha') { aplicadas[p.mes] = p.cantidad; } });
+                var meses = {};
+                Object.keys(aplicadas).forEach(function (m) { meses[m] = true; });
+                Object.keys(kits.porMes).forEach(function (m) { meses[m] = true; });
+                var claves = Object.keys(meses).sort();
+                if (!claves.length) { vaciar('chartBalance', 'Sin pruebas ni kits en el periodo.'); return; }
+                var options = {
+                    chart: { type: 'bar', height: 300, toolbar: { show: false } },
+                    series: [
+                        { name: 'Aplicadas', data: claves.map(function (k) { return aplicadas[k] || 0; }) },
+                        { name: 'Suministrados', data: claves.map(function (k) { return kits.porMes[k] || 0; }) }
+                    ],
+                    colors: ['#2563EB', '#047857'],
+                    xaxis: { categories: claves.map(etiquetaMes), labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' }, formatter: function (v) { return numero(Math.round(v)); } } },
+                    plotOptions: { bar: { borderRadius: 4, columnWidth: '55%' } },
+                    legend: { position: 'top', horizontalAlign: 'right', fontSize: '11px', markers: { radius: 12 } },
+                    dataLabels: { enabled: false },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 }
+                };
+                document.getElementById('chartBalance').innerHTML = '';
+                if (chartBalance) { chartBalance.destroy(); }
+                chartBalance = new ApexCharts(document.querySelector('#chartBalance'), options);
+                chartBalance.render();
+            }
+
+            function pintarAlcohol(d) {
+                var celdas = (d.porPredioTipo || []).filter(function (c) { return esAlcohol(c.columna); });
+                var porPredio = {};
+                celdas.forEach(function (c) { porPredio[c.fila] = (porPredio[c.fila] || 0) + c.cantidad; });
+                var predios = Object.keys(porPredio).sort(function (a, b) { return porPredio[b] - porPredio[a]; });
+                document.getElementById('subAlcohol').textContent = predios.length
+                    ? predios.length + (predios.length === 1 ? ' predio' : ' predios') + ' con alcoholimetrías' : '';
+                if (!predios.length) { vaciar('chartAlcohol', 'Sin alcoholimetrías registradas en el periodo.'); return; }
+                var options = {
+                    chart: { type: 'bar', height: 300, toolbar: { show: false } },
+                    series: [{ name: 'Alcoholimetrías', data: predios.map(function (p) { return porPredio[p]; }) }],
+                    xaxis: { categories: predios, labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    colors: ['#0E7490'],
+                    plotOptions: { bar: { borderRadius: 4, columnWidth: '50%' } },
+                    dataLabels: { enabled: true, style: { fontSize: '11px', fontWeight: 700, colors: ['#1e293b'] } },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 }
+                };
+                document.getElementById('chartAlcohol').innerHTML = '';
+                if (chartAlcohol) { chartAlcohol.destroy(); }
+                chartAlcohol = new ApexCharts(document.querySelector('#chartAlcohol'), options);
+                chartAlcohol.render();
+            }
+
+            function exportarCsv() {
+                if (!ultimoExport) { return; }
+                var d = ultimoExport.d;
+                var filas = [
+                    ['Periodo', document.getElementById('fFechaInicial').value + ' a ' + document.getElementById('fFechaFinal').value],
+                    ['Predio', document.getElementById('fPredio').value || 'Todos'],
+                    [],
+                    ['Indicador', 'Valor'],
+                    ['Pruebas aplicadas', d.totalPruebas],
+                    ['Alcoholimetrías', ultimoExport.alcohol],
+                    ['Positivos', d.totalPositivos],
+                    ['Kits suministrados (corporativo)', ultimoExport.kits.total],
+                    [],
+                    ['Predio', 'Pruebas']
+                ];
+                (d.porPredio || []).forEach(function (r) { filas.push([r.clave, r.cantidad]); });
+                filas.push([]);
+                filas.push(['Sustancia', 'Pruebas']);
+                (d.porSustancia || []).forEach(function (r) { filas.push([r.clave, r.cantidad]); });
+                var csv = filas.map(function (f) {
+                    return f.map(function (v) { return '"' + String(v === undefined ? '' : v).replace(/"/g, '""') + '"'; }).join(',');
+                }).join('\r\n');
+                var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'antidoping_' + document.getElementById('fFechaInicial').value + '.csv';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                auditarExportacion('Antidoping', a.download);
+            }
+
+            inicializar();
+            cargarPredios().then(aplicar);
+        })();
+    </script>
+</th:block>
+</body>
+</html>

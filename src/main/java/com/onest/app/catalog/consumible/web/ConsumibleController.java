@@ -1,5 +1,6 @@
 package com.onest.app.catalog.consumible.web;
 
+import com.onest.app.audit.web.Auditado;
 import com.onest.app.catalog.consumible.dto.ConsumibleDto;
 import com.onest.app.catalog.consumible.service.ConsumibleService;
 import java.util.List;
@@ -35,6 +36,7 @@ public class ConsumibleController {
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = "text/plain;charset=UTF-8")
+    @Auditado(modulo = "Inventario", accion = "create", entidad = "Consumible", registro = "predio", detalle = {"anio", "mes", "cantidadInicial", "entregaMensual", "consumoMensual"})
     public String crear(@ModelAttribute ConsumibleAltaForm form) {
         try {
             String proceso = consumibleService.crear(form);

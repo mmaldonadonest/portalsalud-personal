@@ -29,7 +29,9 @@ public class BiowsAntidopingClient implements AntidopingClient {
     private static final Logger log = LoggerFactory.getLogger(BiowsAntidopingClient.class);
     private static final String PATH_ANTIDOPING = "/Servcio/antidoping";
     private static final String PATH_CONSULTA_ANTIDOPING = "/Servcio/consulta_antidoping";
-    private static final String PATH_REPORTE_FECHA = "/Servcio/consulta_antidoping_fecha";
+    // _cta = clon del WS original que ademas devuelve CUENTA por registro (11-sep-2026,
+    // docs/ords-cuenta-en-antidoping.sql). El original sigue publicado e intacto.
+    private static final String PATH_REPORTE_FECHA = "/Servcio/consulta_antidoping_fecha_cta";
     private static final String PATH_SELECCION = "/Servcio/antidoping_seleccion";
     private static final String PATH_CONSULTA_SELECCION = "/Servcio/consulta_antidoping_seleccion";
 
@@ -136,7 +138,7 @@ public class BiowsAntidopingClient implements AntidopingClient {
 
     private static AntidopingReporteDto toReporte(BiowsAntidopingReporteResponse.Dato d) {
         return new AntidopingReporteDto(
-                d.idRegistro(), d.fechaRegistro(), d.nss(), d.nombre(), d.rfc(), d.curp(),
+                d.idRegistro(), d.fechaRegistro(), d.nss(), d.nombre(), d.rfc(), d.curp(), d.cuenta(),
                 d.folio(), d.tipoPrueba(), d.sustancia(), d.resultado(), d.statusConclusion(), d.usuario());
     }
 }

@@ -21,6 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import com.onest.app.audit.service.AuditoriaService;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -39,7 +40,8 @@ public class SecurityConfiguration {
             PermissionService permissionService,
             LocalModulePermissionClient localModulePermissionClient,
             @Value("${portal.permissions.shadow:false}") boolean permissionsShadow,
-            @Value("${portal.permissions.source:ORDS}") String permissionsSource)
+            @Value("${portal.permissions.source:ORDS}") String permissionsSource,
+            AuditoriaService auditoriaService)
             throws Exception {
         boolean useLocalKeys = "LOCAL".equalsIgnoreCase(permissionsSource);
         http
@@ -47,7 +49,7 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/theme/**", "/css/**", "/js/**", "/img/**", "/login", "/sso/login", "/error", "/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/analisis/**", "/api/analisis/**").hasRole("MEDICO_ANALISTA")
+                        .requestMatchers("/analisis/**", "/api/analisis/**", "/api/auditoria/**").hasRole("MEDICO_ANALISTA")
                         .anyRequest().authenticated())
                 // Matriz de permisos - Rol + Tipo de informacion (docs/checklist-bloqueadores-negocio.html #7):
                 // bloquea con 403 real el acceso a rutas clinicas si el rol no tiene el id_menu
@@ -65,7 +67,7 @@ public class SecurityConfiguration {
                 .formLogin(form -> form
                         .loginPage("/login")
                         .loginProcessingUrl("/login")
-                        .successHandler(loginSuccessHandler())
+                        .successHandler(loginSuccessHandler(auditoriaService))
                         .failureHandler(loginFailureHandler())
                         .permitAll())
                 .logout(logout -> logout
@@ -101,7 +103,7 @@ public class SecurityConfiguration {
      * proveedor: ROLE_ADMIN = BD local, ROLE_USER = login ORDS legacy) y redirige
      * siempre a /home (equivale al viejo defaultSuccessUrl("/home", true)).
      */
-    private AuthenticationSuccessHandler loginSuccessHandler() {
+    private AuthenticationSuccessHandler loginSuccessHandler(AuditoriaService auditoriaService) {
         SimpleUrlAuthenticationSuccessHandler delegate = new SimpleUrlAuthenticationSuccessHandler("/home");
         delegate.setAlwaysUseDefaultTargetUrl(true);
         return (request, response, authentication) -> {
@@ -109,6 +111,10 @@ public class SecurityConfiguration {
                     ? "null" : authentication.getPrincipal().getClass().getSimpleName();
             log.info("[login] OK usuario={} autoridades={} principal={}",
                     authentication.getName(), authentication.getAuthorities(), principal);
+            // Bitacora (modulo Auditoria): el login es el unico evento que no pasa por un
+            // handler MVC, por eso se registra aqui y no con @Auditado.
+            auditoriaService.registrar("Sistema", "login", "Sesion", authentication.getName(),
+                    "sesión iniciada · " + principal, request);
             delegate.onAuthenticationSuccess(request, response, authentication);
         };
     }

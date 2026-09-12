@@ -22,6 +22,7 @@ public record BiowsAntidopingReporteResponse(
             @JsonProperty("nombre") String nombre,
             @JsonProperty("rfc") String rfc,
             @JsonProperty("curp") String curp,
+            @JsonProperty("cuenta") String cuenta,
             @JsonProperty("folio") String folio,
             @JsonProperty("tipo_prueba") String tipoPrueba,
             @JsonProperty("sustancia") String sustancia,

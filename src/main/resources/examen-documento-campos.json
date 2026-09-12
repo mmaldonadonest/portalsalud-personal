@@ -1,0 +1,3110 @@
+[
+ {
+  "var": "FECHAExam",
+  "kind": "DATA",
+  "arg": "FECHA",
+  "transform": null
+ },
+ {
+  "var": "avc",
+  "kind": "DATA",
+  "arg": "NEUROLOGIA.AVC",
+  "transform": null
+ },
+ {
+  "var": "EPILEPSIA",
+  "kind": "DATA",
+  "arg": "NEUROLOGIA.EPILEPSIA",
+  "transform": null
+ },
+ {
+  "var": "PARALISIS_FACIAL",
+  "kind": "DATA",
+  "arg": "NEUROLOGIA.PARALISIS_FACIAL",
+  "transform": null
+ },
+ {
+  "var": "PARKINSON",
+  "kind": "DATA",
+  "arg": "NEUROLOGIA.PARKINSON",
+  "transform": null
+ },
+ {
+  "var": "ALZHEIMER",
+  "kind": "DATA",
+  "arg": "NEUROLOGIA.ALZHEIMER",
+  "transform": null
+ },
+ {
+  "var": "MIGRAÑA",
+  "kind": "DATA",
+  "arg": "NEUROLOGIA.MIGRAÑA",
+  "transform": null
+ },
+ {
+  "var": "AVC_OBS",
+  "kind": "DATA",
+  "arg": "NEUROLOGIA.AVC_OBS",
+  "transform": null
+ },
+ {
+  "var": "EPILEPSIA_OBS",
+  "kind": "DATA",
+  "arg": "NEUROLOGIA.EPILEPSIA_OBS",
+  "transform": null
+ },
+ {
+  "var": "PARALISIS_FACIAL_OBS",
+  "kind": "DATA",
+  "arg": "NEUROLOGIA.PARALISIS_FACIAL_OBS",
+  "transform": null
+ },
+ {
+  "var": "PARKINSON_OBS",
+  "kind": "DATA",
+  "arg": "NEUROLOGIA.PARKINSON_OBS",
+  "transform": null
+ },
+ {
+  "var": "ALZHEIMER_OBS",
+  "kind": "DATA",
+  "arg": "NEUROLOGIA.ALZHEIMER_OBS",
+  "transform": null
+ },
+ {
+  "var": "MIGRAÑA_OBS",
+  "kind": "DATA",
+  "arg": "NEUROLOGIA.MIGRAÑA_OBS",
+  "transform": null
+ },
+ {
+  "var": "EPILEPSIA",
+  "kind": "VAR",
+  "arg": "EPILEPSIA",
+  "transform": "SINO"
+ },
+ {
+  "var": "PARALISIS_FACIAL",
+  "kind": "VAR",
+  "arg": "PARALISIS_FACIAL",
+  "transform": "SINO"
+ },
+ {
+  "var": "PARKINSON",
+  "kind": "VAR",
+  "arg": "PARKINSON",
+  "transform": "SINO"
+ },
+ {
+  "var": "ALZHEIMER",
+  "kind": "VAR",
+  "arg": "ALZHEIMER",
+  "transform": "SINO"
+ },
+ {
+  "var": "MIGRAÑA",
+  "kind": "VAR",
+  "arg": "MIGRAÑA",
+  "transform": "SINO"
+ },
+ {
+  "var": "CARDIOPATIA_ISQUEMICA",
+  "kind": "DATA",
+  "arg": "CARDIOPATIA.CARDIOPATIA_ISQUEMICA",
+  "transform": null
+ },
+ {
+  "var": "HIPERTENSION",
+  "kind": "DATA",
+  "arg": "CARDIOPATIA.HIPERTENSION",
+  "transform": null
+ },
+ {
+  "var": "HIPOTENSION",
+  "kind": "DATA",
+  "arg": "CARDIOPATIA.HIPOTENSION",
+  "transform": null
+ },
+ {
+  "var": "INSUFICIENCIA_CARDIACA",
+  "kind": "DATA",
+  "arg": "CARDIOPATIA.INSUFICIENCIA_CARDIACA",
+  "transform": null
+ },
+ {
+  "var": "INSUFICIENCIA_VASCULAR_PERIFERICA",
+  "kind": "DATA",
+  "arg": "CARDIOPATIA.INSUFICIENCIA_VASCULAR_PERIFERICA",
+  "transform": null
+ },
+ {
+  "var": "CARDIOPATIA_ISQUEMICA_OBS",
+  "kind": "DATA",
+  "arg": "CARDIOPATIA.CARDIOPATIA_ISQUEMICA_OBS",
+  "transform": null
+ },
+ {
+  "var": "HIPERTENSION_OBS",
+  "kind": "DATA",
+  "arg": "CARDIOPATIA.HIPERTENSION_OBS",
+  "transform": null
+ },
+ {
+  "var": "HIPOTENSION_OBS",
+  "kind": "DATA",
+  "arg": "CARDIOPATIA.HIPOTENSION_OBS",
+  "transform": null
+ },
+ {
+  "var": "INSUFICIENCIA_CARDIACA_OBS",
+  "kind": "DATA",
+  "arg": "CARDIOPATIA.INSUFICIENCIA_CARDIACA_OBS",
+  "transform": null
+ },
+ {
+  "var": "INSUFICIENCIA_VASCULAR_PERIFERICA_OBS",
+  "kind": "DATA",
+  "arg": "CARDIOPATIA.INSUFICIENCIA_VASCULAR_PERIFERICA_OBS",
+  "transform": null
+ },
+ {
+  "var": "CARDIOPATIA_ISQUEMICA",
+  "kind": "DATA",
+  "arg": "CARDIOPATIA.CARDIOPATIA_ISQUEMICA",
+  "transform": "SINO"
+ },
+ {
+  "var": "HIPERTENSION",
+  "kind": "DATA",
+  "arg": "CARDIOPATIA.HIPERTENSION",
+  "transform": "SINO"
+ },
+ {
+  "var": "HIPOTENSION",
+  "kind": "DATA",
+  "arg": "CARDIOPATIA.HIPOTENSION",
+  "transform": "SINO"
+ },
+ {
+  "var": "INSUFICIENCIA_CARDIACA",
+  "kind": "DATA",
+  "arg": "CARDIOPATIA.INSUFICIENCIA_CARDIACA",
+  "transform": "SINO"
+ },
+ {
+  "var": "INSUFICIENCIA_VASCULAR_PERIFERICA",
+  "kind": "DATA",
+  "arg": "CARDIOPATIA.INSUFICIENCIA_VASCULAR_PERIFERICA",
+  "transform": "SINO"
+ },
+ {
+  "var": "BRONQUITIS",
+  "kind": "DATA",
+  "arg": "NEUMOPATICA.BRONQUITIS",
+  "transform": null
+ },
+ {
+  "var": "TUBERCULOSIS",
+  "kind": "DATA",
+  "arg": "NEUMOPATICA.TUBERCULOSIS",
+  "transform": null
+ },
+ {
+  "var": "ASMA",
+  "kind": "DATA",
+  "arg": "NEUMOPATICA.ASMA",
+  "transform": null
+ },
+ {
+  "var": "INSUFICIENCIA_RESPIRATORIA",
+  "kind": "DATA",
+  "arg": "NEUMOPATICA.INSUFICIENCIA_RESPIRATORIA",
+  "transform": null
+ },
+ {
+  "var": "BRONQUITIS_OBS",
+  "kind": "DATA",
+  "arg": "NEUMOPATICA.BRONQUITIS_OBS",
+  "transform": null
+ },
+ {
+  "var": "TUBERCULOSIS_OBS",
+  "kind": "DATA",
+  "arg": "NEUMOPATICA.TUBERCULOSIS_OBS",
+  "transform": null
+ },
+ {
+  "var": "ASMA_OBS",
+  "kind": "DATA",
+  "arg": "NEUMOPATICA.ASMA_OBS",
+  "transform": null
+ },
+ {
+  "var": "INSUFICIENCIA_RESPIRATORIA_OBS",
+  "kind": "DATA",
+  "arg": "NEUMOPATICA.INSUFICIENCIA_RESPIRATORIA_OBS",
+  "transform": null
+ },
+ {
+  "var": "BRONQUITIS",
+  "kind": "DATA",
+  "arg": "NEUMOPATICA.BRONQUITIS",
+  "transform": "SINO"
+ },
+ {
+  "var": "TUBERCULOSIS",
+  "kind": "DATA",
+  "arg": "NEUMOPATICA.TUBERCULOSIS",
+  "transform": "SINO"
+ },
+ {
+  "var": "ASMA",
+  "kind": "DATA",
+  "arg": "NEUMOPATICA.ASMA",
+  "transform": "SINO"
+ },
+ {
+  "var": "INSUFICIENCIA_RESPIRATORIA",
+  "kind": "DATA",
+  "arg": "NEUMOPATICA.INSUFICIENCIA_RESPIRATORIA",
+  "transform": "SINO"
+ },
+ {
+  "var": "ALCOHOLISMO",
+  "kind": "DATA",
+  "arg": "TOXICOLOGIOCAS.ALCOHOLISMO",
+  "transform": null
+ },
+ {
+  "var": "TABAQUISMO",
+  "kind": "DATA",
+  "arg": "TOXICOLOGIOCAS.TABAQUISMO",
+  "transform": null
+ },
+ {
+  "var": "DROGAS",
+  "kind": "DATA",
+  "arg": "TOXICOLOGIOCAS.DROGAS",
+  "transform": null
+ },
+ {
+  "var": "ALCOHOLISMO_OBS",
+  "kind": "DATA",
+  "arg": "TOXICOLOGIOCAS.ALCOHOLISMO_OBS",
+  "transform": null
+ },
+ {
+  "var": "TABAQUISMO_OBS",
+  "kind": "DATA",
+  "arg": "TOXICOLOGIOCAS.TABAQUISMO_OBS",
+  "transform": null
+ },
+ {
+  "var": "DROGAS_OBS",
+  "kind": "DATA",
+  "arg": "TOXICOLOGIOCAS.DROGAS_OBS",
+  "transform": null
+ },
+ {
+  "var": "ALCOHOLISMO",
+  "kind": "DATA",
+  "arg": "TOXICOLOGIOCAS.ALCOHOLISMO",
+  "transform": "SINO"
+ },
+ {
+  "var": "TABAQUISMO",
+  "kind": "DATA",
+  "arg": "TOXICOLOGIOCAS.TABAQUISMO",
+  "transform": "SINO"
+ },
+ {
+  "var": "DROGAS",
+  "kind": "DATA",
+  "arg": "TOXICOLOGIOCAS.DROGAS",
+  "transform": "SINO"
+ },
+ {
+  "var": "IRC",
+  "kind": "DATA",
+  "arg": "NEFROPATIA.IRC",
+  "transform": null
+ },
+ {
+  "var": "LITASIS",
+  "kind": "DATA",
+  "arg": "NEFROPATIA.LITASIS",
+  "transform": null
+ },
+ {
+  "var": "IRC_OBS",
+  "kind": "DATA",
+  "arg": "NEFROPATIA.IRC_OBS",
+  "transform": null
+ },
+ {
+  "var": "LITASIS_OBS",
+  "kind": "DATA",
+  "arg": "NEFROPATIA.LITASIS_OBS",
+  "transform": null
+ },
+ {
+  "var": "IRC",
+  "kind": "DATA",
+  "arg": "NEFROPATIA.IRC",
+  "transform": "SINO"
+ },
+ {
+  "var": "LITASIS",
+  "kind": "DATA",
+  "arg": "NEFROPATIA.LITASIS",
+  "transform": "SINO"
+ },
+ {
+  "var": "DM",
+  "kind": "DATA",
+  "arg": "ENDOCRINA.DM",
+  "transform": null
+ },
+ {
+  "var": "HIPERTIROIDISMO",
+  "kind": "DATA",
+  "arg": "ENDOCRINA.HIPERTIROIDISMO",
+  "transform": null
+ },
+ {
+  "var": "HIPOTIROIDISMO",
+  "kind": "DATA",
+  "arg": "ENDOCRINA.HIPOTIROIDISMO",
+  "transform": null
+ },
+ {
+  "var": "DM_OBS",
+  "kind": "DATA",
+  "arg": "ENDOCRINA.DM_OBS",
+  "transform": null
+ },
+ {
+  "var": "HIPERTIROIDISMO_OBS",
+  "kind": "DATA",
+  "arg": "ENDOCRINA.HIPERTIROIDISMO_OBS",
+  "transform": null
+ },
+ {
+  "var": "HIPOTIROIDISMO_OBS",
+  "kind": "DATA",
+  "arg": "ENDOCRINA.HIPOTIROIDISMO_OBS",
+  "transform": null
+ },
+ {
+  "var": "DM",
+  "kind": "DATA",
+  "arg": "ENDOCRINA.DM",
+  "transform": "SINO"
+ },
+ {
+  "var": "HIPERTIROIDISMO",
+  "kind": "DATA",
+  "arg": "ENDOCRINA.HIPERTIROIDISMO",
+  "transform": "SINO"
+ },
+ {
+  "var": "HIPOTIROIDISMO",
+  "kind": "DATA",
+  "arg": "ENDOCRINA.HIPOTIROIDISMO",
+  "transform": "SINO"
+ },
+ {
+  "var": "TRANSTORNO_DE_CRECIMIENTO",
+  "kind": "DATA",
+  "arg": "OBESIDAD.TRANSTORNO_DE_CRECIMIENTO",
+  "transform": null
+ },
+ {
+  "var": "TRANSTORNO_DE_CRECIMIENTO_OBS",
+  "kind": "DATA",
+  "arg": "OBESIDAD.TRANSTORNO_DE_CRECIMIENTO_OBS",
+  "transform": null
+ },
+ {
+  "var": "TRANSTORNO_DE_CRECIMIENTO",
+  "kind": "DATA",
+  "arg": "OBESIDAD.TRANSTORNO_DE_CRECIMIENTO",
+  "transform": "SINO"
+ },
+ {
+  "var": "NEUROSIS",
+  "kind": "DATA",
+  "arg": "MENTALES.NEUROSIS",
+  "transform": null
+ },
+ {
+  "var": "PSICOSIS",
+  "kind": "DATA",
+  "arg": "MENTALES.PSICOSIS",
+  "transform": null
+ },
+ {
+  "var": "INTENTO_DE_SUICIDIO",
+  "kind": "DATA",
+  "arg": "MENTALES.INTENTO_DE_SUICIDIO",
+  "transform": null
+ },
+ {
+  "var": "ESQUIZOFRENIA",
+  "kind": "DATA",
+  "arg": "MENTALES.ESQUIZOFRENIA",
+  "transform": null
+ },
+ {
+  "var": "NEUROSIS_OBS",
+  "kind": "DATA",
+  "arg": "MENTALES.NEUROSIS_OBS",
+  "transform": null
+ },
+ {
+  "var": "PSICOSIS_OBS",
+  "kind": "DATA",
+  "arg": "MENTALES.PSICOSIS_OBS",
+  "transform": null
+ },
+ {
+  "var": "INTENTO_DE_SUICIDIO_OBS",
+  "kind": "DATA",
+  "arg": "MENTALES.INTENTO_DE_SUICIDIO_OBS",
+  "transform": null
+ },
+ {
+  "var": "ESQUIZOFRENIA_OBS",
+  "kind": "DATA",
+  "arg": "MENTALES.ESQUIZOFRENIA_OBS",
+  "transform": null
+ },
+ {
+  "var": "NEUROSIS",
+  "kind": "DATA",
+  "arg": "MENTALES.NEUROSIS",
+  "transform": "SINO"
+ },
+ {
+  "var": "PSICOSIS",
+  "kind": "DATA",
+  "arg": "MENTALES.PSICOSIS",
+  "transform": "SINO"
+ },
+ {
+  "var": "INTENTO_DE_SUICIDIO",
+  "kind": "DATA",
+  "arg": "MENTALES.INTENTO_DE_SUICIDIO",
+  "transform": "SINO"
+ },
+ {
+  "var": "ESQUIZOFRENIA",
+  "kind": "DATA",
+  "arg": "MENTALES.ESQUIZOFRENIA",
+  "transform": "SINO"
+ },
+ {
+  "var": "CANCER",
+  "kind": "DATA",
+  "arg": "GENERALES.CANCER",
+  "transform": null
+ },
+ {
+  "var": "ALERGIAS",
+  "kind": "DATA",
+  "arg": "GENERALES.ALERGIAS",
+  "transform": null
+ },
+ {
+  "var": "MALFORMACIONES",
+  "kind": "DATA",
+  "arg": "GENERALES.MALFORMACIONES",
+  "transform": null
+ },
+ {
+  "var": "CANCER_OBS",
+  "kind": "DATA",
+  "arg": "GENERALES.CANCER_OBS",
+  "transform": null
+ },
+ {
+  "var": "ALERGIAS_OBS",
+  "kind": "DATA",
+  "arg": "GENERALES.ALERGIAS_OBS",
+  "transform": null
+ },
+ {
+  "var": "MALFORMACIONES_OBS",
+  "kind": "DATA",
+  "arg": "GENERALES.MALFORMACIONES_OBS",
+  "transform": null
+ },
+ {
+  "var": "CANCER",
+  "kind": "DATA",
+  "arg": "GENERALES.CANCER",
+  "transform": "SINO"
+ },
+ {
+  "var": "ALERGIAS",
+  "kind": "DATA",
+  "arg": "GENERALES.ALERGIAS",
+  "transform": "SINO"
+ },
+ {
+  "var": "MALFORMACIONES",
+  "kind": "DATA",
+  "arg": "GENERALES.MALFORMACIONES",
+  "transform": "SINO"
+ },
+ {
+  "var": "OTRAS",
+  "kind": "DATA",
+  "arg": "OTRAS.OTRAS",
+  "transform": null
+ },
+ {
+  "var": "OTRAS_OBS",
+  "kind": "DATA",
+  "arg": "OTRAS.OTRAS_OBS",
+  "transform": null
+ },
+ {
+  "var": "OTRAS",
+  "kind": "DATA",
+  "arg": "OTRAS.OTRAS",
+  "transform": "SINO"
+ },
+ {
+  "var": "HABITACION",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.HABITACION",
+  "transform": null
+ },
+ {
+  "var": "NO_DORMITORIOS",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.NO_DORMITORIOS",
+  "transform": null
+ },
+ {
+  "var": "NO_HABITANTES",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.NO_HABITANTES",
+  "transform": null
+ },
+ {
+  "var": "PISO",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.PISO",
+  "transform": null
+ },
+ {
+  "var": "TECHO",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.TECHO",
+  "transform": null
+ },
+ {
+  "var": "AGUA_POTABLE",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.AGUA_POTABLE",
+  "transform": null
+ },
+ {
+  "var": "LUZ",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.LUZ",
+  "transform": null
+ },
+ {
+  "var": "DRENAJE",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.DRENAJE",
+  "transform": null
+ },
+ {
+  "var": "CONVIVENCIA_CON_ANIMALES",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.CONVIVENCIA_CON_ANIMALES",
+  "transform": null
+ },
+ {
+  "var": "AIRE_ACONDICIONADO",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.AIRE_ACONDICIONADO",
+  "transform": null
+ },
+ {
+  "var": "RELIGION",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.RELIGION",
+  "transform": null
+ },
+ {
+  "var": "HIGIENE_PERSONAL",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.HIGIENE_PERSONAL",
+  "transform": null
+ },
+ {
+  "var": "BAÑO",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.BAÑO",
+  "transform": null
+ },
+ {
+  "var": "CAMBIO_DE_ROPA",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.CAMBIO_DE_ROPA",
+  "transform": null
+ },
+ {
+  "var": "ASEO_BUCAL",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.ASEO_BUCAL",
+  "transform": null
+ },
+ {
+  "var": "ALIMENTACION",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.ALIMENTACION",
+  "transform": null
+ },
+ {
+  "var": "NO_COMIDAS_AL_DIA",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.NO_COMIDAS_AL_DIA",
+  "transform": null
+ },
+ {
+  "var": "BALANCEADA",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.BALANCEADA",
+  "transform": null
+ },
+ {
+  "var": "SUFICIENTE",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.SUFICIENTE",
+  "transform": null
+ },
+ {
+  "var": "DEPORTE",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.DEPORTE",
+  "transform": null
+ },
+ {
+  "var": "FC1",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.FC1",
+  "transform": null
+ },
+ {
+  "var": "HOBBIES_PASATIEMPOS",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.HOBBIES_PASATIEMPOS",
+  "transform": null
+ },
+ {
+  "var": "FC2",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.FC2",
+  "transform": null
+ },
+ {
+  "var": "AGUA_POTABLE",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.AGUA_POTABLE",
+  "transform": "SINO"
+ },
+ {
+  "var": "LUZ",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.LUZ",
+  "transform": "SINO"
+ },
+ {
+  "var": "AIRE_ACONDICIONADO",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.AIRE_ACONDICIONADO",
+  "transform": "SINO"
+ },
+ {
+  "var": "ALIMENTACION",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.ALIMENTACION",
+  "transform": "SINO"
+ },
+ {
+  "var": "SUFICIENTE",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.SUFICIENTE",
+  "transform": "SINO"
+ },
+ {
+  "var": "BALANCEADA",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PATOLOGICOS.BALANCEADA",
+  "transform": "SINO"
+ },
+ {
+  "var": "BLG",
+  "kind": "DATA",
+  "arg": "SERV_MED_INMUNIZACIONES.BLG",
+  "transform": null
+ },
+ {
+  "var": "SABIN",
+  "kind": "DATA",
+  "arg": "SERV_MED_INMUNIZACIONES.SABIN ",
+  "transform": null
+ },
+ {
+  "var": "DPT",
+  "kind": "DATA",
+  "arg": "SERV_MED_INMUNIZACIONES.DPT",
+  "transform": null
+ },
+ {
+  "var": "HEPATITIS_B",
+  "kind": "DATA",
+  "arg": "SERV_MED_INMUNIZACIONES.HEPATITIS_B",
+  "transform": null
+ },
+ {
+  "var": "SR",
+  "kind": "DATA",
+  "arg": "SERV_MED_INMUNIZACIONES.SR",
+  "transform": null
+ },
+ {
+  "var": "INFLUENZA",
+  "kind": "DATA",
+  "arg": "SERV_MED_INMUNIZACIONES.INFLUENZA",
+  "transform": null
+ },
+ {
+  "var": "TD",
+  "kind": "DATA",
+  "arg": "SERV_MED_INMUNIZACIONES.TD",
+  "transform": null
+ },
+ {
+  "var": "COVID",
+  "kind": "DATA",
+  "arg": "SERV_MED_INMUNIZACIONES.COVID",
+  "transform": null
+ },
+ {
+  "var": "FECHA",
+  "kind": "DATA",
+  "arg": "SERV_MED_INMUNIZACIONES.FECHA",
+  "transform": null
+ },
+ {
+  "var": "BLG",
+  "kind": "DATA",
+  "arg": "SERV_MED_INMUNIZACIONES.BLG",
+  "transform": "SINO"
+ },
+ {
+  "var": "SABIN",
+  "kind": "DATA",
+  "arg": "SERV_MED_INMUNIZACIONES.SABIN ",
+  "transform": "SINO"
+ },
+ {
+  "var": "DPT",
+  "kind": "DATA",
+  "arg": "SERV_MED_INMUNIZACIONES.DPT",
+  "transform": "SINO"
+ },
+ {
+  "var": "HEPATITIS_B",
+  "kind": "DATA",
+  "arg": "SERV_MED_INMUNIZACIONES.HEPATITIS_B",
+  "transform": "SINO"
+ },
+ {
+  "var": "SR",
+  "kind": "DATA",
+  "arg": "SERV_MED_INMUNIZACIONES.SR",
+  "transform": "SINO"
+ },
+ {
+  "var": "INFLUENZA",
+  "kind": "DATA",
+  "arg": "SERV_MED_INMUNIZACIONES.INFLUENZA",
+  "transform": "SINO"
+ },
+ {
+  "var": "TD",
+  "kind": "DATA",
+  "arg": "SERV_MED_INMUNIZACIONES.TD",
+  "transform": "SINO"
+ },
+ {
+  "var": "MENARCA",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_GIN_OBSTETRICOS.MENARCA",
+  "transform": null
+ },
+ {
+  "var": "RITMO",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_GIN_OBSTETRICOS.RITMO",
+  "transform": null
+ },
+ {
+  "var": "IVSA",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_GIN_OBSTETRICOS.IVSA",
+  "transform": null
+ },
+ {
+  "var": "FUM",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_GIN_OBSTETRICOS.FUM",
+  "transform": null
+ },
+ {
+  "var": "G",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_GIN_OBSTETRICOS.G",
+  "transform": null
+ },
+ {
+  "var": "A",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_GIN_OBSTETRICOS.A",
+  "transform": null
+ },
+ {
+  "var": "P",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_GIN_OBSTETRICOS.P",
+  "transform": null
+ },
+ {
+  "var": "C",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_GIN_OBSTETRICOS.C",
+  "transform": null
+ },
+ {
+  "var": "MET_PLANIFICACION",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_GIN_OBSTETRICOS.MET_PLANIFICACION",
+  "transform": null
+ },
+ {
+  "var": "PAPANICOLAOU",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_GIN_OBSTETRICOS.PAPANICOLAOU",
+  "transform": null
+ },
+ {
+  "var": "INFECC_REP",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_GIN_OBSTETRICOS.INFECC_REP",
+  "transform": null
+ },
+ {
+  "var": "FUP",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_GIN_OBSTETRICOS.FUP",
+  "transform": null
+ },
+ {
+  "var": "ENF_CONGENITAS",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PER_PATOLOGICOS.ENF_CONGENITAS",
+  "transform": null
+ },
+ {
+  "var": "GENITAL",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PER_PATOLOGICOS.GENITAL",
+  "transform": null
+ },
+ {
+  "var": "ENF_PROP_INF",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PER_PATOLOGICOS.ENF_PROP_INF",
+  "transform": null
+ },
+ {
+  "var": "DERMATOPATIAS",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PER_PATOLOGICOS.DERMATOPATIAS",
+  "transform": null
+ },
+ {
+  "var": "SIST_AUDITIVO",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PER_PATOLOGICOS.SIST_AUDITIVO",
+  "transform": null
+ },
+ {
+  "var": "RESPIRATORIO",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PER_PATOLOGICOS.RESPIRATORIO",
+  "transform": null
+ },
+ {
+  "var": "SIS_OLFATIVO",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PER_PATOLOGICOS.SIS_OLFATIVO",
+  "transform": null
+ },
+ {
+  "var": "TRAUMATICOS",
+  "kind": "DATA",
+  "arg": "SERV_MED_ANT_PER_PATOLOGICOS.TRAUMATICOS",
+  "transform": null
+ },
+ {
+  "var": "USO_LENTES",
+  "kind": "DATA",
+  "arg": "SERV_MED_OFTALMOLOGICO.USO_LENTES",
+  "transform": null
+ },
+ {
+  "var": "USO_LENTES_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_OFTALMOLOGICO.USO_LENTES_OBS",
+  "transform": null
+ },
+ {
+  "var": "ASTIGMATISMO",
+  "kind": "DATA",
+  "arg": "SERV_MED_OFTALMOLOGICO.ASTIGMATISMO",
+  "transform": null
+ },
+ {
+  "var": "ASTIGMATISMO_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_OFTALMOLOGICO.ASTIGMATISMO_OBS",
+  "transform": null
+ },
+ {
+  "var": "PRESBICIA",
+  "kind": "DATA",
+  "arg": "SERV_MED_OFTALMOLOGICO.PRESBICIA",
+  "transform": null
+ },
+ {
+  "var": "PRESBICIA_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_OFTALMOLOGICO.PRESBICIA_OBS",
+  "transform": null
+ },
+ {
+  "var": "ESTRABISMO",
+  "kind": "DATA",
+  "arg": "SERV_MED_OFTALMOLOGICO.ESTRABISMO",
+  "transform": null
+ },
+ {
+  "var": "ESTRABISMO_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_OFTALMOLOGICO.ESTRABISMO_OBS",
+  "transform": null
+ },
+ {
+  "var": "DALTONISMO",
+  "kind": "DATA",
+  "arg": "SERV_MED_OFTALMOLOGICO.DALTONISMO",
+  "transform": null
+ },
+ {
+  "var": "DALTONISMO_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_OFTALMOLOGICO.DALTONISMO_OBS",
+  "transform": null
+ },
+ {
+  "var": "DESPENDIMIENTO_RET",
+  "kind": "DATA",
+  "arg": "SERV_MED_OFTALMOLOGICO.DESPENDIMIENTO_RET",
+  "transform": null
+ },
+ {
+  "var": "DESPENDIMIENTO_RET_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_OFTALMOLOGICO.DESPENDIMIENTO_RET_OBS",
+  "transform": null
+ },
+ {
+  "var": "MIOPIA",
+  "kind": "DATA",
+  "arg": "SERV_MED_OFTALMOLOGICO.MIOPIA",
+  "transform": null
+ },
+ {
+  "var": "MIOPIA_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_OFTALMOLOGICO.MIOPIA_OBS",
+  "transform": null
+ },
+ {
+  "var": "USO_LENTES",
+  "kind": "DATA",
+  "arg": "SERV_MED_OFTALMOLOGICO.USO_LENTES",
+  "transform": "SINO"
+ },
+ {
+  "var": "ASTIGMATISMO",
+  "kind": "DATA",
+  "arg": "SERV_MED_OFTALMOLOGICO.ASTIGMATISMO",
+  "transform": "SINO"
+ },
+ {
+  "var": "PRESBICIA",
+  "kind": "DATA",
+  "arg": "SERV_MED_OFTALMOLOGICO.PRESBICIA",
+  "transform": "SINO"
+ },
+ {
+  "var": "ESTRABISMO",
+  "kind": "DATA",
+  "arg": "SERV_MED_OFTALMOLOGICO.ESTRABISMO",
+  "transform": "SINO"
+ },
+ {
+  "var": "DALTONISMO",
+  "kind": "DATA",
+  "arg": "SERV_MED_OFTALMOLOGICO.DALTONISMO",
+  "transform": "SINO"
+ },
+ {
+  "var": "DESPENDIMIENTO_RET",
+  "kind": "DATA",
+  "arg": "SERV_MED_OFTALMOLOGICO.DESPENDIMIENTO_RET",
+  "transform": "SINO"
+ },
+ {
+  "var": "MIOPIA",
+  "kind": "DATA",
+  "arg": "SERV_MED_OFTALMOLOGICO.MIOPIA",
+  "transform": "SINO"
+ },
+ {
+  "var": "HERNIAS",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIGESTIVO.HERNIAS",
+  "transform": null
+ },
+ {
+  "var": "HERNIAS_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIGESTIVO.HERNIAS_OBS",
+  "transform": null
+ },
+ {
+  "var": "CIRROSIS",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIGESTIVO.CIRROSIS",
+  "transform": null
+ },
+ {
+  "var": "CIRROSIS_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIGESTIVO.CIRROSIS_OBS",
+  "transform": null
+ },
+ {
+  "var": "COLITIS",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIGESTIVO.COLITIS",
+  "transform": null
+ },
+ {
+  "var": "COLITIS_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIGESTIVO.COLITIS_OBS",
+  "transform": null
+ },
+ {
+  "var": "GASTRITIS",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIGESTIVO.GASTRITIS",
+  "transform": null
+ },
+ {
+  "var": "GASTRITIS_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIGESTIVO.GASTRITIS_OBS",
+  "transform": null
+ },
+ {
+  "var": "HEMORROIDES",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIGESTIVO.HEMORROIDES",
+  "transform": null
+ },
+ {
+  "var": "HEMORROIDES_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIGESTIVO.HEMORROIDES_OBS",
+  "transform": null
+ },
+ {
+  "var": "CIRUGIAS",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIGESTIVO.CIRUGIAS",
+  "transform": null
+ },
+ {
+  "var": "CIRUGIAS_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIGESTIVO.CIRUGIAS_OBS",
+  "transform": null
+ },
+ {
+  "var": "HERNIAS",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIGESTIVO.HERNIAS",
+  "transform": "SINO"
+ },
+ {
+  "var": "CIRROSIS",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIGESTIVO.CIRROSIS",
+  "transform": "SINO"
+ },
+ {
+  "var": "COLITIS",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIGESTIVO.COLITIS",
+  "transform": "SINO"
+ },
+ {
+  "var": "GASTRITIS",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIGESTIVO.GASTRITIS",
+  "transform": "SINO"
+ },
+ {
+  "var": "HEMORROIDES",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIGESTIVO.HEMORROIDES",
+  "transform": "SINO"
+ },
+ {
+  "var": "CIRUGIAS",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIGESTIVO.CIRUGIAS",
+  "transform": "SINO"
+ },
+ {
+  "var": "INCONTINENSIA",
+  "kind": "DATA",
+  "arg": "SERV_MED_RENAL.INCONTINENSIA",
+  "transform": null
+ },
+ {
+  "var": "INCONTINENSIA_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_RENAL.INCONTINENSIA_OBS",
+  "transform": null
+ },
+ {
+  "var": "INSUFICIENCIA",
+  "kind": "DATA",
+  "arg": "SERV_MED_RENAL.INSUFICIENCIA",
+  "transform": null
+ },
+ {
+  "var": "INSUFICIENCIA_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_RENAL.INSUFICIENCIA_OBS",
+  "transform": null
+ },
+ {
+  "var": "LITIASIS",
+  "kind": "DATA",
+  "arg": "SERV_MED_RENAL.LITIASIS",
+  "transform": null
+ },
+ {
+  "var": "LITIASIS_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_RENAL.LITIASIS_OBS",
+  "transform": null
+ },
+ {
+  "var": "INCONTINENSIA",
+  "kind": "DATA",
+  "arg": "SERV_MED_RENAL.INCONTINENSIA",
+  "transform": "SINO"
+ },
+ {
+  "var": "INSUFICIENCIA",
+  "kind": "DATA",
+  "arg": "SERV_MED_RENAL.INSUFICIENCIA",
+  "transform": "SINO"
+ },
+ {
+  "var": "LITIASIS",
+  "kind": "DATA",
+  "arg": "SERV_MED_RENAL.LITIASIS",
+  "transform": "SINO"
+ },
+ {
+  "var": "ANEURISMA",
+  "kind": "DATA",
+  "arg": "SERV_MED_SIST_NERVIOSO.ANEURISMA",
+  "transform": null
+ },
+ {
+  "var": "ANEURISMA_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_SIST_NERVIOSO.ANEURISMA_OBS",
+  "transform": null
+ },
+ {
+  "var": "ENF_DEG_MUS_NEU",
+  "kind": "DATA",
+  "arg": "SERV_MED_SIST_NERVIOSO.ENF_DEG_MUS_NEU",
+  "transform": null
+ },
+ {
+  "var": "ENF_DEG_MUS_NEU_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_SIST_NERVIOSO.ENF_DEG_MUS_NEU_OBS",
+  "transform": null
+ },
+ {
+  "var": "ACC_CER_VASCU",
+  "kind": "DATA",
+  "arg": "SERV_MED_SIST_NERVIOSO.ACC_CER_VASCU",
+  "transform": null
+ },
+ {
+  "var": "ACC_CER_VASCU_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_SIST_NERVIOSO.ACC_CER_VASCU_OBS",
+  "transform": null
+ },
+ {
+  "var": "EPILEPSIA2",
+  "kind": "DATA",
+  "arg": "SERV_MED_SIST_NERVIOSO.EPILEPSIA",
+  "transform": null
+ },
+ {
+  "var": "EPILEPSIA_OBS2",
+  "kind": "DATA",
+  "arg": "SERV_MED_SIST_NERVIOSO.EPILEPSIA_OBS",
+  "transform": null
+ },
+ {
+  "var": "PAR_FACIAL",
+  "kind": "DATA",
+  "arg": "SERV_MED_SIST_NERVIOSO.PAR_FACIAL",
+  "transform": null
+ },
+ {
+  "var": "PAR_FACIAL_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_SIST_NERVIOSO.PAR_FACIAL_OBS",
+  "transform": null
+ },
+ {
+  "var": "ANEURISMA",
+  "kind": "DATA",
+  "arg": "SERV_MED_SIST_NERVIOSO.ANEURISMA",
+  "transform": "SINO"
+ },
+ {
+  "var": "ENF_DEG_MUS_NEU",
+  "kind": "DATA",
+  "arg": "SERV_MED_SIST_NERVIOSO.ENF_DEG_MUS_NEU",
+  "transform": "SINO"
+ },
+ {
+  "var": "ACC_CER_VASCU",
+  "kind": "DATA",
+  "arg": "SERV_MED_SIST_NERVIOSO.ACC_CER_VASCU",
+  "transform": "SINO"
+ },
+ {
+  "var": "EPILEPSIA2",
+  "kind": "DATA",
+  "arg": "SERV_MED_SIST_NERVIOSO.EPILEPSIA",
+  "transform": "SINO"
+ },
+ {
+  "var": "PAR_FACIAL",
+  "kind": "DATA",
+  "arg": "SERV_MED_SIST_NERVIOSO.PAR_FACIAL",
+  "transform": "SINO"
+ },
+ {
+  "var": "ESCOLIOSIS",
+  "kind": "DATA",
+  "arg": "SERV_MED_MUS_ESQUELETICO.ESCOLIOSIS",
+  "transform": null
+ },
+ {
+  "var": "ESCOLIOSIS_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_MUS_ESQUELETICO.ESCOLIOSIS_OBS",
+  "transform": null
+ },
+ {
+  "var": "XIFOSIS",
+  "kind": "DATA",
+  "arg": "SERV_MED_MUS_ESQUELETICO.XIFOSIS",
+  "transform": null
+ },
+ {
+  "var": "XIFOSIS_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_MUS_ESQUELETICO.XIFOSIS_OBS",
+  "transform": null
+ },
+ {
+  "var": "LORDOSISI",
+  "kind": "DATA",
+  "arg": "SERV_MED_MUS_ESQUELETICO.LORDOSISI",
+  "transform": null
+ },
+ {
+  "var": "LORDOSISI_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_MUS_ESQUELETICO.LORDOSIS_OBS",
+  "transform": null
+ },
+ {
+  "var": "LUMBALGIA",
+  "kind": "DATA",
+  "arg": "SERV_MED_MUS_ESQUELETICO.LUMBALGIA ",
+  "transform": null
+ },
+ {
+  "var": "LUMBALGIA_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_MUS_ESQUELETICO.LUMBALGIA _OBS",
+  "transform": null
+ },
+ {
+  "var": "BASCULAMIENTO",
+  "kind": "DATA",
+  "arg": "SERV_MED_MUS_ESQUELETICO.BASCULAMIENTO",
+  "transform": null
+ },
+ {
+  "var": "BASCULAMIENTO_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_MUS_ESQUELETICO.BASCULAMIENTO_OBS",
+  "transform": null
+ },
+ {
+  "var": "ALTERACION_DISCAL",
+  "kind": "DATA",
+  "arg": "SERV_MED_MUS_ESQUELETICO.ALTERACION_DISCAL",
+  "transform": null
+ },
+ {
+  "var": "ALTERACION_DISCAL_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_MUS_ESQUELETICO.ALTERACION_DISCAL_OBS",
+  "transform": null
+ },
+ {
+  "var": "ESCOLIOSIS",
+  "kind": "DATA",
+  "arg": "SERV_MED_MUS_ESQUELETICO.ESCOLIOSIS",
+  "transform": "SINO"
+ },
+ {
+  "var": "XIFOSIS",
+  "kind": "DATA",
+  "arg": "SERV_MED_MUS_ESQUELETICO.XIFOSIS",
+  "transform": "SINO"
+ },
+ {
+  "var": "LORDOSISI",
+  "kind": "DATA",
+  "arg": "SERV_MED_MUS_ESQUELETICO.LORDOSISI",
+  "transform": "SINO"
+ },
+ {
+  "var": "LUMBALGIA",
+  "kind": "DATA",
+  "arg": "SERV_MED_MUS_ESQUELETICO.LUMBALGIA ",
+  "transform": "SINO"
+ },
+ {
+  "var": "BASCULAMIENTO",
+  "kind": "DATA",
+  "arg": "SERV_MED_MUS_ESQUELETICO.BASCULAMIENTO",
+  "transform": "SINO"
+ },
+ {
+  "var": "ALTERACION_DISCAL",
+  "kind": "DATA",
+  "arg": "SERV_MED_MUS_ESQUELETICO.ALTERACION_DISCAL",
+  "transform": "SINO"
+ },
+ {
+  "var": "ANEURISMA2",
+  "kind": "DATA",
+  "arg": "SERV_MED_CARDIO_NO_PATO.ANEURISMA",
+  "transform": null
+ },
+ {
+  "var": "ANEURISMA_OBS2",
+  "kind": "DATA",
+  "arg": "SERV_MED_CARDIO_NO_PATO.ANEURISMA_OBS",
+  "transform": null
+ },
+ {
+  "var": "HIPERTENSION2",
+  "kind": "DATA",
+  "arg": "SERV_MED_CARDIO_NO_PATO.HIPERTENSION",
+  "transform": null
+ },
+ {
+  "var": "HIPERTENSION_OBS2",
+  "kind": "DATA",
+  "arg": "SERV_MED_CARDIO_NO_PATO.HIPERTENSION_OBS",
+  "transform": null
+ },
+ {
+  "var": "HIPOTENSION2",
+  "kind": "DATA",
+  "arg": "SERV_MED_CARDIO_NO_PATO.HIPOTENSION",
+  "transform": null
+ },
+ {
+  "var": "HIPOTENSION_OBS2",
+  "kind": "DATA",
+  "arg": "SERV_MED_CARDIO_NO_PATO.HIPOTENSION_OBS",
+  "transform": null
+ },
+ {
+  "var": "INFARTOS",
+  "kind": "DATA",
+  "arg": "SERV_MED_CARDIO_NO_PATO.INFARTOS ",
+  "transform": null
+ },
+ {
+  "var": "INFARTOS_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_CARDIO_NO_PATO.INFARTOS_OBS",
+  "transform": null
+ },
+ {
+  "var": "INSUFIC_CAR",
+  "kind": "DATA",
+  "arg": "SERV_MED_CARDIO_NO_PATO.INSUFIC_CAR",
+  "transform": null
+ },
+ {
+  "var": "INSUFIC_CAR_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_CARDIO_NO_PATO.INSUFIC_CAR_OBS",
+  "transform": null
+ },
+ {
+  "var": "ANEURISMA2",
+  "kind": "DATA",
+  "arg": "SERV_MED_CARDIO_NO_PATO.ANEURISMA",
+  "transform": "SINO"
+ },
+ {
+  "var": "HIPERTENSION2",
+  "kind": "DATA",
+  "arg": "SERV_MED_CARDIO_NO_PATO.HIPERTENSION",
+  "transform": "SINO"
+ },
+ {
+  "var": "HIPOTENSION2",
+  "kind": "DATA",
+  "arg": "SERV_MED_CARDIO_NO_PATO.HIPOTENSION",
+  "transform": "SINO"
+ },
+ {
+  "var": "INFARTOS",
+  "kind": "DATA",
+  "arg": "SERV_MED_CARDIO_NO_PATO.INFARTOS ",
+  "transform": "SINO"
+ },
+ {
+  "var": "INSUFIC_CAR",
+  "kind": "DATA",
+  "arg": "SERV_MED_CARDIO_NO_PATO.INSUFIC_CAR",
+  "transform": "SINO"
+ },
+ {
+  "var": "ALRGNEWINP",
+  "kind": "DATA",
+  "arg": "SERV_MED_TOXI_NO_PATO.ALERGIAS",
+  "transform": null
+ },
+ {
+  "var": "ALRGNEWINPOBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_TOXI_NO_PATO.ALERGIAS_OBS",
+  "transform": null
+ },
+ {
+  "var": "TABAQUISMO2",
+  "kind": "DATA",
+  "arg": "SERV_MED_TOXI_NO_PATO.TABAQUISMO",
+  "transform": null
+ },
+ {
+  "var": "TABAQUISMO_OBS2",
+  "kind": "DATA",
+  "arg": "SERV_MED_TOXI_NO_PATO.TABAQUISMO_OBS",
+  "transform": null
+ },
+ {
+  "var": "ALCOHOLISMO2",
+  "kind": "DATA",
+  "arg": "SERV_MED_TOXI_NO_PATO.ALCOHOLISMO",
+  "transform": null
+ },
+ {
+  "var": "ALCOHOLISMO_OBS2",
+  "kind": "DATA",
+  "arg": "SERV_MED_TOXI_NO_PATO.ALCOHOLISMO_OBS",
+  "transform": null
+ },
+ {
+  "var": "DROGAS2",
+  "kind": "DATA",
+  "arg": "SERV_MED_TOXI_NO_PATO.DROGAS",
+  "transform": null
+ },
+ {
+  "var": "DROGAS_OBS2",
+  "kind": "DATA",
+  "arg": "SERV_MED_TOXI_NO_PATO.DROGAS_OBS",
+  "transform": null
+ },
+ {
+  "var": "ALT_CARGA",
+  "kind": "DATA",
+  "arg": "SERV_MED_TOXI_NO_PATO.ALT_CARGA ",
+  "transform": null
+ },
+ {
+  "var": "ALT_CARGA_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_TOXI_NO_PATO.ALT_CARGA_OBS",
+  "transform": null
+ },
+ {
+  "var": "PERFORACIONES",
+  "kind": "DATA",
+  "arg": "SERV_MED_TOXI_NO_PATO.PERFORACIONES",
+  "transform": null
+ },
+ {
+  "var": "PERFORACIONES_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_TOXI_NO_PATO.PERFORACIONES_OBS",
+  "transform": null
+ },
+ {
+  "var": "TATUAJES",
+  "kind": "DATA",
+  "arg": "SERV_MED_TOXI_NO_PATO.TATUAJES",
+  "transform": null
+ },
+ {
+  "var": "TATUAJES_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_TOXI_NO_PATO.TATUAJES_OBS",
+  "transform": null
+ },
+ {
+  "var": "ALRGNEWINP",
+  "kind": "DATA",
+  "arg": "SERV_MED_TOXI_NO_PATO.ALERGIAS",
+  "transform": "SINO"
+ },
+ {
+  "var": "TABAQUISMO2",
+  "kind": "DATA",
+  "arg": "SERV_MED_TOXI_NO_PATO.TABAQUISMO",
+  "transform": "SINO"
+ },
+ {
+  "var": "ALCOHOLISMO2",
+  "kind": "DATA",
+  "arg": "SERV_MED_TOXI_NO_PATO.ALCOHOLISMO",
+  "transform": "SINO"
+ },
+ {
+  "var": "DROGAS2",
+  "kind": "DATA",
+  "arg": "SERV_MED_TOXI_NO_PATO.DROGAS",
+  "transform": "SINO"
+ },
+ {
+  "var": "ALT_CARGA",
+  "kind": "DATA",
+  "arg": "SERV_MED_TOXI_NO_PATO.ALT_CARGA ",
+  "transform": "SINO"
+ },
+ {
+  "var": "PERFORACIONES",
+  "kind": "DATA",
+  "arg": "SERV_MED_TOXI_NO_PATO.PERFORACIONES",
+  "transform": "SINO"
+ },
+ {
+  "var": "TATUAJES",
+  "kind": "DATA",
+  "arg": "SERV_MED_TOXI_NO_PATO.TATUAJES",
+  "transform": "SINO"
+ },
+ {
+  "var": "DIABETES",
+  "kind": "DATA",
+  "arg": "SERV_MED_ENDOCRI_NO_PATO.DIABETES",
+  "transform": null
+ },
+ {
+  "var": "DIABETES_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_ENDOCRI_NO_PATO.DIABETES_OBS",
+  "transform": null
+ },
+ {
+  "var": "HIPERTIROIDISMO2",
+  "kind": "DATA",
+  "arg": "SERV_MED_ENDOCRI_NO_PATO.HIPERTIROIDISMO",
+  "transform": null
+ },
+ {
+  "var": "HIPERTIROIDISMO_OBS2",
+  "kind": "DATA",
+  "arg": "SERV_MED_ENDOCRI_NO_PATO.HIPERTIROIDISMO_OBS",
+  "transform": null
+ },
+ {
+  "var": "HIPOTIROIDISMO2",
+  "kind": "DATA",
+  "arg": "SERV_MED_ENDOCRI_NO_PATO.HIPOTIROIDISMO",
+  "transform": null
+ },
+ {
+  "var": "HIPOTIROIDISMO_OBS2",
+  "kind": "DATA",
+  "arg": "SERV_MED_ENDOCRI_NO_PATO.HIPOTIROIDISMO_OBS",
+  "transform": null
+ },
+ {
+  "var": "DIABETES",
+  "kind": "DATA",
+  "arg": "SERV_MED_ENDOCRI_NO_PATO.DIABETES",
+  "transform": "SINO"
+ },
+ {
+  "var": "HIPERTIROIDISMO2",
+  "kind": "DATA",
+  "arg": "SERV_MED_ENDOCRI_NO_PATO.HIPERTIROIDISMO",
+  "transform": "SINO"
+ },
+ {
+  "var": "HIPOTIROIDISMO2",
+  "kind": "DATA",
+  "arg": "SERV_MED_ENDOCRI_NO_PATO.HIPOTIROIDISMO",
+  "transform": "SINO"
+ },
+ {
+  "var": "OBSERVACIONES",
+  "kind": "DATA",
+  "arg": "SERV_MED_PADECI_ACTUAL.OBSERVACIONES",
+  "transform": null
+ },
+ {
+  "var": "OBSERVACIONES2",
+  "kind": "DATA",
+  "arg": "SERV_MED_INT_APARATO_SIST.OBSERVACIONES",
+  "transform": null
+ },
+ {
+  "var": "PESO",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.PESO",
+  "transform": null
+ },
+ {
+  "var": "TALLA",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.TALLA",
+  "transform": null
+ },
+ {
+  "var": "IMC",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.IMC",
+  "transform": null
+ },
+ {
+  "var": "FC",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.FC",
+  "transform": null
+ },
+ {
+  "var": "FR",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.FR",
+  "transform": null
+ },
+ {
+  "var": "TA",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.TA",
+  "transform": null
+ },
+ {
+  "var": "TEMP",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.TEMP",
+  "transform": null
+ },
+ {
+  "var": "ECTOMORFICO",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.ECTOMORFICO",
+  "transform": null
+ },
+ {
+  "var": "MESOMORFO",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.MESOMORFO",
+  "transform": null
+ },
+ {
+  "var": "ENDOMORFICA",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.ENDOMORFICA",
+  "transform": null
+ },
+ {
+  "var": "SATISFACCION",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.SATISFACCION",
+  "transform": null
+ },
+ {
+  "var": "COMP_TRABAJO",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.COMP_TRABAJO",
+  "transform": null
+ },
+ {
+  "var": "COMP_ORGANIZACION",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.COMP_ORGANIZACION",
+  "transform": null
+ },
+ {
+  "var": "TIEMPO",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.TIEMPO",
+  "transform": null
+ },
+ {
+  "var": "SATISFACCION",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.SATISFACCION",
+  "transform": "SINO"
+ },
+ {
+  "var": "COMP_TRABAJO",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.COMP_TRABAJO",
+  "transform": "SINO"
+ },
+ {
+  "var": "COMP_ORGANIZACION",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.COMP_ORGANIZACION",
+  "transform": "SINO"
+ },
+ {
+  "var": "ESPACIO",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.ESPACIO",
+  "transform": null
+ },
+ {
+  "var": "PERSONA",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.PERSONA",
+  "transform": null
+ },
+ {
+  "var": "SERENIDAD",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.SERENIDAD",
+  "transform": null
+ },
+ {
+  "var": "INTERES",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.INTERES",
+  "transform": null
+ },
+ {
+  "var": "ANTAGONICO",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.ANTAGONICO",
+  "transform": null
+ },
+ {
+  "var": "ENTUSIASTA",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.ENTUSIASTA",
+  "transform": null
+ },
+ {
+  "var": "ENOJO",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.ENOJO",
+  "transform": null
+ },
+ {
+  "var": "HIPOCRITA",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.HIPOCRITA",
+  "transform": null
+ },
+ {
+  "var": "ICTERICA",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.ICTERICA",
+  "transform": null
+ },
+ {
+  "var": "ANEMICA",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.ANEMICA",
+  "transform": null
+ },
+ {
+  "var": "TIROIDEA",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.TIROIDEA",
+  "transform": null
+ },
+ {
+  "var": "NOLMAL_FASCIES",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.NOLMAL_FASCIES",
+  "transform": null
+ },
+ {
+  "var": "PARKINSON2",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.PARKINSON",
+  "transform": null
+ },
+ {
+  "var": "HEMIPLEJICO",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.HEMIPLEJICO",
+  "transform": null
+ },
+ {
+  "var": "ATAXICA",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.ATAXICA",
+  "transform": null
+ },
+ {
+  "var": "HEMIPARESIA",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.HEMIPARESIA",
+  "transform": null
+ },
+ {
+  "var": "NORMAL_MARCHA",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.NORMAL_MARCHA",
+  "transform": null
+ },
+ {
+  "var": "LENGUAJE",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.LENGUAJE",
+  "transform": null
+ },
+ {
+  "var": "CONVER_FLUIDA",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.CONVER_FLUIDA",
+  "transform": null
+ },
+ {
+  "var": "COHERENCIA_PALABLAS",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.COHERENCIA_PALABLAS",
+  "transform": null
+ },
+ {
+  "var": "LENGUAJE",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.LENGUAJE",
+  "transform": "SINO"
+ },
+ {
+  "var": "CONVER_FLUIDA",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.CONVER_FLUIDA",
+  "transform": "SINO"
+ },
+ {
+  "var": "COHERENCIA_PALABLAS",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXPLORACION_FISICA.COHERENCIA_PALABLAS",
+  "transform": "SINO"
+ },
+ {
+  "var": "OJOS",
+  "kind": "DATA",
+  "arg": "SERV_MED_CRANEO.OJOS",
+  "transform": null
+ },
+ {
+  "var": "PUPILAS",
+  "kind": "DATA",
+  "arg": "SERV_MED_CRANEO.PUPILAS",
+  "transform": null
+ },
+ {
+  "var": "CONJUNTIVAS",
+  "kind": "DATA",
+  "arg": "SERV_MED_CRANEO.CONJUNTIVAS",
+  "transform": null
+ },
+ {
+  "var": "REFLEJOS",
+  "kind": "DATA",
+  "arg": "SERV_MED_CRANEO.REFLEJOS",
+  "transform": null
+ },
+ {
+  "var": "FONDO_OJO",
+  "kind": "DATA",
+  "arg": "SERV_MED_CRANEO.FONDO_OJO",
+  "transform": null
+ },
+ {
+  "var": "OD",
+  "kind": "DATA",
+  "arg": "SERV_MED_AGUDEZA_VISUAL.OD",
+  "transform": null
+ },
+ {
+  "var": "OIZ",
+  "kind": "DATA",
+  "arg": "SERV_MED_AGUDEZA_VISUAL.OIZ",
+  "transform": null
+ },
+ {
+  "var": "COLORES",
+  "kind": "DATA",
+  "arg": "SERV_MED_AGUDEZA_VISUAL.COLORES",
+  "transform": null
+ },
+ {
+  "var": "CAVIDAD_NASAL",
+  "kind": "DATA",
+  "arg": "SERV_MED_NARIZ.CAVIDAD_NASAL",
+  "transform": null
+ },
+ {
+  "var": "MUCOSA",
+  "kind": "DATA",
+  "arg": "SERV_MED_NARIZ.MUCOSA",
+  "transform": null
+ },
+ {
+  "var": "TABIQUE_NASAL",
+  "kind": "DATA",
+  "arg": "SERV_MED_NARIZ.TABIQUE_NASA",
+  "transform": null
+ },
+ {
+  "var": "OLFATO",
+  "kind": "DATA",
+  "arg": "SERV_MED_NARIZ.OLFATO",
+  "transform": null
+ },
+ {
+  "var": "CERVICAL",
+  "kind": "DATA",
+  "arg": "SERV_MED_COLUMNA_VERTEBRAL.CERVICA",
+  "transform": null
+ },
+ {
+  "var": "DORSAL",
+  "kind": "DATA",
+  "arg": "SERV_MED_COLUMNA_VERTEBRAL.DORSAL",
+  "transform": null
+ },
+ {
+  "var": "LUMBAR",
+  "kind": "DATA",
+  "arg": "SERV_MED_COLUMNA_VERTEBRAL.LUMBAR",
+  "transform": null
+ },
+ {
+  "var": "LESIONES",
+  "kind": "DATA",
+  "arg": "SERV_MED_BOCA.LESIONES",
+  "transform": null
+ },
+ {
+  "var": "ENCIAS",
+  "kind": "DATA",
+  "arg": "SERV_MED_BOCA.ENCIAS",
+  "transform": null
+ },
+ {
+  "var": "OROIFARINGE",
+  "kind": "DATA",
+  "arg": "SERV_MED_BOCA.OROIFARINGE",
+  "transform": null
+ },
+ {
+  "var": "CAE",
+  "kind": "DATA",
+  "arg": "SERV_MED_OIDOS.CAE",
+  "transform": null
+ },
+ {
+  "var": "MEM_TIM",
+  "kind": "DATA",
+  "arg": "SERV_MED_OIDOS.MEM_TIM",
+  "transform": null
+ },
+ {
+  "var": "AGUD_AUDIT",
+  "kind": "DATA",
+  "arg": "SERV_MED_OIDOS.AGUD_AUDIT",
+  "transform": null
+ },
+ {
+  "var": "OID",
+  "kind": "DATA",
+  "arg": "SERV_MED_OIDOS.OD",
+  "transform": null
+ },
+ {
+  "var": "OI",
+  "kind": "DATA",
+  "arg": "SERV_MED_OIDOS.OI",
+  "transform": null
+ },
+ {
+  "var": "RUIDOS_CARDIACOS",
+  "kind": "DATA",
+  "arg": "SERV_MED_TORAX.RUIDOS_CARDIACOS",
+  "transform": null
+ },
+ {
+  "var": "REG_PRECORDIAL",
+  "kind": "DATA",
+  "arg": "SERV_MED_TORAX.REG_PRECORDIAL",
+  "transform": null
+ },
+ {
+  "var": "CAMPOS_PULM",
+  "kind": "DATA",
+  "arg": "SERV_MED_TORAX.CAMPOS_PULM",
+  "transform": null
+ },
+ {
+  "var": "DEFORMACIONES",
+  "kind": "DATA",
+  "arg": "SERV_MED_COLUMNA_VERTEBRAL_AUX.DEFORMACIONES",
+  "transform": null
+ },
+ {
+  "var": "DOLOR",
+  "kind": "DATA",
+  "arg": "SERV_MED_COLUMNA_VERTEBRAL_AUX.DOLOR",
+  "transform": null
+ },
+ {
+  "var": "MOVIMIENTOS",
+  "kind": "DATA",
+  "arg": "SERV_MED_COLUMNA_VERTEBRAL_AUX.MOVIMIENTOS",
+  "transform": null
+ },
+ {
+  "var": "MARCHA",
+  "kind": "DATA",
+  "arg": "SERV_MED_COLUMNA_VERTEBRAL_AUX.MARCHA",
+  "transform": null
+ },
+ {
+  "var": "LASSEGUE",
+  "kind": "DATA",
+  "arg": "SERV_MED_COLUMNA_VERTEBRAL_AUX.LASSEGUE",
+  "transform": null
+ },
+ {
+  "var": "PUNTA_TALON",
+  "kind": "DATA",
+  "arg": "SERV_MED_COLUMNA_VERTEBRAL_AUX.PUNTA_TALON",
+  "transform": null
+ },
+ {
+  "var": "FORMA",
+  "kind": "DATA",
+  "arg": "SERV_MED_ABDOMEN.FORMA",
+  "transform": null
+ },
+ {
+  "var": "VISCEROMEGALIAS",
+  "kind": "DATA",
+  "arg": "SERV_MED_ABDOMEN.VISCEROMEGALIAS",
+  "transform": null
+ },
+ {
+  "var": "HERNIAS2",
+  "kind": "DATA",
+  "arg": "SERV_MED_ABDOMEN.HERNIAS",
+  "transform": null
+ },
+ {
+  "var": "DOLOR",
+  "kind": "DATA",
+  "arg": "SERV_MED_ABDOMEN.DOLOR",
+  "transform": null
+ },
+ {
+  "var": "PERISTALSIS",
+  "kind": "DATA",
+  "arg": "SERV_MED_ABDOMEN.PERISTALSIS",
+  "transform": null
+ },
+ {
+  "var": "MASCULINO",
+  "kind": "DATA",
+  "arg": "SERV_MED_GENITALES.MASCULINO",
+  "transform": null
+ },
+ {
+  "var": "FEMENINO",
+  "kind": "DATA",
+  "arg": "SERV_MED_GENITALES.FEMENINO",
+  "transform": null
+ },
+ {
+  "var": "PUNTOS_URETRALES",
+  "kind": "DATA",
+  "arg": "SERV_MED_URINARIO.PUNTOS_URETRALES",
+  "transform": null
+ },
+ {
+  "var": "FOSAS_RENALES",
+  "kind": "DATA",
+  "arg": "SERV_MED_URINARIO.FOSAS_RENALES",
+  "transform": null
+ },
+ {
+  "var": "SUPERIOR",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXTREMIDADES.SUPERIOR",
+  "transform": null
+ },
+ {
+  "var": "INFERIOR",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXTREMIDADES.INFERIOR",
+  "transform": null
+ },
+ {
+  "var": "IVP",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXTREMIDADES.IVP",
+  "transform": null
+ },
+ {
+  "var": "EDEMA",
+  "kind": "DATA",
+  "arg": "SERV_MED_EXTREMIDADES.EDEMA",
+  "transform": null
+ },
+ {
+  "var": "LUNARES",
+  "kind": "DATA",
+  "arg": "SERV_MED_PIEL.LUNARES",
+  "transform": null
+ },
+ {
+  "var": "PIGMENTACION",
+  "kind": "DATA",
+  "arg": "SERV_MED_PIEL.PIGMENTACION",
+  "transform": null
+ },
+ {
+  "var": "CICATRICES_QUIRUR",
+  "kind": "DATA",
+  "arg": "SERV_MED_PIEL.CICATRICES_QUIRUR",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_11",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_11",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_12",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_12",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_13",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_13",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_14",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_14",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_15",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_15",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_16",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_16",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_17",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_17",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_18",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_18",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_41",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_41",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_42",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_42",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_43",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_43",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_44",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_44",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_45",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_45",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_46",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_46",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_47",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_47",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_48",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_48",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_2",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_2",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_22",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_22",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_23",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_23",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_24",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_24",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_25",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_25",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_26",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_26",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_27",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_27",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_28",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_28",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_31",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_31",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_32",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_32",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_33",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_33",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_34",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_34",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_35",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_35",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_36",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_36",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_37",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_37",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_38",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIENTES.DIENTE_38",
+  "transform": null
+ },
+ {
+  "var": "RESULTADOS3",
+  "kind": "DATA",
+  "arg": "SERV_MED_ESTUDIOS_REALIZADOS.RESULTADOS",
+  "transform": null
+ },
+ {
+  "var": "OBSERVACIONES3",
+  "kind": "DATA",
+  "arg": "SERV_MED_DIAGNOSTICO.OBSERVACIONES",
+  "transform": null
+ },
+ {
+  "var": "OBSERVACIONES32",
+  "kind": "DATA",
+  "arg": "SERV_MED_PLAN_TERAPIA.OBSERVACIONES",
+  "transform": null
+ },
+ {
+  "var": "DEFORMACIONES_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_CUELLO.DEFORMACIONES_OBS",
+  "transform": null
+ },
+ {
+  "var": "TIROIDES_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_CUELLO.TIROIDES_OBS",
+  "transform": null
+ },
+ {
+  "var": "TRAQUEA_OBS",
+  "kind": "DATA",
+  "arg": "SERV_MED_CUELLO.TRAQUEA_OBS",
+  "transform": null
+ },
+ {
+  "var": "OBSERVACIONESRESEXAM",
+  "kind": "DATA",
+  "arg": "SERV_MED_RESULTADO_EXAMEN.OBSERVACIONES",
+  "transform": null
+ },
+ {
+  "var": "FIRMA",
+  "kind": "DATA",
+  "arg": "SERV_MED_RESULTADO_EXAMEN.FIRMA_DIGITAL",
+  "transform": null
+ },
+ {
+  "var": "nombre",
+  "kind": "USER",
+  "arg": "nombre",
+  "transform": null
+ },
+ {
+  "var": "apellidoP",
+  "kind": "USER",
+  "arg": "apellidoPaterno",
+  "transform": null
+ },
+ {
+  "var": "apellidoM",
+  "kind": "USER",
+  "arg": "apellidoMaterno",
+  "transform": null
+ },
+ {
+  "var": "RFC",
+  "kind": "USER",
+  "arg": "rfc",
+  "transform": null
+ },
+ {
+  "var": "NSS",
+  "kind": "USER",
+  "arg": "nss",
+  "transform": null
+ },
+ {
+  "var": "sexo",
+  "kind": "USER",
+  "arg": "sexo",
+  "transform": null
+ },
+ {
+  "var": "cuenta",
+  "kind": "USER",
+  "arg": "cuenta",
+  "transform": null
+ },
+ {
+  "var": "fechaNacimiento",
+  "kind": "USER",
+  "arg": "fecha_nacimiento",
+  "transform": null
+ },
+ {
+  "var": "edoCivil",
+  "kind": "USER",
+  "arg": "estado_civil",
+  "transform": null
+ },
+ {
+  "var": "direccion",
+  "kind": "USER",
+  "arg": "direccion",
+  "transform": null
+ },
+ {
+  "var": "telefono",
+  "kind": "USER",
+  "arg": "celular",
+  "transform": null
+ },
+ {
+  "var": "turno",
+  "kind": "USER",
+  "arg": "turno",
+  "transform": null
+ },
+ {
+  "var": "rfc",
+  "kind": "USER",
+  "arg": "rfc",
+  "transform": null
+ },
+ {
+  "var": "telefonoF",
+  "kind": "USER",
+  "arg": "tel_fijo",
+  "transform": null
+ },
+ {
+  "var": "check",
+  "kind": "USER",
+  "arg": "completo",
+  "transform": null
+ },
+ {
+  "var": "puesto",
+  "kind": "USER",
+  "arg": "nombre_puesto",
+  "transform": null
+ },
+ {
+  "var": "empresa",
+  "kind": "USER",
+  "arg": "nombre_empresa",
+  "transform": null
+ },
+ {
+  "var": "DRENAJE",
+  "kind": "VAR",
+  "arg": "DRENAJE",
+  "transform": "SINO"
+ },
+ {
+  "var": "VOZCLARAYFUERTE",
+  "kind": "VAR",
+  "arg": "VOZCLARAYFUERTE",
+  "transform": "SINO"
+ },
+ {
+  "var": "LENTEOJODERECHOEXP",
+  "kind": "VAR",
+  "arg": "LENTEOJODERECHOEXP",
+  "transform": "SINO"
+ },
+ {
+  "var": "LENTEOJOIZQUIERDOEXP",
+  "kind": "VAR",
+  "arg": "LENTEOJOIZQUIERDOEXP",
+  "transform": "SINO"
+ },
+ {
+  "var": "tipoExamenInputO",
+  "kind": "TAG",
+  "arg": "tipoExamenInputO",
+  "transform": null
+ },
+ {
+  "var": "DRENAJE",
+  "kind": "TAG",
+  "arg": "Drenaje",
+  "transform": null
+ },
+ {
+  "var": "CONVIVENCIA_CON_ANIMALES",
+  "kind": "TAG",
+  "arg": "CCA",
+  "transform": null
+ },
+ {
+  "var": "VOZCLARAYFUERTE",
+  "kind": "TAG",
+  "arg": "VOZCLARAYFUERTE",
+  "transform": null
+ },
+ {
+  "var": "STPO2",
+  "kind": "TAG",
+  "arg": "STPO2",
+  "transform": null
+ },
+ {
+  "var": "edad_inicio_laborar",
+  "kind": "TAG",
+  "arg": "edad_inicio_laborar",
+  "transform": null
+ },
+ {
+  "var": "cantidad_trabajos",
+  "kind": "TAG",
+  "arg": "cantidad_trabajos",
+  "transform": null
+ },
+ {
+  "var": "pension",
+  "kind": "TAG",
+  "arg": "pension",
+  "transform": null
+ },
+ {
+  "var": "nombre1",
+  "kind": "TAG",
+  "arg": "nombre1",
+  "transform": null
+ },
+ {
+  "var": "giro1",
+  "kind": "TAG",
+  "arg": "giro1",
+  "transform": null
+ },
+ {
+  "var": "puesto1",
+  "kind": "TAG",
+  "arg": "puesto1",
+  "transform": null
+ },
+ {
+  "var": "turno1",
+  "kind": "TAG",
+  "arg": "turno1",
+  "transform": null
+ },
+ {
+  "var": "antiguedad1",
+  "kind": "TAG",
+  "arg": "antiguedad1",
+  "transform": null
+ },
+ {
+  "var": "salida1",
+  "kind": "TAG",
+  "arg": "salida1",
+  "transform": null
+ },
+ {
+  "var": "descripcion1",
+  "kind": "TAG",
+  "arg": "descripcion1",
+  "transform": null
+ },
+ {
+  "var": "riesgos1",
+  "kind": "TAG",
+  "arg": "riesgos1",
+  "transform": null
+ },
+ {
+  "var": "epp1",
+  "kind": "TAG",
+  "arg": "epp1",
+  "transform": null
+ },
+ {
+  "var": "observaciones1",
+  "kind": "TAG",
+  "arg": "observaciones1",
+  "transform": null
+ },
+ {
+  "var": "nombre2",
+  "kind": "TAG",
+  "arg": "nombre2",
+  "transform": null
+ },
+ {
+  "var": "giro2",
+  "kind": "TAG",
+  "arg": "giro2",
+  "transform": null
+ },
+ {
+  "var": "puesto2",
+  "kind": "TAG",
+  "arg": "puesto2",
+  "transform": null
+ },
+ {
+  "var": "turno2",
+  "kind": "TAG",
+  "arg": "turno2",
+  "transform": null
+ },
+ {
+  "var": "antiguedad2",
+  "kind": "TAG",
+  "arg": "antiguedad2",
+  "transform": null
+ },
+ {
+  "var": "salida2",
+  "kind": "TAG",
+  "arg": "salida2",
+  "transform": null
+ },
+ {
+  "var": "descripcion2",
+  "kind": "TAG",
+  "arg": "descripcion2",
+  "transform": null
+ },
+ {
+  "var": "riesgos2",
+  "kind": "TAG",
+  "arg": "riesgos2",
+  "transform": null
+ },
+ {
+  "var": "epp2",
+  "kind": "TAG",
+  "arg": "epp2",
+  "transform": null
+ },
+ {
+  "var": "observaciones2",
+  "kind": "TAG",
+  "arg": "observaciones2",
+  "transform": null
+ },
+ {
+  "var": "nombre3",
+  "kind": "TAG",
+  "arg": "nombre3",
+  "transform": null
+ },
+ {
+  "var": "giro3",
+  "kind": "TAG",
+  "arg": "giro3",
+  "transform": null
+ },
+ {
+  "var": "puesto3",
+  "kind": "TAG",
+  "arg": "puesto3",
+  "transform": null
+ },
+ {
+  "var": "turno3",
+  "kind": "TAG",
+  "arg": "turno3",
+  "transform": null
+ },
+ {
+  "var": "antiguedad3",
+  "kind": "TAG",
+  "arg": "antiguedad3",
+  "transform": null
+ },
+ {
+  "var": "salida3",
+  "kind": "TAG",
+  "arg": "salida3",
+  "transform": null
+ },
+ {
+  "var": "descripcion3",
+  "kind": "TAG",
+  "arg": "descripcion3",
+  "transform": null
+ },
+ {
+  "var": "riesgos3",
+  "kind": "TAG",
+  "arg": "riesgos3",
+  "transform": null
+ },
+ {
+  "var": "epp3",
+  "kind": "TAG",
+  "arg": "epp3",
+  "transform": null
+ },
+ {
+  "var": "observaciones3",
+  "kind": "TAG",
+  "arg": "observaciones3",
+  "transform": null
+ },
+ {
+  "var": "nombre4",
+  "kind": "TAG",
+  "arg": "nombre4",
+  "transform": null
+ },
+ {
+  "var": "giro4",
+  "kind": "TAG",
+  "arg": "giro4",
+  "transform": null
+ },
+ {
+  "var": "puesto4",
+  "kind": "TAG",
+  "arg": "puesto4",
+  "transform": null
+ },
+ {
+  "var": "turno4",
+  "kind": "TAG",
+  "arg": "turno4",
+  "transform": null
+ },
+ {
+  "var": "antiguedad4",
+  "kind": "TAG",
+  "arg": "antiguedad4",
+  "transform": null
+ },
+ {
+  "var": "salida4",
+  "kind": "TAG",
+  "arg": "salida4",
+  "transform": null
+ },
+ {
+  "var": "descripcion4",
+  "kind": "TAG",
+  "arg": "descripcion4",
+  "transform": null
+ },
+ {
+  "var": "riesgos4",
+  "kind": "TAG",
+  "arg": "riesgos4",
+  "transform": null
+ },
+ {
+  "var": "epp4",
+  "kind": "TAG",
+  "arg": "epp4",
+  "transform": null
+ },
+ {
+  "var": "observaciones4",
+  "kind": "TAG",
+  "arg": "observaciones4",
+  "transform": null
+ },
+ {
+  "var": "OBSGENERALINPEX",
+  "kind": "TAG",
+  "arg": "OBSGENERALINPEX",
+  "transform": null
+ },
+ {
+  "var": "ODCAEINPEXP",
+  "kind": "TAG",
+  "arg": "ODCAEINPEXP",
+  "transform": null
+ },
+ {
+  "var": "ODMEMTIMINPEXP",
+  "kind": "TAG",
+  "arg": "ODMEMTIMINPEXP",
+  "transform": null
+ },
+ {
+  "var": "ODAGAUDIINPEXP",
+  "kind": "TAG",
+  "arg": "ODAGAUDIINPEXP",
+  "transform": null
+ },
+ {
+  "var": "OIMEMTIMINPEXP",
+  "kind": "TAG",
+  "arg": "OIMEMTIMINPEXP",
+  "transform": null
+ },
+ {
+  "var": "OIAGAUDIINPEXP",
+  "kind": "TAG",
+  "arg": "OIAGAUDIINPEXP",
+  "transform": null
+ },
+ {
+  "var": "TRAQUEA_OBS",
+  "kind": "TAG",
+  "arg": "TRAQUEA_OBSINP",
+  "transform": null
+ },
+ {
+  "var": "DIENTE_2",
+  "kind": "TAG",
+  "arg": "DIENTE_2",
+  "transform": null
+ },
+ {
+  "var": "CIRUGIAS_OBS",
+  "kind": "TAG",
+  "arg": "ciruOBS",
+  "transform": null
+ },
+ {
+  "var": "LENTEOJODERECHOEXP",
+  "kind": "TAG",
+  "arg": "LENTEOJODERECHOEXP",
+  "transform": null
+ },
+ {
+  "var": "LENTEOJOIZQUIERDOEXP",
+  "kind": "TAG",
+  "arg": "LENTEOJOIZQUIERDOEXP",
+  "transform": null
+ },
+ {
+  "var": "ROMBERGEXFIS",
+  "kind": "TAG",
+  "arg": "ROMBERGEXFIS",
+  "transform": null
+ },
+ {
+  "var": "cadaCuandoDep",
+  "kind": "TAG",
+  "arg": "cadaCuandoDep",
+  "transform": null
+ },
+ {
+  "var": "cadaCuandoPasa",
+  "kind": "TAG",
+  "arg": "cadaCuandoPasa",
+  "transform": null
+ },
+ {
+  "var": "contactoEmernombre1",
+  "kind": "TAG",
+  "arg": "contactoEmernombre1",
+  "transform": null
+ },
+ {
+  "var": "contactoEmerapellido_paterno1",
+  "kind": "TAG",
+  "arg": "contactoEmerapellido_paterno1",
+  "transform": null
+ },
+ {
+  "var": "contactoEmerapellido_materno1",
+  "kind": "TAG",
+  "arg": "contactoEmerapellido_materno1",
+  "transform": null
+ },
+ {
+  "var": "contactoEmerparentesco1",
+  "kind": "TAG",
+  "arg": "contactoEmerparentesco1",
+  "transform": null
+ },
+ {
+  "var": "contactoEmertelefono1",
+  "kind": "TAG",
+  "arg": "contactoEmertelefono1",
+  "transform": null
+ },
+ {
+  "var": "contactoEmernombre2",
+  "kind": "TAG",
+  "arg": "contactoEmernombre2",
+  "transform": null
+ },
+ {
+  "var": "contactoEmerapellido_paterno2",
+  "kind": "TAG",
+  "arg": "contactoEmerapellido_paterno2",
+  "transform": null
+ },
+ {
+  "var": "contactoEmerapellido_materno2",
+  "kind": "TAG",
+  "arg": "contactoEmerapellido_materno2",
+  "transform": null
+ },
+ {
+  "var": "contactoEmerparentesco2",
+  "kind": "TAG",
+  "arg": "contactoEmerparentesco2",
+  "transform": null
+ },
+ {
+  "var": "contactoEmertelefono2",
+  "kind": "TAG",
+  "arg": "contactoEmertelefono2",
+  "transform": null
+ },
+ {
+  "var": "contactoEmernombre3",
+  "kind": "TAG",
+  "arg": "contactoEmernombre3",
+  "transform": null
+ },
+ {
+  "var": "contactoEmerapellido_paterno3",
+  "kind": "TAG",
+  "arg": "contactoEmerapellido_paterno3",
+  "transform": null
+ },
+ {
+  "var": "contactoEmerapellido_materno3",
+  "kind": "TAG",
+  "arg": "contactoEmerapellido_materno3",
+  "transform": null
+ },
+ {
+  "var": "contactoEmerparentesco3",
+  "kind": "TAG",
+  "arg": "contactoEmerparentesco3",
+  "transform": null
+ },
+ {
+  "var": "contactoEmertelefono3",
+  "kind": "TAG",
+  "arg": "contactoEmertelefono3",
+  "transform": null
+ },
+ {
+  "var": "fechaINFLUEN",
+  "kind": "TAG",
+  "arg": "fechaINFLUEN",
+  "transform": null
+ },
+ {
+  "var": "ODEXFISINPCERC",
+  "kind": "TAG",
+  "arg": "ODEXFISINPCERC",
+  "transform": null
+ },
+ {
+  "var": "ODEXFISINPCERCIZQ",
+  "kind": "TAG",
+  "arg": "ODEXFISINPCERCIZQ",
+  "transform": null
+ }
+]

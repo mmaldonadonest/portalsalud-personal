@@ -16,6 +16,10 @@ public record DashboardAntidopingDto(
         List<ConteoSimpleDto> porSustancia,
         List<ConteoSimpleDto> porResultado,
         List<ConteoSimpleDto> porStatusConclusion,
+        /** Pruebas por predio (via cuenta -> predio). Alimenta el modulo Antidoping y el radar. */
+        List<ConteoSimpleDto> porPredio,
+        /** Predio x tipo de prueba, para separar antidoping de alcoholimetria por predio. */
+        List<ConteoCruzadoDto> porPredioTipo,
         List<PuntoMensualDto> tendenciaMensual
 ) {
 }

@@ -1,5 +1,6 @@
 package com.onest.app.catalog.restriccion.web;
 
+import com.onest.app.audit.web.Auditado;
 import com.onest.app.catalog.restriccion.service.RestriccionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -31,6 +32,7 @@ public class RestriccionController {
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = "text/plain;charset=UTF-8")
     @ResponseBody
+    @Auditado(modulo = "Restricciones", accion = "create", entidad = "Restriccion medica", registro = "nss", detalle = {"codigoRestriccion", "estatus"})
     public String save(@ModelAttribute RestriccionAltaForm form) {
         try {
             String proceso = restriccionService.crear(form);

@@ -1,0 +1,46 @@
+-- =============================================================================
+-- CUENTA en el reporte de antidoping por fecha (el 4o y ultimo dominio clinico)
+-- =============================================================================
+-- Destino : misma instancia ORDS que security/Servcio/* (10.249.249.3).
+-- Fecha   : 11 de septiembre de 2026
+--
+-- Motivo: es el UNICO de los 5 reportes que todavia no trae CUENTA por registro. Por eso
+--   antidoping hoy (a) no entra al filtro por predio/cuenta, (b) es el eje que falta en el
+--   radar de Vista por Predio, y (c) el modulo Antidoping del prototipo tiene dos paneles
+--   "por predio" que no se pueden construir. Con este campo se resuelven los tres.
+--
+-- Patron IDENTICO al que ya funciono en los tres _cta de docs/ords-cuenta-en-reportes.sql:
+--   subconsulta escalar en el SELECT (NO joins en el FROM) con cast explicito. Ese es el
+--   patron final despues de los dos intentos que fallaron; no repetir los errores de ahi.
+-- =============================================================================
+
+-- Como aplicar (SQL Developer > conexion > RESTful Services):
+--   1. Abrir el handler POST de "consulta_antidoping_fecha" y COPIAR su Source.
+--   2. Modulo "Servcio" > New Template > URI Template: consulta_antidoping_fecha_cta
+--   3. New Handler > POST > Source Type: PL/SQL > pegar el Source copiado.
+--   4. Aplicar (a) y (b).
+--
+-- (a) En el SELECT del cursor del LOOP (no en el count de kexiste), agregar la columna:
+--
+--         coalesce(cast((select max(cta.CUENTA_NOMBRE)
+--                          from bio_datos_laborales_empleados dl
+--                          join biometrico_cuenta cta on dl.cuenta_id = cta.cuenta_id
+--                         where dl.emp_nss = a.nss) as varchar2(100)),
+--                  'sin cuenta asignada') cuenta,
+--
+--     El FROM se queda EXACTAMENTE como esta:
+--         from SERV_MED_ANTIDOPING_RESULTADO a left join bio_empleado b on a.nss=b.emp_nss
+--
+-- (b) En el loop de APEX_JSON, junto a las demas:
+--
+--         APEX_JSON.WRITE('cuenta',coalesce(i.cuenta,'0'));
+--
+-- =============================================================================
+-- VERIFICACION
+-- =============================================================================
+--   POST http://10.249.249.3/biows/ords/security/Servcio/consulta_antidoping_fecha_cta
+--   Body: {"fecha_inicial":"01/01/20","fecha_final":"31/12/26"}
+--
+--   Hoy hay 7 pruebas en todo el historico (medido 11-sep-2026), todas ANTIDOPING. Se
+--   espera: mismas 7 filas, las 7 con "cuenta".
+-- =============================================================================

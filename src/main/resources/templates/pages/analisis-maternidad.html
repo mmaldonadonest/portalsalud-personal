@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: analisisMaterContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Maternidad | Análisis | Portal Salud Personal</title>
+</head>
+<body>
+
+<!--
+  Maternidad (modulo Analisis, rol MEDICO_ANALISTA). Equivale a V.mater del prototipo, pero
+  con OTRA fuente: el mock se alimenta de incapacidades con ramo "maternidad", que en nuestros
+  datos no existe (0 de 291 en el historico). Aqui se usa el seguimiento propio del portal
+  (SERV_MED_MATERNIDAD_SEGUIMIENTO) via /api/dashboard/maternidad, que a su vez consume el WS
+  nuevo consulta_maternidad_fecha (docs/ords-maternidad-dashboard.sql, 11-sep-2026).
+
+  Eso hace el modulo MAS rico que el del mock: ademas de casos por mes, muestra estatus,
+  trimestre de gestacion, partos probables por mes y revisiones proximas. Lo que NO tiene son
+  dias incapacitantes ni costo (esos viven en Incapacidades y no hay FK entre ambas tablas -
+  INCAPACIDAD es una nota libre).
+-->
+<th:block id="pageStyles">
+    <link rel="stylesheet" th:href="@{/theme/lib/apexcharts/apexcharts.css}" href="/theme/lib/apexcharts/apexcharts.css">
+    <style>
+        .chart-card .card-header { border-bottom: none; padding-bottom: 0; display: block; }
+        .chart-eyebrow {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        .chart-eyebrow::before {
+            content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+            box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+        }
+        .chart-eyebrow--casos { color: #DB2777; }
+        .chart-eyebrow--partos { color: #7C3AED; }
+        .chart-eyebrow--estatus { color: #0EA5E9; }
+        .chart-eyebrow--trim { color: #047857; }
+
+        .kpi-card { border-top: 3px solid var(--kc, #94a3b8); transition: transform .15s, box-shadow .15s; }
+        .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15, 23, 42, .08); }
+        .kpi-ico {
+            width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
+            background: var(--kcbg, #f1f5f9); color: var(--kc, #64748b); margin-bottom: 9px; font-size: 16px;
+        }
+        .kpi-card--casos { --kc: #DB2777; --kcbg: #FDF2F8; }
+        .kpi-card--semanas { --kc: #7C3AED; --kcbg: #F5F3FF; }
+        .kpi-card--revision { --kc: #B45309; --kcbg: #FFFBEB; }
+        .kpi-card--reinc { --kc: #047857; --kcbg: #ECFDF5; }
+        .kpi-value { font-size: 1.6rem; font-weight: 700; letter-spacing: -.02em; color: #0f172a; line-height: 1.15; margin: 2px 0 6px; }
+        .kpi-sub { font-size: 11px; color: #64748b; margin-top: 5px; line-height: 1.4; display: block; }
+        .vacio { text-align: center; padding: 32px 16px; color: #94a3b8; font-size: 12.5px; }
+    </style>
+</th:block>
+
+<th:block th:fragment="analisisMaterContent">
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/analisis/ejecutivo}" href="/analisis/ejecutivo">Dashboard Ejecutivo</a></li>
+                <li class="breadcrumb-item"><span>Control</span></li>
+                <li class="breadcrumb-item active" aria-current="page">Maternidad</li>
+            </ol>
+            <h4 class="main-title mb-0">Maternidad</h4>
+            <p class="fs-12 text-muted mb-0" id="subtitulo">Seguimiento de casos</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" id="btnExportar" class="btn btn-outline-secondary btn-sm">
+                <i class="ri-download-2-line me-1"></i>Exportar
+            </button>
+            <button type="button" id="btnNuevo" class="btn btn-primary btn-sm"
+                    th:attr="data-url=@{/nss}" data-url="/nss">
+                <i class="ri-add-line me-1"></i>Registrar caso
+            </button>
+        </div>
+    </div>
+
+    <div class="card card-one mb-3">
+        <div class="card-body d-flex flex-wrap align-items-end gap-3">
+            <div>
+                <label class="form-label fs-12 mb-1">Año</label>
+                <select id="fAnio" class="form-select form-select-sm"></select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Periodo</label>
+                <select id="fPeriodo" class="form-select form-select-sm">
+                    <option value="0">Acumulado (todo el año)</option>
+                    <option value="1">Enero</option><option value="2">Febrero</option>
+                    <option value="3">Marzo</option><option value="4">Abril</option>
+                    <option value="5">Mayo</option><option value="6">Junio</option>
+                    <option value="7">Julio</option><option value="8">Agosto</option>
+                    <option value="9">Septiembre</option><option value="10">Octubre</option>
+                    <option value="11">Noviembre</option><option value="12">Diciembre</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1">Predio</label>
+                <select id="fPredio" class="form-select form-select-sm" style="min-width:200px">
+                    <option value="">Todos los predios</option>
+                </select>
+            </div>
+            <span id="estado" class="fs-12 text-muted ms-auto"></span>
+            <input type="hidden" id="fFechaInicial" value="">
+            <input type="hidden" id="fFechaFinal" value="">
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-xl-3">
+            <div class="card card-one kpi-card kpi-card--casos"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-heart-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Casos acumulados</span>
+                <h3 class="kpi-value" id="kpiCasos">—</h3>
+                <span class="kpi-sub" id="kpiCasosSub"></span>
+            </div></div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card card-one kpi-card kpi-card--semanas"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-calendar-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Semanas de gestación</span>
+                <h3 class="kpi-value" id="kpiSemanas">—</h3>
+                <span class="kpi-sub">promedio al registro</span>
+            </div></div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card card-one kpi-card kpi-card--revision"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-alarm-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Revisiones próximas</span>
+                <h3 class="kpi-value" id="kpiRevision">—</h3>
+                <span class="kpi-sub">en los siguientes 30 días</span>
+            </div></div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card card-one kpi-card kpi-card--reinc"><div class="card-body">
+                <div class="kpi-ico"><i class="ri-user-follow-line"></i></div>
+                <span class="fs-12 text-muted fw-medium">Reincorporadas</span>
+                <h3 class="kpi-value" id="kpiReinc">—</h3>
+                <span class="kpi-sub" id="kpiReincSub"></span>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="card card-one chart-card mb-3">
+        <div class="card-header">
+            <span class="chart-eyebrow chart-eyebrow--casos">Tendencia</span>
+            <div class="card-title-lg">Casos registrados y partos probables por mes</div>
+            <p class="fs-11 text-muted mb-0">Los partos probables anticipan las ausencias por venir</p>
+        </div>
+        <div class="card-body"><div id="chartMes"></div></div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--estatus">Estatus</span>
+                    <div class="card-title-lg">Casos por estatus</div>
+                    <p class="fs-11 text-muted mb-0" id="subEstatus"></p>
+                </div>
+                <div class="card-body"><div id="chartEstatus"></div></div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--trim">Gestación</span>
+                    <div class="card-title-lg">Casos por trimestre de gestación</div>
+                    <p class="fs-11 text-muted mb-0">Al momento del registro</p>
+                </div>
+                <div class="card-body"><div id="chartTrimestre"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <p class="fs-11 text-muted mt-3 mb-0">
+        <i class="ri-information-line"></i>
+        Fuente: el seguimiento de maternidad del portal, no las incapacidades. Los días
+        incapacitantes y el costo de una maternidad se consultan en Incapacidades; hoy el
+        seguimiento no está ligado a la incapacidad por clave. El estatus es texto libre.
+    </p>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:src="@{/theme/lib/apexcharts/apexcharts.min.js}" src="/theme/lib/apexcharts/apexcharts.min.js"></script>
+    <script th:inline="javascript">
+        (function () {
+            var contextPath = /*[[@{/}]]*/ '/';
+            var chartMes = null, chartEstatus = null, chartTrimestre = null, ultimoExport = null;
+
+            var NOMBRES_MES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
+                'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            var PALETA = ['#DB2777', '#7C3AED', '#0EA5E9', '#047857', '#D97706', '#2563EB', '#64748B'];
+
+            function numero(n) { return (n || 0).toLocaleString('es-MX'); }
+            function etiquetaMes(clave) {
+                var p = String(clave).split('-');
+                return p.length === 2 ? NOMBRES_MES[parseInt(p[1], 10) - 1] + ' ' + p[0].substring(2) : clave;
+            }
+            function vaciar(id, texto) {
+                document.getElementById(id).innerHTML = '<p class="vacio mb-0">' + texto + '</p>';
+            }
+
+            function calcularRango() {
+                var anio = parseInt(document.getElementById('fAnio').value, 10);
+                var periodo = parseInt(document.getElementById('fPeriodo').value, 10);
+                var hoy = new Date();
+                var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+                if (periodo === 0) {
+                    var fin = anio === hoy.getFullYear() ? hoy : new Date(anio, 11, 31);
+                    return {
+                        fechaInicial: anio + '-01-01',
+                        fechaFinal: fin.getFullYear() + '-' + pad(fin.getMonth() + 1) + '-' + pad(fin.getDate()),
+                        texto: 'ejercicio ' + anio
+                    };
+                }
+                var ultimo = new Date(anio, periodo, 0).getDate();
+                return {
+                    fechaInicial: anio + '-' + pad(periodo) + '-01',
+                    fechaFinal: anio + '-' + pad(periodo) + '-' + pad(ultimo),
+                    texto: NOMBRES_MES[periodo - 1] + ' ' + anio
+                };
+            }
+
+            async function cargarPredios() {
+                try {
+                    var res = await fetch(contextPath + 'api/analisis/filtros');
+                    if (!res.ok) { return; }
+                    var data = await res.json();
+                    var select = document.getElementById('fPredio');
+                    (data.predios || []).forEach(function (nombre) {
+                        var opt = document.createElement('option');
+                        opt.value = nombre;
+                        opt.textContent = nombre;
+                        select.appendChild(opt);
+                    });
+                } catch (e) { /* sin filtro de predio, la pagina sigue */ }
+            }
+
+            function inicializar() {
+                var selectAnio = document.getElementById('fAnio');
+                var actual = new Date().getFullYear();
+                for (var y = actual; y >= 2023; y--) {
+                    var opt = document.createElement('option');
+                    opt.value = y;
+                    opt.textContent = y;
+                    selectAnio.appendChild(opt);
+                }
+                ['fAnio', 'fPeriodo', 'fPredio'].forEach(function (id) {
+                    document.getElementById(id).addEventListener('change', aplicar);
+                });
+                document.getElementById('btnExportar').addEventListener('click', exportarCsv);
+                document.getElementById('btnNuevo').addEventListener('click', function () { window.location.href = this.dataset.url; });
+            }
+
+            function aplicar() {
+                var rango = calcularRango();
+                document.getElementById('fFechaInicial').value = rango.fechaInicial;
+                document.getElementById('fFechaFinal').value = rango.fechaFinal;
+                cargar(rango);
+            }
+
+            async function cargar(rango) {
+                var estado = document.getElementById('estado');
+                var predio = document.getElementById('fPredio').value;
+                var qs = 'fechaInicial=' + encodeURIComponent(rango.fechaInicial)
+                       + '&fechaFinal=' + encodeURIComponent(rango.fechaFinal)
+                       + (predio ? '&predio=' + encodeURIComponent(predio) : '');
+                estado.textContent = 'Cargando...';
+                try {
+                    var res = await fetch(contextPath + 'api/dashboard/maternidad?' + qs);
+                    if (!res.ok) { estado.textContent = 'Error al consultar (HTTP ' + res.status + ').'; return; }
+                    var d = await res.json();
+                    document.getElementById('subtitulo').textContent =
+                        numero(d.totalSeguimientos) + (d.totalSeguimientos === 1 ? ' seguimiento · ' : ' seguimientos · ')
+                        + numero(d.totalPersonas) + (d.totalPersonas === 1 ? ' persona · ' : ' personas · ')
+                        + rango.texto + (predio ? ' · ' + predio : '');
+                    pintarKpis(d);
+                    pintarMes(d);
+                    pintarEstatus(d);
+                    pintarTrimestre(d);
+                    ultimoExport = d;
+                    estado.textContent = 'Actualizado.';
+                } catch (e) {
+                    console.error('[analisis-maternidad] error en cargar():', e);
+                    estado.textContent = 'Error de red: ' + e.message;
+                }
+            }
+
+            function pintarKpis(d) {
+                document.getElementById('kpiCasos').textContent = numero(d.totalPersonas);
+                document.getElementById('kpiCasosSub').textContent = numero(d.totalSeguimientos)
+                    + (d.totalSeguimientos === 1 ? ' seguimiento registrado' : ' seguimientos registrados');
+                document.getElementById('kpiSemanas').textContent = d.promedioSemanasGestacion
+                    ? d.promedioSemanasGestacion.toFixed(1) : '—';
+                document.getElementById('kpiRevision').textContent = numero(d.revisionesProximas);
+                document.getElementById('kpiReinc').textContent = numero(d.totalReincorporadas);
+                document.getElementById('kpiReincSub').textContent = d.totalPersonas
+                    ? Math.round((d.totalReincorporadas / d.totalPersonas) * 100) + '% de los casos' : '';
+            }
+
+            function pintarMes(d) {
+                var meses = {};
+                (d.tendenciaMensual || []).forEach(function (p) { meses[p.mes] = true; });
+                (d.partosPorMes || []).forEach(function (p) { meses[p.mes] = true; });
+                var claves = Object.keys(meses).sort();
+                if (!claves.length) { vaciar('chartMes', 'Sin casos en el periodo.'); return; }
+                var mapa = function (lista) {
+                    var m = {};
+                    (lista || []).forEach(function (p) { m[p.mes] = p.cantidad; });
+                    return claves.map(function (k) { return m[k] || 0; });
+                };
+                var options = {
+                    chart: { type: 'bar', height: 320, toolbar: { show: false } },
+                    series: [
+                        { name: 'Casos registrados', data: mapa(d.tendenciaMensual) },
+                        { name: 'Partos probables', data: mapa(d.partosPorMes) }
+                    ],
+                    colors: ['#DB2777', '#7C3AED'],
+                    xaxis: { categories: claves.map(etiquetaMes), labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' }, formatter: function (v) { return numero(Math.round(v)); } } },
+                    plotOptions: { bar: { borderRadius: 4, columnWidth: '50%' } },
+                    legend: { position: 'top', horizontalAlign: 'right', fontSize: '11px', markers: { radius: 12 } },
+                    dataLabels: { enabled: false },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 }
+                };
+                document.getElementById('chartMes').innerHTML = '';
+                if (chartMes) { chartMes.destroy(); }
+                chartMes = new ApexCharts(document.querySelector('#chartMes'), options);
+                chartMes.render();
+            }
+
+            function pintarEstatus(d) {
+                var lista = d.porEstatus || [];
+                document.getElementById('subEstatus').textContent = lista.length
+                    ? lista.length + (lista.length === 1 ? ' estatus distinto' : ' estatus distintos') : '';
+                if (!lista.length) { vaciar('chartEstatus', 'Sin casos en el periodo.'); return; }
+                var options = {
+                    chart: { type: 'donut', height: 300 },
+                    series: lista.map(function (r) { return r.cantidad; }),
+                    labels: lista.map(function (r) { return r.clave; }),
+                    colors: PALETA,
+                    legend: { position: 'bottom', fontSize: '11px', markers: { radius: 12 } },
+                    dataLabels: { enabled: true, formatter: function (v) { return Math.round(v) + '%'; } },
+                    plotOptions: { pie: { donut: { size: '59%' } } }
+                };
+                document.getElementById('chartEstatus').innerHTML = '';
+                if (chartEstatus) { chartEstatus.destroy(); }
+                chartEstatus = new ApexCharts(document.querySelector('#chartEstatus'), options);
+                chartEstatus.render();
+            }
+
+            function pintarTrimestre(d) {
+                var lista = d.porTrimestre || [];
+                if (!lista.length) { vaciar('chartTrimestre', 'Sin semanas de gestación registradas.'); return; }
+                var options = {
+                    chart: { type: 'bar', height: 300, toolbar: { show: false } },
+                    series: [{ name: 'Casos', data: lista.map(function (r) { return r.cantidad; }) }],
+                    xaxis: { categories: lista.map(function (r) { return r.clave; }), labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' }, formatter: function (v) { return numero(Math.round(v)); } } },
+                    colors: ['#047857', '#0EA5E9', '#7C3AED'],
+                    plotOptions: { bar: { distributed: true, borderRadius: 5, columnWidth: '45%' } },
+                    legend: { show: false },
+                    dataLabels: { enabled: true, style: { fontSize: '11px', fontWeight: 700, colors: ['#1e293b'] } },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 }
+                };
+                document.getElementById('chartTrimestre').innerHTML = '';
+                if (chartTrimestre) { chartTrimestre.destroy(); }
+                chartTrimestre = new ApexCharts(document.querySelector('#chartTrimestre'), options);
+                chartTrimestre.render();
+            }
+
+            function exportarCsv() {
+                if (!ultimoExport) { return; }
+                var d = ultimoExport;
+                var filas = [
+                    ['Periodo', document.getElementById('fFechaInicial').value + ' a ' + document.getElementById('fFechaFinal').value],
+                    ['Predio', document.getElementById('fPredio').value || 'Todos'],
+                    [],
+                    ['Indicador', 'Valor'],
+                    ['Personas', d.totalPersonas],
+                    ['Seguimientos', d.totalSeguimientos],
+                    ['Semanas de gestación (promedio)', d.promedioSemanasGestacion],
+                    ['Revisiones próximas (30 días)', d.revisionesProximas],
+                    ['Reincorporadas', d.totalReincorporadas],
+                    [],
+                    ['Estatus', 'Casos']
+                ];
+                (d.porEstatus || []).forEach(function (r) { filas.push([r.clave, r.cantidad]); });
+                filas.push([]);
+                filas.push(['Predio', 'Casos']);
+                (d.porPredio || []).forEach(function (r) { filas.push([r.clave, r.cantidad]); });
+                var csv = filas.map(function (f) {
+                    return f.map(function (v) { return '"' + String(v === undefined ? '' : v).replace(/"/g, '""') + '"'; }).join(',');
+                }).join('\r\n');
+                var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'maternidad_' + document.getElementById('fFechaInicial').value + '.csv';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                auditarExportacion('Maternidad', a.download);
+            }
+
+            inicializar();
+            cargarPredios().then(aplicar);
+        })();
+    </script>
+</th:block>
+</body>
+</html>

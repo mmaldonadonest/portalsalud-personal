@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: analisisEmpContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Empleados | Análisis | Portal Salud Personal</title>
+</head>
+<body>
+
+<!--
+  Empleados (modulo Analisis, rol MEDICO_ANALISTA). Equivale a V.emp del prototipo: buscar
+  una persona -> ficha con contadores -> timeline consolidado de todos los dominios. Reusa
+  los servicios por NSS que ya existen via /api/analisis/empleado?nss= - cero WS nuevo.
+
+  Verificado contra la captura del prototipo el 11-sep-2026. Diferencias:
+  - Busqueda SOLO por NSS. El mock busca por "nombre o numero"; no existe WS de busqueda
+    por nombre (ya documentado en el caso de uso de busqueda NSS).
+  - Sin filtro de predio en la busqueda: sin busqueda por nombre no hay lista que acotar.
+  - Boton "Nuevo empleado" omitido: el alta de personal no es de Salud, viene de RH/biometrico.
+  - El "Ver expediente" lleva a /nss?nss=..., que es el expediente operativo completo.
+-->
+<th:block id="pageStyles">
+    <style>
+        .chart-card .card-header { border-bottom: none; padding-bottom: 0; display: block; }
+        .chart-eyebrow {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        .chart-eyebrow::before {
+            content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+            box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+        }
+        .chart-eyebrow--ficha { color: #1D4ED8; }
+        .chart-eyebrow--tl { color: #7C3AED; }
+
+        .ficha-hero {
+            display: flex; gap: 14px; align-items: center; padding: 16px;
+            background: linear-gradient(135deg, #0b3d91, #3b82f6); border-radius: 10px; color: #fff; margin-bottom: 14px;
+        }
+        .ficha-hero .ini {
+            width: 54px; height: 54px; border-radius: 10px; background: rgba(255,255,255,.2);
+            display: grid; place-items: center; font-size: 18px; font-weight: 700; flex: 0 0 auto;
+        }
+        .ficha-hero .nom { font-size: 15px; font-weight: 600; }
+        .ficha-hero .sub { font-size: 11.5px; opacity: .92; margin-top: 3px; }
+
+        .mini { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
+        .mini .m { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 11px 9px; text-align: center; }
+        .mini .m .n { font-size: 17px; font-weight: 700; letter-spacing: -.02em; color: #0f172a; }
+        .mini .m .l { font-size: 10.5px; color: #64748b; margin-top: 2px; line-height: 1.3; }
+
+        .tl { list-style: none; padding: 0; margin: 0; }
+        .tl li { display: flex; gap: 13px; padding-bottom: 16px; position: relative; }
+        .tl li:last-child { padding-bottom: 0; }
+        .tl li:not(:last-child)::before { content: ''; position: absolute; left: 7px; top: 19px; bottom: 0; width: 2px; background: #e2e8f0; }
+        .tl .dot { width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 3px solid var(--c, #94a3b8); flex: 0 0 auto; margin-top: 3px; z-index: 1; }
+        .tl .f { font-size: 10.5px; color: #64748b; font-weight: 600; font-variant-numeric: tabular-nums; }
+        .tl .t { font-size: 12.5px; font-weight: 500; color: #0f172a; margin-top: 1px; }
+        .tl .d { font-size: 11.5px; color: #64748b; }
+        .dom-atencion { --c: #1D4ED8; } .dom-incapacidad { --c: #B45309; } .dom-accidente { --c: #DC2626; }
+        .dom-examen { --c: #047857; } .dom-antidoping { --c: #7C3AED; } .dom-maternidad { --c: #DB2777; }
+        .vacio { text-align: center; padding: 32px 16px; color: #94a3b8; font-size: 12.5px; }
+    </style>
+</th:block>
+
+<th:block th:fragment="analisisEmpContent">
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/analisis/ejecutivo}" href="/analisis/ejecutivo">Dashboard Ejecutivo</a></li>
+                <li class="breadcrumb-item"><span>Sistema</span></li>
+                <li class="breadcrumb-item active" aria-current="page">Empleados</li>
+            </ol>
+            <h4 class="main-title mb-0">Empleados</h4>
+            <p class="fs-12 text-muted mb-0">Expediente único · cada persona concentra atenciones, exámenes, incapacidades, accidentes y pruebas</p>
+        </div>
+    </div>
+
+    <div class="card card-one chart-card mb-3">
+        <div class="card-header">
+            <span class="chart-eyebrow chart-eyebrow--ficha">Buscar</span>
+            <div class="card-title-lg">Buscar empleado</div>
+            <p class="fs-11 text-muted mb-0">La ficha muestra el timeline consolidado de todos los módulos</p>
+        </div>
+        <div class="card-body">
+            <form id="frmBuscar" class="d-flex flex-wrap align-items-end gap-3" autocomplete="off">
+                <div>
+                    <label class="form-label fs-12 mb-1" for="qNss">NSS</label>
+                    <input type="text" id="qNss" class="form-control form-control-sm" style="min-width:220px"
+                           placeholder="Ej. 92088502122" inputmode="numeric" maxlength="13">
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="ri-search-line me-1"></i>Buscar
+                </button>
+                <span id="estado" class="fs-12 text-muted ms-auto"></span>
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-3" id="resultado" hidden>
+        <div class="col-lg-5">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--ficha">Ficha</span>
+                    <div class="card-title-lg">Ficha del colaborador</div>
+                    <p class="fs-11 text-muted mb-0">Expediente unificado</p>
+                </div>
+                <div class="card-body">
+                    <div class="ficha-hero">
+                        <div class="ini" id="fIni">—</div>
+                        <div>
+                            <div class="nom" id="fNombre"></div>
+                            <div class="sub" id="fSub"></div>
+                        </div>
+                    </div>
+                    <div class="mini" id="miniContadores"></div>
+                    <div class="mt-3 text-end">
+                        <button type="button" id="btnExpediente" class="btn btn-outline-primary btn-sm">
+                            <i class="ri-folder-user-line me-1"></i>Ver expediente completo
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--tl">Timeline</span>
+                    <div class="card-title-lg">Timeline consolidado</div>
+                    <p class="fs-11 text-muted mb-0" id="subTimeline">Todos los eventos de salud ocupacional del colaborador</p>
+                </div>
+                <div class="card-body"><ol class="tl" id="timeline"></ol></div>
+            </div>
+        </div>
+    </div>
+
+    <p class="fs-11 text-muted mt-3 mb-0">
+        <i class="ri-information-line"></i>
+        Búsqueda solo por NSS: no existe un servicio de búsqueda por nombre. El alta de personal
+        no se hace aquí, viene de RH.
+    </p>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:inline="javascript">
+        (function () {
+            var contextPath = /*[[@{/}]]*/ '/';
+            var NOMBRES_MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+            var ultimoNss = '';
+
+            function numero(n) { return (n || 0).toLocaleString('es-MX'); }
+            function escapeHtml(v) {
+                if (v === null || v === undefined) { return ''; }
+                return String(v).replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+            function fechaCorta(iso) {
+                if (!iso) { return 'sin fecha'; }
+                var p = iso.split('-');
+                return p.length === 3 ? parseInt(p[2], 10) + ' ' + NOMBRES_MES[parseInt(p[1], 10) - 1] + ' ' + p[0] : iso;
+            }
+            function iniciales(nombre) {
+                var partes = String(nombre || '').trim().split(/\s+/).filter(Boolean);
+                return partes.length ? (partes[0][0] + (partes[1] ? partes[1][0] : '')).toUpperCase() : '—';
+            }
+
+            async function buscar(nss) {
+                var estado = document.getElementById('estado');
+                var res = document.getElementById('resultado');
+                if (!nss) { estado.textContent = 'Escribe un NSS.'; return; }
+                estado.textContent = 'Buscando...';
+                try {
+                    var r = await fetch(contextPath + 'api/analisis/empleado?nss=' + encodeURIComponent(nss));
+                    if (r.status === 404) { res.hidden = true; estado.textContent = 'No existe un empleado con ese NSS.'; return; }
+                    if (!r.ok) { res.hidden = true; estado.textContent = 'Error al consultar (HTTP ' + r.status + ').'; return; }
+                    var d = await r.json();
+                    ultimoNss = d.ficha.nss;
+                    pintarFicha(d);
+                    pintarTimeline(d.timeline);
+                    res.hidden = false;
+                    estado.textContent = 'Actualizado.';
+                } catch (e) {
+                    console.error('[analisis-empleados] error en buscar():', e);
+                    estado.textContent = 'Error de red: ' + e.message;
+                }
+            }
+
+            function pintarFicha(d) {
+                var f = d.ficha, c = d.contadores;
+                document.getElementById('fIni').textContent = iniciales(f.nombreCompleto);
+                document.getElementById('fNombre').textContent = f.nombreCompleto || f.nss;
+                document.getElementById('fSub').textContent = [
+                    'NSS ' + f.nss,
+                    f.predio && f.predio !== 'Sin asignar' ? f.predio : (f.cuenta || null),
+                    f.puesto || null,
+                    f.empresa || null
+                ].filter(Boolean).join(' · ');
+                document.getElementById('miniContadores').innerHTML = [
+                    [c.atenciones, 'Atenciones'], [c.incapacidades, 'Incapacidades'], [c.diasPerdidos, 'Días perdidos'],
+                    [c.accidentes, 'Accidentes'], [c.examenes, 'Exámenes'], [c.antidoping, 'Antidoping'], [c.maternidad, 'Maternidad']
+                ].filter(function (x) { return x[1] !== 'Maternidad' || x[0] > 0; })
+                 .map(function (x) { return '<div class="m"><div class="n">' + numero(x[0]) + '</div><div class="l">' + x[1] + '</div></div>'; })
+                 .join('');
+            }
+
+            function pintarTimeline(eventos) {
+                var ol = document.getElementById('timeline');
+                document.getElementById('subTimeline').textContent = eventos.length
+                    ? eventos.length + (eventos.length === 1 ? ' evento registrado' : ' eventos registrados') : '';
+                if (!eventos.length) {
+                    ol.innerHTML = '<li class="vacio">Sin eventos de salud ocupacional registrados.</li>';
+                    return;
+                }
+                ol.innerHTML = eventos.map(function (e) {
+                    return '<li class="dom-' + escapeHtml(e.dominio) + '"><span class="dot"></span><div>'
+                         + '<div class="f">' + fechaCorta(e.fecha) + '</div>'
+                         + '<div class="t">' + escapeHtml(e.titulo) + '</div>'
+                         + (e.detalle ? '<div class="d">' + escapeHtml(e.detalle) + '</div>' : '')
+                         + '</div></li>';
+                }).join('');
+            }
+
+            document.getElementById('frmBuscar').addEventListener('submit', function (ev) {
+                ev.preventDefault();
+                buscar(document.getElementById('qNss').value.trim());
+            });
+            document.getElementById('btnExpediente').addEventListener('click', function () {
+                if (ultimoNss) { window.location.href = contextPath + 'nss?nss=' + encodeURIComponent(ultimoNss); }
+            });
+
+            // ?nss= en la URL: llega asi desde otras pantallas.
+            var params = new URLSearchParams(window.location.search);
+            if (params.get('nss')) {
+                document.getElementById('qNss').value = params.get('nss');
+                buscar(params.get('nss').trim());
+            }
+        })();
+    </script>
+</th:block>
+</body>
+</html>

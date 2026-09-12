@@ -1,5 +1,6 @@
 package com.onest.app.catalog.file.web;
 
+import com.onest.app.audit.web.Auditado;
 import com.onest.app.catalog.file.service.FileStoreService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -33,6 +34,7 @@ public class FileStoreController {
     /** Sube uno o mas PDF asociados a una consulta (relacion = idArchivoRel). */
     @PostMapping(path = "/api/nss/consulta/file", produces = "text/plain;charset=UTF-8")
     @ResponseBody
+    @Auditado(modulo = "Consultas", accion = "create", entidad = "Archivo adjunto", registro = "nss", detalle = {"relacion"})
     public String upload(
             @RequestParam("file") MultipartFile[] file,
             @RequestParam("nss") String nss,
@@ -86,6 +88,7 @@ public class FileStoreController {
     /** Borra un adjunto por id (erasedocksLAB del legacy). */
     @PostMapping(path = "/api/nss/consulta/file/{id}/delete", produces = "text/plain;charset=UTF-8")
     @ResponseBody
+    @Auditado(modulo = "Consultas", accion = "delete", entidad = "Archivo adjunto", registro = "id")
     public String delete(@PathVariable long id) {
         return fileStoreService.delete(id) ? "eliminado" : "no encontrado";
     }

@@ -13,6 +13,8 @@
          (detras de nginx, que expone la app en raiz) resuelven correctamente sin
          hardcodear ningun valor.-->
     <meta name="app-context-path" th:content="@{/}" content="/">
+    <meta name="_csrf" th:if="${_csrf != null}" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:if="${_csrf != null}" th:content="${_csrf.headerName}">
     <link rel="shortcut icon" type="image/x-icon" th:href="@{/theme/assets/img/favicon.png}" href="/theme/assets/img/favicon.png">
     <title th:replace="${pageTitle}">Portal Salud Personal</title>
     <link rel="stylesheet" th:href="@{/theme/lib/remixicon/fonts/remixicon.css}" href="/theme/lib/remixicon/fonts/remixicon.css">
@@ -25,6 +27,20 @@
     <th:block th:replace="${pageStyles}"></th:block>
     <script>
         var contextPath = document.querySelector('meta[name="app-context-path"]').content;
+        // Bitacora (modulo Auditoria): las exportaciones CSV se arman en el navegador, asi que
+        // cada pantalla avisa con esto al exportar. Nunca bloquea ni rompe la exportacion.
+        function auditarExportacion(modulo, detalle) {
+            try {
+                var t = document.querySelector('meta[name="_csrf"]');
+                var h = document.querySelector('meta[name="_csrf_header"]');
+                var headers = {};
+                if (t && h) { headers[h.content] = t.content; }
+                fetch(contextPath + 'api/auditoria/exportacion', {
+                    method: 'POST', headers: headers,
+                    body: new URLSearchParams({ modulo: modulo, detalle: detalle || '' })
+                }).catch(function () { /* la bitacora no bloquea */ });
+            } catch (e) { /* idem */ }
+        }
     </script>
 </head>
 <body>

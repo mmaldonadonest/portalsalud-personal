@@ -11,6 +11,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
+import com.onest.app.audit.service.AuditoriaService;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -55,15 +56,17 @@ public class SsoLoginController {
     private final ObjectProvider<JwtDecoder> jwtDecoderProvider;
     private final PortalPrincipalResolver principalResolver;
     private final ModulePermissionClient modulePermissionClient;
+    private final AuditoriaService auditoriaService;
     private final SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
     private final SessionAuthenticationStrategy sessionStrategy = new ChangeSessionIdAuthenticationStrategy();
 
     public SsoLoginController(
             ObjectProvider<JwtDecoder> jwtDecoderProvider, PortalPrincipalResolver principalResolver,
-            ModulePermissionClient modulePermissionClient) {
+            ModulePermissionClient modulePermissionClient, AuditoriaService auditoriaService) {
         this.jwtDecoderProvider = jwtDecoderProvider;
         this.principalResolver = principalResolver;
         this.modulePermissionClient = modulePermissionClient;
+        this.auditoriaService = auditoriaService;
     }
 
     @PostMapping("/sso/login")
@@ -124,6 +127,8 @@ public class SsoLoginController {
 
         log.info("[sso] OK nss={} email={} legacy_role={} autoridades={}",
                 nss, identifier, jwt.getClaimAsString("legacy_role"), principal.getAuthorities());
+        // Bitacora (modulo Auditoria) - mismo evento que el login por password.
+        auditoriaService.registrar("Sistema", "login", "Sesion", nss, "sesión iniciada · SSO launcher", request);
         return "redirect:/home";
     }
 

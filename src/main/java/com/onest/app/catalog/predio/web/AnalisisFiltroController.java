@@ -1,12 +1,16 @@
 package com.onest.app.catalog.predio.web;
 
+import com.onest.app.catalog.dashboard.dto.EmpleadoResumenDto;
 import com.onest.app.catalog.dashboard.service.DashboardPredioFiltro;
+import com.onest.app.catalog.dashboard.service.EmpleadoResumenService;
 import com.onest.app.catalog.predio.dto.CuentaPredioDto;
 import com.onest.app.catalog.predio.service.PredioService;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -22,9 +26,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AnalisisFiltroController {
 
     private final PredioService predioService;
+    private final EmpleadoResumenService empleadoResumenService;
 
-    public AnalisisFiltroController(PredioService predioService) {
+    public AnalisisFiltroController(PredioService predioService, EmpleadoResumenService empleadoResumenService) {
         this.predioService = predioService;
+        this.empleadoResumenService = empleadoResumenService;
     }
 
     /**
@@ -63,5 +69,16 @@ public class AnalisisFiltroController {
     }
 
     public record CuentaOpcionDto(String cuenta, String predio) {
+    }
+
+    /**
+     * Expediente unificado de una persona (modulo Empleados): ficha + contadores + timeline.
+     * 404 si el NSS no existe en biometrico. Solo por NSS: no hay WS de busqueda por nombre.
+     */
+    @GetMapping("/empleado")
+    public ResponseEntity<EmpleadoResumenDto> empleado(@RequestParam("nss") String nss) {
+        return empleadoResumenService.resumen(nss)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

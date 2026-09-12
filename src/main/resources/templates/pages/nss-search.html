@@ -1028,6 +1028,26 @@
                 });
             }
 
+            // "Abrir todo" (equivale a openAll() del PHP): expande todos los grupos del acordeon y
+            // carga todas las secciones - las que nacen activas via cargarPaneExamen directo y las
+            // demas activando su tab, para que quede TODO cargado y navegable sin clics.
+            window.abrirTodoExamen = async function (btn) {
+                var acordeon = document.getElementById('examenAccordion');
+                if (!acordeon) {
+                    return;
+                }
+                if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Cargando...'; }
+                var grupos = acordeon.querySelectorAll('.accordion-collapse');
+                // sin data-bs-parent, abrir un grupo ya no cierra los demas: quedan todos visibles
+                grupos.forEach(function (g) { g.classList.add('show'); g.removeAttribute('data-bs-parent'); });
+                acordeon.querySelectorAll('.accordion-button').forEach(function (b) { b.classList.remove('collapsed'); b.setAttribute('aria-expanded', 'true'); });
+                var panes = Array.prototype.slice.call(acordeon.querySelectorAll('.examen-tab-content .tab-pane'));
+                for (var i = 0; i < panes.length; i++) {
+                    await cargarPaneExamen(panes[i]);
+                }
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ri-folder-open-line me-1"></i>Abrir todo'; }
+            };
+
             // Antecedentes laborales - trabajos previos: fila repetible dentro de #trabajosPrevios.
             // No se precarga desde el WS (ver comentario en examen-shell.html); solo agrega/quita filas nuevas.
             var trabajoContador = 0;

@@ -1,5 +1,6 @@
 package com.onest.app.admin.role.web;
 
+import com.onest.app.audit.web.Auditado;
 import com.onest.app.admin.role.dto.RoleAdminDto;
 import com.onest.app.admin.role.service.RoleAdminService;
 import java.util.List;
@@ -33,6 +34,7 @@ public class RoleAdminController {
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    @Auditado(modulo = "Administracion", accion = "create", entidad = "Rol", registro = "code", detalle = {"name"})
     public RoleAdminDto crear(
             @RequestParam("code") String code,
             @RequestParam("name") String name,
@@ -45,6 +47,7 @@ public class RoleAdminController {
     }
 
     @PostMapping(path = "/{id}", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    @Auditado(modulo = "Administracion", accion = "update", entidad = "Rol", registro = "id", detalle = {"name"})
     public RoleAdminDto renombrar(
             @PathVariable Long id,
             @RequestParam("name") String name,
@@ -57,6 +60,7 @@ public class RoleAdminController {
     }
 
     @PostMapping(path = "/{id}/estado", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    @Auditado(modulo = "Administracion", accion = "update", entidad = "Rol", registro = "id", detalle = {"activo"})
     public RoleAdminDto cambiarEstado(@PathVariable Long id, @RequestParam("activo") boolean activo) {
         try {
             return roleAdminService.cambiarEstado(id, activo);

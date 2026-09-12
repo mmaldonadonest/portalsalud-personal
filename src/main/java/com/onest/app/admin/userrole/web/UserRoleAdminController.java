@@ -1,5 +1,6 @@
 package com.onest.app.admin.userrole.web;
 
+import com.onest.app.audit.web.Auditado;
 import com.onest.app.admin.userrole.dto.UserRoleDto;
 import com.onest.app.admin.userrole.service.UserRoleAdminService;
 import org.springframework.http.HttpStatus;
@@ -35,6 +36,7 @@ public class UserRoleAdminController {
     }
 
     @PostMapping("/{nss}/roles/{roleId}")
+    @Auditado(modulo = "Administracion", accion = "create", entidad = "Rol de usuario", registro = "nss", detalle = {"roleId"})
     public void asignar(@PathVariable String nss, @PathVariable Long roleId) {
         try {
             userRoleAdminService.asignar(nss, roleId);
@@ -44,6 +46,7 @@ public class UserRoleAdminController {
     }
 
     @DeleteMapping("/{nss}/roles/{roleId}")
+    @Auditado(modulo = "Administracion", accion = "delete", entidad = "Rol de usuario", registro = "nss", detalle = {"roleId"})
     public void quitar(@PathVariable String nss, @PathVariable Long roleId) {
         userRoleAdminService.quitar(nss, roleId);
     }

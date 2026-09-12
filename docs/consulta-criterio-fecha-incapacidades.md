@@ -1,8 +1,10 @@
 # Consulta — criterio de fecha para el reporte de incapacidades
 
-**Estado:** abierto, esperando respuesta del área de negocio
-**Fecha:** 10 de septiembre de 2026
-**Bloquea:** gráfica "Evolución mensual de indicadores" del Dashboard Ejecutivo (`/analisis/ejecutivo`)
+**Estado:** RESUELTO el 11 de septiembre de 2026 — **Opción A: manda la fecha de inicio** (la del certificado).
+**Aplicación:** `docs/ords-incapacidades-criterio-fecha-inicio.sql` (WS `_cta`, lo aplica el usuario) +
+`DashboardIncapacidadesService` agrupa por inicio con fallback a registro (ya en código).
+**Fecha de la consulta:** 10 de septiembre de 2026
+**Bloqueaba:** gráfica "Evolución mensual de indicadores" del Dashboard Ejecutivo (`/analisis/ejecutivo`)
 
 ---
 
@@ -77,9 +79,12 @@ Ranking de predios, Top 8 causas ni Resultado de exámenes.
 
 ### Qué implica cada opción en código
 
-- **Opción A (fecha de inicio):** filtrar las filas por `fechaInicio` dentro de
-  `DashboardIncapacidadesService`, porque el WS va a seguir entregándolas por `fecha_registro`.
-  Cambian los totales de las tarjetas. ~2 h.
+- **Opción A (fecha de inicio) — ELEGIDA:** el filtro tiene que cambiar en el WS, no en Java:
+  filtrar en Java sobre lo que el WS ya entregó por registro dejaría fuera las incapacidades
+  registradas en 2025 con inicio en 2024. `FECHA_INICIO` es texto con formatos mezclados
+  (263 ISO, 11 `dd/mm/yyyy hh:mi:ss`, 17 nulas de 291), por eso el SQL convierte según formato y
+  cae a `fecha_registro` cuando es nula. Cambian los totales: en 2024, 51 de 221 filas tienen
+  inicio fuera del año. ~2 h.
 - **Opción B (fecha de registro):** cambiar el `mesDe(fila.fechaInicio())` por
   `mesDe(fila.fechaRegistro())`. Los totales no se mueven. ~0.5 h.
 

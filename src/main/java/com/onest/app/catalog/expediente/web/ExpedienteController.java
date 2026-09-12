@@ -1,5 +1,6 @@
 package com.onest.app.catalog.expediente.web;
 
+import com.onest.app.audit.web.Auditado;
 import com.onest.app.catalog.causaconsulta.service.CausaConsultaService;
 import com.onest.app.catalog.expediente.service.ExpedienteService;
 import com.onest.app.catalog.file.service.FileStoreService;
@@ -98,6 +99,7 @@ public class ExpedienteController {
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = "text/plain;charset=UTF-8")
     @ResponseBody
+    @Auditado(modulo = "Consultas", accion = "create", entidad = "Consulta", registro = "nss", detalle = {"tipoConsulta", "causa"})
     public String consultaAlta(@ModelAttribute ConsultaAltaForm form) {
         try {
             String proceso = expedienteService.crearConsulta(form);

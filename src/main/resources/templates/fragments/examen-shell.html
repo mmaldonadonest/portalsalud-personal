@@ -8,9 +8,24 @@
 -->
 <div th:fragment="shell">
     <div class="card card-one">
-        <div class="card-header d-flex align-items-center justify-content-between">
+        <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
             <h6 class="card-title mb-0">Examen medico &mdash; Antecedentes heredofamiliares</h6>
-            <span class="badge bg-primary" th:text="'NSS ' + ${nss}">NSS</span>
+            <!-- Mismas dos acciones que el menu "Examen medico" del PHP (Abrir / Imprimir expediente),
+                 aqui en el card porque el sidebar del theme es global, no contextual por modulo. -->
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnAbrirTodoExamen"
+                        title="Expandir todos los grupos y cargar todas las secciones"
+                        onclick="abrirTodoExamen(this);">
+                    <i class="ri-folder-open-line me-1"></i>Abrir todo
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary"
+                        th:attr="data-url=@{/api/nss/examen/imprimir(nss=${nss})}"
+                        title="Abre el expediente completo en otra pestaña, listo para imprimir o guardar como PDF"
+                        onclick="window.open(this.dataset.url, '_blank');">
+                    <i class="ri-printer-line me-1"></i>Imprimir expediente
+                </button>
+                <span class="badge bg-primary" th:text="'NSS ' + ${nss}">NSS</span>
+            </div>
         </div>
         <div class="card-body">
             <!--
