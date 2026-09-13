@@ -10,6 +10,9 @@
       comprobarValor -> d.negado, comprobarValor2 -> d.noValorado, evaluarCondicionDental ->
       d.diente. Los valores los arma ExamenDocumentoService con la misma logica del PHP (WS
       consulta_examen + WS empleado + MED_TAG). No editar a mano el cuerpo: regenerar.
+      AJUSTE MANUAL (13-sep-2026, unico): margenes fijos del consentimiento reducidos
+      (150px->40px, hr 350px->80px, 130px->20px) para que la hoja 2 no salga en blanco como en
+      el PHP. Si se regenera la plantilla, volver a aplicar.
     -->
     <link rel="stylesheet" th:href="@{/theme/assets/css/style.min.css}" href="/theme/assets/css/style.min.css">
     <style>
@@ -41,55 +44,54 @@
             cursor: move;
         }
     </style>
-    <style  media="print" >
-	 @media print {
-
-               .page, .page-break { break-after: page; }
-
-	   body{
-		font-family: "system-ui, sans-serif";
-	   }  
-	 }
-
-	 @page {
-           
-         
-         @top-left {
-         content: "";
-         };
-         @top-center {
-	 	content: "SISTEMA MEDICO ONEST";
-	font-size:13px;
-		font-weight: bold;
-            font-family: sans-serif;		
-        
-         };
-         @top-right {
-	  content: "[[${d.ahora}]] ";
- 	  font-weight: bold;
-          font-size:10px;
-	  font-family: system-ui, sans-serif;
-          text-align: left;
-         };
-         @bottom-left {
-         content: "";
-         };
-         @bottom-center {
-         content: "  ";
-         };
-         @bottom-right {
-	 	content: "Página " counter(page) " de " counter(pages);
-		text-align: center;
-         }
-         }
-       
-      </style>
+    <style media="print">
+        /* Encabezado y pie repetidos en cada hoja SIN encimarse con el contenido: el documento va
+           dentro de una tabla cuyo thead/tfoot el navegador repite en cada pagina (Chrome, Edge,
+           Firefox) y el cuerpo fluye debajo. Con @page { margin: 0 } el navegador ya no imprime su
+           propio encabezado (titulo + URL) ni su pie. Un position:fixed se encimaba a partir de la
+           hoja 2 porque el padding del body solo aplica a la primera. */
+        @page { size: A4; margin: 0; }
+        @media print {
+            /* cada bloque es una fila de la tabla: el salto de hoja en <tr> si lo respetan los
+               navegadores (un div con break-after dentro de una celda, no) */
+            table.print-doc > tbody > tr.hoja { break-after: page; page-break-after: always; }
+            table.print-doc > tbody > tr.hoja:last-child { break-after: auto; page-break-after: auto; }
+            html, body { margin: 0; padding: 0; }
+            body.container { max-width: none; width: auto; padding: 0 12mm; border: 0 !important; }
+            table.print-doc { width: 100%; border-collapse: collapse; table-layout: fixed; }
+            table.print-doc > tbody > tr > td { width: 100%; }
+            .hoja-row { margin: 0; }
+            .hoja-row > .col-12, .hoja-row > .col-6, .hoja-row > .col-4, .hoja-row > .col-3, .hoja-row > .col-9 { padding-left: 0; padding-right: 0; }
+            table.print-doc > thead > tr > td, table.print-doc > tfoot > tr > td { padding: 0; border: 0; }
+            table.print-doc > tbody > tr > td { padding: 0; border: 0; vertical-align: top; }
+            .print-hdr, .print-ftr { font: 9px "Times New Roman", Times, serif; color: #333; display: flex; justify-content: space-between; }
+            .print-hdr { height: 14mm; align-items: flex-start; padding-top: 4mm; }
+            .print-ftr { height: 12mm; align-items: flex-end; padding-bottom: 4mm; }
+            .print-hdr strong { font-size: 10px; }
+            .barra-print { display: none !important; }
+        }
+        @media screen {
+            table.print-doc > thead, table.print-doc > tfoot { display: none; }
+            table.print-doc { width: 100%; table-layout: fixed; }
+            table.print-doc > tbody > tr > td { padding: 0; border: 0; width: 100%; }
+            .hoja-row { margin: 0; }
+        }
+    </style>
 
 </head>
 
 
 
 <body class="container border">
+<div class="barra-print" style="position:sticky;top:0;z-index:10;background:#0f172a;color:#fff;padding:10px 16px;margin:0 -12px 8px;display:flex;gap:10px;align-items:center;font:12.5px system-ui,sans-serif">
+    <button type="button" onclick="window.print();" style="background:#2563eb;color:#fff;border:0;border-radius:6px;padding:7px 14px;font-weight:600;cursor:pointer">Imprimir / Guardar como PDF</button>
+    <button type="button" onclick="window.close();" style="background:#334155;color:#fff;border:0;border-radius:6px;padding:7px 14px;font-weight:600;cursor:pointer">Cerrar</button>
+    <span style="opacity:.8;margin-left:auto">Ctrl+P también funciona · el PDF lo genera el navegador</span>
+</div>
+<table class="print-doc">
+    <thead><tr><td><div class="print-hdr"><strong>SISTEMA MEDICO ONEST</strong><span>Impreso: [[${d.ahora}]]</span></div></div></td></tr></thead>
+    <tfoot><tr><td><div class="print-ftr"><span>Portal Salud Personal · Examen médico</span><span>NSS [[${d.v('NSS')}]]</span></div></div></td></tr></tfoot>
+    <tbody><tr class="hoja"><td><div class="row hoja-row">
     <!-- <div class="col-12 draggable" id="miDiv"></div> -->
     <div class="row" id="">
         <div class="navbar-brand col-3 " href="#">
@@ -139,7 +141,7 @@
         </div>
     </div>
     <div class="container">
-        <p style="font-size: 11px; margin-top: 150px;">
+        <p style="font-size: 11px; margin-top: 40px;">
             Entiendo que, de acuerdo con la Política de la Compañía sobre proporcionar y mantener un ambiente de trabajo seguro y saludable para sus empleados, me someteré a la realización de un Examen Médico.
         </p>
         <p style="font-size: 11px;">Por medio del presente autorizo la realización del Examen Médico de Admisión, Periódico o Especiales, el cual consiste en 2 etapas, exploración física e Interrogación Verbal que consta de: </p>
@@ -153,7 +155,7 @@
             Esto será realizado por personal altamente calificado y profesional.
         </p>
     </div>
-    <hr style="margin-top: 350px;">
+    <hr style="margin-top: 80px;">
 <br/><br/>
     <div class="row mt-3">
         <div class="col-6">
@@ -171,7 +173,8 @@
 
         </div>
     </div>
-<div class="page"></div>
+</div></td></tr>
+<tr class="hoja"><td><div class="row hoja-row">
     <div class="row">
         <div class="navbar-brand col-3 " href="#">
             <center><img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" width="100%" class="mt-2"></center>
@@ -273,7 +276,12 @@
             datos de contacto de la persona o departamento de datos personales, que está a cargo de dar trámite a las solicitudes de derechos
             ARCO, son los siguientes:
         </p>
-        <div class="row" style="margin-top: 50px;">
+        <!-- AJUSTE MANUAL: en el PHP este encabezado caia "por casualidad" al inicio de la hoja
+             siguiente gracias a un margen fijo; aqui se fuerza el salto de hoja para que siempre
+             encabece la pagina. -->
+        </div></td></tr>
+<tr class="hoja"><td><div class="row hoja-row">
+        <div class="row" style="margin-top: 0;">
             <div class="navbar-brand col-3 " href="#">
                 <center><img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" width="100%" class="mt-2"></center>
             </div>
@@ -364,9 +372,10 @@
             <p  style="font-size: 12px;font-weight:bold" >[[${d.v('apellidoP')}]] [[${d.v('apellidoM')}]] [[${d.v('nombre')}]]</p>
         </center>
     </div>
-<div class="page"></div>
+</div></td></tr>
+<tr class="hoja"><td><div class="row hoja-row">
 
-    <div class="row" style="margin-top: 130px;">
+    <div class="row" style="margin-top: 20px;">
         <div class="navbar-brand col-3 " href="#">
             <center><img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" width="100%" class="mt-2"></center>
         </div>
@@ -621,7 +630,8 @@
             <td>[[${d.v('observaciones4')}]]</td>
         </tr>
     </table>
-<div class="page"></div>
+</div></td></tr>
+<tr class="hoja"><td><div class="row hoja-row">
 
     <div class="col-12" style="">
         <div class="row">
@@ -892,7 +902,8 @@
                 </tr>
             </table>
 	</div>
-<div class="page"></div>
+</div></td></tr>
+<tr class="hoja"><td><div class="row hoja-row">
         <div class="col-12" style="">
             <div class="row">
                 <div class="navbar-brand col-3 " href="#">
@@ -1142,7 +1153,8 @@
                 </tr>
             </table>
 	</div>
-<div class="page"></div>
+</div></td></tr>
+<tr class="hoja"><td><div class="row hoja-row">
 
         <div class="col-12" style="">
             <div class="row">
@@ -1371,7 +1383,8 @@
             </table>
 
 	</div>
-<div class="page"></div>
+</div></td></tr>
+<tr class="hoja"><td><div class="row hoja-row">
 
         <div class="col-12" style="">
             <div class="row">
@@ -1645,7 +1658,8 @@
                 </tr>
             </table>
 	</div>
-<div class="page"></div>
+</div></td></tr>
+<tr class="hoja"><td><div class="row hoja-row">
 
         <div class="col-12" style="">
             <div class="row">
@@ -1867,7 +1881,8 @@
                     <td>[[${d.v('ODEXFISINPCERCIZQ')}]]</td>
                 </tr>
 	    </table> 
-<div class="page"></div>
+</div></td></tr>
+<tr class="hoja"><td><div class="row hoja-row">
             <div class="col-12" style="">
                 <div class="row">
                     <div class="navbar-brand col-3 " href="#">
@@ -2054,7 +2069,8 @@
                     <td>[[${d.v('PERISTALSIS')}]]</td>
                 </tr>
 	    </table>
-<div class="page"></div>
+</div></td></tr>
+<tr class="hoja"><td><div class="row hoja-row">
             <div class="col-12" style="">
                 <div class="row">
                     <div class="navbar-brand col-3 " href="#">
@@ -2199,7 +2215,8 @@
                 </tr>
             </table>
         </div>
-<div class="page"></div>
+</div></td></tr>
+<tr class="hoja"><td><div class="row hoja-row">
         <div class="col-12" style="">
             <div class="row">
                 <div class="navbar-brand col-3 " href="#">
@@ -2465,6 +2482,8 @@
     </div>
 
 
+    </div></td></tr></tbody>
+</table>
 <script th:if="${auto}">window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 400); });</script>
 </body>
 

@@ -103,11 +103,9 @@ public class ExpedienteService {
         return client.crearConsulta(request);
     }
 
+    /** Texto vacio = catalogo completo (el WS hace LIKE '%%' sobre el nombre): "Ver todo el catalogo". */
     public List<IcdDto> buscarIcd(String texto) {
-        if (texto == null || texto.isBlank()) {
-            return List.of();
-        }
-        return client.buscarIcd(texto.trim());
+        return client.buscarIcd(texto == null ? "" : texto.trim());
     }
 
     /**

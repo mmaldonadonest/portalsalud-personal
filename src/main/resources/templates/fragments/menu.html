@@ -89,7 +89,10 @@
             </div>
             <div class="sidebar-footer-body">
                 <h6><a href="javascript:void(0)" th:text="${currentUserName}">Usuario del portal</a></h6>
-                <p th:text="${currentUserRole}">Perfil pendiente</p>
+                <!-- Un chip por rol: con 2+ roles el texto corrido se salia del cuadro. -->
+                <p class="sidebar-roles" th:title="${currentUserRole}">
+                    <span class="sidebar-rol" th:each="r : ${#strings.arraySplit(currentUserRole, ',')}" th:text="${#strings.trim(r)}">ROL</span>
+                </p>
             </div>
             <a id="sidebarFooterMenu" href="javascript:void(0)" class="dropdown-link"><i class="ri-arrow-down-s-line"></i></a>
         </div>

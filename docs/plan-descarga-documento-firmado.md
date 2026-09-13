@@ -1,6 +1,6 @@
 # Plan — Descargar el documento inmediatamente al firmar (examen, consulta, incapacidad)
 
-**Estado:** PLAN, no ejecutado. Pedido el 11-sep-2026.
+**Estado:** EN EJECUCIÓN (opción A). Pedido el 11-sep-2026. **12-sep: hecho para el examen médico** (paso 4 en `guardarExamen()`); consulta e incapacidad siguen pendientes de decisión de contenido.
 **Petición:** "el examen médico y todo lo que tenga firma al final descargue el documento inmediatamente".
 
 ## 1. Qué hay hoy (verificado contra el código)
@@ -32,7 +32,7 @@ Conclusión: **no es una migración, es funcionalidad nueva** — ni el PHP lo h
 1. **Firma en el documento** (0.5 h) — **Actualizado 11-sep noche:** la vista de impresión del examen ya es el port 1:1 de `pdfGenerator.php` (`pages/examen-documento.html` + `ExamenDocumentoService`), y ya pinta la firma capturada del trabajador (`FIRMA_DIGITAL`) en "Firma del Trabajador" como lo hacía el PHP. Queda solo decidir si el bloque "Realizó" sigue con la firma fija `firmaDoc.png` + texto fijo del Dr. Cerón, o toma nombre/firma del médico logueado.
 2. **Documento de consulta médica** (2 h) — Nueva vista `/api/nss/consulta/imprimir?nss=&id=` con los datos de `ConsultaDetalleDto` (fecha, tipo, área, causa, signos vitales, motivo, exploración, diagnóstico, tratamiento, firma). Sin precedente en PHP: **confirmar con el médico qué debe llevar**.
 3. **Documento de incapacidad** (2 h) — Nueva vista `/api/nss/incapacidad/imprimir?nss=&id=` (folio, ramo, tipo, inicio/término, días, costo, dictamen, rubro, firma). Mismo aviso: sin precedente.
-4. **Descarga inmediata** (1 h) — En los 3 formularios: en el clic de Guardar abrir la pestaña vacía, y al recibir el "Registro aceptado" navegarla a la vista con `?auto=1`; la vista con `auto=1` lanza `window.print()` al cargar. Botón "Descargar documento" en el mensaje de éxito por si el navegador bloqueó la pestaña.
+4. **Descarga inmediata** (1 h) — **Examen: HECHO 12-sep** (`nss-search.html` → `guardarExamen()`: si hay firma, abre la pestaña en el clic, la navega a `/api/nss/examen/imprimir?nss=&auto=1` cuando el WS responde "Registro aceptado", la cierra si falla; enlace "Descargar expediente (PDF)" junto al resultado por si el navegador bloquea pop-ups; verificado con Playwright: pestaña abierta, firma del trabajador pintada, `window.print` disparado). Para consulta e incapacidad, en los 3 formularios: en el clic de Guardar abrir la pestaña vacía, y al recibir el "Registro aceptado" navegarla a la vista con `?auto=1`; la vista con `auto=1` lanza `window.print()` al cargar. Botón "Descargar documento" en el mensaje de éxito por si el navegador bloqueó la pestaña.
 5. **Auditoría** — Las 3 vistas con `@Auditado(accion="export")` (el examen ya lo tiene).
 6. **Verificación** (1 h) — Playwright: guardar con firma en cada formulario → pestaña abierta → PDF A4 con la firma visible; revisar en Chrome y Edge el pop-up.
 

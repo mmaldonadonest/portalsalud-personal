@@ -64,8 +64,11 @@ public class ViewModelAdvice {
     }
 
     private String extractRoleName(Authentication authentication) {
+        // distinct(): el mismo rol puede venir dos veces (p.ej. asignado en BD local y en ORDS)
+        // y se veia "MEDICO_ANALISTA, MEDICO_ANALISTA, ADMIN" en el pie del sidebar.
         String roles = authentication.getAuthorities().stream()
                 .map(authority -> authority.getAuthority().replace("ROLE_", ""))
+                .distinct()
                 .collect(Collectors.joining(", "));
         return roles.isBlank() ? "Usuario" : roles;
     }

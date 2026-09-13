@@ -10,9 +10,16 @@
     <div class="card-body">
         <div th:if="${seccion == 'Diagnóstico'}" class="mb-3">
             <label class="form-label" for="examenIcdConsult">Buscar diagnóstico (obligatorio, catálogo ICD/CIE)</label>
-            <input type="text" class="form-control form-control-sm" id="examenIcdConsult" autocomplete="off"
-                   placeholder="Escribe al menos 3 letras (autocompleta)..."
-                   oninput="buscarIcdDebounced('examenIcdConsult','examenIcdResult','examenDiagnostico');">
+            <div class="d-flex gap-2">
+                <input type="text" class="form-control form-control-sm" id="examenIcdConsult" autocomplete="off"
+                       placeholder="Escribe al menos 3 letras del nombre (autocompleta)..."
+                       oninput="buscarIcdDebounced('examenIcdConsult','examenIcdResult','examenDiagnostico');">
+                <button type="button" class="btn btn-sm btn-outline-primary text-nowrap" id="examenIcdTodoBtn"
+                        title="Lista el catálogo completo para elegir sin escribir; vuelve a pulsar para ocultarlo"
+                        onclick="toggleIcdCatalogo(this,'examenIcdConsult','examenIcdResult','examenDiagnostico');">
+                    <i class="ri-list-check me-1"></i>Ver todo el catálogo
+                </button>
+            </div>
             <div id="examenIcdResult" class="mt-2"></div>
         </div>
         <div class="row g-3">

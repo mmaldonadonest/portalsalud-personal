@@ -33,6 +33,12 @@ public class BiowsClientConfig {
                 .requestFactory(ClientHttpRequestFactories.get(timeouts))
                 .defaultHeader("x-api-key", properties.apiKey())
                 .defaultHeader("Content-Type", "application/json; charset=utf-8")
+                // Sin keep-alive: ORDS cierra las conexiones ociosas por su lado y HttpURLConnection
+                // reutilizaba la conexion muerta -> "Unexpected end of file from server" (HTTP 500
+                // intermitente en la primera llamada tras un rato sin uso; visto en el Dashboard
+                // Ejecutivo 2024 y al abrir el examen, 11-13 sep 2026). Un POST no se reintenta
+                // solo, asi que cada llamada abre su propia conexion (ORDS es red local, costo nulo).
+                .defaultHeader("Connection", "close")
                 // El ORDS responde con Content-Type text/html aunque el cuerpo es JSON
                 // (en php-old se hacia json_decode ignorando el content-type). Forzamos que
                 // Jackson tambien deserialice text/html y text/plain.

@@ -148,6 +148,19 @@ public class ExamenDocumentoService {
             v.put(c.var(), valor == null ? "" : valor);
         }
 
+        // --- valores que el PHP imprimia crudos y se decidio humanizar (13-sep-2026)
+        v.put("sexo", switch (limpio(v.get("sexo"))) {
+            case "1" -> "Masculino";
+            case "2" -> "Femenino";
+            default -> limpio(v.get("sexo"));
+        });
+        if ("0".equals(limpio(v.get("edoCivil")))) {
+            v.put("edoCivil", "");
+        }
+        if (limpio(v.get("puesto")).toLowerCase(Locale.ROOT).contains("no existe")) {
+            v.put("puesto", "");
+        }
+
         // --- lo que el PHP hace con codigo, no con asignaciones
         v.put("edad", edadDesdeRfc(v.get("rfc"), emp));
         v.put("tipoExamenInputO", TIPO_EXAMEN.getOrDefault(limpio(v.get("tipoExamenInputO")), limpio(v.get("tipoExamenInputO"))));

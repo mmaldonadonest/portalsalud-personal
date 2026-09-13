@@ -1,6 +1,7 @@
 package com.onest.app.catalog.examen.service;
 
 import com.onest.app.catalog.examen.client.ExamenClient;
+import com.onest.app.catalog.pretest.repository.MedTagRepository;
 import com.onest.app.catalog.examen.dto.ExamItem;
 import com.onest.app.catalog.examen.dto.ExamenReporteDto;
 import java.time.LocalDate;
@@ -9,7 +10,9 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 
 /**
@@ -338,9 +341,36 @@ public class ExamenService {
                     "Estudios realizados", "Diagnóstico", "Plan terapéutico", "Resultado del examen")));
 
     private final ExamenClient client;
+    private final MedTagRepository tags;
 
-    public ExamenService(ExamenClient client) {
+    /**
+     * Cache corta de la lectura del WS por NSS. El acordeon carga cada seccion con una peticion
+     * y cada una leia el examen COMPLETO del WS otra vez ("Abrir todo" = 46 llamadas a ORDS
+     * para el mismo dato). Con 20 s basta para que una carga de pantalla sea una sola llamada;
+     * guardar invalida la entrada del NSS.
+     */
+    private static final long CACHE_MS = 20_000;
+    private final java.util.concurrent.ConcurrentHashMap<String, Object[]> cacheLectura = new java.util.concurrent.ConcurrentHashMap<>();
+
+    @SuppressWarnings("unchecked")
+    private Map<String, String> datosExamen(String nss) {
+        long ahora = System.currentTimeMillis();
+        Object[] hit = cacheLectura.get(nss);
+        if (hit != null && ahora - (long) hit[0] < CACHE_MS) {
+            return (Map<String, String>) hit[1];
+        }
+        Map<String, String> data = client.getExamenData(nss);
+        cacheLectura.put(nss, new Object[]{ahora, data});
+        return data;
+    }
+
+    private void invalidar(String nss) {
+        cacheLectura.remove(nss);
+    }
+
+    public ExamenService(ExamenClient client, MedTagRepository tags) {
         this.client = client;
+        this.tags = tags;
     }
 
     /** Nombres de las secciones (orden de navegacion). */
@@ -360,6 +390,20 @@ public class ExamenService {
         return out;
     }
 
+    /** Todas las claves de escritura "SECCION.CAMPO" (y sus _OBS) del catalogo, para reconciliar al guardar. */
+    public static Set<String> clavesEscritura() {
+        Set<String> out = new java.util.HashSet<>();
+        for (Seccion sec : CATALOGO.values()) {
+            for (Campo c : sec.campos()) {
+                out.add(sec.dataKey() + "." + c.field());
+                if (c.hasObs()) {
+                    out.add(sec.dataKey() + "." + c.field() + "_OBS");
+                }
+            }
+        }
+        return out;
+    }
+
     public boolean existeSeccion(String seccion) {
         return CATALOGO.containsKey(seccion);
     }
@@ -370,7 +414,38 @@ public class ExamenService {
         if (sec == null) {
             throw new IllegalArgumentException("Seccion desconocida: " + seccion);
         }
-        return itemsDesde(sec, client.getExamenData(normalizeNss(nss)));
+        Map<String, String> data = new java.util.LinkedHashMap<>(datosExamen(normalizeNss(nss)));
+        if ("SERV_ANTECEDENTESLAB".equals(sec.dataKey())) {
+            completarDesdeTags(data, normalizeNss(nss));
+        }
+        return itemsDesde(sec, data);
+    }
+
+    /**
+     * Antecedentes laborales (resumen): la tabla del WS solo trae el stub que el PHP mandaba
+     * hardcodeado (pension="true", edad 20, 3 trabajos; confirmado 12-sep-2026: 3,209 de
+     * 3,212 filas) o nada. Lo capturado de verdad vive en MED_TAG (el PHP lo guardaba en
+     * "tags"). Si el WS viene vacio o con el stub, se precarga desde MED_TAG; lo que el
+     * usuario guarde desde aqui va al WS como siempre.
+     */
+    private void completarDesdeTags(Map<String, String> data, String nss) {
+        Map<String, String> t;
+        try {
+            t = tags.latestByNssAndTypeSuffix(nss, "");
+        } catch (RuntimeException ex) {
+            return;
+        }
+        completar(data, "SERV_ANTECEDENTESLAB.edad_inicio_laborar", t.get("edad_inicio_laborar"), "20");
+        completar(data, "SERV_ANTECEDENTESLAB.cantidad_trabajos", t.get("cantidad_trabajos"), "3");
+        completar(data, "SERV_ANTECEDENTESLAB.pension", t.get("pension"), "true");
+    }
+
+    private static void completar(Map<String, String> data, String clave, String deTags, String valorStub) {
+        String ws = data.get(clave);
+        boolean vacioOStub = mostrable(ws).isBlank() || valorStub.equalsIgnoreCase(mostrable(ws).trim());
+        if (vacioOStub && deTags != null && !deTags.isBlank()) {
+            data.put(clave, deTags.trim());
+        }
     }
 
     /** Una seccion ya resuelta, para la vista de impresion. */
@@ -436,21 +511,84 @@ public class ExamenService {
         for (Campo campo : sec.campos()) {
             String base = sec.dataKey() + "." + campo.field();
             String obsName = campo.hasObs() ? base + "_OBS" : null;
-            String obsValue = campo.hasObs() ? data.getOrDefault(base + "_OBS", "") : null;
-            items.add(new ExamItem(
-                    campo.type(),
-                    campo.label(),
-                    base,
-                    data.getOrDefault(base, ""),
-                    obsName,
-                    obsValue));
+            // ExamenClaves.leer(): el WS de lectura devuelve varias claves con nombre distinto
+            // al de escritura (espacios, typos) - ver esa clase.
+            String obsValue = campo.hasObs() ? mostrable(ExamenClaves.leer(data, base + "_OBS")) : null;
+            String value = "RESULTADO".equals(campo.type())
+                    ? dictamenDesdeFlags(data, sec.dataKey())
+                    : mostrable(ExamenClaves.leer(data, base));
+            items.add(new ExamItem(campo.type(), campo.label(), base, value, obsName, obsValue));
         }
         return items;
     }
 
+    /**
+     * El WS no devuelve DICTAMEN: devuelve 4 banderas (APTO, NO_APTO, APTO_CONDICIONADO,
+     * APTO_RESTRINGIDO) con "1" en la elegida - las mismas que BiowsExamenClient.guardar()
+     * escribe a partir del select. Sin esto el select volvia a "Seleccionar" tras guardar.
+     */
+    private static String dictamenDesdeFlags(Map<String, String> data, String seccion) {
+        if ("1".equals(data.get(seccion + ".APTO"))) {
+            return "apto";
+        }
+        if ("1".equals(data.get(seccion + ".NO_APTO"))) {
+            return "no_apto";
+        }
+        if ("1".equals(data.get(seccion + ".APTO_CONDICIONADO"))) {
+            return "apto_condicionado";
+        }
+        if ("1".equals(data.get(seccion + ".APTO_RESTRINGIDO"))) {
+            return "apto_restringido";
+        }
+        return "";
+    }
+
+    /**
+     * El PL/SQL devuelve textos de relleno en lugar de null ("sin observaciones", "sin obs",
+     * "sin datos", "sin firma"); en el formulario se muestran vacios para que el usuario no
+     * los guarde como si fueran captura. "0" se conserva (en Si/No significa No).
+     */
+    private static String mostrable(String v) {
+        if (v == null) {
+            return "";
+        }
+        String t = v.trim().toLowerCase(Locale.ROOT);
+        if (t.equals("sin datos") || t.equals("sin firma") || t.startsWith("sin obs")) {
+            return "";
+        }
+        return v;
+    }
+
+    /**
+     * Firma del paciente ya guardada (SERV_MED_RESULTADO_EXAMEN.FIRMA_DIGITAL) como data URL
+     * PNG, o null si no hay o el WS trae su relleno ("sin firma"). Para mostrarla en el shell.
+     */
+    public String firmaGuardada(String nss) {
+        try {
+            String f = datosExamen(normalizeNss(nss)).get("SERV_MED_RESULTADO_EXAMEN.FIRMA_DIGITAL");
+            return f != null && f.startsWith("data:image") ? f : null;
+        } catch (RuntimeException ex) {
+            return null;
+        }
+    }
+
     /** Guarda el examen (CAMBIO). campos = name->value de las secciones cargadas. */
     public String guardar(String nss, Map<String, String> campos, String firma) {
-        return client.guardar(normalizeNss(nss), campos == null ? Map.of() : campos, firma);
+        invalidar(normalizeNss(nss));
+        String r = client.guardar(normalizeNss(nss), campos == null ? Map.of() : campos, firma);
+        invalidar(normalizeNss(nss));
+        return r;
+    }
+
+    /** Todas las secciones de una vez (para "Abrir todo": 1 peticion HTTP y 1 lectura del WS). */
+    public Map<String, List<ExamItem>> itemsDeTodas(String nss) {
+        Map<String, String> data = new java.util.LinkedHashMap<>(datosExamen(normalizeNss(nss)));
+        completarDesdeTags(data, normalizeNss(nss));
+        Map<String, List<ExamItem>> out = new LinkedHashMap<>();
+        for (Map.Entry<String, Seccion> e : CATALOGO.entrySet()) {
+            out.put(e.getKey(), itemsDesde(e.getValue(), data));
+        }
+        return out;
     }
 
     private static final DateTimeFormatter FECHA_REPORTE = DateTimeFormatter.ofPattern("dd/MM/yy");

@@ -108,6 +108,38 @@ public class BiowsExamenClient implements ExamenClient {
                     .put("FIRMA_DIGITAL", firma);
         }
 
+        // PR_SERVICIO_MED_EXAMEN1/2 (docs/contextoWS.txt) hacen UPDATE de TODAS las tablas del
+        // examen en cada guardado, con lo que venga en el JSON: un campo ausente llega NULL y
+        // pisa el valor guardado, y una seccion ausente pisa la tabla completa. Confirmado
+        // 13-sep-2026: guardar solo "Estudios realizados" borro la FIRMA_DIGITAL de
+        // SERV_MED_RESULTADO_EXAMEN. El PHP no lo sufria porque siempre mandaba el examen
+        // completo. Por eso aqui se manda SIEMPRE el estado completo: lo que el formulario no
+        // trae se rellena con el valor vigente del WS (los textos de relleno del coalesce
+        // - "sin obs...", "sin datos", "sin firma" - se mandan vacios para no persistirlos).
+        Map<String, String> vigente;
+        try {
+            vigente = getExamenData(nss);
+        } catch (RuntimeException ex) {
+            log.warn("[biows] no se pudo leer el examen vigente de {} antes de guardar: {}", nss, ex.getMessage());
+            vigente = Map.of();
+        }
+        java.util.Set<String> clavesEscritura = com.onest.app.catalog.examen.service.ExamenService.clavesEscritura();
+        for (Map.Entry<String, String> e : vigente.entrySet()) {
+            if (e.getKey().indexOf('.') < 0 || e.getKey().startsWith("SERV_ANTECEDENTESLAB.trabajos")) {
+                continue;
+            }
+            // la lectura trae claves con espacios/typos distintos a los de escritura: se
+            // reconcilian contra el catalogo para que el proc reciba el nombre que espera
+            String key = com.onest.app.catalog.examen.service.ExamenClaves.aEscritura(e.getKey(), clavesEscritura);
+            int dot = key.indexOf('.');
+            String seccion = key.substring(0, dot);
+            String field = writeKey(key.substring(dot + 1));
+            Map<String, Object> obj = secciones.computeIfAbsent(seccion, k -> new LinkedHashMap<>());
+            if (!obj.containsKey(field)) {
+                obj.put(field, esRellenoWs(e.getValue()) ? "" : e.getValue());
+            }
+        }
+
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("NNS", nss);
         payload.put("FECHA", LocalDateTime.now().format(FECHA));
@@ -169,6 +201,15 @@ public class BiowsExamenClient implements ExamenClient {
     }
 
     @SuppressWarnings("unchecked")
+    /** Textos de relleno que el WS devuelve en lugar de null (coalesce en el PL/SQL). */
+    private static boolean esRellenoWs(String v) {
+        if (v == null) {
+            return true;
+        }
+        String t = v.trim().toLowerCase();
+        return t.isEmpty() || t.equals("sin firma") || t.equals("sin datos") || t.startsWith("sin obs");
+    }
+
     private static void flatten(String prefix, Map<String, Object> node, Map<String, String> out) {
         for (Map.Entry<String, Object> e : node.entrySet()) {
             String key = prefix == null ? e.getKey() : prefix + "." + e.getKey();

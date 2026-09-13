@@ -19,7 +19,7 @@
                     <i class="ri-folder-open-line me-1"></i>Abrir todo
                 </button>
                 <button type="button" class="btn btn-sm btn-outline-primary"
-                        th:attr="data-url=@{/api/nss/examen/imprimir(nss=${nss})}"
+                        th:attr="data-url=@{/api/nss/examen/imprimir(nss=${nss},auto=1)}"
                         title="Abre el expediente completo en otra pestaña, listo para imprimir o guardar como PDF"
                         onclick="window.open(this.dataset.url, '_blank');">
                     <i class="ri-printer-line me-1"></i>Imprimir expediente
@@ -359,12 +359,17 @@
                 <div class="col-md-6">
                     <label class="form-label d-block">Firma del paciente</label>
                     <input type="hidden" id="firma">
+                    <!-- Un solo recuadro: si ya hay firma guardada (FIRMA_DIGITAL) se pinta dentro del
+                         canvas como contenido inicial; firmar encima la reemplaza. Sin trazo nuevo,
+                         guardar NO la pisa (el cliente solo manda FIRMA_DIGITAL si #firma trae algo). -->
                     <canvas id="firmaCanvas" width="320" height="160"
-                            class="border rounded bg-white" style="touch-action: none; cursor: crosshair;"></canvas>
-                    <div class="mt-2">
+                            class="border rounded bg-white" style="touch-action: none; cursor: crosshair;"
+                            th:attr="data-firma-guardada=${firmaGuardada}"></canvas>
+                    <div class="mt-2 d-flex align-items-center gap-2 flex-wrap">
                         <button type="button" class="btn btn-sm btn-outline-secondary" id="firmaClear">
                             <i class="ri-eraser-line me-1"></i> Limpiar firma
                         </button>
+                        <span id="firmaEstado" class="fs-11 text-muted"></span>
                     </div>
                 </div>
             </div>

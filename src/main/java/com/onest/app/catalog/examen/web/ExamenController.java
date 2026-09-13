@@ -35,6 +35,7 @@ public class ExamenController {
     private final RestriccionService restriccionService;
     private final NssSearchService nssSearchService;
     private final ExamenDocumentoService examenDocumentoService;
+    private final org.thymeleaf.spring6.SpringTemplateEngine templateEngine;
 
     public ExamenController(
             ExamenService examenService,
@@ -42,13 +43,15 @@ public class ExamenController {
             DiagnosticoSecundarioService diagnosticoSecundarioService,
             RestriccionService restriccionService,
             NssSearchService nssSearchService,
-            ExamenDocumentoService examenDocumentoService) {
+            ExamenDocumentoService examenDocumentoService,
+            org.thymeleaf.spring6.SpringTemplateEngine templateEngine) {
         this.examenService = examenService;
         this.contactoEmergenciaService = contactoEmergenciaService;
         this.diagnosticoSecundarioService = diagnosticoSecundarioService;
         this.restriccionService = restriccionService;
         this.nssSearchService = nssSearchService;
         this.examenDocumentoService = examenDocumentoService;
+        this.templateEngine = templateEngine;
     }
 
     /**
@@ -84,6 +87,7 @@ public class ExamenController {
             model.addAttribute("diagnosticosSecundarios", diagnosticoSecundarioService.cargar(nss));
             model.addAttribute("catalogoRestricciones", restriccionService.catalogo());
             model.addAttribute("restricciones", restriccionService.byNss(nss));
+            model.addAttribute("firmaGuardada", examenService.firmaGuardada(nss));
             return "fragments/examen-shell :: shell";
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
@@ -106,6 +110,26 @@ public class ExamenController {
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }
+    }
+
+    /**
+     * Todas las secciones en UNA peticion, para "Abrir todo": antes eran 46 POST a
+     * /examen/seccion (y 46 lecturas del WS). Devuelve {seccion: html del fragmento}.
+     */
+    @PostMapping(
+            path = "/examen/secciones",
+            consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public Map<String, String> secciones(@RequestParam("nss") String nss) {
+        Map<String, String> html = new LinkedHashMap<>();
+        for (Map.Entry<String, java.util.List<com.onest.app.catalog.examen.dto.ExamItem>> e : examenService.itemsDeTodas(nss).entrySet()) {
+            org.thymeleaf.context.Context ctx = new org.thymeleaf.context.Context(new java.util.Locale("es", "MX"));
+            ctx.setVariable("seccion", e.getKey());
+            ctx.setVariable("items", e.getValue());
+            html.put(e.getKey(), templateEngine.process("fragments/examen-seccion", java.util.Set.of("seccion"), ctx));
+        }
+        return html;
     }
 
     /**

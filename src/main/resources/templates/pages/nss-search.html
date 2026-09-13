@@ -315,7 +315,9 @@
             // para poder reusarse tambien desde el Diagnostico del Examen Medico sin duplicar
             // fragmento/backend - guarda el id del textarea destino en data-target del contenedor
             // de resultados, asi addIcd() sabe donde agregar la clave sin necesitar mas parametros.
-            window.buscarIcd = async function (inputId, resultId, targetId) {
+            // todo=true: lista el catalogo completo (el WS con texto vacio regresa todo) para
+            // quien no sabe por donde empezar; el autocompletar sigue pidiendo 3 letras.
+            window.buscarIcd = async function (inputId, resultId, targetId, todo) {
                 inputId = inputId || 'icdConsult';
                 resultId = resultId || 'icdResult';
                 targetId = targetId || 'diagnostico';
@@ -325,8 +327,13 @@
                     return;
                 }
                 out.setAttribute('data-target', targetId);
-                var q = (input.value || '').trim();
-                if (!q) {
+                if (!todo) {
+                    out.dataset.todo = '';
+                    var btnTodo = document.getElementById('examenIcdTodoBtn');
+                    if (btnTodo && resultId === 'examenIcdResult') { btnTodo.innerHTML = '<i class="ri-list-check me-1"></i>Ver todo el catálogo'; }
+                }
+                var q = todo ? '' : (input.value || '').trim();
+                if (!q && !todo) {
                     out.innerHTML = '';
                     return;
                 }
@@ -354,6 +361,26 @@
                 } catch (error) {
                     out.innerHTML = '';
                 }
+            };
+
+            // "Ver todo el catalogo" hace toggle: primer clic lista todo, segundo lo oculta.
+            window.toggleIcdCatalogo = async function (btn, inputId, resultId, targetId) {
+                var out = document.getElementById(resultId);
+                if (!out) {
+                    return;
+                }
+                if (out.dataset.todo === '1') {
+                    out.innerHTML = '';
+                    out.dataset.todo = '';
+                    btn.innerHTML = '<i class="ri-list-check me-1"></i>Ver todo el catálogo';
+                    return;
+                }
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Cargando...';
+                await buscarIcd(inputId, resultId, targetId, true);
+                out.dataset.todo = '1';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ri-eye-off-line me-1"></i>Ocultar catálogo';
             };
 
             // Autocompleta desde 3 letras, con debounce (300ms) para no disparar una peticion
@@ -409,12 +436,39 @@
                 var drawing = false;
                 var last = null;
 
+                // Firma ya guardada (examen: data-firma-guardada en el canvas): se pinta como
+                // contenido inicial para que el usuario la vea, pero #firma se queda VACIO - si no
+                // firma de nuevo, guardar no la pisa. Al primer trazo se borra y se reemplaza.
+                var guardada = canvas.dataset.firmaGuardada || '';
+                var mostrandoGuardada = false;
+                var etiqueta = document.getElementById('firmaEstado');
+                function pintarGuardada() {
+                    if (!guardada) { return; }
+                    var img = new Image();
+                    img.onload = function () {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        mostrandoGuardada = true;
+                        hidden.value = '';
+                        if (etiqueta) { etiqueta.textContent = 'Firma guardada: es la que aparece en el expediente impreso. Para cambiarla, firma encima y guarda.'; }
+                    };
+                    img.src = guardada;
+                }
+                pintarGuardada();
+
                 function pos(e) {
                     var r = canvas.getBoundingClientRect();
                     var t = (e.touches && e.touches.length) ? e.touches[0] : e;
                     return { x: t.clientX - r.left, y: t.clientY - r.top };
                 }
-                function start(e) { drawing = true; last = pos(e); e.preventDefault(); }
+                function start(e) {
+                    if (mostrandoGuardada) {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        mostrandoGuardada = false;
+                        if (etiqueta) { etiqueta.textContent = 'Nueva firma: al guardar reemplaza a la anterior y abre el expediente para imprimir.'; }
+                    }
+                    drawing = true; last = pos(e); e.preventDefault();
+                }
                 function move(e) {
                     if (!drawing) { return; }
                     var p = pos(e);
@@ -438,8 +492,16 @@
                 var clearBtn = document.getElementById('firmaClear');
                 if (clearBtn) {
                     clearBtn.onclick = function () {
+                        // Solo limpia el recuadro para firmar de nuevo. NO borra la firma guardada
+                        // en el WS: si se guarda sin trazo nuevo, se conserva la anterior.
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
                         hidden.value = '';
+                        mostrandoGuardada = false;
+                        if (etiqueta) {
+                            etiqueta.textContent = guardada
+                                ? 'Recuadro limpio. Firma y guarda para reemplazar la firma guardada; si guardas sin firmar, se conserva la anterior.'
+                                : '';
+                        }
                     };
                 }
             };
@@ -1041,9 +1103,34 @@
                 // sin data-bs-parent, abrir un grupo ya no cierra los demas: quedan todos visibles
                 grupos.forEach(function (g) { g.classList.add('show'); g.removeAttribute('data-bs-parent'); });
                 acordeon.querySelectorAll('.accordion-button').forEach(function (b) { b.classList.remove('collapsed'); b.setAttribute('aria-expanded', 'true'); });
+                // Una sola peticion con todas las secciones (antes: una por pane, 46 en total).
                 var panes = Array.prototype.slice.call(acordeon.querySelectorAll('.examen-tab-content .tab-pane'));
-                for (var i = 0; i < panes.length; i++) {
-                    await cargarPaneExamen(panes[i]);
+                var nssTodo = (input.value || '').trim();
+                var cargadoEnBloque = false;
+                try {
+                    var bodyTodo = new URLSearchParams();
+                    bodyTodo.append('nss', nssTodo);
+                    var csrfTodo = form.querySelector('input[type="hidden"][name]');
+                    if (csrfTodo && csrfTodo.name) { bodyTodo.append(csrfTodo.name, csrfTodo.value); }
+                    var respTodo = await fetch(contextPath + 'api/nss/examen/secciones', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+                        body: bodyTodo.toString()
+                    });
+                    if (respTodo.ok) {
+                        var htmls = await respTodo.json();
+                        panes.forEach(function (p) {
+                            if (p.dataset.loaded === 'true') { return; }
+                            var h = htmls[p.getAttribute('data-seccion')];
+                            if (h) { p.innerHTML = h; p.dataset.loaded = 'true'; }
+                        });
+                        cargadoEnBloque = true;
+                    }
+                } catch (e) { /* cae al modo uno por uno */ }
+                if (!cargadoEnBloque) {
+                    for (var i = 0; i < panes.length; i++) {
+                        await cargarPaneExamen(panes[i]);
+                    }
                 }
                 if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ri-folder-open-line me-1"></i>Abrir todo'; }
             };
@@ -1103,10 +1190,34 @@
                 // Diagnostico solo es obligatorio si esa seccion esta abierta - las secciones no
                 // cargadas no se mandan (evita clobber), asi que no tiene sentido exigirlo si el
                 // usuario esta guardando otras secciones sin haber tocado Diagnostico esta vez.
+                // Regla del PO: diagnostico ICD obligatorio - pero solo al cerrar el examen (cuando
+                // se guarda un dictamen). Exigirlo con solo tener la pestana cargada bloqueaba
+                // cualquier guardado tras "Abrir todo", incluso cambiar la firma.
                 var diagEl = document.getElementById('examenDiagnostico');
-                if (diagEl && !diagEl.value.trim()) {
+                var dictamenEl = document.querySelector('select[name="SERV_MED_RESULTADO_EXAMEN.DICTAMEN"]');
+                if (diagEl && !diagEl.value.trim() && dictamenEl && dictamenEl.value) {
                     pintarResultadoInline(document.getElementById('examenGuardarResult'),
-                            'Selecciona al menos un diagnóstico del catálogo ICD antes de guardar.', true);
+                            'Para guardar un dictamen selecciona al menos un diagnóstico del catálogo ICD (Cierre → Diagnóstico → Buscar diagnóstico).', true);
+                    // Llevar al usuario al campo: abrir el grupo y la pestana de Diagnostico, y
+                    // enfocar el buscador ICD (el cuadro de diagnostico es solo lectura).
+                    var paneDiag = diagEl.closest('.tab-pane');
+                    var grupoDiag = diagEl.closest('.accordion-collapse');
+                    if (grupoDiag && !grupoDiag.classList.contains('show')) {
+                        var hdr = document.querySelector('[data-bs-target="#' + grupoDiag.id + '"]');
+                        if (hdr) { hdr.click(); }
+                    }
+                    if (paneDiag) {
+                        var tabDiag = document.querySelector('.examen-tabs [data-bs-target="#' + paneDiag.id + '"]');
+                        if (tabDiag) { tabDiag.click(); }
+                    }
+                    var buscador = document.getElementById('examenIcdConsult');
+                    setTimeout(function () {
+                        var destino = buscador || diagEl;
+                        destino.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        destino.focus();
+                        destino.classList.add('is-invalid');
+                        setTimeout(function () { destino.classList.remove('is-invalid'); }, 4000);
+                    }, 400);
                     return;
                 }
                 var nss = (input.value || '').trim();
@@ -1148,6 +1259,28 @@
                 btn.disabled = true;
                 btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Guardando...';
                 mostrarResultadoExamen('Guardando examen...', false);
+                // Documento firmado -> PDF al momento (docs/plan-descarga-documento-firmado.md,
+                // opcion A): si el examen lleva firma, la pestana del documento se abre AQUI, en
+                // el clic (los navegadores bloquean window.open despues de un await), y se
+                // navega al expediente con ?auto=1 (lanza el dialogo de imprimir / guardar como
+                // PDF) solo si el guardado fue exitoso; si falla, se cierra.
+                // Se abre el expediente al guardar cuando el documento queda firmado: firma nueva
+                // en el recuadro, o dictamen guardado con una firma ya almacenada en el WS.
+                var firmaNueva = !!(firmaEl && firmaEl.value);
+                var canvasFirma = document.getElementById('firmaCanvas');
+                var firmaAlmacenada = !!(canvasFirma && canvasFirma.dataset.firmaGuardada);
+                var conDictamen = !!(dictamenEl && dictamenEl.value);
+                var conFirma = firmaNueva || (firmaAlmacenada && conDictamen);
+                var urlDocumento = contextPath + 'api/nss/examen/imprimir?nss=' + encodeURIComponent(nss) + '&auto=1';
+                var ventanaDoc = null;
+                if (conFirma) {
+                    try {
+                        ventanaDoc = window.open('', '_blank');
+                        if (ventanaDoc) {
+                            ventanaDoc.document.write('<p style="font:14px system-ui;padding:24px">Guardando el examen y generando el expediente para imprimir…</p>');
+                        }
+                    } catch (e) { ventanaDoc = null; }
+                }
                 try {
                     var response = await fetch(contextPath + 'api/nss/examen/save', {
                         method: 'POST',
@@ -1155,9 +1288,27 @@
                         body: body.toString()
                     });
                     var txt = await response.text();
-                    mostrarResultadoExamen(response.ok ? ('Examen: ' + txt)
-                            : ('Error al guardar (HTTP ' + response.status + '): ' + txt), !response.ok);
+                    if (response.ok && conFirma) {
+                        if (ventanaDoc) {
+                            ventanaDoc.location.href = urlDocumento;
+                        }
+                        mostrarResultadoExamen('Examen: ' + txt, false);
+                        if (resultEl) {
+                            // enlace por si el navegador bloqueo la pestana
+                            var a = document.createElement('a');
+                            a.href = urlDocumento;
+                            a.target = '_blank';
+                            a.className = 'ms-2';
+                            a.innerHTML = '<i class="ri-printer-line me-1"></i>Descargar expediente (PDF)';
+                            resultEl.appendChild(a);
+                        }
+                    } else {
+                        if (ventanaDoc) { ventanaDoc.close(); }
+                        mostrarResultadoExamen(response.ok ? ('Examen: ' + txt)
+                                : ('Error al guardar (HTTP ' + response.status + '): ' + txt), !response.ok);
+                    }
                 } catch (error) {
+                    if (ventanaDoc) { ventanaDoc.close(); }
                     mostrarResultadoExamen('Error de red al guardar el examen.', true);
                 } finally {
                     btn.disabled = false;

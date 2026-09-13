@@ -117,7 +117,7 @@ public class ExpedienteController {
             path = "/icd",
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = MediaType.TEXT_HTML_VALUE)
-    public String icd(@RequestParam("icd") String icd, Model model) {
+    public String icd(@RequestParam(name = "icd", required = false, defaultValue = "") String icd, Model model) {
         model.addAttribute("claves", expedienteService.buscarIcd(icd));
         return "fragments/icd-result :: table";
     }
