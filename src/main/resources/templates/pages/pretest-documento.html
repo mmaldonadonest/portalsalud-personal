@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/documento :: layout('Pre-Test | Portal Salud Personal', 'Portal Salud Personal · Pre-Test', ${nss}, ${ahora}, ${auto}, ~{:: contenido})}">
+<body>
+<!--
+  Documento imprimible del Pre-Test. Los datos salen de MED_TAG (base del portal, sufijo
+  PRETEST) - no depende de ORDS. Es una declaracion del trabajador, por eso lleva su firma
+  capturada y la leyenda de veracidad.
+
+  SIN clave de control FT-SO todavia (el formato no existia en el legacy; ver
+  docs/plan-impresion-pretest-incapacidad-consulta.md). Cuando Salud Ocupacional lo asigne, se
+  pasa la clave al fragmento `formato` y aparece el cuadro completo.
+-->
+<tbody th:fragment="contenido">
+<tr class="hoja"><td><div class="row hoja-row">
+
+    <div th:replace="~{fragments/documento-encabezado :: formato('CUESTIONARIO PRE-TEST DE SALUD', null, null, null, 'Hoja 1 de 1')}"></div>
+
+    <div class="col-12" th:replace="~{fragments/documento-encabezado :: ficha(${empleado}, ${nss})}"></div>
+
+    <div class="col-12">
+        <h6>Datos declarados</h6>
+        <div class="row">
+            <div class="col-6">
+                <table class="table table-bordered table-sm">
+                    <tr><td>Nombre(s)</td><td th:text="${p['nom']}"></td></tr>
+                    <tr><td>Apellido paterno</td><td th:text="${p['ape']}"></td></tr>
+                    <tr><td>Apellido materno</td><td th:text="${p['apm']}"></td></tr>
+                    <tr><td>Fecha de nacimiento</td><td th:text="${p['fechN']}"></td></tr>
+                    <tr><td>Estado civil</td><td th:text="${p['ecivil']}"></td></tr>
+                    <tr><td>Número IMSS</td><td th:text="${p['num_imss']}"></td></tr>
+                </table>
+            </div>
+            <div class="col-6">
+                <table class="table table-bordered table-sm">
+                    <tr><td>Cuenta</td><td th:text="${p['cuenta']}"></td></tr>
+                    <tr><td>Puesto</td><td th:text="${p['puesto']}"></td></tr>
+                    <tr><td>Agencia</td><td th:text="${p['agencia']}"></td></tr>
+                    <tr><td>Teléfono personal</td><td th:text="${p['tel_personal']}"></td></tr>
+                    <tr><td>Teléfono de casa</td><td th:text="${p['tel_casa']}"></td></tr>
+                    <tr><td>Domicilio</td><td th:text="${domicilio}"></td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <h6>Contactos de emergencia</h6>
+        <table class="table table-bordered table-sm">
+            <tr><th>Contactar a</th><th>Teléfono</th></tr>
+            <tr><td th:text="${p['contactar_a']}"></td><td th:text="${p['contacto_emergencia']}"></td></tr>
+            <tr><td th:text="${p['contactar_a1']}"></td><td th:text="${p['contacto_emergencia1']}"></td></tr>
+        </table>
+    </div>
+
+    <div class="col-6">
+        <h6>Cuestionario de salud</h6>
+        <table class="table table-bordered table-sm">
+            <tr><th>Pregunta</th><th style="width:12%">Resp.</th><th style="width:34%">Observaciones</th></tr>
+            <tr th:each="q : ${salud}">
+                <td th:text="${q.etiqueta}">Pregunta</td>
+                <td th:text="${respuestas[q.codigo]}"></td>
+                <td th:text="${observaciones[q.codigo]}"></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="col-6">
+        <h6>Síntomas respiratorios</h6>
+        <table class="table table-bordered table-sm">
+            <tr><th>Síntoma</th><th style="width:12%">Resp.</th><th style="width:34%">Observaciones</th></tr>
+            <tr th:each="q : ${sintomas}">
+                <td th:text="${q.etiqueta}">Síntoma</td>
+                <td th:text="${respuestas[q.codigo]}"></td>
+                <td th:text="${observaciones[q.codigo]}"></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="col-12">
+        <h6>Comentarios</h6>
+        <table class="table table-bordered table-sm">
+            <tr><td th:text="${p['comentarios']}"></td></tr>
+            <tr th:if="${p['comentarios_adicionales'] != null and !p['comentarios_adicionales'].isBlank()}">
+                <td th:text="${p['comentarios_adicionales']}"></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="col-12">
+        <p class="footerTxt" style="margin-top:10px">
+            Declaro bajo protesta de decir verdad que la información proporcionada es verídica y estoy
+            consciente de que cualquier omisión o falsedad puede ser motivo de la conclusión del proceso,
+            y autorizo al servicio médico de la compañía a realizar los exámenes necesarios con motivo de
+            mi trabajo, para la detección oportuna y el estudio de enfermedades o accidentes.
+        </p>
+    </div>
+
+    <div class="col-12" th:replace="~{fragments/documento-encabezado :: firmas(${firmaTrabajador}, ${nombreTrabajador}, ${capturo})}"></div>
+
+</div></td></tr>
+</tbody>
+</body>
+</html>

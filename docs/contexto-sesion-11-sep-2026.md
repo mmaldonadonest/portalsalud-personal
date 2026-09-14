@@ -1,6 +1,22 @@
-# Contexto de la sesión — 11 al 13 de septiembre de 2026 (para retomar el lunes 14-sep)
+# Contexto de la sesión — 11 al 14 de septiembre de 2026
 
-## 0. Resumen del 12-13 sep (lo más reciente primero)
+## 0a. Resumen del 14-sep — impresión PDF de Pre-Test, Consulta médica e Incapacidad (HECHO)
+
+Ejecutado el plan `docs/plan-impresion-pretest-incapacidad-consulta.md` reutilizando la mecánica del examen (autorizado: "sigue con la reutilización del examen y si hay layout nuevo lo adaptamos después"). Verificado en Tomcat local con Playwright (`pw/docs3.js`, `pw/docs4.js`). Sin SQL ni cambios en ORDS.
+
+- **Infraestructura común** (el examen sigue con su copia propia, es port del PHP): `layouts/documento.html` (encabezado/pie por hoja, `@page A4`, `barra-print`, `?auto=1`), `fragments/documento-encabezado.html` (`formato` con clave FT-SO opcional — hoy se pasa `null` y sale "Documento generado por Portal Salud Personal"; `ficha` del empleado; `firmas`), `DocumentoImpresoService` (fecha de impresión, ficha vía `NssSearchService`, `texto()` blanquea rellenos del WS, `siNo()`, `fecha()` ISO→`dd/MM/yyyy HH:mm` **literal, sin convertir la Z** como el resto del portal, `limpio(record)`→Map, `usuarioActual()`, `porRelacion()`).
+- **Pre-Test** `GET /api/nss/pretest/imprimir?nss=` → `pages/pretest-documento.html` (ficha, datos declarados, contactos, 7 preguntas + 8 síntomas con Sí/No y observaciones, comentarios, leyenda de veracidad, firma del trabajador). Catálogo de preguntas en `PretestService.SALUD/SINTOMAS`.
+- **Consulta** `GET /api/nss/consulta/imprimir?nss=&id=` (o `&rel=<idArchivoRel>`) → `pages/consulta-documento.html` "NOTA MÉDICA DE CONSULTA" (datos, signos vitales, motivo/exploración/diagnóstico/tratamiento, adjuntos, firma).
+- **Incapacidad** `GET /api/nss/incapacidad/imprimir?nss=&id=` (o `&rel=`) → `pages/incapacidad-documento.html` "CONSTANCIA INTERNA DE INCAPACIDAD" con leyenda de que no sustituye al certificado del IMSS.
+- `rel=`: el WS de alta no devuelve el `ID_CONSULTA`; el documento se ubica por el `idArchivoRel` del formulario recorriendo los últimos 10 registros del NSS (`porRelacion`). 404 si no existe.
+- **Botones "Imprimir / PDF"** en el modal de detalle de consulta e incapacidad (los `detalle` endpoints ahora ponen `nss` y `serieId` en el modelo) y junto a Guardar en el Pre-Test.
+- **Apertura al guardar**: `guardarRegistro()` en `nss-search.html` acepta `opts.documentoUrl(form)`; si hay firma en `#firma`, abre la pestaña en el clic y la navega al documento con `auto=1` tras "guardado" (+ enlace de respaldo). Activo en consulta, incapacidad y Pre-Test. Verificado end-to-end en Pre-Test (firma en canvas → guardar → pestaña con firma).
+- `@Auditado(accion="export")` en los 3 endpoints (módulos Pretest / Consultas / Incapacidades).
+- **Bugs preexistentes corregidos de paso**: (1) `pretest-form.html` nunca recargaba las respuestas Sí/No guardadas — `${p[code]}` en SpEL toma `code` como clave literal; ahora `p.get(code)`. (2) `examen-documento.html` y el layout tenían el bloque `@media screen` dentro de `<style media="print">`: el encabezado/pie de impresión se veía en pantalla.
+- **Decisiones tomadas por defecto (§4 del plan), ajustables cuando llegue el layout oficial**: sin clave FT-SO; firma del trabajador + nombre del usuario logueado como "personal de salud ocupacional" (sin cédula: no existe en catálogo); apertura al guardar **y** botón en el detalle.
+- Datos de prueba: en MED_TAG del NSS `30048315698` quedaron `LHOP=1` ("Apendicectomía (prueba)") y `TOSIN=0` para validar el render Sí/No.
+
+## 0. Resumen del 12-13 sep
 
 Todo desplegado y verificado en Tomcat local; nada commiteado (sugerido `Update 09132026`).
 
@@ -15,10 +31,10 @@ Todo desplegado y verificado en Tomcat local; nada commiteado (sugerido `Update 
 - **Hallazgos de datos (sin resolver, son de ORDS/negocio)**: catálogo ICD con solo 909 claves (capítulos A y B) y búsqueda solo por nombre; stub del PHP en `SERV_MED_ANT_LABORALES` (3,209 `true`) y 51,798 filas vacías en `SERV_MED_DET_ANT_LABORALES`; 3 campos que el WS de lectura no devuelve (`AVC_OBS`, `NEFROPATIAS_ID`, `NOLMAL_FASCIES`); `insert into prueba`/`bug` en handlers.
 
 ## Siguiente al retomar
-1. Preguntar resultados de las pruebas del usuario (examen, Excel, auditoría).
-2. Plan de descarga al firmar para **consulta médica e incapacidad** (decisiones pendientes en §4; el examen ya está).
+1. Preguntar resultados de las pruebas del usuario (examen, Excel, auditoría) y que pruebe los 3 documentos nuevos (Pre-Test / detalle de consulta / detalle de incapacidad → "Imprimir / PDF").
+2. ~~Descarga al firmar para consulta e incapacidad~~ HECHO 14-sep (§0a). Queda adaptar cuando Salud Ocupacional entregue layout/clave FT-SO.
 3. Deuda Pensión/antecedentes laborales (escribir MED_TAG al guardar + radio).
-4. Commit.
+4. Commit (`Update 09142026`).
 
 
 **Estado al cerrar:** todo compilado y desplegado en Tomcat local (`http://localhost:9999/portal-salud`,

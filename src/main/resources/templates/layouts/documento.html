@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:fragment="layout(titulo, pie, nss, ahora, auto, contenido)">
+<head>
+    <meta charset="UTF-8">
+    <!--
+      Layout comun de los documentos imprimibles del expediente (Pre-Test, Consulta medica,
+      Incapacidad). Extraido de pages/examen-documento.html, que fue el primero y sigue con su
+      copia propia porque es un port 1:1 del PHP y no conviene tocarlo al regenerarlo.
+
+      Mecanica (probada 13-sep-2026): el documento va dentro de una tabla cuyo thead/tfoot el
+      navegador repite en CADA hoja reservando su espacio - asi el encabezado no se encima con el
+      contenido a partir de la hoja 2, como pasaba con position:fixed. Con @page { margin: 0 } el
+      navegador deja de imprimir su propio encabezado (titulo + URL) y su pie. Cada bloque que debe
+      empezar hoja nueva es un <tr class="hoja"> (el salto en <tr> si lo respetan los navegadores;
+      dentro de una celda, no).
+
+      El PDF lo genera el navegador (window.print), igual que el legacy: sin libreria de PDF.
+      Con ?auto=1 el dialogo de imprimir se abre solo al cargar.
+    -->
+    <title th:text="${titulo}">Documento</title>
+    <link rel="stylesheet" th:href="@{/theme/assets/css/style.min.css}" href="/theme/assets/css/style.min.css">
+    <style>
+        /* El theme trae Bootstrap con su fuente y cabeceras de tabla azules; estas reglas dan el
+           aspecto sobrio de documento impreso (igual que el expediente del examen). */
+        body { font-family: "Times New Roman", Times, serif; background: #fff; color: #000; }
+        td, th, p { font-size: 9px; }
+        .table > :not(caption) > * > * { background: transparent; color: #000; }
+        .table thead th, .table th { background: #fff; font-weight: 700; }
+        h4, h5, h6 { font-family: "Times New Roman", Times, serif; font-weight: 400; color: #000; }
+        .doc-titulo { font-size: 12px; font-weight: bold; }
+        .doc-dato { font-size: 11px; }
+        .footerTxt { font-size: 7px; }
+        .firma-linea { border-top: 1px solid #000; margin-top: 46px; padding-top: 4px; text-align: center; font-size: 10px; }
+        .firma-img { max-height: 60px; }
+    </style>
+    <style>
+        @page { size: A4; margin: 0; }
+        @media print {
+            table.print-doc > tbody > tr.hoja { break-after: page; page-break-after: always; }
+            table.print-doc > tbody > tr.hoja:last-child { break-after: auto; page-break-after: auto; }
+            html, body { margin: 0; padding: 0; }
+            body.container { max-width: none; width: auto; padding: 0 12mm; border: 0 !important; }
+            table.print-doc { width: 100%; border-collapse: collapse; table-layout: fixed; }
+            table.print-doc > tbody > tr > td { width: 100%; padding: 0; border: 0; vertical-align: top; }
+            table.print-doc > thead > tr > td, table.print-doc > tfoot > tr > td { padding: 0; border: 0; }
+            .hoja-row { margin: 0; }
+            .hoja-row > [class^="col-"], .hoja-row > [class*=" col-"] { padding-left: 0; padding-right: 0; }
+            .print-hdr, .print-ftr { font: 9px "Times New Roman", Times, serif; color: #333; display: flex; justify-content: space-between; }
+            .print-hdr { height: 14mm; align-items: flex-start; padding-top: 4mm; }
+            .print-ftr { height: 12mm; align-items: flex-end; padding-bottom: 4mm; }
+            .print-hdr strong { font-size: 10px; }
+            .barra-print { display: none !important; }
+        }
+        @media screen {
+            table.print-doc > thead, table.print-doc > tfoot { display: none; }
+            table.print-doc { width: 100%; table-layout: fixed; }
+            table.print-doc > tbody > tr > td { padding: 0; border: 0; width: 100%; }
+            .hoja-row { margin: 0; }
+        }
+    </style>
+</head>
+<body class="container border">
+<div class="barra-print" style="position:sticky;top:0;z-index:10;background:#0f172a;color:#fff;padding:10px 16px;margin:0 -12px 8px;display:flex;gap:10px;align-items:center;font:12.5px system-ui,sans-serif">
+    <button type="button" onclick="window.print();" style="background:#2563eb;color:#fff;border:0;border-radius:6px;padding:7px 14px;font-weight:600;cursor:pointer">Imprimir / Guardar como PDF</button>
+    <button type="button" onclick="window.close();" style="background:#334155;color:#fff;border:0;border-radius:6px;padding:7px 14px;font-weight:600;cursor:pointer">Cerrar</button>
+    <span style="opacity:.8;margin-left:auto">Ctrl+P también funciona · el PDF lo genera el navegador</span>
+</div>
+<table class="print-doc">
+    <thead><tr><td>
+        <div class="print-hdr"><strong>SISTEMA MEDICO ONEST</strong><span th:text="'Impreso: ' + ${ahora}">Impreso</span></div>
+    </td></tr></thead>
+    <tfoot><tr><td>
+        <div class="print-ftr"><span th:text="${pie}">Portal Salud Personal</span><span th:text="'NSS ' + ${nss}">NSS</span></div>
+    </td></tr></tfoot>
+    <tbody th:replace="${contenido}">
+        <tr class="hoja"><td>contenido</td></tr>
+    </tbody>
+</table>
+<script th:if="${auto}">window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 400); });</script>
+</body>
+</html>

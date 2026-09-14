@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/documento :: layout('Constancia de incapacidad | Portal Salud Personal', 'Portal Salud Personal · Constancia interna de incapacidad', ${nss}, ${ahora}, ${auto}, ~{:: contenido})}">
+<body>
+<!--
+  Constancia INTERNA de control de una incapacidad (WS Servcio/consulta_incapacidad). NO es el
+  documento oficial: ese lo expide el IMSS (ST-2/ST-7); por eso el titulo lo dice explicitamente
+  y no lleva clave FT-SO. Ver docs/plan-impresion-pretest-incapacidad-consulta.md §4.
+-->
+<tbody th:fragment="contenido">
+<tr class="hoja"><td><div class="row hoja-row" th:with="d=${detalle}">
+
+    <div th:replace="~{fragments/documento-encabezado :: formato('CONSTANCIA INTERNA DE INCAPACIDAD', null, null, null, 'Hoja 1 de 1')}"></div>
+
+    <div class="col-12" th:replace="~{fragments/documento-encabezado :: ficha(${empleado}, ${nss})}"></div>
+
+    <div class="col-12">
+        <h6>Datos de la incapacidad</h6>
+        <div class="row">
+            <div class="col-6">
+                <table class="table table-bordered table-sm">
+                    <tr><td>Folio de incapacidad</td><td th:text="${d.folioIncapacidad}"></td></tr>
+                    <tr><td>Fecha de registro</td><td th:text="${d.fechaConsulta}"></td></tr>
+                    <tr><td>Ramo</td><td th:text="${d.ramo}"></td></tr>
+                    <tr><td>Tipo de incapacidad</td><td th:text="${d.tipoIncapacidad}"></td></tr>
+                    <tr><td>Rubro</td><td th:text="${d.rubro}"></td></tr>
+                    <tr><td>Estado del dictamen</td><td th:text="${d.estadoDictamen}"></td></tr>
+                </table>
+            </div>
+            <div class="col-6">
+                <table class="table table-bordered table-sm">
+                    <tr><td>Fecha de inicio</td><td th:text="${d.fechaInicio}"></td></tr>
+                    <tr><td>Fecha de término</td><td th:text="${d.fechaTermino}"></td></tr>
+                    <tr><td>Días autorizados</td><td th:text="${d.diasAutorizados}"></td></tr>
+                    <tr><td>Fecha de alta</td><td th:text="${d.fechaAlta}"></td></tr>
+                    <tr><td>Alta</td><td th:text="${d.alta}"></td></tr>
+                    <tr><td>ST2</td><td th:text="${d.st2}"></td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <h6>Control administrativo</h6>
+        <table class="table table-bordered table-sm text-center">
+            <tr><th>Salario integrado</th><th>Salario acumulado</th><th>Costo</th><th>Imputable</th><th>Goce de sueldo</th><th>Complemento salarial</th></tr>
+            <tr>
+                <td th:text="${d.salarioIntegrado}"></td><td th:text="${d.salarioAcumulado}"></td><td th:text="${d.costo}"></td>
+                <td th:text="${d.imputable}"></td><td th:text="${goceSueldo}"></td><td th:text="${d.complementoSalarial}"></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="col-12" th:unless="${#lists.isEmpty(adjuntos)}">
+        <h6>Archivos adjuntos</h6>
+        <table class="table table-bordered table-sm">
+            <tr><th>Archivo</th><th style="width:20%">Fecha</th></tr>
+            <tr th:each="a : ${adjuntos}">
+                <td th:text="${a.name}"></td>
+                <td th:text="${a.dateUpload == null} ? '' : ${#temporals.format(a.dateUpload, 'dd/MM/yyyy')}"></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="col-12">
+        <p class="footerTxt" style="margin-top:10px">
+            Constancia de control interno del servicio médico. No sustituye al certificado de incapacidad
+            expedido por el Instituto Mexicano del Seguro Social.
+        </p>
+    </div>
+
+    <div class="col-12" th:replace="~{fragments/documento-encabezado :: firmas(${firmaTrabajador}, ${nombreTrabajador}, ${capturo})}"></div>
+
+</div></td></tr>
+</tbody>
+</body>
+</html>

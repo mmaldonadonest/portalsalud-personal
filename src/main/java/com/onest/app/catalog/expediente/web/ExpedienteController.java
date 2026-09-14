@@ -2,12 +2,16 @@ package com.onest.app.catalog.expediente.web;
 
 import com.onest.app.audit.web.Auditado;
 import com.onest.app.catalog.causaconsulta.service.CausaConsultaService;
+import com.onest.app.catalog.expediente.service.DocumentoImpresoService;
 import com.onest.app.catalog.expediente.service.ExpedienteService;
 import com.onest.app.catalog.file.service.FileStoreService;
+import com.onest.app.catalog.nss.service.NssSearchService;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,13 +32,15 @@ public class ExpedienteController {
     private final ExpedienteService expedienteService;
     private final FileStoreService fileStoreService;
     private final CausaConsultaService causaConsultaService;
+    private final NssSearchService nssSearchService;
 
     public ExpedienteController(
             ExpedienteService expedienteService, FileStoreService fileStoreService,
-            CausaConsultaService causaConsultaService) {
+            CausaConsultaService causaConsultaService, NssSearchService nssSearchService) {
         this.expedienteService = expedienteService;
         this.fileStoreService = fileStoreService;
         this.causaConsultaService = causaConsultaService;
+        this.nssSearchService = nssSearchService;
     }
 
     @PostMapping(
@@ -67,12 +73,52 @@ public class ExpedienteController {
         try {
             var detalle = expedienteService.consultaDetalle(data, serieId).orElse(null);
             model.addAttribute("detalle", detalle);
+            model.addAttribute("nss", data == null ? "" : data.trim());
+            model.addAttribute("serieId", serieId);
             model.addAttribute("adjuntos",
                     detalle != null ? fileStoreService.listByRelacion(detalle.consultaRelacionada()) : java.util.List.of());
             return "fragments/consulta-detalle :: detalle";
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }
+    }
+
+    /**
+     * Nota medica imprimible de una consulta. El PDF lo genera el navegador; {@code auto=1}
+     * abre el dialogo al cargar. Ver docs/plan-impresion-pretest-incapacidad-consulta.md.
+     */
+    @GetMapping(path = "/consulta/imprimir", produces = MediaType.TEXT_HTML_VALUE)
+    @Auditado(modulo = "Consultas", accion = "export", entidad = "Nota medica impresa", registro = "nss")
+    public String consultaImprimir(
+            @RequestParam("nss") String nss,
+            @RequestParam(name = "id", required = false) String id,
+            @RequestParam(name = "rel", required = false) String rel,
+            @RequestParam(name = "auto", required = false) String auto,
+            Model model) {
+        String nssLimpio = nss == null ? "" : nss.trim();
+        boolean conId = id != null && !id.isBlank();
+        if (nssLimpio.isEmpty() || (!conId && (rel == null || rel.isBlank()))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "nss y (id o rel) son obligatorios");
+        }
+        // id = consulta conocida (boton Imprimir del detalle); rel = idArchivoRel del alta recien
+        // guardada (el WS no devuelve el ID_CONSULTA que asigno).
+        var detalle = (conId ? expedienteService.consultaDetalle(nssLimpio, id.trim())
+                : DocumentoImpresoService.porRelacion(
+                        expedienteService.consultasByNss(nssLimpio).stream().map(c -> c.idConsulta()).toList(), rel,
+                        i -> expedienteService.consultaDetalle(nssLimpio, i), d -> d.consultaRelacionada()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No existe la consulta " + (conId ? id : rel)));
+        var empleado = DocumentoImpresoService.empleado(nssSearchService, nssLimpio);
+        model.addAttribute("nss", nssLimpio);
+        model.addAttribute("detalle", DocumentoImpresoService.limpio(detalle));
+        model.addAttribute("adjuntos", detalle.consultaRelacionada() == null || detalle.consultaRelacionada().isBlank()
+                ? List.of() : fileStoreService.listByRelacion(detalle.consultaRelacionada()));
+        model.addAttribute("empleado", empleado);
+        model.addAttribute("nombreTrabajador", DocumentoImpresoService.nombreCompleto(empleado, nssLimpio));
+        model.addAttribute("firmaTrabajador", DocumentoImpresoService.firma(detalle.firmaDigital()));
+        model.addAttribute("capturo", DocumentoImpresoService.usuarioActual());
+        model.addAttribute("ahora", DocumentoImpresoService.ahora());
+        model.addAttribute("auto", auto != null && !auto.isBlank() && !"0".equals(auto));
+        return "pages/consulta-documento";
     }
 
     /**

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Encabezado de formato (logo + cuadro de control) y ficha del empleado, compartidos por los
+  documentos imprimibles. Misma forma que el expediente del examen (FT-SO-04), pero la clave de
+  control llega por parametro: los documentos de Pre-Test, Consulta e Incapacidad NO tienen clave
+  asignada todavia (ver docs/plan-impresion-pretest-incapacidad-consulta.md §4) - se pasa null y
+  el renglon no se pinta. Cuando Salud Ocupacional asigne el formato oficial, solo se pasa la clave.
+-->
+<div th:fragment="formato(titulo, clave, revision, implementacion, hoja)" class="row">
+    <div class="navbar-brand col-3">
+        <center><img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="ONEST" width="100%" class="mt-2"></center>
+    </div>
+    <div class="col-9">
+        <table class="table table-bordered table-sm border-top border-dark">
+            <tbody>
+                <tr>
+                    <td colspan="2" class="doc-titulo"><center th:text="${titulo}">TITULO</center></td>
+                </tr>
+                <tr th:if="${clave != null}">
+                    <td th:text="'F. Implementación: ' + ${implementacion}">F. Implementación</td>
+                    <td th:text="'Revisión: ' + ${revision}">Revisión</td>
+                </tr>
+                <tr th:if="${clave != null}">
+                    <td th:text="'Clave de control: ' + ${clave}">Clave de control</td>
+                    <td th:text="${hoja}">Hoja</td>
+                </tr>
+                <tr th:if="${clave == null}">
+                    <td>Documento generado por Portal Salud Personal</td>
+                    <td th:text="${hoja}">Hoja</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Ficha del empleado: misma en los 3 documentos. `e` es EmpleadoDto (puede ser null). -->
+<div th:fragment="ficha(e, nss)">
+    <h6>Información del trabajador</h6>
+    <div class="row">
+        <div class="col-6">
+            <table class="table table-bordered table-sm">
+                <tr>
+                    <td>Nombre</td>
+                    <td th:text="${e == null} ? '' : (${e.completo != null and !e.completo.isBlank()} ? ${e.completo} : ${e.nombre + ' ' + e.apellidoPaterno + ' ' + e.apellidoMaterno})">—</td>
+                </tr>
+                <tr><td>NSS</td><td th:text="${nss}">—</td></tr>
+                <tr><td>RFC</td><td th:text="${e == null} ? '' : ${e.rfc}">—</td></tr>
+                <tr><td>Fecha de nacimiento</td><td th:text="${e == null or e.fechaNacimiento == null} ? '' : ${e.fechaNacimiento}">—</td></tr>
+            </table>
+        </div>
+        <div class="col-6">
+            <table class="table table-bordered table-sm">
+                <tr><td>Empresa</td><td th:text="${e == null} ? '' : ${e.nombreEmpresa}">—</td></tr>
+                <tr><td>Cuenta</td><td th:text="${e == null} ? '' : ${e.cuenta}">—</td></tr>
+                <tr>
+                    <td>Puesto</td>
+                    <td th:text="${e == null or e.nombrePuesto == null or #strings.containsIgnoreCase(e.nombrePuesto, 'no existe')} ? '' : ${e.nombrePuesto}">—</td>
+                </tr>
+                <tr>
+                    <td>Sexo</td>
+                    <td th:text="${e == null or e.sexo == null} ? '' : (${e.sexo == '1'} ? 'Masculino' : (${e.sexo == '2'} ? 'Femenino' : ${e.sexo}))">—</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!--
+  Bloque de firmas. La firma del trabajador se pinta si el registro la trae (data URL PNG que
+  captura el canvas del formulario); si no, queda la linea en blanco para firmar a mano.
+  El renglon del medico lleva el nombre de quien capturo (dato real del WS) - la cedula
+  profesional NO existe en ningun catalogo del sistema, por eso no se imprime.
+-->
+<div th:fragment="firmas(firmaTrabajador, nombreTrabajador, capturo)" class="row" style="margin-top: 26px; align-items: flex-end;">
+    <div class="col-6">
+        <center>
+            <img th:if="${firmaTrabajador != null}" th:src="${firmaTrabajador}" class="firma-img" alt="Firma del trabajador">
+            <div class="firma-linea" th:style="${firmaTrabajador != null} ? 'margin-top:4px' : ''">
+                <span th:text="${nombreTrabajador}">Nombre</span><br>
+                <span class="footerTxt">Nombre y firma del trabajador</span>
+            </div>
+        </center>
+    </div>
+    <div class="col-6">
+        <center>
+            <div class="firma-linea">
+                <span th:text="${capturo != null and !capturo.isBlank()} ? ${capturo} : ' '">Personal de salud</span><br>
+                <span class="footerTxt">Nombre y firma del personal de salud ocupacional</span>
+            </div>
+        </center>
+    </div>
+</div>
+</body>
+</html>

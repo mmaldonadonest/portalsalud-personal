@@ -2,6 +2,7 @@ package com.onest.app.catalog.pretest.service;
 
 import com.onest.app.catalog.pretest.repository.MedTagRepository;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,6 +18,34 @@ public class PretestService {
 
     private static final String SUFFIX = "PRETEST";
     private static final String GROUP = "PRETEST";
+
+    /** Una pregunta Si/No del cuestionario, con su codigo y su etiqueta. */
+    public record Pregunta(String codigo, String etiqueta) {
+    }
+
+    /**
+     * Las 15 preguntas del cuestionario, en el mismo orden y con los mismos codigos que el
+     * formulario (y que el PHP: verificado 14-sep-2026, los 15 codigos coinciden). Vive aqui
+     * para que el formulario y el documento impreso no repitan las etiquetas.
+     */
+    public static final List<Pregunta> SALUD = List.of(
+            new Pregunta("LHOP", "¿Lo han operado en menos de 6 meses?"),
+            new Pregunta("TALMED", "¿Toma algún medicamento en específico?"),
+            new Pregunta("SUAA", "¿Sufre de alguna alergia?"),
+            new Pregunta("SAFOPH", "¿Se ha fracturado o padece hernias?"),
+            new Pregunta("ESEMB", "¿Está embarazada (solo mujeres)?"),
+            new Pregunta("PALENF", "¿Padece alguna enfermedad(es)?"),
+            new Pregunta("CONDROG", "¿Actualmente consume drogas?"));
+
+    public static final List<Pregunta> SINTOMAS = List.of(
+            new Pregunta("TOSIN", "Tos"),
+            new Pregunta("FIEBREIN", "Fiebre"),
+            new Pregunta("DOLOCABINP", "Dolor de cabeza"),
+            new Pregunta("DIFRESP", "Dificultad para respirar"),
+            new Pregunta("DOLARDGARG", "Dolor o ardor en la garganta"),
+            new Pregunta("ESCURRINAZ", "Escurrimiento nasal"),
+            new Pregunta("OJOSROJOS", "Ojos rojos"),
+            new Pregunta("DOLMUSART", "Dolor muscular o articular"));
 
     private final MedTagRepository repository;
 

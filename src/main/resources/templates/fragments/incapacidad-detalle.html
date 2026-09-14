@@ -9,6 +9,12 @@
     </div>
 
     <div th:if="${detalle != null}" th:with="d=${detalle}">
+        <div class="d-flex justify-content-end mb-2">
+            <a class="btn btn-sm btn-outline-secondary" target="_blank"
+               th:href="@{/api/nss/incapacidad/imprimir(nss=${nss}, id=${serieId})}">
+                <i class="ri-printer-line me-1"></i> Imprimir / PDF
+            </a>
+        </div>
         <div class="row g-3">
             <div class="col-md-6" th:each="campo : ${ {
                     {'Fecha de incapacidad', d.fechaConsulta},

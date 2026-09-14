@@ -549,6 +549,22 @@
                     return;
                 }
                 var body = new URLSearchParams(new FormData(formEl));
+                // Documento firmado -> PDF al momento (mismo patron que guardarExamen): si el
+                // registro lleva firma y opts.documentoUrl(formEl) da una URL, la pestana se abre
+                // AQUI en el clic (window.open tras un await lo bloquea el navegador) y se navega
+                // al documento con ?auto=1 solo si el guardado fue exitoso; si falla, se cierra.
+                var firmaEl = formEl.querySelector('#firma');
+                var urlDocumento = (typeof opts.documentoUrl === 'function' && firmaEl && firmaEl.value)
+                        ? opts.documentoUrl(formEl) : null;
+                var ventanaDoc = null;
+                if (urlDocumento) {
+                    try {
+                        ventanaDoc = window.open('', '_blank');
+                        if (ventanaDoc) {
+                            ventanaDoc.document.write('<p style="font:14px system-ui;padding:24px">Guardando y generando el documento para imprimir…</p>');
+                        }
+                    } catch (e) { ventanaDoc = null; }
+                }
                 var csrf = form.querySelector('input[type="hidden"][name]');
                 if (csrf && csrf.name) {
                     body.append(csrf.name, csrf.value);
@@ -588,6 +604,20 @@
                             var up = await subirAdjuntos(formEl, fileInput.files);
                             mostrarResultado(txt + ' ' + up, false);
                         }
+                        if (urlDocumento) {
+                            if (ventanaDoc) {
+                                ventanaDoc.location.href = urlDocumento;
+                            }
+                            if (resultEl) {
+                                // enlace por si el navegador bloqueo la pestana
+                                var a = document.createElement('a');
+                                a.href = urlDocumento;
+                                a.target = '_blank';
+                                a.className = 'ms-2';
+                                a.innerHTML = '<i class="ri-printer-line me-1"></i>Descargar documento (PDF)';
+                                resultEl.appendChild(a);
+                            }
+                        }
                         if (opts.resetOnSuccess) {
                             formEl.reset();
                         }
@@ -595,9 +625,11 @@
                             opts.onSuccess();
                         }
                     } else {
+                        if (ventanaDoc) { ventanaDoc.close(); }
                         mostrarResultado('Error al registrar (HTTP ' + response.status + '): ' + txt, true);
                     }
                 } catch (error) {
+                    if (ventanaDoc) { ventanaDoc.close(); }
                     mostrarResultado('Error de red al registrar.', true);
                 } finally {
                     btn.disabled = false;
@@ -626,7 +658,13 @@
                 guardarRegistro(btn, {
                     formId: 'consultaAltaForm', savePath: 'api/nss/consulta', fileInputId: 'consultaFiles',
                     label: 'consulta', resultElId: 'consultaGuardarResult',
-                    resetOnSuccess: true, onSuccess: limpiarFirmaSiExiste
+                    resetOnSuccess: true, onSuccess: limpiarFirmaSiExiste,
+                    // el WS no devuelve el ID_CONSULTA: el documento se ubica por idArchivoRel
+                    documentoUrl: function (f) {
+                        var rel = f.querySelector('input[name="idArchivoRel"]');
+                        return rel && rel.value ? contextPath + 'api/nss/consulta/imprimir?nss=' + encodeURIComponent((input.value || '').trim())
+                                + '&rel=' + encodeURIComponent(rel.value) + '&auto=1' : null;
+                    }
                 });
             };
 
@@ -634,7 +672,12 @@
                 guardarRegistro(btn, {
                     formId: 'incapacidadAltaForm', savePath: 'api/nss/incapacidades/save', fileInputId: 'incapacidadFiles',
                     label: 'incapacidad', resultElId: 'incapacidadGuardarResult',
-                    resetOnSuccess: true, onSuccess: limpiarFirmaSiExiste
+                    resetOnSuccess: true, onSuccess: limpiarFirmaSiExiste,
+                    documentoUrl: function (f) {
+                        var rel = f.querySelector('input[name="idArchivoRel"]');
+                        return rel && rel.value ? contextPath + 'api/nss/incapacidad/imprimir?nss=' + encodeURIComponent((input.value || '').trim())
+                                + '&rel=' + encodeURIComponent(rel.value) + '&auto=1' : null;
+                    }
                 });
             };
 
@@ -642,7 +685,10 @@
                 guardarRegistro(btn, {
                     formId: 'pretestForm', savePath: 'api/nss/pretest/save', fileInputId: '__none__',
                     label: 'Pre-Test', resultElId: 'pretestGuardarResult',
-                    resetOnSuccess: true, onSuccess: limpiarFirmaSiExiste
+                    resetOnSuccess: true, onSuccess: limpiarFirmaSiExiste,
+                    documentoUrl: function () {
+                        return contextPath + 'api/nss/pretest/imprimir?nss=' + encodeURIComponent((input.value || '').trim()) + '&auto=1';
+                    }
                 });
             };
 

@@ -10,10 +10,12 @@
 <th:block th:fragment="pregunta(code, label, obs)">
     <div class="col-md-6">
         <label class="form-label" th:text="${label}">Pregunta</label>
-        <select class="form-select" th:name="${code}">
-            <option value="" th:selected="${p[code] == null}">Seleccionar</option>
-            <option value="1" th:selected="${p[code] == '1'}">Si</option>
-            <option value="0" th:selected="${p[code] != null and p[code] != '1'}">No</option>
+        <!-- p.get(code), no p[code]: en SpEL un identificador suelto entre corchetes es la
+             clave LITERAL "code" (por eso las respuestas nunca recargaban y las OBS si). -->
+        <select class="form-select" th:name="${code}" th:with="v=${p.get(code)}">
+            <option value="" th:selected="${v == null or v.isBlank()}">Seleccionar</option>
+            <option value="1" th:selected="${v == '1'}">Si</option>
+            <option value="0" th:selected="${v != null and !v.isBlank() and v != '1'}">No</option>
         </select>
         <input th:if="${obs}" type="text" class="form-control mt-2"
                th:name="${code} + 'OBS'" th:value="${p[code + 'OBS']}" placeholder="Observaciones">
@@ -117,6 +119,9 @@
                 </div>
 
                 <div class="col-12 d-flex justify-content-end align-items-center gap-3">
+                    <a class="btn btn-outline-secondary" target="_blank" th:href="@{/api/nss/pretest/imprimir(nss=${nss})}">
+                        <i class="ri-printer-line me-1"></i> Imprimir / PDF
+                    </a>
                     <span id="pretestGuardarResult" class="fs-sm"></span>
                     <button type="button" class="btn btn-primary" onclick="guardarPretest(this);">
                         <i class="ri-save-line me-1"></i> Guardar Pre-Test

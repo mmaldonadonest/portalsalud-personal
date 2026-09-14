@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/documento :: layout('Nota médica | Portal Salud Personal', 'Portal Salud Personal · Nota médica', ${nss}, ${ahora}, ${auto}, ~{:: contenido})}">
+<body>
+<!--
+  Nota medica imprimible de una consulta (WS Servcio/conuslta_medica_usuario + adjuntos de
+  APP_FS_FILE). El orden de los campos es el de consultaMedica.html del PHP. Contenido
+  pendiente de validar con el medico (NOM-004-SSA3), ver
+  docs/plan-impresion-pretest-incapacidad-consulta.md §4. Sin clave FT-SO todavia.
+-->
+<tbody th:fragment="contenido">
+<tr class="hoja"><td><div class="row hoja-row" th:with="d=${detalle}">
+
+    <div th:replace="~{fragments/documento-encabezado :: formato('NOTA MÉDICA DE CONSULTA', null, null, null, 'Hoja 1 de 1')}"></div>
+
+    <div class="col-12" th:replace="~{fragments/documento-encabezado :: ficha(${empleado}, ${nss})}"></div>
+
+    <div class="col-12">
+        <h6>Datos de la consulta</h6>
+        <div class="row">
+            <div class="col-6">
+                <table class="table table-bordered table-sm">
+                    <tr><td>Fecha de consulta</td><td th:text="${d.fechaConsulta}"></td></tr>
+                    <tr><td>Tipo de consulta</td><td th:text="${d.tipoConsulta}"></td></tr>
+                    <tr><td>Causa</td><td th:text="${d.causa}"></td></tr>
+                </table>
+            </div>
+            <div class="col-6">
+                <table class="table table-bordered table-sm">
+                    <tr><td>Folio</td><td th:text="${d.idConsulta}"></td></tr>
+                    <tr><td>Área del accidente</td><td th:text="${d.areaAccidente}"></td></tr>
+                    <tr><td>Área anatómica involucrada</td><td th:text="${d.areaInvolucrada}"></td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <h6>Signos vitales y somatometría</h6>
+        <table class="table table-bordered table-sm text-center">
+            <tr><th>Peso (kg)</th><th>Talla (m)</th><th>IMC</th><th>FC</th><th>FR</th><th>TA</th><th>Temperatura (°C)</th></tr>
+            <tr>
+                <td th:text="${d.peso}"></td><td th:text="${d.talla}"></td><td th:text="${d.imc}"></td>
+                <td th:text="${d.fc}"></td><td th:text="${d.fr}"></td><td th:text="${d.ta}"></td><td th:text="${d.temperatura}"></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="col-12">
+        <table class="table table-bordered table-sm">
+            <tr><th style="width:22%">Motivo de consulta</th><td th:text="${d.motivo}"></td></tr>
+            <tr><th>Exploración física</th><td th:text="${d.exploracion}"></td></tr>
+            <tr><th>Diagnóstico</th><td th:text="${d.diagnostico}"></td></tr>
+            <tr><th>Tratamiento</th><td th:text="${d.tratamiento}"></td></tr>
+        </table>
+    </div>
+
+    <div class="col-12" th:unless="${#lists.isEmpty(adjuntos)}">
+        <h6>Archivos adjuntos</h6>
+        <table class="table table-bordered table-sm">
+            <tr><th>Archivo</th><th style="width:20%">Fecha</th></tr>
+            <tr th:each="a : ${adjuntos}">
+                <td th:text="${a.name}"></td>
+                <td th:text="${a.dateUpload == null} ? '' : ${#temporals.format(a.dateUpload, 'dd/MM/yyyy')}"></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="col-12" th:replace="~{fragments/documento-encabezado :: firmas(${firmaTrabajador}, ${nombreTrabajador}, ${capturo})}"></div>
+
+</div></td></tr>
+</tbody>
+</body>
+</html>

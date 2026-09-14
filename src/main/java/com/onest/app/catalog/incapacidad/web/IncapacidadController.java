@@ -1,14 +1,17 @@
 package com.onest.app.catalog.incapacidad.web;
 
 import com.onest.app.audit.web.Auditado;
+import com.onest.app.catalog.expediente.service.DocumentoImpresoService;
 import com.onest.app.catalog.file.service.FileStoreService;
 import com.onest.app.catalog.incapacidad.service.IncapacidadService;
+import com.onest.app.catalog.nss.service.NssSearchService;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,10 +29,13 @@ public class IncapacidadController {
 
     private final IncapacidadService incapacidadService;
     private final FileStoreService fileStoreService;
+    private final NssSearchService nssSearchService;
 
-    public IncapacidadController(IncapacidadService incapacidadService, FileStoreService fileStoreService) {
+    public IncapacidadController(IncapacidadService incapacidadService, FileStoreService fileStoreService,
+                                 NssSearchService nssSearchService) {
         this.incapacidadService = incapacidadService;
         this.fileStoreService = fileStoreService;
+        this.nssSearchService = nssSearchService;
     }
 
     @PostMapping(
@@ -57,12 +63,53 @@ public class IncapacidadController {
         try {
             var detalle = incapacidadService.detalle(data, serieId).orElse(null);
             model.addAttribute("detalle", detalle);
+            model.addAttribute("nss", data == null ? "" : data.trim());
+            model.addAttribute("serieId", serieId);
             model.addAttribute("adjuntos",
                     detalle != null ? fileStoreService.listByRelacion(detalle.urlArchivos()) : List.of());
             return "fragments/incapacidad-detalle :: detalle";
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }
+    }
+
+    /**
+     * Constancia interna imprimible de una incapacidad (no es el documento oficial del IMSS).
+     * El PDF lo genera el navegador; {@code auto=1} abre el dialogo al cargar.
+     */
+    @GetMapping(path = "/incapacidad/imprimir", produces = MediaType.TEXT_HTML_VALUE)
+    @Auditado(modulo = "Incapacidades", accion = "export", entidad = "Constancia impresa", registro = "nss")
+    public String imprimir(
+            @RequestParam("nss") String nss,
+            @RequestParam(name = "id", required = false) String id,
+            @RequestParam(name = "rel", required = false) String rel,
+            @RequestParam(name = "auto", required = false) String auto,
+            Model model) {
+        String nssLimpio = nss == null ? "" : nss.trim();
+        boolean conId = id != null && !id.isBlank();
+        if (nssLimpio.isEmpty() || (!conId && (rel == null || rel.isBlank()))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "nss y (id o rel) son obligatorios");
+        }
+        // id = incapacidad conocida (boton Imprimir del detalle); rel = idArchivoRel del alta
+        // recien guardada (el WS no devuelve el ID_CONSULTA que asigno).
+        var detalle = (conId ? incapacidadService.detalle(nssLimpio, id.trim())
+                : DocumentoImpresoService.porRelacion(
+                        incapacidadService.byNss(nssLimpio).stream().map(c -> c.idConsulta()).toList(), rel,
+                        i -> incapacidadService.detalle(nssLimpio, i), d -> d.urlArchivos()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No existe la incapacidad " + (conId ? id : rel)));
+        var empleado = DocumentoImpresoService.empleado(nssSearchService, nssLimpio);
+        model.addAttribute("nss", nssLimpio);
+        model.addAttribute("detalle", DocumentoImpresoService.limpio(detalle));
+        model.addAttribute("goceSueldo", DocumentoImpresoService.siNo(detalle.goceSueldo()));
+        model.addAttribute("adjuntos", detalle.urlArchivos() == null || detalle.urlArchivos().isBlank()
+                ? List.of() : fileStoreService.listByRelacion(detalle.urlArchivos()));
+        model.addAttribute("empleado", empleado);
+        model.addAttribute("nombreTrabajador", DocumentoImpresoService.nombreCompleto(empleado, nssLimpio));
+        model.addAttribute("firmaTrabajador", DocumentoImpresoService.firma(detalle.firmaDigital()));
+        model.addAttribute("capturo", DocumentoImpresoService.usuarioActual());
+        model.addAttribute("ahora", DocumentoImpresoService.ahora());
+        model.addAttribute("auto", auto != null && !auto.isBlank() && !"0".equals(auto));
+        return "pages/incapacidad-documento";
     }
 
     /** Formulario de alta de incapacidad (ViewIncap -> incapacidades.php). */
