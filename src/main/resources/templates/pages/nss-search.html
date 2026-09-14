@@ -328,9 +328,7 @@
                 }
                 out.setAttribute('data-target', targetId);
                 if (!todo) {
-                    out.dataset.todo = '';
-                    var btnTodo = document.getElementById(resultId === 'examenIcdResult' ? 'examenIcdTodoBtn' : 'icdConsultTodoBtn');
-                    if (btnTodo) { btnTodo.innerHTML = '<i class="ri-list-check me-1"></i>Ver todo el catálogo'; }
+                    resetIcdTodo(out);
                 }
                 var q = todo ? '' : (input.value || '').trim();
                 if (!q && !todo) {
@@ -362,6 +360,15 @@
                     out.innerHTML = '';
                 }
             };
+
+            // Regresa el boton "Ver todo el catalogo" del buscador a su estado inicial cuando la
+            // lista completa ya no esta en pantalla (se tecleo otra busqueda o se eligio una clave).
+            function resetIcdTodo(out) {
+                if (!out) { return; }
+                out.dataset.todo = '';
+                var btnTodo = document.getElementById(out.id === 'examenIcdResult' ? 'examenIcdTodoBtn' : 'icdConsultTodoBtn');
+                if (btnTodo) { btnTodo.innerHTML = '<i class="ri-list-check me-1"></i>Ver todo el catálogo'; }
+            }
 
             // "Ver todo el catalogo" hace toggle: primer clic lista todo, segundo lo oculta.
             window.toggleIcdCatalogo = async function (btn, inputId, resultId, targetId) {
@@ -415,10 +422,16 @@
                 var targetId = out ? out.getAttribute('data-target') : 'diagnostico';
                 var ta = document.getElementById(targetId);
                 if (ta) {
-                    ta.value = (ta.value ? ta.value + ' ' : '') + text;
+                    // La misma clave no se agrega dos veces (antes cada clic la repetia).
+                    var clave = (text.split(' - ')[0] || '').trim();
+                    var yaEsta = clave && (' ' + ta.value + ' ').indexOf(' ' + clave + ' ') !== -1;
+                    if (!yaEsta) {
+                        ta.value = (ta.value ? ta.value + ' ' : '') + text;
+                    }
                 }
                 if (out) {
                     out.innerHTML = '';
+                    resetIcdTodo(out);
                 }
             };
 
