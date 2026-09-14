@@ -4,6 +4,8 @@ import com.onest.app.audit.web.Auditado;
 import com.onest.app.catalog.expediente.service.DocumentoImpresoService;
 import com.onest.app.catalog.nss.service.NssSearchService;
 import com.onest.app.catalog.pretest.service.PretestService;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +44,9 @@ public class PretestController {
         try {
             model.addAttribute("nss", data == null ? "" : data.trim());
             model.addAttribute("p", pretestService.load(data));
+            // El boton Imprimir lee lo GUARDADO, no lo que esta en pantalla: se muestra la fecha
+            // de la ultima version y se deshabilita si nunca se ha guardado.
+            model.addAttribute("ultimoGuardado", fechaCorta(pretestService.ultimoGuardado(data)));
             return "fragments/pretest-form :: form";
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
@@ -62,6 +67,9 @@ public class PretestController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "nss es obligatorio");
         }
         Map<String, String> crudo = pretestService.load(nssLimpio);
+        LocalDateTime guardado = pretestService.ultimoGuardado(nssLimpio);
+        model.addAttribute("ultimoGuardado", fechaCorta(guardado));
+        model.addAttribute("sinDatos", guardado == null);
         Map<String, String> p = new HashMap<>();
         crudo.forEach((k, v) -> p.put(k, DocumentoImpresoService.texto(v)));
         Map<String, String> respuestas = new HashMap<>();
@@ -75,7 +83,7 @@ public class PretestController {
             observaciones.put(q.codigo(), DocumentoImpresoService.texto(crudo.get(q.codigo() + "OBS")));
         }
         String domicilio = String.join(" ", List.of(p.getOrDefault("calleIn", ""), p.getOrDefault("numeroCin", ""),
-                p.getOrDefault("coloniaInp", ""), p.getOrDefault("delegOmUn", ""))).replaceAll("\s+", " ").trim();
+                p.getOrDefault("coloniaInp", ""), p.getOrDefault("delegOmUn", ""))).replaceAll("\\s+", " ").trim();
         var empleado = DocumentoImpresoService.empleado(nssSearchService, nssLimpio);
 
         model.addAttribute("nss", nssLimpio);
@@ -92,6 +100,10 @@ public class PretestController {
         model.addAttribute("ahora", DocumentoImpresoService.ahora());
         model.addAttribute("auto", auto != null && !auto.isBlank() && !"0".equals(auto));
         return "pages/pretest-documento";
+    }
+
+    private static String fechaCorta(LocalDateTime t) {
+        return t == null ? null : t.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
     }
 
     @PostMapping(

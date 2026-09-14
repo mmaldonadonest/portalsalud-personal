@@ -119,9 +119,20 @@
                 </div>
 
                 <div class="col-12 d-flex justify-content-end align-items-center gap-3">
-                    <a class="btn btn-outline-secondary" target="_blank" th:href="@{/api/nss/pretest/imprimir(nss=${nss})}">
+                    <!-- Imprime la ULTIMA VERSION GUARDADA en BD, no lo que esta en pantalla. -->
+                    <a class="btn btn-outline-secondary" target="_blank" th:href="@{/api/nss/pretest/imprimir(nss=${nss})}"
+                       th:if="${ultimoGuardado != null}" th:title="'Imprime la última versión guardada (' + ${ultimoGuardado} + ')'">
                         <i class="ri-printer-line me-1"></i> Imprimir / PDF
                     </a>
+                    <span class="d-inline-block" th:if="${ultimoGuardado == null}" tabindex="0"
+                          title="Guarda el Pre-Test para poder imprimirlo">
+                        <button type="button" class="btn btn-outline-secondary" disabled>
+                            <i class="ri-printer-line me-1"></i> Imprimir / PDF
+                        </button>
+                    </span>
+                    <span class="text-muted fs-sm" th:if="${ultimoGuardado != null}"
+                          th:text="'Imprime la última versión guardada (' + ${ultimoGuardado} + ')'">Última versión guardada</span>
+                    <span class="text-muted fs-sm" th:if="${ultimoGuardado == null}">Guarda el Pre-Test para poder imprimirlo</span>
                     <span id="pretestGuardarResult" class="fs-sm"></span>
                     <button type="button" class="btn btn-primary" onclick="guardarPretest(this);">
                         <i class="ri-save-line me-1"></i> Guardar Pre-Test

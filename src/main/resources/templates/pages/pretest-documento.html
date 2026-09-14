@@ -12,7 +12,13 @@
   pasa la clave al fragmento `formato` y aparece el cuadro completo.
 -->
 <tbody th:fragment="contenido">
-<tr class="hoja"><td><div class="row hoja-row">
+<tr class="hoja" th:if="${sinDatos}"><td>
+    <div class="alert alert-warning m-3" style="font-size:13px">
+        <strong>Este NSS no tiene Pre-Test guardado.</strong> Captura y guarda el Pre-Test en
+        Búsqueda NSS → Pre-Test para poder imprimirlo.
+    </div>
+</td></tr>
+<tr class="hoja" th:unless="${sinDatos}"><td><div class="row hoja-row">
 
     <div th:replace="~{fragments/documento-encabezado :: formato('CUESTIONARIO PRE-TEST DE SALUD', null, null, null, 'Hoja 1 de 1')}"></div>
 

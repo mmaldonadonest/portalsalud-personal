@@ -2,6 +2,7 @@ package com.onest.app.catalog.pretest.service;
 
 import com.onest.app.catalog.pretest.repository.MedTagRepository;
 import java.util.HashMap;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import org.springframework.security.core.Authentication;
@@ -62,6 +63,11 @@ public class PretestService {
             byBase.put(base, content);
         });
         return byBase;
+    }
+
+    /** Fecha del ultimo guardado del Pre-Test de ese NSS, o null si nunca se ha guardado. */
+    public LocalDateTime ultimoGuardado(String nss) {
+        return repository.ultimoGuardado(normalizeNss(nss), SUFFIX);
     }
 
     /** Guarda cada campo (base -> base+PRETEST) con DELETE+INSERT. */

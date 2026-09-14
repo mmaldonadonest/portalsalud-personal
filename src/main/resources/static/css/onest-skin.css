@@ -348,6 +348,19 @@ html[data-brand="onest"] a {
 html[data-brand="onest"] a:hover {
   color: var(--onest-blue-900);
 }
+/* Un <a class="btn"> es un boton, no un link: hereda el color del boton (sin esto un
+   btn-outline-secondary en <a> salia con texto azul de link y al pasar el mouse azul
+   sobre gris, ilegible). */
+html[data-brand="onest"] a.btn {
+  color: var(--bs-btn-color);
+}
+html[data-brand="onest"] a.btn:hover {
+  color: var(--bs-btn-hover-color);
+}
+html[data-brand="onest"] a.btn:focus-visible,
+html[data-brand="onest"] a.btn:active {
+  color: var(--bs-btn-active-color);
+}
 html[data-brand="onest"] .form-control:focus,
 html[data-brand="onest"] .form-select:focus {
   border-color: var(--onest-blue-700);

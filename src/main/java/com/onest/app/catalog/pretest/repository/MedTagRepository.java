@@ -50,6 +50,13 @@ public class MedTagRepository {
     }
 
     /** DELETE + INSERT del valor de un campo (como insertDatsExpFis). */
+    /** Fecha del ultimo registro guardado para el NSS con TYPE LIKE %suffix (null si no hay ninguno). */
+    public java.time.LocalDateTime ultimoGuardado(String nss, String suffix) {
+        return jdbc.query("SELECT MAX(CREATED_AT) FROM MED_TAG WHERE NSS = ? AND TYPE LIKE ?",
+                rs -> rs.next() && rs.getTimestamp(1) != null ? rs.getTimestamp(1).toLocalDateTime() : null,
+                nss, "%" + suffix);
+    }
+
     public void upsert(String nss, String type, String content, String tagGroup, String createdBy) {
         jdbc.update("DELETE FROM MED_TAG WHERE NSS = ? AND TYPE = ?", nss, type);
         jdbc.update(connection -> {
