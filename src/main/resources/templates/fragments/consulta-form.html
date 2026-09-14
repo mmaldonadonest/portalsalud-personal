@@ -125,8 +125,18 @@
                 </div>
                 <div class="col-12">
                     <label class="form-label" for="icdConsult">Buscar diagnóstico (obligatorio, catálogo ICD/CIE)</label>
-                    <input type="text" class="form-control" id="icdConsult" autocomplete="off"
-                           placeholder="Escribe al menos 3 letras (autocompleta)..." oninput="buscarIcdDebounced();">
+                    <!-- Mismo buscador que el Diagnostico del Examen: autocompleta desde 3 letras y
+                         "Ver todo el catalogo" lista el catalogo completo para elegir sin escribir
+                         (cuando no hay coincidencia o no se sabe por donde empezar). -->
+                    <div class="d-flex gap-2">
+                        <input type="text" class="form-control" id="icdConsult" autocomplete="off"
+                               placeholder="Escribe al menos 3 letras (autocompleta)..." oninput="buscarIcdDebounced();">
+                        <button type="button" class="btn btn-outline-primary text-nowrap" id="icdConsultTodoBtn"
+                                title="Lista el catálogo completo para elegir sin escribir; vuelve a pulsar para ocultarlo"
+                                onclick="toggleIcdCatalogo(this,'icdConsult','icdResult','diagnostico');">
+                            <i class="ri-list-check me-1"></i>Ver todo el catálogo
+                        </button>
+                    </div>
                     <div id="icdResult" class="mt-2"></div>
                 </div>
 

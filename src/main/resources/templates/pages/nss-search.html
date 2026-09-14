@@ -329,8 +329,8 @@
                 out.setAttribute('data-target', targetId);
                 if (!todo) {
                     out.dataset.todo = '';
-                    var btnTodo = document.getElementById('examenIcdTodoBtn');
-                    if (btnTodo && resultId === 'examenIcdResult') { btnTodo.innerHTML = '<i class="ri-list-check me-1"></i>Ver todo el catálogo'; }
+                    var btnTodo = document.getElementById(resultId === 'examenIcdResult' ? 'examenIcdTodoBtn' : 'icdConsultTodoBtn');
+                    if (btnTodo) { btnTodo.innerHTML = '<i class="ri-list-check me-1"></i>Ver todo el catálogo'; }
                 }
                 var q = todo ? '' : (input.value || '').trim();
                 if (!q && !todo) {
