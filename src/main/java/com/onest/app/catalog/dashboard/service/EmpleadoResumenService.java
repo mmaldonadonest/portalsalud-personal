@@ -142,15 +142,7 @@ public class EmpleadoResumenService {
                 predioFiltro.predioDe(emp.cuenta()),
                 limpio(emp.nombrePuesto()),
                 limpio(emp.nombreEmpresa()),
-                sexo(emp.sexo()),
-                limpio(emp.fechaNacimiento()),
-                emp.edad(),
-                limpio(emp.estadoCivil()),
-                limpio(emp.rfc()),
-                limpio(emp.turno()),
-                limpio(emp.celular()),
-                limpio(emp.telFijo()),
-                limpio(emp.direccion()));
+                sexo(emp.sexo()));
 
         return Optional.of(new EmpleadoResumenDto(ficha,
                 new Contadores(atenciones, incapacidades, dias, accidentes, examenes, antidoping, maternidad),

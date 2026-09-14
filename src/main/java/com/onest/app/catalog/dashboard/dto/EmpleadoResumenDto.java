@@ -21,15 +21,7 @@ public record EmpleadoResumenDto(
             String predio,
             String puesto,
             String empresa,
-            String sexo,
-            String fechaNacimiento,
-            Integer edad,
-            String estadoCivil,
-            String rfc,
-            String turno,
-            String celular,
-            String telFijo,
-            String direccion
+            String sexo
     ) {
     }
 
