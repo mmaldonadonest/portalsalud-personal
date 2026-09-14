@@ -17,8 +17,15 @@
                     <a href="javascript:void(0)" class="nav-link has-sub"><i class="ri-booklet-line"></i> <span>Expediente General</span></a>
                     <nav class="nav nav-sub" id="nssModulesSub"></nav>
                 </li>
-                <!-- Paginas standalone (fuera del flujo de NSS, administrativas -
-                     sin restriccion de rol clinico, ver matriz de permisos). -->
+            </ul>
+        </div>
+        <!-- Examenes: paginas standalone fuera del flujo de NSS (pedido 14-sep como grupo
+             propio). Sin restriccion de rol clinico, ver matriz de permisos. Abierto solo
+             cuando la pagina activa es una de estas. -->
+        <div class="nav-group"
+             th:classappend="${currentPath == '/antidoping-seleccion' or currentPath == '/consumibles' or currentPath == '/causas-consulta'} ? ' show' : ''">
+            <a href="javascript:void(0)" class="nav-label">Exámenes</a>
+            <ul class="nav nav-sidebar">
                 <li class="nav-item">
                     <a th:href="@{/antidoping-seleccion}" href="/antidoping-seleccion" class="nav-link" th:classappend="${currentPath == '/antidoping-seleccion'} ? ' active' : ''"><i class="ri-shuffle-line"></i> <span>Antidoping - Seleccion</span></a>
                 </li>
