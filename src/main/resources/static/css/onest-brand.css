@@ -84,6 +84,16 @@ a {
    en el submenu de Analisis) - el theme no trae esta variante, solo .nav-sub-link
    (los items reales). Texto pequeno/mayusculas para diferenciarlo de un link real
    sin que parezca clickeable (no tiene href ni cursor pointer). */
+/* Encabezado de grupo dentro de un .nav-sidebar (grupo "Analisis" del sidebar). */
+.nav-sidebar .nav-group-sub {
+    display: block;
+    padding: .75rem 1.25rem .25rem;
+    font-size: .6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #9aa5b1;
+}
 .nav-sub-group {
     display: block;
     padding: .5rem 1.75rem .25rem;
