@@ -31,8 +31,8 @@ Todo desplegado y verificado en Tomcat local; nada commiteado (sugerido `Update 
 - **Hallazgos de datos (sin resolver, son de ORDS/negocio)**: catálogo ICD con solo 909 claves (capítulos A y B) y búsqueda solo por nombre; stub del PHP en `SERV_MED_ANT_LABORALES` (3,209 `true`) y 51,798 filas vacías en `SERV_MED_DET_ANT_LABORALES`; 3 campos que el WS de lectura no devuelve (`AVC_OBS`, `NEFROPATIAS_ID`, `NOLMAL_FASCIES`); `insert into prueba`/`bug` en handlers.
 
 ## Siguiente al retomar
-1. Preguntar resultados de las pruebas del usuario (examen, Excel, auditoría) y que pruebe los 3 documentos nuevos (Pre-Test / detalle de consulta / detalle de incapacidad → "Imprimir / PDF").
-2. ~~Descarga al firmar para consulta e incapacidad~~ HECHO 14-sep (§0a). Queda adaptar cuando Salud Ocupacional entregue layout/clave FT-SO.
+1. **Usuario probó los 4 PDF el 14-sep (Pre-Test, Consulta, Incapacidad, Examen) — OK.** Ajustes que salieron de la prueba, ya hechos: Pre-Test imprime solo la última versión guardada (botón deshabilitado sin datos + leyenda con fecha); color de `<a class="btn">`; ficha de Búsqueda NSS con el estilo de Empleados; botón "Ver todo el catálogo" ICD en Consulta; `addIcd` sin duplicados y botón que vuelve a su estado.
+2. **En espera de los layouts oficiales (FT-SO) de Salud Ocupacional** para ajustar los 3 documentos nuevos: pasar la clave/revisión al fragmento `formato` y reacomodar cada plantilla (`pages/pretest-documento.html`, `consulta-documento.html`, `incapacidad-documento.html`). Hasta entonces no hay nada pendiente en impresión.
 3. Deuda Pensión/antecedentes laborales (escribir MED_TAG al guardar + radio).
 4. Commit (`Update 09142026`).
 
