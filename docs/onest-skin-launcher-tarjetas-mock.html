@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><title>Launcher — opciones de tarjetas</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --onest-blue-900:#003E75;--onest-blue-700:#00549E;--onest-blue-500:#1677BD;--onest-blue-300:#4FA8E0;--onest-blue-100:#EAF3FA;
+  --onest-green-700:#2B9138;--onest-green-500:#39B54A;--onest-green-100:#EAF7EC;
+  --onest-gray-950:#20252B;--onest-gray-700:#475467;--onest-gray-500:#667085;--onest-gray-300:#D0D5DD;--onest-gray-200:#E1E6EB;--onest-gray-100:#F2F4F7;--onest-gray-50:#F8FAFC;
+  --onest-radius-sm:6px;--onest-radius-md:8px;--onest-radius-lg:12px;
+}
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--onest-gray-50);color:var(--onest-gray-950)}
+.wrap{padding:28px 32px;max-width:1180px}
+h2{font-size:15px;font-weight:700;margin:34px 0 12px;color:var(--onest-gray-700);letter-spacing:.02em}
+h2 span{font-weight:500;color:var(--onest-gray-500)}
+.titulo{font-size:22px;font-weight:600;margin:0 0 4px}
+.sub{font-size:13px;color:var(--onest-gray-500);margin:0 0 18px}
+
+/* ---------- OPCION A: mosaico azul marca ---------- */
+.apps-a{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+.app-a{position:relative;display:flex;flex-direction:column;gap:14px;padding:22px;border-radius:var(--onest-radius-lg);color:#fff;text-decoration:none;
+  background:linear-gradient(135deg,var(--onest-blue-900) 0%,var(--onest-blue-700) 60%,var(--onest-blue-500) 100%);
+  box-shadow:0 6px 18px rgba(0,62,117,.18);transition:transform .15s ease,box-shadow .15s ease}
+.app-a:hover{transform:translateY(-3px);box-shadow:0 12px 26px rgba(0,62,117,.28)}
+.app-a .top{display:flex;justify-content:space-between;align-items:flex-start}
+.app-a .ico{width:56px;height:56px;border-radius:14px;background:rgba(255,255,255,.16);display:grid;place-items:center;font-size:26px}
+.app-a .amb{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:5px 10px;border-radius:999px;background:var(--onest-green-500);color:#fff}
+.app-a .amb.qa{background:#F59E0B}
+.app-a .nom{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.app-a .clave{font-size:12px;opacity:.78;margin-top:2px;font-family:ui-monospace,Menlo,monospace}
+.app-a .abrir{margin-top:auto;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);padding:8px 14px;border-radius:var(--onest-radius-sm);width:max-content}
+.app-a:hover .abrir{background:#fff;color:var(--onest-blue-900)}
+
+/* ---------- OPCION B: lista/filas (compacta) ---------- */
+.apps-b{display:flex;flex-direction:column;gap:10px;max-width:760px}
+.app-b{display:grid;grid-template-columns:52px 1fr auto auto;gap:16px;align-items:center;padding:14px 18px;border-radius:var(--onest-radius-md);text-decoration:none;color:inherit;
+  background:#fff;border:1px solid var(--onest-gray-200);border-left:5px solid var(--onest-blue-700);transition:background .15s ease,border-color .15s ease}
+.app-b:hover{background:var(--onest-blue-100);border-color:var(--onest-blue-300);border-left-color:var(--onest-green-500)}
+.app-b .ico{width:52px;height:52px;border-radius:12px;background:var(--onest-blue-100);color:var(--onest-blue-700);display:grid;place-items:center;font-size:24px}
+.app-b .nom{font-size:15px;font-weight:600}
+.app-b .clave{font-size:12px;color:var(--onest-gray-500);font-family:ui-monospace,Menlo,monospace}
+.app-b .amb{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:5px 10px;border-radius:999px;background:var(--onest-green-100);color:var(--onest-green-700)}
+.app-b .btn{font-size:13px;font-weight:600;color:#fff;background:var(--onest-blue-700);padding:9px 16px;border-radius:var(--onest-radius-sm)}
+.app-b:hover .btn{background:var(--onest-green-700)}
+
+/* ---------- OPCION C: panel oscuro con tarjetas translucidas ---------- */
+.panel-c{background:linear-gradient(0deg,#050d1a 0%,var(--onest-blue-900) 100%);border-radius:var(--onest-radius-lg);padding:28px;color:#fff}
+.panel-c .titulo,.panel-c .sub{color:#fff}.panel-c .sub{opacity:.75}
+.apps-c{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.app-c{display:flex;flex-direction:column;gap:12px;padding:20px;border-radius:var(--onest-radius-lg);text-decoration:none;color:#fff;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(6px);transition:background .15s ease,border-color .15s ease,transform .15s ease}
+.app-c:hover{background:rgba(255,255,255,.13);border-color:var(--onest-green-500);transform:translateY(-2px)}
+.app-c .top{display:flex;justify-content:space-between;align-items:center}
+.app-c .ico{width:48px;height:48px;border-radius:12px;background:#fff;color:var(--onest-blue-700);display:grid;place-items:center;font-size:22px;font-weight:700}
+.app-c .amb{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:4px 10px;border-radius:999px;border:1px solid var(--onest-green-500);color:#9be0a5}
+.app-c .nom{font-size:16px;font-weight:700}
+.app-c .clave{font-size:12px;opacity:.7;font-family:ui-monospace,Menlo,monospace}
+.app-c .abrir{font-size:13px;font-weight:600;color:#9be0a5;display:flex;align-items:center;gap:6px;margin-top:4px}
+</style></head><body><div class="wrap">
+
+<h2>OPCIÓN A <span>— mosaico azul marca (sin blanco; el color lo pone la tarjeta)</span></h2>
+<p class="titulo">Elija aplicación</p><p class="sub">Aplicaciones a las que tienes acceso</p>
+<div class="apps-a">
+  <a class="app-a" href="#"><div class="top"><div class="ico">🎓</div><span class="amb">Producción</span></div><div><div class="nom">Capacitación</div><div class="clave">APP_CAP_CONTINUA</div></div><span class="abrir">Abrir aplicación ↗</span></a>
+  <a class="app-a" href="#"><div class="top"><div class="ico">🧾</div><span class="amb">Producción</span></div><div><div class="nom">OCR Scan</div><div class="clave">OCR_APP</div></div><span class="abrir">Abrir aplicación ↗</span></a>
+  <a class="app-a" href="#"><div class="top"><div class="ico">📊</div><span class="amb">Producción</span></div><div><div class="nom">Portal Dashboard</div><div class="clave">DASHBOARD_APP</div></div><span class="abrir">Abrir aplicación ↗</span></a>
+  <a class="app-a" href="#"><div class="top"><div class="ico">🩺</div><span class="amb qa">QA</span></div><div><div class="nom">Portal Salud</div><div class="clave">SALUD_APP</div></div><span class="abrir">Abrir aplicación ↗</span></a>
+</div>
+
+<h2>OPCIÓN B <span>— lista compacta con banda de color (para muchas apps)</span></h2>
+<p class="titulo">Elija aplicación</p><p class="sub">Aplicaciones a las que tienes acceso</p>
+<div class="apps-b">
+  <a class="app-b" href="#"><div class="ico">🎓</div><div><div class="nom">Capacitación</div><div class="clave">APP_CAP_CONTINUA</div></div><span class="amb">Producción</span><span class="btn">Abrir</span></a>
+  <a class="app-b" href="#"><div class="ico">🧾</div><div><div class="nom">OCR Scan</div><div class="clave">OCR_APP</div></div><span class="amb">Producción</span><span class="btn">Abrir</span></a>
+  <a class="app-b" href="#"><div class="ico">📊</div><div><div class="nom">Portal Dashboard</div><div class="clave">DASHBOARD_APP</div></div><span class="amb">Producción</span><span class="btn">Abrir</span></a>
+  <a class="app-b" href="#"><div class="ico">🩺</div><div><div class="nom">Portal Salud</div><div class="clave">SALUD_APP</div></div><span class="amb">Producción</span><span class="btn">Abrir</span></a>
+</div>
+
+<h2>OPCIÓN C <span>— panel azul marino (mismo fondo del sidebar) con tarjetas translúcidas</span></h2>
+<div class="panel-c">
+  <p class="titulo">Elija aplicación</p><p class="sub">Aplicaciones a las que tienes acceso</p>
+  <div class="apps-c">
+    <a class="app-c" href="#"><div class="top"><div class="ico">🎓</div><span class="amb">Producción</span></div><div><div class="nom">Capacitación</div><div class="clave">APP_CAP_CONTINUA</div></div><span class="abrir">Abrir aplicación ↗</span></a>
+    <a class="app-c" href="#"><div class="top"><div class="ico">🧾</div><span class="amb">Producción</span></div><div><div class="nom">OCR Scan</div><div class="clave">OCR_APP</div></div><span class="abrir">Abrir aplicación ↗</span></a>
+    <a class="app-c" href="#"><div class="top"><div class="ico">📊</div><span class="amb">Producción</span></div><div><div class="nom">Portal Dashboard</div><div class="clave">DASHBOARD_APP</div></div><span class="abrir">Abrir aplicación ↗</span></a>
+    <a class="app-c" href="#"><div class="top"><div class="ico">🩺</div><span class="amb">Producción</span></div><div><div class="nom">Portal Salud</div><div class="clave">SALUD_APP</div></div><span class="abrir">Abrir aplicación ↗</span></a>
+  </div>
+</div>
+
+</div></body></html>
