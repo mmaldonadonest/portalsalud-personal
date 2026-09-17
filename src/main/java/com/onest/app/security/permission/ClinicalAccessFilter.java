@@ -63,6 +63,21 @@ public class ClinicalAccessFilter extends OncePerRequestFilter {
         RUTAS_CLINICAS_LOCAL.put("/api/nss/maternidad", Set.of("MATERNIDAD"));
     }
 
+    // Pantallas del grupo "Examenes" del sidebar (fuera del flujo NSS). Solo existen como
+    // menu en el esquema LOCAL (db/sql/03_menu_examenes.sql), ORDS no las conoce: con
+    // fuente ORDS siguen abiertas a cualquier autenticado, como antes del 17-sep-2026.
+    // /api/consumibles GET queda fuera a proposito: lo consumen Analisis > Antidoping e
+    // Inventario (rol MEDICO_ANALISTA); solo se protegen las escrituras.
+    private static final Map<String, String> RUTAS_EXAMENES_LOCAL = new LinkedHashMap<>();
+    static {
+        RUTAS_EXAMENES_LOCAL.put("/antidoping-seleccion", "ANTIDOPING_SELECCION");
+        RUTAS_EXAMENES_LOCAL.put("/api/antidoping-seleccion", "ANTIDOPING_SELECCION");
+        RUTAS_EXAMENES_LOCAL.put("/consumibles", "CONSUMIBLES");
+        RUTAS_EXAMENES_LOCAL.put("/api/consumibles", "CONSUMIBLES");
+        RUTAS_EXAMENES_LOCAL.put("/causas-consulta", "CAUSAS_CONSULTA");
+        RUTAS_EXAMENES_LOCAL.put("/api/causas-consulta", "CAUSAS_CONSULTA");
+    }
+
     private final PermissionService permissionService;
     private final LocalModulePermissionClient localClient;
     private final boolean shadowEnabled;
@@ -103,6 +118,13 @@ public class ClinicalAccessFilter extends OncePerRequestFilter {
         Set<Integer> idsRequeridos = idsMenuRequeridos(path);
         Set<String> codesRequeridos = codesRequeridos(path);
         boolean esRutaClinica = idsRequeridos != null && !idsRequeridos.isEmpty();
+        if (useLocalKeys && !esRutaClinica) {
+            String codeExamenes = codeExamenesRequerido(path, request.getMethod());
+            if (codeExamenes != null) {
+                codesRequeridos = Set.of(codeExamenes);
+                esRutaClinica = true;
+            }
+        }
         boolean permitido = !esRutaClinica || (useLocalKeys
                 ? codesRequeridos.stream().anyMatch(permissionService::tieneAccesoPorCodigo)
                 : idsRequeridos.stream().anyMatch(permissionService::tieneAcceso));
@@ -126,6 +148,20 @@ public class ClinicalAccessFilter extends OncePerRequestFilter {
             return;
         }
         chain.doFilter(request, response);
+    }
+
+    /** CODE de menu que exige una pagina del grupo Examenes (o null si la ruta no es de ese grupo). */
+    private static String codeExamenesRequerido(String path, String method) {
+        for (Map.Entry<String, String> e : RUTAS_EXAMENES_LOCAL.entrySet()) {
+            String prefijo = e.getKey();
+            if (path.equals(prefijo) || path.startsWith(prefijo + "/")) {
+                if ("/api/consumibles".equals(prefijo) && "GET".equalsIgnoreCase(method)) {
+                    return null;
+                }
+                return e.getValue();
+            }
+        }
+        return null;
     }
 
     /**

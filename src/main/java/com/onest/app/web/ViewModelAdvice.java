@@ -1,12 +1,15 @@
 package com.onest.app.web;
 
+import com.onest.app.security.permission.PermissionService;
 import com.onest.app.security.service.AvatarDefaults;
 import com.onest.app.security.service.PortalUserPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Year;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,6 +22,15 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 public class ViewModelAdvice {
 
     private static final String DEFAULT_AVATAR = AvatarDefaults.DEFAULT_AVATAR;
+
+    private final PermissionService permissionService;
+    private final String permissionsSource;
+
+    public ViewModelAdvice(PermissionService permissionService,
+                           @Value("${portal.permissions.source:ORDS}") String permissionsSource) {
+        this.permissionService = permissionService;
+        this.permissionsSource = permissionsSource;
+    }
 
     @ModelAttribute
     public void populateCommonAttributes(Model model, HttpServletRequest request) {
@@ -39,6 +51,11 @@ public class ViewModelAdvice {
             return;
         }
 
+        // Menus por rol para el sidebar (grupo "Examenes"): con fuente LOCAL, los CODE de
+        // APP_MENU_ROLE del usuario; con ORDS no hay codes -> null = el menu no filtra
+        // (comportamiento anterior). Nunca lanza: un fallo aqui no debe tumbar la vista.
+        attributes.put("menusPermitidos", menusPermitidos());
+
         Object principal = authentication.getPrincipal();
         if (principal instanceof PortalUserPrincipal userPrincipal) {
             attributes.put("currentUserName", userPrincipal.getDisplayName());
@@ -55,6 +72,20 @@ public class ViewModelAdvice {
         }
 
         setDefaultUserAttributes(attributes);
+    }
+
+    private Set<String> menusPermitidos() {
+        if (!"LOCAL".equalsIgnoreCase(permissionsSource)) {
+            return null;
+        }
+        try {
+            return permissionService.modulosPermitidos().stream()
+                    .map(m -> m.code())
+                    .filter(c -> c != null && !c.isBlank())
+                    .collect(Collectors.toSet());
+        } catch (RuntimeException ex) {
+            return Set.of();
+        }
     }
 
     private void setDefaultUserAttributes(Map<String, Object> attributes) {

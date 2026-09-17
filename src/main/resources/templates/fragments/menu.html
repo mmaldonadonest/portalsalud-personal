@@ -19,24 +19,33 @@
                 </li>
             </ul>
         </div>
-        <!-- Examenes: paginas standalone fuera del flujo de NSS (pedido 14-sep como grupo
-             propio). Sin restriccion de rol clinico, ver matriz de permisos. Abierto solo
-             cuando la pagina activa es una de estas. -->
+        <!-- Examenes: paginas standalone fuera del flujo de NSS (grupo propio desde 14-sep).
+             Desde 17-sep se asignan POR ROL en Administracion > Roles > Menus como cualquier
+             modulo (APP_MENU codes ANTIDOPING_SELECCION / CONSUMIBLES / CAUSAS_CONSULTA,
+             db/sql/03_menu_examenes.sql); menusPermitidos lo pone ViewModelAdvice (null =
+             fuente ORDS, sin filtro). El bloqueo real de la ruta lo hace ClinicalAccessFilter.
+             Abierto solo cuando la pagina activa es una de estas. -->
+        <!-- th:with en un th:block aparte: Thymeleaf evalua th:if ANTES que th:with del mismo elemento. -->
+        <th:block th:with="verAntidoping=${menusPermitidos == null or menusPermitidos.contains('ANTIDOPING_SELECCION')},
+                           verConsumibles=${menusPermitidos == null or menusPermitidos.contains('CONSUMIBLES')},
+                           verCausas=${menusPermitidos == null or menusPermitidos.contains('CAUSAS_CONSULTA')}">
         <div class="nav-group"
+             th:if="${verAntidoping or verConsumibles or verCausas}"
              th:classappend="${currentPath == '/antidoping-seleccion' or currentPath == '/consumibles' or currentPath == '/causas-consulta'} ? ' show' : ''">
             <a href="javascript:void(0)" class="nav-label">Exámenes</a>
             <ul class="nav nav-sidebar">
-                <li class="nav-item">
+                <li class="nav-item" th:if="${verAntidoping}">
                     <a th:href="@{/antidoping-seleccion}" href="/antidoping-seleccion" class="nav-link" th:classappend="${currentPath == '/antidoping-seleccion'} ? ' active' : ''"><i class="ri-shuffle-line"></i> <span>Antidoping - Seleccion</span></a>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item" th:if="${verConsumibles}">
                     <a th:href="@{/consumibles}" href="/consumibles" class="nav-link" th:classappend="${currentPath == '/consumibles'} ? ' active' : ''"><i class="ri-file-list-3-line"></i> <span>Consumibles</span></a>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item" th:if="${verCausas}">
                     <a th:href="@{/causas-consulta}" href="/causas-consulta" class="nav-link" th:classappend="${currentPath == '/causas-consulta'} ? ' active' : ''"><i class="ri-file-list-3-line"></i> <span>Causas de consulta</span></a>
                 </li>
             </ul>
         </div>
+        </th:block>
         <!-- Analisis como grupo propio del sidebar (igual que "Portal Salud"), pedido 14-sep:
              antes era un submenu (.has-sub) dentro de Portal Salud. Gate visual por rol
              MEDICO_ANALISTA (la seguridad real la hace SecurityConfiguration sobre /analisis/**).

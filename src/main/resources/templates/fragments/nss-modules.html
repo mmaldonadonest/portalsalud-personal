@@ -43,7 +43,10 @@
                    labels=${ {'EXPEDIENTE_GENERAL':'Expediente General','LABORATORIO':'E. Laboratorio','HISTORICO_EM':'Historico E.M','NOTA_MEDICA':'Nota Medica','NOTA_INCAPACIDAD':'Nota Incapacidad','ARCHIVO_CONSULTAS':'Archivo de Consultas','CONSULTA_MEDICA':'Consulta Medica','INCAPACIDADES':'Incapacidades','ARCHIVO_INCAPACIDADES':'Archivo Incapacidades','EXAMEN_MEDICO':'Examen Medico','PRETEST':'Pre-Test','ANTIDOPING':'Antidoping','ACCIDENTES':'Accidentes','MATERNIDAD':'Maternidad'} },
                    actions=${ {'LABORATORIO':'archivos','HISTORICO_EM':'archivos','NOTA_MEDICA':'archivos','NOTA_INCAPACIDAD':'archivos','ARCHIVO_CONSULTAS':'expediente','CONSULTA_MEDICA':'consulta-form','INCAPACIDADES':'incapacidad-form','ARCHIVO_INCAPACIDADES':'incapacidades','EXAMEN_MEDICO':'examen','PRETEST':'pretest','ANTIDOPING':'antidoping','ACCIDENTES':'accidentes','MATERNIDAD':'maternidad'} },
                    tipos=${ {'LABORATORIO':'laboratorio','HISTORICO_EM':'examen_medico','NOTA_MEDICA':'nota_medica','NOTA_INCAPACIDAD':'nota_incapacidad'} }">
-    <th:block th:each="m : ${modulos}" th:with="k=${m.code} ?: ${idToCode.get(m.idMenu)}">
+    <!-- Los menus del grupo "Examenes" del sidebar (03_menu_examenes.sql) se asignan por rol
+         aqui mismo pero NO son modulos del expediente: se saltan en este submenu. -->
+    <th:block th:each="m : ${modulos}" th:with="k=${m.code} ?: ${idToCode.get(m.idMenu)}"
+              th:unless="${k == 'ANTIDOPING_SELECCION' or k == 'CONSUMIBLES' or k == 'CAUSAS_CONSULTA'}">
     <a href="javascript:void(0)"
        class="nav-sub-link module"
        th:classappend="'modulo-' + ${m.idMenu}"
