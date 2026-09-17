@@ -142,19 +142,12 @@
             </div>
             <a id="sidebarFooterMenu" href="javascript:void(0)" class="dropdown-link"><i class="ri-arrow-down-s-line"></i></a>
         </div>
+        <!-- Solo cerrar sesion (17-sep): nombre y roles ya van arriba en sidebar-footer-top. -->
         <div class="sidebar-footer-menu">
             <nav class="nav">
-                <a href="javascript:void(0)"><i class="ri-edit-2-line"></i> Edit Profile</a>
-                <a href="javascript:void(0)"><i class="ri-profile-line"></i> View Profile</a>
-            </nav>
-            <hr>
-            <nav class="nav">
-                <a href="javascript:void(0)"><i class="ri-question-line"></i> Help Center</a>
-                <a href="javascript:void(0)"><i class="ri-lock-line"></i> Privacy Settings</a>
-                <a href="javascript:void(0)"><i class="ri-user-settings-line"></i> Account Settings</a>
                 <form th:action="@{/logout}" action="/logout" method="post">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                    <a href="javascript:void(0)" onclick="this.closest('form').submit(); return false;"><i class="ri-logout-box-r-line"></i> Log Out</a>
+                    <a href="javascript:void(0)" onclick="this.closest('form').submit(); return false;"><i class="ri-logout-box-r-line"></i> Cerrar sesión</a>
                 </form>
             </nav>
         </div>
