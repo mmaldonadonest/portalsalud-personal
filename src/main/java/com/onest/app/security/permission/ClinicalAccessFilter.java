@@ -142,9 +142,15 @@ public class ClinicalAccessFilter extends OncePerRequestFilter {
             log.warn("[permisos] usuario={} SIN acceso clinico a {} (fuente={}, requiere {})",
                     auth == null ? "?" : auth.getName(), path, useLocalKeys ? "LOCAL" : "ORDS",
                     useLocalKeys ? codesRequeridos : idsRequeridos);
+            String mensaje = "No tienes permiso para ver esta información clínica.";
+            if (!path.startsWith("/api/")) {
+                // navegacion a una pagina: pagina de error del portal (templates/error.html)
+                response.sendError(HttpServletResponse.SC_FORBIDDEN, mensaje);
+                return;
+            }
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             response.setContentType("text/plain;charset=UTF-8");
-            response.getWriter().write("No tienes permiso para ver esta información clínica.");
+            response.getWriter().write(mensaje);
             return;
         }
         chain.doFilter(request, response);

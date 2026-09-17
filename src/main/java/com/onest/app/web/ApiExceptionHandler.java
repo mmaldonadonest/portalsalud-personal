@@ -1,6 +1,11 @@
 package com.onest.app.web;
 
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.Date;
+import org.slf4j.MDC;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.web.servlet.ModelAndView;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -20,10 +25,23 @@ import org.springframework.web.server.ResponseStatusException;
 public class ApiExceptionHandler {
 
     @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<String> handleResponseStatus(ResponseStatusException ex) {
+    public Object handleResponseStatus(ResponseStatusException ex, HttpServletRequest request) {
         String mensaje = ex.getReason();
+        String texto = mensaje == null || mensaje.isBlank() ? ex.getMessage() : mensaje;
+        // Navegacion a una PAGINA (no /api/**): pagina de error del portal (templates/error.html)
+        // con el status y el mensaje, en vez de texto plano en blanco y negro. Los fetch de la
+        // app pegan a /api/** y siguen recibiendo el mensaje como texto plano.
+        if (!request.getServletPath().startsWith("/api/")) {
+            ModelAndView mv = new ModelAndView("error", HttpStatus.valueOf(ex.getStatusCode().value()));
+            mv.addObject("status", ex.getStatusCode().value());
+            mv.addObject("message", texto);
+            mv.addObject("path", request.getServletPath());
+            mv.addObject("timestamp", new Date());
+            mv.addObject("traceId", MDC.get("traceId"));
+            return mv;
+        }
         return ResponseEntity.status(ex.getStatusCode())
                 .headers(headers -> headers.setContentType(MediaType.valueOf("text/plain;charset=UTF-8")))
-                .body(mensaje == null || mensaje.isBlank() ? ex.getMessage() : mensaje);
+                .body(texto);
     }
 }

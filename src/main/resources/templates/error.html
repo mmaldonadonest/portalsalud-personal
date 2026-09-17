@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!--
+      Pagina de error del portal (Spring Boot resuelve la vista "error" para cualquier status
+      que llegue a /error: 404, 403 de Security o del ClinicalAccessFilter, 400 de validacion en
+      navegaciones, 500...). Antes salia la "Whitelabel Error Page" en blanco y negro.
+      Es standalone (sin sidebar) a proposito: debe pintarse aunque el error venga de armar el
+      layout, y tambien sin sesion. Mismo CSS de marca que el resto del portal.
+      El mensaje viene de server.error.include-message=always (application.properties);
+      nunca se pinta el stacktrace.
+    -->
+    <title th:text="${status} + ' | Portal Salud Personal'">Error | Portal Salud Personal</title>
+    <link rel="shortcut icon" type="image/x-icon" th:href="@{/theme/assets/img/favicon.png}">
+    <link rel="stylesheet" th:href="@{/theme/lib/remixicon/fonts/remixicon.css}">
+    <link rel="stylesheet" th:href="@{/theme/assets/css/style.min.css}">
+    <link rel="stylesheet" th:href="@{/css/onest-brand.css}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Inter:wght@400;500;600&display=swap">
+    <link rel="stylesheet" th:href="@{/css/onest-skin.css}">
+    <style>
+        body.page-err { margin: 0; min-height: 100vh; display: flex; flex-direction: column; background: var(--onest-gray-50, #F8FAFC); font-family: Inter, system-ui, sans-serif; }
+        .err-header { background: #fff; border-bottom: 1px solid var(--onest-gray-200, #E1E6EB); padding: 14px 28px; }
+        .err-header img { height: 40px; width: auto; }
+        .err-main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px 20px; }
+        .err-card { width: 100%; max-width: 640px; background: #fff; border: 1px solid var(--onest-gray-200, #E1E6EB); border-radius: var(--onest-radius-lg, 12px); box-shadow: 0 6px 18px rgba(0,62,117,.08); overflow: hidden; }
+        .err-band { background: linear-gradient(135deg, var(--onest-blue-900, #003E75), var(--onest-blue-500, #1677BD)); color: #fff; padding: 26px 30px; display: flex; align-items: center; gap: 22px; }
+        .err-band .code { font-family: Montserrat, Inter, sans-serif; font-size: 56px; font-weight: 700; line-height: 1; letter-spacing: -.02em; }
+        .err-band .titulo { font-size: 18px; font-weight: 600; }
+        .err-band .sub { font-size: 13px; opacity: .85; margin-top: 4px; }
+        .err-body { padding: 22px 30px 26px; }
+        .err-msg { font-size: 14.5px; color: var(--onest-gray-950, #20252B); margin: 0 0 6px; }
+        .err-meta { font-size: 12px; color: var(--onest-gray-500, #667085); margin: 0 0 18px; font-family: ui-monospace, Menlo, monospace; }
+        .err-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+        .err-footer { text-align: center; font-size: 12px; color: var(--onest-gray-500, #667085); padding: 14px; }
+    </style>
+</head>
+<body class="page-err"
+      th:with="st=${status != null ? status : 500},
+               titulo=${st == 404 ? 'Página no encontrada'
+                      : (st == 403 ? 'Sin permiso para esta sección'
+                      : (st == 401 ? 'Sesión no iniciada o expirada'
+                      : (st == 400 ? 'Solicitud incorrecta'
+                      : (st == 503 ? 'Servicio no disponible' : 'Ocurrió un error'))))},
+               sub=${st == 404 ? 'La dirección no existe o fue movida.'
+                   : (st == 403 ? 'Tu rol no tiene asignado este módulo. Pide acceso al administrador del portal.'
+                   : (st == 401 ? 'Vuelve a iniciar sesión para continuar.'
+                   : (st == 400 ? 'Faltan datos o vienen en un formato no válido.'
+                   : (st == 503 ? 'Un servicio externo (WS) no respondió. Intenta de nuevo en unos minutos.'
+                   : 'El portal registró el problema. Si persiste, reporta el folio de abajo.'))))}">
+<header class="err-header">
+    <a th:href="@{/home}"><img th:src="@{/theme/assets/img/logo-onest-smartlogistics.png}" alt="Onest Smart Logistics"></a>
+</header>
+<main class="err-main">
+    <div class="err-card">
+        <div class="err-band">
+            <div class="code" th:text="${st}">500</div>
+            <div>
+                <div class="titulo" th:text="${titulo}">Ocurrió un error</div>
+                <div class="sub" th:text="${sub}">Detalle</div>
+            </div>
+        </div>
+        <div class="err-body">
+            <!-- "No static resource ..." es el texto tecnico de Spring para 404: no aporta al usuario -->
+            <p class="err-msg" th:if="${message != null and !#strings.isEmpty(message) and message != 'No message available' and !#strings.startsWith(message, 'No static resource')}"
+               th:text="${message}">Mensaje</p>
+            <p class="err-meta">
+                <span th:if="${path != null}" th:text="'Ruta: ' + ${path}">Ruta</span>
+                <span th:if="${traceId != null and !#strings.isEmpty(traceId)}" th:text="' · Folio: ' + ${traceId}"></span>
+                <span th:if="${timestamp != null}" th:text="' · ' + ${#dates.format(timestamp, 'dd/MM/yyyy HH:mm')}"></span>
+            </p>
+            <div class="err-actions">
+                <a th:href="@{/home}" class="btn btn-primary"><i class="ri-home-4-line me-1"></i> Ir al inicio</a>
+                <a href="javascript:history.back()" class="btn btn-outline-secondary"><i class="ri-arrow-left-line me-1"></i> Regresar</a>
+                <a th:if="${st == 401}" th:href="@{/login}" class="btn btn-outline-primary"><i class="ri-login-box-line me-1"></i> Iniciar sesión</a>
+            </div>
+        </div>
+    </div>
+</main>
+<footer class="err-footer">© <span th:text="${#dates.year(#dates.createNow())}">2026</span>. Portal Salud Personal.</footer>
+</body>
+</html>
