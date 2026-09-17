@@ -152,6 +152,12 @@ html[data-brand="onest"] #nssModulesSub .nav-sub-link.active i {
 html[data-brand="onest"] #nssModulesSub .nav-sub-link.active::before {
   background-color: var(--onest-green-700);
 }
+/* El theme esconde el menu del pie con bottom:-250px (la altura de su menu original de
+   6 opciones). Desde 17-sep el menu solo trae "Cerrar sesion" (~56px): con -250px el pie
+   completo, avatar incluido, quedaba fuera de la pantalla. footer-menu-show lo sube a 0. */
+html[data-brand="onest"] .sidebar:not(.footer-menu-show) .sidebar-footer {
+  bottom: -56px;
+}
 html[data-brand="onest"] .sidebar-footer,
 html[data-brand="onest"] .sidebar-footer-menu {
   background: #0b1c30;
