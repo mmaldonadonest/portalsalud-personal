@@ -54,6 +54,15 @@ public class PermissionService {
         return modulosPermitidos().stream().anyMatch(m -> Objects.equals(m.idMenu(), idMenuRequerido));
     }
 
+    /**
+     * Olvida los menus cacheados de TODOS los usuarios. Lo llama Administracion al asignar o
+     * quitar menus a un rol o roles a un usuario, para que el cambio se vea al recargar y no
+     * hasta que venza el TTL (2 min) - antes "asigne el menu y no me sale" era solo la cache.
+     */
+    public void invalidar() {
+        cache.clear();
+    }
+
     /** Acceso por code - valido SOLO mientras la fuente activa sea LOCAL (ORDS nunca trae code). */
     public boolean tieneAccesoPorCodigo(String codeRequerido) {
         return modulosPermitidos().stream().anyMatch(m -> codeRequerido.equals(m.code()));

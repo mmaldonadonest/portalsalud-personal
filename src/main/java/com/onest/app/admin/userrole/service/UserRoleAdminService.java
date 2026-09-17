@@ -5,6 +5,7 @@ import com.onest.app.admin.userrole.dto.UserRoleDto.RoleAssignmentDto;
 import com.onest.app.catalog.nss.client.NssSearchClient;
 import com.onest.app.catalog.nss.dto.EmpleadoDto;
 import com.onest.app.security.model.AppSecRole;
+import com.onest.app.security.permission.PermissionService;
 import com.onest.app.security.model.AppSecUser;
 import com.onest.app.security.repository.AppSecRoleRepository;
 import com.onest.app.security.repository.AppSecUserRepository;
@@ -31,12 +32,15 @@ public class UserRoleAdminService {
     private final NssSearchClient nssSearchClient;
     private final AppSecUserRepository userRepository;
     private final AppSecRoleRepository roleRepository;
+    private final PermissionService permissionService;
 
     public UserRoleAdminService(
-            NssSearchClient nssSearchClient, AppSecUserRepository userRepository, AppSecRoleRepository roleRepository) {
+            NssSearchClient nssSearchClient, AppSecUserRepository userRepository, AppSecRoleRepository roleRepository,
+            PermissionService permissionService) {
         this.nssSearchClient = nssSearchClient;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.permissionService = permissionService;
     }
 
     @Transactional(readOnly = true)
@@ -58,6 +62,7 @@ public class UserRoleAdminService {
         AppSecRole role = requireRole(roleId);
         user.getRoles().add(role);
         userRepository.save(user);
+        permissionService.invalidar();
     }
 
     @Transactional
@@ -68,6 +73,7 @@ public class UserRoleAdminService {
         }
         user.get().getRoles().removeIf(r -> r.getId().equals(roleId));
         userRepository.save(user.get());
+        permissionService.invalidar();
     }
 
     /** Crea el usuario local en la primera asignacion (migracion incremental, sin password local). */

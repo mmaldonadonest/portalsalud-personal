@@ -4,6 +4,7 @@ import com.onest.app.admin.role.dto.RoleAdminDto;
 import com.onest.app.admin.rolemenu.dto.RoleMenuDto;
 import com.onest.app.admin.rolemenu.dto.RoleMenusResponse;
 import com.onest.app.security.model.AppMenu;
+import com.onest.app.security.permission.PermissionService;
 import com.onest.app.security.model.AppMenuRole;
 import com.onest.app.security.model.AppSecRole;
 import com.onest.app.security.repository.AppMenuRepository;
@@ -26,13 +27,15 @@ public class RoleMenuAdminService {
     private final AppSecRoleRepository roleRepository;
     private final AppMenuRepository menuRepository;
     private final AppMenuRoleRepository menuRoleRepository;
+    private final PermissionService permissionService;
 
     public RoleMenuAdminService(
             AppSecRoleRepository roleRepository, AppMenuRepository menuRepository,
-            AppMenuRoleRepository menuRoleRepository) {
+            AppMenuRoleRepository menuRoleRepository, PermissionService permissionService) {
         this.roleRepository = roleRepository;
         this.menuRepository = menuRepository;
         this.menuRoleRepository = menuRoleRepository;
+        this.permissionService = permissionService;
     }
 
     @Transactional(readOnly = true)
@@ -56,11 +59,13 @@ public class RoleMenuAdminService {
         AppMenu menu = menuRepository.findById(menuId)
                 .orElseThrow(() -> new IllegalArgumentException("Menu no encontrado (id=" + menuId + ")."));
         menuRoleRepository.save(new AppMenuRole(menu, role));
+        permissionService.invalidar();
     }
 
     @Transactional
     public void quitar(Long roleId, Long menuId) {
         menuRoleRepository.findByRoleIdAndMenuId(roleId, menuId).ifPresent(menuRoleRepository::delete);
+        permissionService.invalidar();
     }
 
     private AppSecRole requireRole(Long roleId) {
