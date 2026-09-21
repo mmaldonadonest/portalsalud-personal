@@ -29,7 +29,15 @@ Orden recomendado: **0 → 1 → 2 → 3 en paralelo con 4 → 5 → 6 → 7.**
 
 **Entregable:** `application-prod.properties` con datasource definitivo (o variables `SPRING_DATASOURCE_*` en el Tomcat de prod) y accesos abiertos.
 
-## Fase 1 — Inventario ORDS: QA vs producción (el "análisis de biométrico", acotado)
+## Fase 1 — Inventario ORDS: QA vs producción y limpieza de datos de prueba
+
+**1.0 Limpieza de datos de prueba (aclaración 21-sep).** Durante el desarrollo se capturaron registros de prueba en ORDS (consultas, incapacidades, examen, antidoping, accidentes, maternidad, restricciones, cuenta→predio) con los NSS `30048315698`, `90099119373`, `68958027838`, además de las tablas de depuración `BUG`/`PRUEBA`/`ONSYS_DEBUG` que llenan los handlers. Scripts (los corre el usuario en SQL Developer, ORDS es manual):
+- `docs/ords-limpieza-datos-prueba-inventario.sql` — sólo `SELECT`: cuenta y lista lo que caería. **Revisar antes.**
+- `docs/ords-limpieza-datos-prueba.sql` — `DELETE` con los mismos criterios; tablas creadas por el portal se vacían, tablas del legacy sólo por NSS de prueba (conviven con datos reales del PHP); `COMMIT` comentado al final.
+- `src/main/resources/db/sql/99_limpieza_datos_prueba_portal.sql` — base del portal: adjuntos/Pre-Test de prueba (`CREATED_BY <> 'ETL_LEGACY'`), lotes de Excel, auditoría, rol duplicado. **Sólo si prod reutiliza el esquema de QA.**
+- Los binarios de prueba en `portal.files.root` se borran a mano con la lista que da el inventario.
+
+
 
 Objetivo: saber exactamente qué de lo que el portal usa existe ya en la ORDS de producción y qué hay que crear.
 

@@ -94,6 +94,9 @@ const FASES = [
     ['0.8', 'application-prod.properties con datasource definitivo (o SPRING_DATASOURCE_* en Tomcat)', 'No dejar ONEWMS_QA en prod. Verificar el banner "BASE DE DATOS ACTIVA" al arrancar.', 'portal', 'Miguel'],
   ]},
   { id: 'F1', titulo: 'Fase 1 — Inventario ORDS: QA vs producción', tag: '1 jornada', desc: 'El "análisis del biométrico", acotado a un diff: qué WS/tablas que usa el portal existen ya en ORDS prod.', tareas: [
+    ['1.0a', 'Inventario de datos de prueba en ORDS (ords-limpieza-datos-prueba-inventario.sql)', 'Sólo SELECT. Revisar fila por fila: NSS 30048315698 / 90099119373 / 68958027838; tablas del portal completas; BUG/PRUEBA/ONSYS_DEBUG.', 'ords', 'Miguel'],
+    ['1.0b', 'Limpieza de datos de prueba en ORDS (ords-limpieza-datos-prueba.sql)', 'Respaldo antes. COMMIT sólo si la verificación da 0 en lo de prueba y 17 predios / 23 causas intactos.', 'ords', 'Miguel'],
+    ['1.0c', 'Limpieza en la base del portal (99_limpieza_datos_prueba_portal.sql) + binarios en files.root', 'Sólo si prod reutiliza el esquema de QA. Conserva todo lo CREATED_BY = ETL_LEGACY.', 'portal', 'Miguel'],
     ['1.1', 'Obtener URL base y esquema de la ORDS de producción', '¿Misma 10.249.249.3 con otro esquema? Credenciales para curl.', 'ords', 'Miguel'],
     ['1.2', 'Matriz de WS consumidos por el portal → existe en prod (sí/no)', '17 WS legacy (docs/contextoWS.txt) + los nuevos/clonados de docs/ords-*.sql (27). Verificar con curl.', 'ords', 'Miguel'],
     ['1.3', 'Tablas nuevas del esquema legacy → existen en prod', 'SERV_MED_PREDIO, SERV_MED_CUENTA_PREDIO, accidentes-seguimiento, antidoping-selección/consumibles, causas, restricciones, maternidad, usuario_email.', 'ords', 'Miguel'],
