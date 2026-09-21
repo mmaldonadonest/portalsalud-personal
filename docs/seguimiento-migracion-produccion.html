@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seguimiento — Migración a producción Portal Salud</title>
+<!--
+  Tablero de seguimiento del plan docs/plan-migracion-produccion.md (21-sep-2026).
+  Es un archivo local: el estado de cada tarea (pendiente / en curso / hecho / bloqueado), el
+  responsable y las notas se guardan en localStorage del navegador. "Exportar" baja un JSON
+  con el estado para compartirlo o versionarlo; "Importar" lo vuelve a cargar.
+  Sin dependencias externas.
+-->
+<style>
+  :root{
+    --ink:#0f172a; --ink-2:#334155; --ink-3:#64748b;
+    --line:#e2e8f0; --bg:#f8fafc; --surface:#fff; --brand:#1d4ed8; --brand-2:#003E75;
+    --ok:#047857; --ok-bg:#ecfdf5; --run:#1d4ed8; --run-bg:#eff6ff;
+    --blk:#b91c1c; --blk-bg:#fef2f2; --pend:#64748b; --pend-bg:#f1f5f9; --warn:#b45309; --warn-bg:#fffbeb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:28px 20px 64px;background:var(--bg);color:var(--ink);font:14px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--ink-3);font-size:13px;margin:0 0 18px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:18px}
+  .toolbar .sp{flex:1}
+  button,.btn{font:inherit;font-size:13px;font-weight:600;padding:7px 12px;border-radius:6px;border:1px solid var(--line);background:#fff;color:var(--ink-2);cursor:pointer}
+  button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  button:hover{filter:brightness(.97)}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:22px}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .kpi .n{font-size:24px;font-weight:700;letter-spacing:-.02em}
+  .kpi .l{font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+  .bar{height:10px;background:var(--pend-bg);border-radius:999px;overflow:hidden;margin:6px 0 24px;display:flex}
+  .bar span{display:block;height:100%}
+  h2{font-size:15px;margin:28px 0 8px;padding-bottom:6px;border-bottom:2px solid var(--line);display:flex;align-items:center;gap:10px}
+  h2 .pct{margin-left:auto;font-weight:600;color:var(--brand);font-size:13px}
+  h2 .tag{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:var(--warn-bg);color:var(--warn)}
+  .desc{color:var(--ink-3);font-size:12.5px;margin:0 0 10px}
+  table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);background:#f8fafc}
+  td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  td.id{width:52px;color:var(--ink-3);font-family:ui-monospace,Menlo,monospace;font-size:12px}
+  td.t{width:36%}
+  td.t small{display:block;color:var(--ink-3);font-size:12px}
+  td.w{width:120px}
+  select,input[type=text]{font:inherit;font-size:13px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);width:100%}
+  select.st{font-weight:600}
+  select.st.pend{background:var(--pend-bg);color:var(--pend)} select.st.run{background:var(--run-bg);color:var(--run)}
+  select.st.ok{background:var(--ok-bg);color:var(--ok)} select.st.blk{background:var(--blk-bg);color:var(--blk)}
+  tr.ok td.t{color:var(--ink-3);text-decoration:line-through}
+  tr.blk td{background:#fff7f7}
+  .nota{width:100%}
+  .foot{color:var(--ink-3);font-size:12px;margin-top:28px}
+  .pill{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;margin-left:6px}
+  .pill.portal{background:#eef2ff;color:#3730a3}.pill.ords{background:#fdf4ff;color:#86198f}.pill.infra{background:#f0fdfa;color:#0f766e}.pill.negocio{background:var(--warn-bg);color:var(--warn)}.pill.ext{background:#f1f5f9;color:#475569}
+  @media (max-width:760px){td.t{width:auto} th:nth-child(4),td:nth-child(4){display:none}}
+  @media print{.toolbar,select,input{border:0} button{display:none} body{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Migración a producción — Portal Salud Personal</h1>
+  <p class="sub">Seguimiento del plan <code>docs/plan-migracion-produccion.md</code>. El estado se guarda en este navegador; usa Exportar/Importar para compartirlo. <span id="ultimo"></span></p>
+
+  <div class="toolbar">
+    <button class="primary" onclick="exportar()">⬇ Exportar estado (JSON)</button>
+    <label class="btn">⬆ Importar <input type="file" accept="application/json" hidden onchange="importar(this)"></label>
+    <button onclick="window.print()">🖨 Imprimir</button>
+    <span class="sp"></span>
+    <label style="font-size:13px;color:var(--ink-3)">Ver: <select id="filtro" onchange="render()" style="width:auto"><option value="">todo</option><option value="pend">pendientes</option><option value="run">en curso</option><option value="blk">bloqueados</option><option value="ok">hechos</option></select></label>
+    <button onclick="reiniciar()" title="Borra el estado guardado en este navegador">Reiniciar</button>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+  <div class="bar" id="bar"></div>
+  <div id="fases"></div>
+
+  <p class="foot">Leyenda de ámbito: <span class="pill portal">portal</span> base del portal (JDBC, <code>APP_*</code>) · <span class="pill ords">ords</span> esquema legacy / handlers · <span class="pill infra">infra</span> servidores, red, nginx · <span class="pill negocio">negocio</span> decisiones o captura de negocio · <span class="pill ext">externo</span> equipo externo (ETL). Regla: <code>APP_*</code> → base del portal; <code>ords-*</code> → ORDS.</p>
+</div>
+
+<script>
+const FASES = [
+  { id: 'F0', titulo: 'Fase 0 — Decisiones e infraestructura', tag: 'bloqueante', desc: 'Sin esto no hay Fase 2 ni ETL. Nada de esto es código.', tareas: [
+    ['0.1', 'Definir dónde vive la base del portal en prod (esquema APP_*/MED_TAG)', 'Hoy application-prod.properties apunta a QA (ONEWMS_QA) de forma provisional. ¿Esquema nuevo en la Oracle de prod del biométrico o instancia aparte?', 'negocio', 'DBA'],
+    ['0.2', 'Servidor de aplicación (Tomcat 11 + JDK 21)', '¿10.249.249.4 (donde está files.root) u otro? Usuario del servicio, puertos.', 'infra', 'Infra'],
+    ['0.3', 'nginx: URL pública y configuración', 'proxy_pass a /portal-salud/, proxy_cookie_path /portal-salud / (sin slash final), sub_filter, client_max_body_size 25m. Misma config probada en QA.', 'infra', 'Infra'],
+    ['0.4', 'portal.files.root creado y escribible por Tomcat', '/mnt/data/onedev/apps/exec/filessalud (usuario onedev). Ahí van PDFs y Excel importados.', 'infra', 'Infra'],
+    ['0.5', 'Accesos de red', 'Tomcat prod → ORDS prod; ETL → MariaDB 10.249.249.4:3306 (puerto NO abierto hoy).', 'infra', 'Infra'],
+    ['0.6', 'SSO confirmado', 'Se queda https://sso.onestcloud.mx/sso (decisión 19-sep). Keycloak (auth.onestcloud.mx) fuera de este paso.', 'negocio', 'Miguel'],
+    ['0.7', 'Ventana de salida y responsable go/no-go', '', 'negocio', 'Negocio'],
+    ['0.8', 'application-prod.properties con datasource definitivo (o SPRING_DATASOURCE_* en Tomcat)', 'No dejar ONEWMS_QA en prod. Verificar el banner "BASE DE DATOS ACTIVA" al arrancar.', 'portal', 'Miguel'],
+  ]},
+  { id: 'F1', titulo: 'Fase 1 — Inventario ORDS: QA vs producción', tag: '1 jornada', desc: 'El "análisis del biométrico", acotado a un diff: qué WS/tablas que usa el portal existen ya en ORDS prod.', tareas: [
+    ['1.1', 'Obtener URL base y esquema de la ORDS de producción', '¿Misma 10.249.249.3 con otro esquema? Credenciales para curl.', 'ords', 'Miguel'],
+    ['1.2', 'Matriz de WS consumidos por el portal → existe en prod (sí/no)', '17 WS legacy (docs/contextoWS.txt) + los nuevos/clonados de docs/ords-*.sql (27). Verificar con curl.', 'ords', 'Miguel'],
+    ['1.3', 'Tablas nuevas del esquema legacy → existen en prod', 'SERV_MED_PREDIO, SERV_MED_CUENTA_PREDIO, accidentes-seguimiento, antidoping-selección/consumibles, causas, restricciones, maternidad, usuario_email.', 'ords', 'Miguel'],
+    ['1.4', 'Catálogos con datos que importan', 'biometrico_cuenta / _SAP (cuentas históricas), TBL_APPS_ROL_MENU app 13 por rol (gate SSO), ICD (909 claves A–B), SERV_MED_ANT_LABORALES (stub).', 'ords', 'Miguel'],
+    ['1.5', 'Lectura contra datos de prod con los scripts Playwright', 'smoke.js + dashboards apuntando a ORDS prod: parsers de fechas/rellenos aguantan.', 'portal', 'Miguel'],
+  ]},
+  { id: 'F2', titulo: 'Fase 2 — Base del portal (JDBC) en producción', tag: '½ jornada', desc: 'Todos los scripts son idempotentes. Orden estricto.', tareas: [
+    ['2.1', '00_init_oracle21c.sql', 'APP_SEC_*, APP_MENU, APP_AUD_EVENT, APP_FS_FILE, jobs (autoritativo).', 'portal', 'DBA'],
+    ['2.2', '01_rbac_local.sql → 02_fix_expediente_general_duplicado.sql → 03_menu_examenes.sql → 03_null_password_legacy_php.sql', '', 'portal', 'DBA'],
+    ['2.3', 'app_domain: app-fs-file.sql + app-fs-file-reconcile.sql, app-import.sql, tags-salud.sql, files-salud.sql', '', 'portal', 'DBA'],
+    ['2.4', 'Semilla del primer ADMIN', 'seeds/user-68958027838.sql o el NSS que se decida. Sin él nadie entra a /admin.', 'portal', 'Miguel'],
+    ['2.5', 'Verificación: user_tables APP_% + MED_TAG y arranque del WAR con ddl-auto=validate', 'Si falta algo el log dice "Schema-validation: missing table".', 'portal', 'Miguel'],
+  ]},
+  { id: 'F3', titulo: 'Fase 3 — ORDS de producción', tag: '1 jornada', desc: 'Sólo lo que falte según la Fase 1. Un WS productivo nunca se modifica: se clona. Los *-qa.sql no van.', tareas: [
+    ['3.1', 'Aplicar los ords-*.sql faltantes (orden del paso-a-produccion-dos-bases.md)', 'Los 7 de Dashboard en orden: predio-cuenta → lista-union → cuenta-en-reportes → cuenta-en-antidoping → diagnostico-en-consultas → maternidad-dashboard → incapacidades-criterio-fecha-inicio; más los de módulos.', 'ords', 'Miguel'],
+    ['3.2', 'Alta de menús app 13 en TBL_APPS_ROL_MENU para los roles de prod', 'Se usa para el gate del SSO (consulta_app_rol_usuario) aunque el menú sea LOCAL.', 'ords', 'Miguel'],
+    ['3.3', 'Verificar cada WS con el curl de su script', '', 'ords', 'Miguel'],
+  ]},
+  { id: 'F4', titulo: 'Fase 4 — Datos: histórico y catálogos', tag: '½ jornada + negocio', desc: 'El ETL lo corre el equipo externo con la spec etl-migracion-historica-especificacion.md.', tareas: [
+    ['4.1', 'ETL histórico MariaDB → Oracle prod (files 21,448 / tags 550,560)', 'Requiere 0.5 (puerto 3306) y Fase 2. Verificar conteos (§6 de la spec). Respaldo del esquema antes.', 'ext', 'Equipo ETL'],
+    ['4.2', 'Predios (17) y cuenta→predio', 'Hoy 2 de 260 cuentas asignadas. Propuesta: CSV con ~30 deducibles del nombre + el resto lo llena negocio; carga por /admin/predios o SQL.', 'negocio', 'Negocio'],
+    ['4.3', 'Roles y menús por rol exportados de QA', 'USER, ADM, ENFERMERO, ROLE_ADMIN, ROLE_MEDICO_ANALISTA + APP_MENU_ROLE como INSERTs. Limpiar rol duplicado MEDICO_ANALISTA (id 42).', 'portal', 'Miguel'],
+    ['4.4', 'Usuarios: alta por NSS en /admin/usuarios', 'Sin contraseñas (valida ORDS). Lista inicial de quién tiene qué rol.', 'negocio', 'Negocio'],
+    ['4.5', 'Causas de consulta (23) y restricciones (16)', 'Vienen sembradas en sus ords-*.sql (Fase 3).', 'ords', 'Miguel'],
+  ]},
+  { id: 'F5', titulo: 'Fase 5 — Despliegue y smoke test', tag: '1 jornada', desc: '', tareas: [
+    ['5.1', 'WAR versionado con perfil prod', 'target/portal-salud-prod-<fecha>-<commit>.war (actual: 20260919-6a4ec4d). Verificar application.properties dentro del WAR.', 'portal', 'Miguel'],
+    ['5.2', 'Tomcat: CATALINA_OPTS (perfil, datasource si va por env) y arranque', 'Arranque ~40 s (metadata individually). Revisar banner de BD y "Started".', 'infra', 'Infra'],
+    ['5.3', 'nginx en prod con la config de QA', 'Tres bugs ya documentados: cookie path, contextPath JS (meta app-context-path), arranque colgado.', 'infra', 'Infra'],
+    ['5.4', 'Smoke test: login password y SSO', '', 'portal', 'Miguel'],
+    ['5.5', 'Smoke test: Búsqueda NSS, ficha, módulos del expediente', '', 'portal', 'Miguel'],
+    ['5.6', 'Smoke test: 15 módulos de Análisis (200, sin errores JS)', '', 'portal', 'Miguel'],
+    ['5.7', 'Smoke test: 4 PDFs (Examen, Pre-Test, Consulta, Incapacidad)', '', 'portal', 'Miguel'],
+    ['5.8', 'Smoke test: Importar Excel, Auditoría, página de error 404/403', '', 'portal', 'Miguel'],
+    ['5.9', 'Asignar menús de Exámenes y rol MEDICO_ANALISTA en Administración', '', 'portal', 'Miguel'],
+  ]},
+  { id: 'F6', titulo: 'Fase 6 — Convivencia con el PHP y corte', tag: 'negocio', desc: 'No hay corte de datos: PHP y Java comparten ORDS. Lo único que se duplica es el histórico de archivos/tags.', tareas: [
+    ['6.1', 'Definir fecha de corte del histórico (files/tags)', 'A partir de ahí los adjuntos nuevos sólo por el portal Java, o ETL incremental por SOURCE_ID.', 'negocio', 'Negocio'],
+    ['6.2', 'Comunicar a usuarios: URL nueva, mismo usuario/contraseña, entrada por launcher', '', 'negocio', 'Negocio'],
+    ['6.3', 'Plan de retiro del PHP por módulo (opcional)', '', 'negocio', 'Negocio'],
+  ]},
+  { id: 'F7', titulo: 'Fase 7 — Rollback y operación', tag: '', desc: 'Rollback = nginx de vuelta al PHP; las tablas APP_* y los WS clonados no afectan al PHP.', tareas: [
+    ['7.1', 'Respaldo del esquema del portal (expdp) antes del ETL y antes del go-live', '', 'infra', 'DBA'],
+    ['7.2', 'Procedimiento de rollback escrito y probado (nginx → PHP)', '', 'infra', 'Infra'],
+    ['7.3', 'Operación: /actuator/health, log con traceId, /analisis/auditoria, respaldo de files.root', '', 'infra', 'Infra'],
+  ]},
+];
+const ESTADOS = { pend: 'Pendiente', run: 'En curso', ok: 'Hecho', blk: 'Bloqueado' };
+const KEY = 'seguimiento-migracion-produccion-v1';
+let estado = {};
+try { estado = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { estado = {}; }
+
+function guardar() {
+  estado._ultimo = new Date().toISOString();
+  try { localStorage.setItem(KEY, JSON.stringify(estado)); } catch (e) { /* modo privado */ }
+  render();
+}
+function get(id) { return estado[id] || { st: 'pend', resp: '', nota: '' }; }
+function set(id, campo, valor) { const t = get(id); t[campo] = valor; estado[id] = t; guardar(); }
+function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+function render() {
+  const filtro = document.getElementById('filtro').value;
+  const cont = document.getElementById('fases');
+  let tot = 0, cnt = { pend: 0, run: 0, ok: 0, blk: 0 };
+  cont.innerHTML = FASES.map(f => {
+    const n = f.tareas.length, ok = f.tareas.filter(t => get(t[0]).st === 'ok').length;
+    const filas = f.tareas.filter(t => !filtro || get(t[0]).st === filtro).map(t => {
+      const s = get(t[0]); tot++; cnt[s.st] = (cnt[s.st] || 0) + 1;
+      return `<tr class="${s.st}"><td class="id">${t[0]}</td>
+        <td class="t">${esc(t[1])}<span class="pill ${t[3]}">${t[3]}</span>${t[2] ? `<small>${esc(t[2])}</small>` : ''}</td>
+        <td class="w"><select class="st ${s.st}" onchange="set('${t[0]}','st',this.value)">${Object.entries(ESTADOS).map(([k, v]) => `<option value="${k}" ${s.st === k ? 'selected' : ''}>${v}</option>`).join('')}</select></td>
+        <td class="w"><input type="text" value="${esc(s.resp || t[4])}" placeholder="${esc(t[4])}" onchange="set('${t[0]}','resp',this.value)"></td>
+        <td><input type="text" class="nota" value="${esc(s.nota)}" placeholder="notas / fecha / evidencia" onchange="set('${t[0]}','nota',this.value)"></td></tr>`;
+    }).join('');
+    if (filtro && !filas) return '';
+    return `<h2>${esc(f.titulo)}${f.tag ? `<span class="tag">${esc(f.tag)}</span>` : ''}<span class="pct">${ok}/${n} · ${Math.round(ok * 100 / n)}%</span></h2>
+      ${f.desc ? `<p class="desc">${esc(f.desc)}</p>` : ''}
+      <table><thead><tr><th>#</th><th>Tarea</th><th>Estado</th><th>Responsable</th><th>Notas</th></tr></thead><tbody>${filas}</tbody></table>`;
+  }).join('');
+  // KPIs sobre el total (sin filtro)
+  const all = FASES.flatMap(f => f.tareas.map(t => get(t[0]).st));
+  const c = { pend: 0, run: 0, ok: 0, blk: 0 }; all.forEach(s => c[s] = (c[s] || 0) + 1);
+  const N = all.length;
+  document.getElementById('kpis').innerHTML = [
+    ['Avance', Math.round(c.ok * 100 / N) + '%'], ['Hechas', c.ok + ' / ' + N], ['En curso', c.run], ['Bloqueadas', c.blk], ['Pendientes', c.pend]
+  ].map(k => `<div class="kpi"><div class="n">${k[1]}</div><div class="l">${k[0]}</div></div>`).join('');
+  document.getElementById('bar').innerHTML = `<span style="width:${c.ok * 100 / N}%;background:var(--ok)"></span><span style="width:${c.run * 100 / N}%;background:var(--run)"></span><span style="width:${c.blk * 100 / N}%;background:var(--blk)"></span>`;
+  document.getElementById('ultimo').textContent = estado._ultimo ? 'Último cambio: ' + new Date(estado._ultimo).toLocaleString('es-MX') : '';
+}
+function exportar() {
+  const blob = new Blob([JSON.stringify(estado, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'migracion-produccion-estado-' + new Date().toISOString().slice(0, 10) + '.json'; a.click();
+}
+function importar(input) {
+  const f = input.files[0]; if (!f) return;
+  f.text().then(t => { estado = JSON.parse(t); guardar(); }).catch(() => alert('Archivo no válido'));
+  input.value = '';
+}
+function reiniciar() { if (confirm('¿Borrar el estado guardado en este navegador?')) { estado = {}; guardar(); } }
+render();
+</script>
+</body>
+</html>
