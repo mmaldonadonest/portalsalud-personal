@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Limpieza de datos de prueba — Portal Salud</title>
+<style>
+  :root{--ink:#0f172a;--ink-2:#334155;--ink-3:#64748b;--line:#e2e8f0;--bg:#f8fafc;--surface:#fff;--brand:#1d4ed8;
+        --ok:#047857;--ok-bg:#ecfdf5;--warn:#b45309;--warn-bg:#fffbeb;--blk:#b91c1c;--blk-bg:#fef2f2;--ords:#86198f;--ords-bg:#fdf4ff;--portal:#3730a3;--portal-bg:#eef2ff}
+  *{box-sizing:border-box}
+  body{margin:0;padding:28px 20px 64px;background:var(--bg);color:var(--ink);font:14px/1.55 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+  .wrap{max-width:1100px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px} .sub{color:var(--ink-3);font-size:13px;margin:0 0 20px}
+  h2{font-size:16px;margin:30px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--line);display:flex;align-items:center;gap:10px}
+  h3{font-size:14px;margin:18px 0 6px}
+  .pill{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:999px}
+  .pill.ords{background:var(--ords-bg);color:var(--ords)} .pill.portal{background:var(--portal-bg);color:var(--portal)}
+  .pill.sel{background:var(--ok-bg);color:var(--ok)} .pill.del{background:var(--blk-bg);color:var(--blk)}
+  .callout{border-left:4px solid var(--warn);background:var(--warn-bg);padding:10px 14px;border-radius:6px;margin:12px 0}
+  .callout.rojo{border-color:var(--blk);background:var(--blk-bg)} .callout.azul{border-color:var(--brand);background:#eff6ff}
+  table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:8px 0 14px}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);background:#f8fafc}
+  td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top} tr:last-child td{border-bottom:0}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;background:#f1f5f9;padding:1px 5px;border-radius:4px}
+  .code{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:10px 0 18px;background:#0b1c30}
+  .code-h{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;background:#12263f;color:#cbd5e1;font-size:12px;font-family:ui-monospace,Menlo,monospace}
+  .code-h button{font:inherit;font-size:12px;padding:3px 10px;border-radius:5px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;cursor:pointer}
+  pre{margin:0;padding:12px 14px;color:#e2e8f0;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;overflow:auto;max-height:520px}
+  ol.pasos li{margin:6px 0} .chk{list-style:none;padding:0} .chk li{padding:6px 0;border-bottom:1px dashed var(--line)} .chk input{margin-right:8px}
+  .foot{color:var(--ink-3);font-size:12px;margin-top:28px}
+  @media print{.code-h button{display:none} pre{max-height:none;color:#000;background:#fff} .code{background:#fff} .code-h{background:#eee;color:#000}}
+</style>
+</head>
+<body><div class="wrap">
+<h1>Limpieza de datos de prueba antes de producción</h1>
+<p class="sub">Portal Salud Personal · tarea 1.0 del plan de migración (<code>docs/plan-migracion-produccion.md</code>) · 21-sep-2026. Runbook para correr en SQL Developer. Scripts fuente en el repo: <code>docs/ords-limpieza-datos-prueba-inventario.sql</code>, <code>docs/ords-limpieza-datos-prueba.sql</code>, <code>src/main/resources/db/sql/99_limpieza_datos_prueba_portal.sql</code>.</p>
+
+<div class="callout rojo"><strong>Hay dos bases y cada script va a una.</strong> <span class="pill ords">ORDS</span> = esquema del legacy PHP (<code>TBL_SERV_*</code>, <code>SERV_MED_*</code>, <code>BIO_*</code>) donde conviven <em>datos reales de producción del PHP</em> con lo que probamos. <span class="pill portal">Portal</span> = esquema propio del portal Java (<code>APP_*</code>, <code>MED_TAG</code>), hoy <code>ONEWMS_QA</code>. Confundirlos no da error al ejecutar, pero borra en el lugar equivocado.</div>
+
+<h2>1. Qué se considera "de prueba"</h2>
+<table>
+<tr><th>Grupo</th><th>Tablas</th><th>Criterio</th><th>Riesgo</th></tr>
+<tr><td><strong>A</strong> Creadas por el portal Java</td><td><code>SERV_MED_ACCIDENTE</code> (+<code>_SEGUIMIENTO</code>), <code>SERV_MED_ANTIDOPING_RESULTADO/_SELECCION/_INVENTARIO</code>, <code>SERV_MED_MATERNIDAD_SEGUIMIENTO</code>, <code>SERV_MED_RESTRICCION_ASIGNADA</code>, <code>SERV_MED_RESULTADO_EXAMEN_HIST</code>, <code>SERV_MED_CUENTA_PREDIO</code></td><td>Todas sus filas: nadie más escribe ahí. <code>CUENTA_PREDIO</code>: sólo las 2 asignaciones de prueba (47 BRAND, AVANTE)</td><td>Bajo</td></tr>
+<tr><td><strong>B</strong> Legacy escritas por el portal</td><td><code>TBL_SERV_CONSULTA_MEDICA</code>, <code>TBL_SERV_INCAPACIDAD_MEDICA</code>, <code>SERV_MED_FILES</code>, <code>SER_MED_REGISTRO_MEDICO</code> y las 41 secciones del examen (<code>SERV_MED_GENERALES</code>, <code>_DIAGNOSTICO</code>, <code>_RESULTADO_EXAMEN</code>…)</td><td><strong>Sólo por NSS de prueba.</strong> Nunca por fecha sola: conviven con datos reales del PHP</td><td><strong>Alto</strong> — revisar el inventario fila por fila</td></tr>
+<tr><td><strong>C</strong> Depuración de handlers</td><td><code>BUG</code>, <code>PRUEBA</code>, <code>ONSYS_DEBUG</code></td><td>Se vacían (los handlers hacen <code>insert into bug</code> para depurar)</td><td>Nulo</td></tr>
+<tr><td><strong>D</strong> Catálogos sembrados</td><td><code>SERV_MED_PREDIO</code> (17), <code>SERV_MED_CAT_CAUSA_CONSULTA</code> (23), <code>TBL_APPS_*</code>, <code>biometrico_*</code>, ICD</td><td><strong>No se tocan</strong></td><td>—</td></tr>
+</table>
+
+<h3>NSS usados en las pruebas</h3>
+<table>
+<tr><th>NSS</th><th>Quién</th><th>Qué se capturó</th><th>Decisión</th></tr>
+<tr><td><code>30048315698</code></td><td>Miguel Maldonado</td><td>Consulta 1068 (11-sep), incapacidades 1661–1665 (folios 0001/00002), examen con firma, Pre-Test "TEST", antidoping, accidentes, maternidad, restricciones</td><td>Borrar</td></tr>
+<tr><td><code>90099119373</code></td><td>Mariana Gutiérrez</td><td>Ficha; 1 incapacidad "sin fecha"</td><td><strong>Confirmar</strong> si esa incapacidad es real o de prueba</td></tr>
+<tr><td><code>68958027838</code></td><td>Mauricio Cerón</td><td>Usuario del login de pruebas; revisar si tiene registros</td><td>Según inventario</td></tr>
+<tr><td><code>16846510093</code></td><td>—</td><td>Aparece en pruebas de reportes (reg 385, typo 2923)</td><td><strong>Dato real, NO borrar</strong></td></tr>
+</table>
+<p>Si el corte "desde 2026-07-01, todos los NSS" del inventario muestra otro NSS con altas hechas desde el portal, se agrega a la lista <code>nss_prueba</code> de los tres scripts antes de borrar.</p>
+
+<h2>2. Orden de ejecución</h2>
+<ol class="pasos">
+<li><strong>Respaldo</strong> del esquema ORDS (<code>expdp</code>) o al menos de las tablas de los grupos A y B.</li>
+<li><span class="pill ords">ORDS</span> Correr el <strong>inventario</strong> (sólo <code>SELECT</code>) y revisar: NSS de prueba, conteos, el corte por fecha, y que predios/causas sigan completos.</li>
+<li>Ajustar parámetros (<code>nss_prueba</code>, <code>fecha_ini</code>) y decidir las filas dudosas (Mariana, cuenta→predio).</li>
+<li><span class="pill ords">ORDS</span> Correr la <strong>limpieza</strong>. Termina con un bloque de verificación; si todo da 0 en lo de prueba y 17 predios / 23 causas intactos → <code>COMMIT</code>; si no → <code>ROLLBACK</code>.</li>
+<li><span class="pill portal">Portal</span> Sólo si producción va a reutilizar el esquema de QA: correr el script de la base del portal (conserva todo lo <code>CREATED_BY = 'ETL_LEGACY'</code>, el histórico migrado).</li>
+<li>Borrar del filesystem (<code>portal.files.root</code>) los binarios de prueba con la lista que da el inventario del portal.</li>
+<li>Marcar 1.0a / 1.0b / 1.0c en el tablero <code>docs/seguimiento-migracion-produccion.html</code>.</li>
+</ol>
+
+<div class="callout azul"><strong>Empleado activo / inactivo.</strong> No lo decide una fecha sino la bandera <code>BIO_EMPLEADO.EMP_STATUS</code>; el legacy es inconsistente (el login usa <code>emp_status = 0</code> como vigente y el WS de examen usa <code>= 1</code>) y no expone fecha de baja (sólo <code>EMP_FECHAI</code> = ingreso, <code>EMP_FECHAN</code> = nacimiento). Antes de filtrar "activos" para cargar usuarios, confirmar el catálogo de valores con esta consulta:</div>
+<div class="code"><div class="code-h"><span>sql-emp-status</span><button onclick="copiar('sql-emp-status',this)">Copiar</button></div><pre id="sql-emp-status">SELECT EMP_STATUS, COUNT(*) empleados, MIN(EMP_FECHAI) ingreso_min, MAX(EMP_FECHAI) ingreso_max
+  FROM BIO_EMPLEADO GROUP BY EMP_STATUS ORDER BY 1;</pre></div>
+
+<h2>3. Script 1 — Inventario <span class="pill ords">ORDS</span> <span class="pill sel">sólo SELECT</span></h2>
+<div class="code"><div class="code-h"><span>sql-inventario</span><button onclick="copiar('sql-inventario',this)">Copiar</button></div><pre id="sql-inventario">-- =====================================================================================
+-- ords-limpieza-datos-prueba-inventario.sql  —  ORDS / esquema legacy (NO base del portal)
+-- Paso 1 de la limpieza de datos de prueba antes de producción (plan-migracion-produccion.md, Fase 1).
+--
+-- SOLO SELECT. No borra nada. Muestra cuántas filas y cuáles caerían con los criterios que
+-- luego usa ords-limpieza-datos-prueba.sql. Revisar la salida ANTES de correr la limpieza.
+--
+-- Criterios (ajustar en el bloque de parámetros):
+--   A) Tablas creadas por el portal Java (SERV_MED_ACCIDENTE, _ANTIDOPING_*, _MATERNIDAD_*,
+--      _RESTRICCION_ASIGNADA, _RESULTADO_EXAMEN_HIST, _CUENTA_PREDIO): TODAS sus filas son del
+--      portal; se listan completas para decidir si se conservan (p.ej. cuenta→predio real).
+--   B) Tablas del legacy que el portal escribe (consultas, incapacidades, examen por NSS,
+--      archivos): sólo filas de los NSS de prueba, o creadas desde la fecha de arranque del
+--      desarrollo. Aquí conviven con datos reales del PHP: por eso NUNCA se borra por fecha
+--      sola, siempre NSS de prueba + fecha, y se revisa a mano.
+--   C) Tablas de depuración de los handlers (BUG, PRUEBA, ONSYS_DEBUG): basura, se pueden vaciar.
+--
+-- NSS de prueba usados durante el desarrollo (verificado en scripts y docs, 21-sep-2026):
+--   30048315698  Miguel Maldonado  (consulta 1068 del 11-sep, incapacidades 1661-1665 folios 0001/00002,
+--                                   examen con firma, Pre-Test &quot;TEST&quot;, antidoping, accidentes, maternidad...)
+--   90099119373  Mariana Gutiérrez (ficha, 1 incapacidad &quot;sin fecha&quot;)
+--   68958027838  Mauricio Cerón    (usuario de pruebas del login; revisar si tiene registros)
+--   16846510093  aparece en pruebas de reportes (reg 385 con typo 2923) — es dato real, NO borrar
+-- =====================================================================================
+
+-- ---------- Parámetros ----------
+-- Fecha desde la que el portal Java empezó a escribir en QA (ajústala si empezó antes)
+DEFINE fecha_ini = &quot;DATE &#x27;2026-07-01&#x27;&quot;;
+-- NSS de prueba (mantener la lista entre paréntesis)
+DEFINE nss_prueba = &quot;(&#x27;30048315698&#x27;,&#x27;90099119373&#x27;,&#x27;68958027838&#x27;)&quot;;
+
+SET LINESIZE 200 PAGESIZE 200
+COLUMN tabla FORMAT A38
+COLUMN criterio FORMAT A26
+
+-- ---------- A) Tablas creadas por el portal: resumen ----------
+SELECT &#x27;SERV_MED_ACCIDENTE&#x27;              tabla, &#x27;todas&#x27;   criterio, COUNT(*) filas, MIN(FECHA_REGISTRO) desde, MAX(FECHA_REGISTRO) hasta FROM SERV_MED_ACCIDENTE
+UNION ALL SELECT &#x27;SERV_MED_ACCIDENTE_SEGUIMIENTO&#x27;, &#x27;todas&#x27;, COUNT(*), MIN(FECHA_SEGUIMIENTO), MAX(FECHA_SEGUIMIENTO) FROM SERV_MED_ACCIDENTE_SEGUIMIENTO
+UNION ALL SELECT &#x27;SERV_MED_ANTIDOPING_RESULTADO&#x27;,  &#x27;todas&#x27;, COUNT(*), MIN(FECHA_REGISTRO), MAX(FECHA_REGISTRO) FROM SERV_MED_ANTIDOPING_RESULTADO
+UNION ALL SELECT &#x27;SERV_MED_ANTIDOPING_SELECCION&#x27;,  &#x27;todas&#x27;, COUNT(*), MIN(FECHA_SELECCION), MAX(FECHA_SELECCION) FROM SERV_MED_ANTIDOPING_SELECCION
+UNION ALL SELECT &#x27;SERV_MED_ANTIDOPING_INVENTARIO&#x27;, &#x27;todas&#x27;, COUNT(*), MIN(FECHA_REGISTRO), MAX(FECHA_REGISTRO) FROM SERV_MED_ANTIDOPING_INVENTARIO
+UNION ALL SELECT &#x27;SERV_MED_MATERNIDAD_SEGUIMIENTO&#x27;,&#x27;todas&#x27;, COUNT(*), MIN(FECHA_REGISTRO), MAX(FECHA_REGISTRO) FROM SERV_MED_MATERNIDAD_SEGUIMIENTO
+UNION ALL SELECT &#x27;SERV_MED_RESTRICCION_ASIGNADA&#x27;,  &#x27;todas&#x27;, COUNT(*), NULL, NULL FROM SERV_MED_RESTRICCION_ASIGNADA
+UNION ALL SELECT &#x27;SERV_MED_RESULTADO_EXAMEN_HIST&#x27;, &#x27;todas&#x27;, COUNT(*), MIN(FECHA_REGISTRO), MAX(FECHA_REGISTRO) FROM SERV_MED_RESULTADO_EXAMEN_HIST
+UNION ALL SELECT &#x27;SERV_MED_CUENTA_PREDIO&#x27;,         &#x27;todas&#x27;, COUNT(*), MIN(FECHA_ASIGNACION), MAX(FECHA_ASIGNACION) FROM SERV_MED_CUENTA_PREDIO;
+
+-- Detalle A (para decidir fila por fila; las de NSS de prueba son las candidatas seguras)
+SELECT &#x27;ACCIDENTE&#x27; t, REG_ID, NSS, FECHA_REGISTRO, ID_USUARIO FROM SERV_MED_ACCIDENTE ORDER BY REG_ID;
+SELECT &#x27;ANTIDOPING_RESULTADO&#x27; t, REG_ID, NSS, FECHA_REGISTRO, ID_USUARIO FROM SERV_MED_ANTIDOPING_RESULTADO ORDER BY REG_ID;
+SELECT &#x27;ANTIDOPING_SELECCION&#x27; t, REG_ID, NSS, FECHA_SELECCION, ID_USUARIO FROM SERV_MED_ANTIDOPING_SELECCION ORDER BY REG_ID;
+SELECT &#x27;ANTIDOPING_INVENTARIO&#x27; t, REG_ID, FECHA_REGISTRO FROM SERV_MED_ANTIDOPING_INVENTARIO ORDER BY REG_ID;
+SELECT &#x27;MATERNIDAD&#x27; t, REG_ID, NSS, FECHA_REGISTRO, ID_USUARIO FROM SERV_MED_MATERNIDAD_SEGUIMIENTO ORDER BY REG_ID;
+SELECT &#x27;RESTRICCION&#x27; t, REG_ID, NSS FROM SERV_MED_RESTRICCION_ASIGNADA ORDER BY REG_ID;
+SELECT &#x27;EXAMEN_HIST&#x27; t, REG_ID, NSS, FECHA_REGISTRO FROM SERV_MED_RESULTADO_EXAMEN_HIST ORDER BY REG_ID;
+SELECT &#x27;CUENTA_PREDIO&#x27; t, REG_ID, CUENTA_NOMBRE, PREDIO_ID, FECHA_ASIGNACION, ID_USUARIO FROM SERV_MED_CUENTA_PREDIO ORDER BY REG_ID;
+
+-- ---------- B) Tablas del legacy escritas por el portal: NSS de prueba ----------
+SELECT &#x27;TBL_SERV_CONSULTA_MEDICA&#x27; tabla, &#x27;nss prueba&#x27; criterio, COUNT(*) filas, MIN(FECHA) desde, MAX(FECHA) hasta
+  FROM TBL_SERV_CONSULTA_MEDICA WHERE NSS IN &amp;nss_prueba
+UNION ALL SELECT &#x27;TBL_SERV_CONSULTA_MEDICA&#x27;, &#x27;desde fecha_ini (todos)&#x27;, COUNT(*), MIN(FECHA), MAX(FECHA)
+  FROM TBL_SERV_CONSULTA_MEDICA WHERE FECHA &gt;= &amp;fecha_ini
+UNION ALL SELECT &#x27;TBL_SERV_INCAPACIDAD_MEDICA&#x27;, &#x27;nss prueba&#x27;, COUNT(*), MIN(FECHA_REGISTRO), MAX(FECHA_REGISTRO)
+  FROM TBL_SERV_INCAPACIDAD_MEDICA WHERE NSS IN &amp;nss_prueba
+UNION ALL SELECT &#x27;TBL_SERV_INCAPACIDAD_MEDICA&#x27;, &#x27;desde fecha_ini (todos)&#x27;, COUNT(*), MIN(FECHA_REGISTRO), MAX(FECHA_REGISTRO)
+  FROM TBL_SERV_INCAPACIDAD_MEDICA WHERE FECHA_REGISTRO &gt;= &amp;fecha_ini
+UNION ALL SELECT &#x27;SERV_MED_FILES&#x27;, &#x27;nss prueba&#x27;, COUNT(*), MIN(DATE_UPLOAD), MAX(DATE_UPLOAD)
+  FROM SERV_MED_FILES WHERE NSS IN &amp;nss_prueba
+UNION ALL SELECT &#x27;SER_MED_REGISTRO_MEDICO&#x27;, &#x27;nss prueba&#x27;, COUNT(*), NULL, NULL
+  FROM SER_MED_REGISTRO_MEDICO WHERE NSS IN &amp;nss_prueba
+UNION ALL SELECT &#x27;SERV_MED_RESULTADO_EXAMEN&#x27;, &#x27;nss prueba&#x27;, COUNT(*), NULL, NULL
+  FROM SERV_MED_RESULTADO_EXAMEN WHERE NSS IN &amp;nss_prueba;
+
+-- Detalle B: consultas e incapacidades de los NSS de prueba (revisar fila por fila)
+SELECT REG_ID, FECHA, NSS, TIPO_CONSULTA, SUBSTR(MOTIVO_CONSULTA,1,60) motivo FROM TBL_SERV_CONSULTA_MEDICA WHERE NSS IN &amp;nss_prueba ORDER BY REG_ID;
+SELECT REG_ID, FECHA_REGISTRO, NSS, FOLIO_INCAPACIDAD, RAMO, TIPO_INCAPACIDAD FROM TBL_SERV_INCAPACIDAD_MEDICA WHERE NSS IN &amp;nss_prueba ORDER BY REG_ID;
+-- &quot;Desde fecha_ini&quot; de TODOS los NSS: para detectar altas hechas con otros NSS durante las pruebas.
+-- Si aquí aparecen NSS que no son de prueba, son datos reales del PHP: NO tocarlos.
+SELECT NSS, COUNT(*) consultas, MIN(FECHA) desde, MAX(FECHA) hasta FROM TBL_SERV_CONSULTA_MEDICA WHERE FECHA &gt;= &amp;fecha_ini GROUP BY NSS ORDER BY 2 DESC;
+SELECT NSS, COUNT(*) incapacidades, MIN(FECHA_REGISTRO) desde, MAX(FECHA_REGISTRO) hasta FROM TBL_SERV_INCAPACIDAD_MEDICA WHERE FECHA_REGISTRO &gt;= &amp;fecha_ini GROUP BY NSS ORDER BY 2 DESC;
+
+-- Examen médico: una fila por NSS en cada sección (PR_SERVICIO_MED_EXAMEN1/2 hace insert/update por NSS).
+-- Cuenta en cuántas secciones existe cada NSS de prueba.
+SELECT nss, SUM(n) secciones_con_fila FROM (
+  SELECT NSS nss, COUNT(*) n FROM SERV_MED_GENERALES WHERE NSS IN &amp;nss_prueba GROUP BY NSS
+  UNION ALL SELECT NSS, COUNT(*) FROM SERV_MED_EXPLORACION_FISICA WHERE NSS IN &amp;nss_prueba GROUP BY NSS
+  UNION ALL SELECT NSS, COUNT(*) FROM SERV_MED_DIAGNOSTICO WHERE NSS IN &amp;nss_prueba GROUP BY NSS
+  UNION ALL SELECT NSS, COUNT(*) FROM SERV_MED_RESULTADO_EXAMEN WHERE NSS IN &amp;nss_prueba GROUP BY NSS
+  UNION ALL SELECT NSS, COUNT(*) FROM SERV_MED_HEREDOFAMILIAR WHERE NSS IN &amp;nss_prueba GROUP BY NSS
+  UNION ALL SELECT NSS, COUNT(*) FROM SERV_MED_ANT_LABORALES WHERE NSS IN &amp;nss_prueba GROUP BY NSS
+) GROUP BY nss;
+
+-- ---------- C) Tablas de depuración de los handlers ----------
+SELECT &#x27;BUG&#x27; tabla, COUNT(*) filas FROM BUG
+UNION ALL SELECT &#x27;PRUEBA&#x27;, COUNT(*) FROM PRUEBA
+UNION ALL SELECT &#x27;ONSYS_DEBUG&#x27;, COUNT(*) FROM ONSYS_DEBUG;
+
+-- ---------- D) Catálogos sembrados por el portal (NO son basura, se listan para confirmar) ----------
+SELECT &#x27;SERV_MED_PREDIO&#x27; tabla, COUNT(*) filas FROM SERV_MED_PREDIO
+UNION ALL SELECT &#x27;SERV_MED_CAT_CAUSA_CONSULTA&#x27;, COUNT(*) FROM SERV_MED_CAT_CAUSA_CONSULTA;
+SELECT REG_ID, NOMBRE FROM SERV_MED_PREDIO ORDER BY REG_ID;
+</pre></div>
+
+<h2>4. Script 2 — Limpieza <span class="pill ords">ORDS</span> <span class="pill del">DELETE · COMMIT manual</span></h2>
+<div class="code"><div class="code-h"><span>sql-limpieza</span><button onclick="copiar('sql-limpieza',this)">Copiar</button></div><pre id="sql-limpieza">-- =====================================================================================
+-- ords-limpieza-datos-prueba.sql  —  ORDS / esquema legacy (NO base del portal)
+-- Paso 2 de la limpieza de datos de prueba antes de producción. Correr DESPUÉS de revisar la
+-- salida de ords-limpieza-datos-prueba-inventario.sql, con los MISMOS parámetros.
+--
+-- Reglas:
+--   * No hay COMMIT automático: al final hay un bloque de verificación y el COMMIT está comentado.
+--     Revisa los conteos, y si todo cuadra, COMMIT; si no, ROLLBACK.
+--   * Sección A (tablas creadas por el portal): borra TODO salvo lo que se marque como real
+--     (por default se conserva SERV_MED_CUENTA_PREDIO: es catálogo, aunque hoy sólo tenga 2
+--     asignaciones de prueba — bórralas a mano si son las de 47 BRAND/AVANTE).
+--   * Sección B (tablas del legacy con datos reales del PHP): SOLO por NSS de prueba. Nunca
+--     por fecha sola. Si en el inventario apareció otro NSS de prueba, agrégalo a la lista.
+--   * Sección C (BUG/PRUEBA/ONSYS_DEBUG): se vacían; son tablas de depuración de los handlers.
+--   * NO se tocan: SERV_MED_PREDIO (17 predios), SERV_MED_CAT_CAUSA_CONSULTA (23 causas),
+--     TBL_APPS_* (roles/menús/usuarios de las apps), biometrico_*, catálogos ICD.
+--   * Antes de correr: respaldo del esquema (expdp) o al menos de estas tablas.
+-- =====================================================================================
+
+DEFINE nss_prueba = &quot;(&#x27;30048315698&#x27;,&#x27;90099119373&#x27;,&#x27;68958027838&#x27;)&quot;;
+
+SET SERVEROUTPUT ON
+
+-- ---------- A) Tablas creadas por el portal Java ----------
+DELETE FROM SERV_MED_ACCIDENTE_SEGUIMIENTO;     -- hijas primero (FK a SERV_MED_ACCIDENTE)
+DELETE FROM SERV_MED_ACCIDENTE;
+DELETE FROM SERV_MED_ANTIDOPING_RESULTADO;
+DELETE FROM SERV_MED_ANTIDOPING_SELECCION;
+DELETE FROM SERV_MED_ANTIDOPING_INVENTARIO;
+DELETE FROM SERV_MED_MATERNIDAD_SEGUIMIENTO;
+DELETE FROM SERV_MED_RESTRICCION_ASIGNADA;
+DELETE FROM SERV_MED_RESULTADO_EXAMEN_HIST;
+-- Cuenta→predio: sólo las asignaciones de prueba (ajusta o comenta si ya hay reales)
+DELETE FROM SERV_MED_CUENTA_PREDIO WHERE UPPER(CUENTA_NOMBRE) IN (&#x27;47 BRAND&#x27;,&#x27;AVANTE&#x27;);
+
+-- ---------- B) Legacy: SOLO NSS de prueba ----------
+-- Consultas e incapacidades capturadas desde el portal para los NSS de prueba
+DELETE FROM TBL_SERV_CONSULTA_MEDICA     WHERE NSS IN &amp;nss_prueba;
+DELETE FROM TBL_SERV_INCAPACIDAD_MEDICA  WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SER_MED_REGISTRO_MEDICO      WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_FILES               WHERE NSS IN &amp;nss_prueba;
+
+-- Examen médico: una fila por NSS en cada sección (las 41 tablas que escriben
+-- PR_SERVICIO_MED_EXAMEN1/2). Se borra el examen completo de los NSS de prueba.
+DELETE FROM SERV_MED_ABDOMEN                WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_AGUDEZA_VISUAL         WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_ANT_LABORALES          WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_DET_ANT_LABORALES      WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_ANT_PATOLOGICOS        WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_BOCA                   WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_CARDIOPATIAS           WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_COLUMNA_VERTEBRAL      WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_COLUMNA_VERTEBRAL_AUX  WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_CRANEO                 WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_CUELLO                 WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_DIAGNOSTICO            WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_DIENTES                WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_ENDOCRINAS             WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_ENDOCRI_NO_PATO        WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_ESTUDIOS_REALIZADOS    WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_EXPLORACION_FISICA     WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_EXTREMIDADES           WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_GENERALES              WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_GENITALES              WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_HEREDOFAMILIAR         WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_INMUNIZACIONES         WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_INT_APARATO_SIST       WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_MENTALES               WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_MUS_ESQUELETICO        WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_NARIZ                  WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_NEFROPATIA             WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_NEUMOPATICA            WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_NEUROLOGIA             WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_OBESIDAD               WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_OIDOS                  WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_OTRAS                  WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_PADECI_ACTUAL          WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_PIEL                   WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_PLAN_TERAPIA           WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_RENAL                  WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_RESULTADO_EXAMEN       WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_SIST_NERVIOSO          WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_TORAX                  WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_TOXICOLOGICO           WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_TOXI_NO_PATO           WHERE NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_URINARIO               WHERE NSS IN &amp;nss_prueba;
+-- Estas secciones no llevan NSS en su INSERT del handler (se ligan por otra clave); si el
+-- inventario muestra filas de prueba, borrarlas a mano: SERV_MED_ANT_GIN_OBSTETRICOS,
+-- SERV_MED_ANT_PER_PATOLOGICOS, SERV_MED_CARDIO_NO_PATO, SERV_MED_DIGESTIVO, SERV_MED_OFTALMOLOGICO.
+
+-- ---------- C) Tablas de depuración de los handlers ----------
+DELETE FROM BUG;
+DELETE FROM PRUEBA;
+DELETE FROM ONSYS_DEBUG;
+
+-- ---------- Verificación (debe dar 0 en todo lo de prueba) ----------
+SELECT &#x27;consultas nss prueba&#x27; q, COUNT(*) n FROM TBL_SERV_CONSULTA_MEDICA WHERE NSS IN &amp;nss_prueba
+UNION ALL SELECT &#x27;incapacidades nss prueba&#x27;, COUNT(*) FROM TBL_SERV_INCAPACIDAD_MEDICA WHERE NSS IN &amp;nss_prueba
+UNION ALL SELECT &#x27;examen generales nss prueba&#x27;, COUNT(*) FROM SERV_MED_GENERALES WHERE NSS IN &amp;nss_prueba
+UNION ALL SELECT &#x27;accidentes&#x27;, COUNT(*) FROM SERV_MED_ACCIDENTE
+UNION ALL SELECT &#x27;antidoping resultado&#x27;, COUNT(*) FROM SERV_MED_ANTIDOPING_RESULTADO
+UNION ALL SELECT &#x27;maternidad&#x27;, COUNT(*) FROM SERV_MED_MATERNIDAD_SEGUIMIENTO
+UNION ALL SELECT &#x27;restricciones&#x27;, COUNT(*) FROM SERV_MED_RESTRICCION_ASIGNADA
+UNION ALL SELECT &#x27;cuenta_predio&#x27;, COUNT(*) FROM SERV_MED_CUENTA_PREDIO
+UNION ALL SELECT &#x27;bug&#x27;, COUNT(*) FROM BUG
+UNION ALL SELECT &#x27;predios (debe seguir 17)&#x27;, COUNT(*) FROM SERV_MED_PREDIO
+UNION ALL SELECT &#x27;causas (debe seguir 23)&#x27;, COUNT(*) FROM SERV_MED_CAT_CAUSA_CONSULTA;
+
+-- Si todo cuadra:
+-- COMMIT;
+-- Si algo no cuadra:
+-- ROLLBACK;
+</pre></div>
+
+<h2>5. Script 3 — Base del portal <span class="pill portal">Portal</span> <span class="pill del">sólo si prod reutiliza QA</span></h2>
+<div class="code"><div class="code-h"><span>sql-portal</span><button onclick="copiar('sql-portal',this)">Copiar</button></div><pre id="sql-portal">-- =====================================================================================
+-- 99_limpieza_datos_prueba_portal.sql  —  BASE DEL PORTAL (JDBC: APP_*, MED_TAG), NO ORDS.
+-- Limpieza de datos de prueba capturados durante el desarrollo (21-sep-2026).
+--
+-- SOLO aplica si producción va a REUTILIZAR el esquema de QA (ONEWMS_QA). Si prod nace con
+-- esquema nuevo (Fase 2 del plan), este script no hace falta: ahí sólo entra el ETL.
+--
+-- Distingue lo real de lo de prueba por CREATED_BY:
+--   * &#x27;ETL_LEGACY&#x27;  -&gt; histórico migrado del PHP (21,448 archivos / 550,560 tags): SE CONSERVA.
+--   * cualquier otro (NSS del usuario del portal, &#x27;SISTEMA&#x27;) -&gt; capturado desde el portal en
+--     pruebas: se borra para los NSS de prueba.
+-- Primero el inventario (SELECT), luego los DELETE; COMMIT comentado al final.
+-- =====================================================================================
+
+DEFINE nss_prueba = &quot;(&#x27;30048315698&#x27;,&#x27;90099119373&#x27;,&#x27;68958027838&#x27;)&quot;;
+
+-- ---------- Inventario ----------
+SELECT &#x27;APP_FS_FILE prueba (no ETL)&#x27; q, COUNT(*) n FROM APP_FS_FILE WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; AND NSS IN &amp;nss_prueba
+UNION ALL SELECT &#x27;APP_FS_FILE no ETL (todos los NSS)&#x27;, COUNT(*) FROM APP_FS_FILE WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27;
+UNION ALL SELECT &#x27;APP_FS_FILE ETL (se conserva)&#x27;, COUNT(*) FROM APP_FS_FILE WHERE CREATED_BY = &#x27;ETL_LEGACY&#x27;
+UNION ALL SELECT &#x27;MED_TAG prueba (no ETL)&#x27;, COUNT(*) FROM MED_TAG WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; AND NSS IN &amp;nss_prueba
+UNION ALL SELECT &#x27;MED_TAG ETL (se conserva)&#x27;, COUNT(*) FROM MED_TAG WHERE CREATED_BY = &#x27;ETL_LEGACY&#x27;
+UNION ALL SELECT &#x27;APP_IMPORT_LOTE&#x27;, COUNT(*) FROM APP_IMPORT_LOTE
+UNION ALL SELECT &#x27;APP_IMPORT_FILA&#x27;, COUNT(*) FROM APP_IMPORT_FILA
+UNION ALL SELECT &#x27;APP_AUD_EVENT&#x27;, COUNT(*) FROM APP_AUD_EVENT;
+
+-- Archivos de prueba: nombre y ruta física (el binario en portal.files.root hay que borrarlo aparte)
+SELECT ID, NSS, FILE_TYPE, ORIGINAL_NAME, CREATED_AT, CREATED_BY FROM APP_FS_FILE
+ WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; ORDER BY CREATED_AT;
+
+-- ---------- Limpieza ----------
+-- 1) Adjuntos capturados en pruebas (metadatos; el archivo físico se borra del filesystem con la lista de arriba)
+DELETE FROM APP_FS_FILE WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; AND NSS IN &amp;nss_prueba;
+-- Lotes del importador Excel de pruebas (los binarios también viven en files.root)
+DELETE FROM APP_FS_FILE WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; AND FILE_TYPE = &#x27;importacion&#x27;;
+DELETE FROM APP_IMPORT_FILA;
+DELETE FROM APP_IMPORT_LOTE;
+
+-- 2) Pre-Test y tags capturados en pruebas para los NSS de prueba (el histórico ETL no se toca)
+DELETE FROM MED_TAG WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; AND NSS IN &amp;nss_prueba;
+
+-- 3) Bitácora de auditoría: es de desarrollo, se vacía para arrancar limpia en prod
+DELETE FROM APP_AUD_EVENT;
+
+-- 4) Rol duplicado MEDICO_ANALISTA (id 42, sin ROLE_): Security usa ROLE_MEDICO_ANALISTA (id 43)
+DELETE FROM APP_SEC_USER_ROLE WHERE ROLE_ID IN (SELECT ID FROM APP_SEC_ROLE WHERE CODE = &#x27;MEDICO_ANALISTA&#x27;);
+DELETE FROM APP_MENU_ROLE     WHERE ROLE_ID IN (SELECT ID FROM APP_SEC_ROLE WHERE CODE = &#x27;MEDICO_ANALISTA&#x27;);
+DELETE FROM APP_SEC_ROLE      WHERE CODE = &#x27;MEDICO_ANALISTA&#x27;;
+
+-- NO se tocan: APP_SEC_USER / APP_SEC_ROLE (resto) / APP_MENU / APP_MENU_ROLE (roles y menús
+-- que sí van a prod), ni nada con CREATED_BY = &#x27;ETL_LEGACY&#x27;.
+
+-- ---------- Verificación ----------
+SELECT &#x27;fs_file prueba&#x27; q, COUNT(*) n FROM APP_FS_FILE WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; AND NSS IN &amp;nss_prueba
+UNION ALL SELECT &#x27;med_tag prueba&#x27;, COUNT(*) FROM MED_TAG WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; AND NSS IN &amp;nss_prueba
+UNION ALL SELECT &#x27;import lotes&#x27;, COUNT(*) FROM APP_IMPORT_LOTE
+UNION ALL SELECT &#x27;auditoria&#x27;, COUNT(*) FROM APP_AUD_EVENT
+UNION ALL SELECT &#x27;fs_file ETL (debe seguir igual)&#x27;, COUNT(*) FROM APP_FS_FILE WHERE CREATED_BY = &#x27;ETL_LEGACY&#x27;
+UNION ALL SELECT &#x27;med_tag ETL (debe seguir igual)&#x27;, COUNT(*) FROM MED_TAG WHERE CREATED_BY = &#x27;ETL_LEGACY&#x27;;
+
+-- COMMIT;
+-- ROLLBACK;
+</pre></div>
+
+<h2>6. Verificación final</h2>
+<ul class="chk">
+<li><label><input type="checkbox"> Respaldo tomado (fecha/archivo: ________)</label></li>
+<li><label><input type="checkbox"> Inventario revisado; NSS dudosos decididos</label></li>
+<li><label><input type="checkbox"> Limpieza ORDS con verificación en 0 y <code>COMMIT</code></label></li>
+<li><label><input type="checkbox"> 17 predios y 23 causas intactos</label></li>
+<li><label><input type="checkbox"> Base del portal (si aplica) y binarios en <code>files.root</code></label></li>
+<li><label><input type="checkbox"> Búsqueda NSS <code>30048315698</code> en el portal ya no muestra consultas/incapacidades/examen de prueba</label></li>
+<li><label><input type="checkbox"> Tablero de migración actualizado</label></li>
+</ul>
+<p class="foot">Volver a correr los scripts no borra nada nuevo; el <code>COMMIT</code> es siempre manual. Generado el 21-sep-2026 desde el repo (<code>main</code>).</p>
+</div>
+<script>
+function copiar(id, btn) {
+  navigator.clipboard.writeText(document.getElementById(id).textContent).then(function () { btn.textContent = "Copiado"; setTimeout(function () { btn.textContent = "Copiar"; }, 1500); });
+}
+</script>
+</body></html>
