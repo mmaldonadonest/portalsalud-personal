@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Muestra de tablas MySQL a migrar — Portal Salud</title>
+<style>
+  :root{--ink:#0f172a;--ink-2:#334155;--ink-3:#64748b;--line:#e2e8f0;--bg:#f8fafc;--surface:#fff;--brand:#1d4ed8;
+        --ok:#047857;--ok-bg:#ecfdf5;--warn:#b45309;--warn-bg:#fffbeb;--blk:#b91c1c;--blk-bg:#fef2f2;
+        --my:#0f766e;--my-bg:#f0fdfa;--or:#3730a3;--or-bg:#eef2ff}
+  *{box-sizing:border-box}
+  body{margin:0;padding:28px 20px 64px;background:var(--bg);color:var(--ink);font:14px/1.55 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+  .wrap{max-width:1120px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px} .sub{color:var(--ink-3);font-size:13px;margin:0 0 20px}
+  h2{font-size:16px;margin:30px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--line);display:flex;align-items:center;gap:10px}
+  h3{font-size:14px;margin:20px 0 6px}
+  .pill{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:999px}
+  .pill.my{background:var(--my-bg);color:var(--my)} .pill.or{background:var(--or-bg);color:var(--or)}
+  .pill.real{background:var(--ok-bg);color:var(--ok)} .pill.ilus{background:var(--warn-bg);color:var(--warn)}
+  .callout{border-left:4px solid var(--warn);background:var(--warn-bg);padding:10px 14px;border-radius:6px;margin:12px 0}
+  .callout.rojo{border-color:var(--blk);background:var(--blk-bg)} .callout.azul{border-color:var(--brand);background:#eff6ff}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:14px 0 20px}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .kpi .n{font-size:22px;font-weight:700;letter-spacing:-.02em} .kpi .l{font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.07em;font-weight:700}
+  table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:8px 0 14px}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);background:#f8fafc}
+  td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;font-size:13px} tr:last-child td{border-bottom:0}
+  td.mono,th.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;background:#f1f5f9;padding:1px 5px;border-radius:4px}
+  .code{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:10px 0 18px;background:#0b1c30}
+  .code-h{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;background:#12263f;color:#cbd5e1;font-size:12px;font-family:ui-monospace,Menlo,monospace}
+  .code-h button{font:inherit;font-size:12px;padding:3px 10px;border-radius:5px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;cursor:pointer}
+  pre{margin:0;padding:12px 14px;color:#e2e8f0;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;overflow:auto;max-height:560px}
+  .scroll{overflow-x:auto}
+  .foot{color:var(--ink-3);font-size:12px;margin-top:28px}
+  @media print{.code-h button{display:none} pre{max-height:none;color:#000;background:#fff} .code{background:#fff} .code-h{background:#eee;color:#000}}
+</style>
+</head>
+<body><div class="wrap">
+<h1>Muestra de las tablas MySQL/MariaDB a migrar</h1>
+<p class="sub">Portal Salud Personal · origen <code>servicioMedico</code> (legacy PHP, MariaDB <code>10.249.249.4:3306</code>) → destino Oracle del portal. Complementa <code>docs/etl-migracion-historica-especificacion.md</code> (spec del ETL) y el plan de migración. 22-sep-2026.</p>
+
+<div class="callout rojo"><strong>Esta muestra no se pudo extraer en vivo.</strong> El puerto <code>3306</code> de <code>10.249.249.4</code> <strong>no está abierto</strong> desde esta máquina (tarea 0.5 del plan), y no hay copia local de la base. Lo que sigue es: (1) la <span class="pill real">estructura y cifras verificadas</span> que ya están documentadas de consultas directas al origen (20-ago y 13-ago-2026), y (2) el script <code>docs/mysql-muestra-tablas-migrar.sql</code> para sacar <strong>la muestra real de filas</strong> en cuanto haya acceso. Las filas de ejemplo de §3 están marcadas como <span class="pill ilus">ilustrativas</span>: reproducen el formato real con valores enmascarados, no son registros reales.</div>
+
+<h2>1. Alcance: son sólo 2 tablas <span class="pill real">verificado</span></h2>
+<p><code>SHOW TABLES FROM servicioMedico</code> (20-ago-2026) devolvió exactamente dos tablas. No hay otro origen de datos histórico en este portal: el resto de la información del servicio médico (consultas, incapacidades, exámenes, empleados) <strong>ya vive en Oracle</strong> y se consume por los WS de ORDS, no se migra.</p>
+<div class="kpis">
+  <div class="kpi"><div class="n">2</div><div class="l">tablas a migrar</div></div>
+  <div class="kpi"><div class="n">21,475</div><div class="l">filas en files (13-ago)</div></div>
+  <div class="kpi"><div class="n">550,560</div><div class="l">filas en tags (13-ago)</div></div>
+  <div class="kpi"><div class="n">~18 GB</div><div class="l">base64 en files.url</div></div>
+  <div class="kpi"><div class="n">~52 MB</div><div class="l">tamaño de tags</div></div>
+</div>
+<div class="callout"><strong>Los conteos son un snapshot, no una cifra fija.</strong> La base de origen es productiva y sigue creciendo: el equipo que ejecute el ETL debe volver a correr <code>COUNT(*)</code> en el momento de la carga y usar ese número (menos los huérfanos documentados) como base de verificación.</div>
+
+<table>
+<tr><th>Tabla <span class="pill my">MariaDB</span></th><th>Qué guarda</th><th>Destino <span class="pill or">Oracle</span></th><th>Estado</th></tr>
+<tr><td class="mono">files</td><td>Todo archivo adjunto del expediente: exámenes médicos, laboratorios, notas médicas y de incapacidad, y los adjuntos de una consulta. El binario va <strong>en base64 dentro de la columna <code>url</code></strong>.</td><td>Metadatos → <code>APP_FS_FILE</code>; binario decodificado → filesystem (<code>portal.files.root</code>)</td><td>Migrado y verificado contra Oracle <strong>local</strong> (21,448 filas); pendiente contra el destino real</td></tr>
+<tr><td class="mono">tags</td><td>Patrón EAV (una fila por campo): Pre-Test de ingreso, historia laboral, examen físico, contactos de emergencia, vacunas, firma digital.</td><td><code>MED_TAG</code> (EAV puro, <code>longtext</code> → <code>CLOB</code>)</td><td>Migrado y verificado contra Oracle <strong>local</strong> (550,560 filas); pendiente contra el destino real</td></tr>
+</table>
+
+<h2>2. Estructura exacta <span class="pill real">SHOW CREATE TABLE del origen</span></h2>
+<div class="code"><div class="code-h"><span>sql-ddl</span><button onclick="copiar('sql-ddl',this)">Copiar</button></div><pre id="sql-ddl">CREATE TABLE `files` (
+  `id`          int(10)     NOT NULL AUTO_INCREMENT,
+  `nss`         varchar(50) NOT NULL,
+  `name`        varchar(50) NOT NULL,
+  `date_upload` datetime    NOT NULL,
+  `url`         longtext    NOT NULL,   -- PDF/imagen en base64, SIN prefijo data:, sin saltos de linea
+  `type`        varchar(50) NOT NULL,   -- polimorfico: categoria funcional O hash MD5 de consulta relacionada
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `tags` (
+  `id`      int(255)     NOT NULL AUTO_INCREMENT,
+  `nss`     varchar(255) DEFAULT NULL,
+  `type`    varchar(50)  DEFAULT NULL,  -- nombre de campo EAV (ej. &quot;STPO2&quot;, &quot;TOSINOBSPRETEST&quot;)
+  `content` longtext,                   -- valor del campo, 27% legitimamente vacio
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;</pre></div>
+<div class="callout azul"><strong>Encoding:</strong> ambas tablas declaran <code>CHARSET=utf8</code> a nivel de tabla, aunque el servidor tenga <code>latin1</code> como default (eso sólo afectaría a tablas nuevas). Hay que <strong>forzar <code>utf8mb4</code> en la conexión</strong> de extracción; si no, los acentos se rompen en el viaje.</div>
+
+<h2>3. Cómo se ven las filas <span class="pill ilus">formato real, valores enmascarados</span></h2>
+
+<h3><code>files</code> — el binario viaja en base64 dentro de <code>url</code></h3>
+<div class="scroll"><table>
+<tr><th class="mono">id</th><th class="mono">nss</th><th class="mono">name</th><th class="mono">date_upload</th><th class="mono">type</th><th class="mono">url</th></tr>
+<tr><td class="mono">1042</td><td class="mono">4812345678</td><td class="mono">examen_2019.pdf</td><td class="mono">2019-03-14 09:21:07</td><td class="mono">examen_medico</td><td class="mono">JVBERi0xLjQKJeLjz9MK… (≈1.9 MB)</td></tr>
+<tr><td class="mono">1043</td><td class="mono">4812345678</td><td class="mono">biometria.jpg</td><td class="mono">2019-03-14 09:24:55</td><td class="mono">laboratorio</td><td class="mono">/9j/4AAQSkZJRgABAQ… (≈640 KB)</td></tr>
+<tr><td class="mono">7781</td><td class="mono">5598765432</td><td class="mono">receta</td><td class="mono">2021-07-02 16:03:11</td><td class="mono">nota_medica</td><td class="mono">iVBORw0KGgoAAAANSU… (PNG, sin extensión en <code>name</code>)</td></tr>
+<tr><td class="mono">9310</td><td class="mono">5598765432</td><td class="mono">incapacidad.pdf</td><td class="mono">2022-01-19 11:40:02</td><td class="mono">c4ca4238a0b923820dcc509a6f75849b</td><td class="mono">JVBERi0xLjcKJc… (type = hash MD5 de la consulta relacionada)</td></tr>
+</table></div>
+<p><strong>Los primeros caracteres del base64 dicen qué es el archivo:</strong> <code>JVBERi0</code> = PDF (<code>%PDF</code>), <code>iVBORw0</code> = PNG, <code>/9j/</code> = JPG. Así resuelve el ETL los 3 nombres sin extensión (magic-bytes).</p>
+
+<h4>Valores reales de <code>files.type</code> <span class="pill real">verificado</span></h4>
+<p>Es una columna <strong>polimórfica</strong>: o trae una categoría funcional, o el <strong>hash MD5 (32 caracteres)</strong> que relaciona el archivo con una consulta. Categorías confirmadas: <code>examen_medico</code>, <code>laboratorio</code>, <code>nota_medica</code>, <code>nota_incapacidad</code>. Por eso el ETL la copia <strong>tal cual, sin normalizar</strong>.</p>
+
+<h3><code>tags</code> — EAV: una fila por campo capturado</h3>
+<div class="scroll"><table>
+<tr><th class="mono">id</th><th class="mono">nss</th><th class="mono">type</th><th class="mono">content</th></tr>
+<tr><td class="mono">331201</td><td class="mono">4812345678</td><td class="mono">nomPRETEST</td><td class="mono">JUAN</td></tr>
+<tr><td class="mono">331202</td><td class="mono">4812345678</td><td class="mono">apePRETEST</td><td class="mono">PEREZ</td></tr>
+<tr><td class="mono">331207</td><td class="mono">4812345678</td><td class="mono">LHOPPRETEST</td><td class="mono">1</td></tr>
+<tr><td class="mono">331208</td><td class="mono">4812345678</td><td class="mono">LHOPOBSPRETEST</td><td class="mono">Apendicectomía 2018</td></tr>
+<tr><td class="mono">331219</td><td class="mono">4812345678</td><td class="mono">TOSINPRETEST</td><td class="mono"><em>(vacío — normal, 27 % lo está)</em></td></tr>
+<tr><td class="mono">331240</td><td class="mono">4812345678</td><td class="mono">drawdataUrlPRETEST</td><td class="mono">data:image/png;base64,iVBORw0KGgo… (firma del canvas)</td></tr>
+<tr><td class="mono">418903</td><td class="mono">5598765432</td><td class="mono">STPO2</td><td class="mono">97</td></tr>
+<tr><td class="mono">418904</td><td class="mono">5598765432</td><td class="mono">nombre1</td><td class="mono">LOGISTICA XYZ</td></tr>
+</table></div>
+
+<h4>Los 137 tipos reales, agrupados <span class="pill real">verificado contra el PHP y la BD</span></h4>
+<p>La función <code>FN_MED_TAG_GROUP</code> (en <code>tags-salud.sql</code>, ya en el destino) clasifica cada <code>type</code>; el ETL no calcula el grupo, lo pide a esa función:</p>
+<table>
+<tr><th>Grupo</th><th>Regla / tipos</th></tr>
+<tr><td class="mono">PRETEST</td><td>todo <code>type</code> con sufijo <code>%PRETEST%</code> — el Pre-Test de ingreso completo (datos, 7 preguntas de salud, 8 síntomas, comentarios)</td></tr>
+<tr><td class="mono">FIRMA_DIGITAL</td><td><code>drawdataUrlPRETEST</code> — base64 del canvas de firma</td></tr>
+<tr><td class="mono">EXAMEN_FISICO</td><td><code>STPO2</code>, <code>ROMBERGEXFIS</code>, <code>VOZCLARAYFUERTE</code>, <code>TRAQUEA_OBSINP</code>, audiometría (<code>ODAGAUDIINPEXP</code>, <code>OIMEMTIMINPEXP</code>…), agudeza visual (<code>LENTEOJODERECHOEXP</code>…), <code>OBSGENERALINPEX</code></td></tr>
+<tr><td class="mono">CONTACTO_EMERGENCIA</td><td>prefijo <code>contactoEmer%</code></td></tr>
+<tr><td class="mono">HISTORIA_LABORAL</td><td>hasta 4 empleos previos: <code>nombre1..4</code>, <code>puesto1..4</code>, <code>giro1..4</code>, <code>antiguedad1..4</code>, <code>salida1..4</code>, <code>turno1..4</code>, <code>riesgos1..4</code>, <code>epp1..4</code>, <code>observaciones1..4</code>, <code>descripcion1..4</code>, <code>cantidad_trabajos</code>, <code>edad_inicio_laborar</code></td></tr>
+<tr><td class="mono">VACUNAS</td><td><code>fechaINFLUEN</code></td></tr>
+<tr><td class="mono">PERMISO_EXAMEN</td><td><code>checkExamPermiso</code>, <code>tipoExamenInputO</code></td></tr>
+<tr><td class="mono">INCAPACIDAD</td><td><code>%INCAP%</code> / <code>%incap%</code></td></tr>
+<tr><td class="mono">CLINICO_MISC</td><td><code>CCA</code>, <code>DIENTE_2</code>, <code>Drenaje</code>, <code>ciruOBS</code>, <code>pension</code>, <code>cadaCuandoDep</code>, <code>cadaCuandoPasa</code></td></tr>
+<tr><td class="mono">OTRO</td><td>no debe aparecer ninguno: si sale, es un <code>type</code> nuevo del PHP que hay que clasificar</td></tr>
+</table>
+
+<h2>4. Mapeo al destino Oracle <span class="pill real">ya ejecutado end-to-end en local</span></h2>
+<table>
+<tr><th><code>files</code> <span class="pill my">MariaDB</span></th><th>→ <code>APP_FS_FILE</code> + filesystem <span class="pill or">Oracle</span></th></tr>
+<tr><td class="mono">nss</td><td><code>NSS</code> tal cual</td></tr>
+<tr><td class="mono">id</td><td><code>BUSINESS_KEY</code> = <code>'legacy-' || id</code> (idempotencia: se puede reintentar sin duplicar)</td></tr>
+<tr><td class="mono">type</td><td><code>FILE_TYPE</code> tal cual, sin normalizar</td></tr>
+<tr><td class="mono">name</td><td><code>ORIGINAL_NAME</code> + <code>EXTENSION</code> (o magic-bytes si no trae) + <code>MIME_TYPE</code></td></tr>
+<tr><td class="mono">url (base64)</td><td><strong>no se guarda en Oracle</strong>: se decodifica al filesystem con sharding <code>yyyy/MM/dd/&lt;2 hex sha256&gt;/&lt;uuid&gt;.&lt;ext&gt;</code>; en la tabla quedan <code>SIZE_BYTES</code>, <code>CHECKSUM_SHA256</code>, <code>STORAGE_PATH</code>, <code>STORAGE_PROVIDER='FILESYSTEM'</code></td></tr>
+<tr><td class="mono">date_upload</td><td><code>DATE_UPLOAD</code> — la fecha <strong>original</strong> del legacy, no la de la corrida</td></tr>
+<tr><td>—</td><td><code>CREATED_BY = 'ETL_LEGACY'</code> (así se distingue lo migrado de lo capturado en el portal)</td></tr>
+</table>
+<table>
+<tr><th><code>tags</code> <span class="pill my">MariaDB</span></th><th>→ <code>MED_TAG</code> <span class="pill or">Oracle</span></th></tr>
+<tr><td class="mono">nss / type / content</td><td><code>NSS</code> / <code>TYPE</code> / <code>CONTENT</code> tal cual (<code>longtext</code> → <code>CLOB</code>)</td></tr>
+<tr><td class="mono">id</td><td><code>SOURCE_ID</code> (idempotencia)</td></tr>
+<tr><td>—</td><td><code>TAG_GROUP</code> = <code>FN_MED_TAG_GROUP(type)</code>, <code>CREATED_BY='ETL_LEGACY'</code>, <code>MIGRATED_AT</code>/<code>CREATED_AT</code> = fecha de la corrida</td></tr>
+</table>
+
+<h2>5. Calidad de los datos: lo que ya se sabe <span class="pill real">medido en el origen</span></h2>
+<table>
+<tr><th>Tabla</th><th>Hallazgo</th><th>Qué hacer</th></tr>
+<tr><td class="mono">files</td><td><strong>27 filas con <code>url</code> vacío</strong> (huérfanas)</td><td>Excluir de la carga</td></tr>
+<tr><td class="mono">files</td><td><strong>3 nombres sin extensión</strong></td><td>Resolver por magic-bytes (<code>%PDF</code>, <code>\x89PNG</code>, <code>\xFF\xD8\xFF</code>)</td></tr>
+<tr><td class="mono">files</td><td><strong>261 duplicados de contenido</strong> por <code>MD5(url)</code></td><td>Son registros de negocio legítimos: <strong>no</strong> deduplicar. Ojo: el índice único <code>UX_FS_FILE_CHECKSUM</code> del destino choca con esto (<code>ORA-00001</code>) — relajarlo o manejar el choque</td></tr>
+<tr><td class="mono">files</td><td><strong>~96 nombres (0.45 %) con encoding roto</strong> preexistente (doble-encoding en el origen)</td><td>Cosmético: sólo afecta el nombre mostrado, no el contenido ni la localización</td></tr>
+<tr><td class="mono">tags</td><td><strong>27 % de <code>content</code> vacío</strong></td><td>Normal en EAV disperso, no es corrupción</td></tr>
+<tr><td class="mono">tags</td><td><strong>117 filas con <code>nss</code> NULL</strong></td><td>Dato legítimo, no excluir</td></tr>
+<tr><td class="mono">ambas</td><td><code>id</code> <strong>no es denso</strong> (el PHP hace DELETE+INSERT, nunca UPDATE)</td><td>No asumir rango continuo al paginar</td></tr>
+</table>
+
+<h2>6. Script para extraer la muestra real</h2>
+<p>Archivo <code>docs/mysql-muestra-tablas-migrar.sql</code>. Es de sólo lectura y nunca hace <code>SELECT *</code> sobre <code>url</code> (serían ~18 GB): recorta el base64 y calcula tamaños. Ejecutar así, forzando utf8mb4:</p>
+<div class="code"><div class="code-h"><span>cmd-mysql</span><button onclick="copiar('cmd-mysql',this)">Copiar</button></div><pre id="cmd-mysql">mysql --default-character-set=utf8mb4 -h 10.249.249.4 -u root -p servicioMedico \
+      &lt; docs/mysql-muestra-tablas-migrar.sql &gt; muestra-servicioMedico.txt</pre></div>
+<div class="code"><div class="code-h"><span>sql-muestra</span><button onclick="copiar('sql-muestra',this)">Copiar</button></div><pre id="sql-muestra">-- =====================================================================================
+-- mysql-muestra-tablas-migrar.sql  —  ORIGEN MariaDB `servicioMedico` (legacy PHP), SOLO LECTURA.
+-- Saca la muestra real de las 2 tablas que se migran a Oracle (ver
+-- docs/etl-migracion-historica-especificacion.md y docs/muestra-tablas-mysql-migracion.html).
+--
+-- Conexión (spec §1):  host 10.249.249.4  puerto 3306  base servicioMedico  usuario root
+-- IMPORTANTE: abrir la sesión en utf8mb4, si no los acentos salen mal:
+--    mysql --default-character-set=utf8mb4 -h 10.249.249.4 -u root -p servicioMedico &lt; este.sql &gt; muestra.txt
+--
+-- NUNCA hacer SELECT * FROM files sin recortar `url`: son ~18 GB de base64.
+-- =====================================================================================
+
+-- ---------- 0. Contexto ----------
+SELECT VERSION() version, DATABASE() base, NOW() momento;
+SHOW TABLES;
+SHOW VARIABLES LIKE &#x27;character_set_%&#x27;;
+
+-- ---------- 1. Conteos reales al momento de la extracción ----------
+-- (los números de la spec son un snapshot de 2026-08-13; la base sigue creciendo)
+SELECT &#x27;files&#x27; tabla, COUNT(*) filas FROM files
+UNION ALL SELECT &#x27;tags&#x27;, COUNT(*) FROM tags;
+
+-- ---------- 2. Estructura ----------
+SHOW CREATE TABLE files;
+SHOW CREATE TABLE tags;
+
+-- ---------- 3. Muestra de `files` (sin el base64 completo) ----------
+SELECT id, nss, name, date_upload, type,
+       LENGTH(url)                 AS largo_base64,
+       ROUND(LENGTH(url)*3/4/1024) AS kb_aprox_decodificado,
+       LEFT(url, 24)               AS url_inicio   -- JVBERi0 = %PDF, iVBORw0 = PNG, /9j/ = JPG
+  FROM files
+ ORDER BY id
+ LIMIT 20;
+
+-- Muestra dirigida: 5 de cada tipo funcional + 5 con type = hash MD5 (32 chars)
+(SELECT &#x27;examen_medico&#x27; grupo, id, nss, name, date_upload, type, LENGTH(url) largo FROM files WHERE type=&#x27;examen_medico&#x27; ORDER BY id LIMIT 5)
+UNION ALL (SELECT &#x27;laboratorio&#x27;, id, nss, name, date_upload, type, LENGTH(url) FROM files WHERE type=&#x27;laboratorio&#x27; ORDER BY id LIMIT 5)
+UNION ALL (SELECT &#x27;nota_medica&#x27;, id, nss, name, date_upload, type, LENGTH(url) FROM files WHERE type=&#x27;nota_medica&#x27; ORDER BY id LIMIT 5)
+UNION ALL (SELECT &#x27;nota_incapacidad&#x27;, id, nss, name, date_upload, type, LENGTH(url) FROM files WHERE type=&#x27;nota_incapacidad&#x27; ORDER BY id LIMIT 5)
+UNION ALL (SELECT &#x27;hash_md5(32)&#x27;, id, nss, name, date_upload, type, LENGTH(url) FROM files WHERE LENGTH(type)=32 ORDER BY id LIMIT 5);
+
+-- Distribución por tipo (polimórfico: categoría funcional o hash MD5 de consulta relacionada)
+SELECT CASE WHEN LENGTH(type)=32 THEN &#x27;&lt;hash md5 de consulta&gt;&#x27; ELSE type END tipo,
+       COUNT(*) filas, MIN(date_upload) desde, MAX(date_upload) hasta
+  FROM files GROUP BY 1 ORDER BY filas DESC;
+
+-- Volumen por año (para dimensionar la carga y el filesystem destino)
+SELECT YEAR(date_upload) anio, COUNT(*) archivos,
+       ROUND(SUM(LENGTH(url))*3/4/1024/1024/1024, 2) gb_aprox
+  FROM files GROUP BY anio ORDER BY anio;
+
+-- Extensiones presentes en `name`
+SELECT LOWER(SUBSTRING_INDEX(name, &#x27;.&#x27;, -1)) ext, COUNT(*) filas
+  FROM files WHERE name LIKE &#x27;%.%&#x27; GROUP BY ext ORDER BY filas DESC;
+
+-- ---------- 4. Calidad conocida en `files` (spec §5) ----------
+SELECT &#x27;url vacía (huérfanas, se excluyen)&#x27; hallazgo, COUNT(*) filas FROM files WHERE url IS NULL OR url = &#x27;&#x27;
+UNION ALL SELECT &#x27;name sin extensión (magic-bytes)&#x27;, COUNT(*) FROM files WHERE name NOT LIKE &#x27;%.%&#x27;
+UNION ALL SELECT &#x27;duplicados de contenido (MD5 url)&#x27;, COUNT(*) FROM (SELECT MD5(url) h FROM files WHERE url&lt;&gt;&#x27;&#x27; GROUP BY h HAVING COUNT(*)&gt;1) d
+UNION ALL SELECT &#x27;name con posible encoding roto&#x27;, COUNT(*) FROM files WHERE name REGEXP &#x27;Ã|Â|�&#x27;;
+SELECT id, nss, name, type FROM files WHERE name NOT LIKE &#x27;%.%&#x27; ORDER BY id;                       -- los 3 sin extensión
+SELECT id, nss, name FROM files WHERE name REGEXP &#x27;Ã|Â|�&#x27; ORDER BY id LIMIT 20;                    -- encoding roto (cosmético)
+
+-- ---------- 5. Muestra de `tags` (EAV: type = campo, content = valor) ----------
+SELECT id, nss, type, LEFT(content, 60) content_inicio, LENGTH(content) largo
+  FROM tags ORDER BY id LIMIT 30;
+
+-- Un NSS completo: cómo se ve un Pre-Test entero en EAV (cambiar el NSS por uno real de la muestra)
+SELECT id, type, LEFT(content, 60) content_inicio
+  FROM tags WHERE nss = (SELECT nss FROM tags WHERE type=&#x27;nomPRETEST&#x27; AND content&lt;&gt;&#x27;&#x27; ORDER BY id DESC LIMIT 1)
+ ORDER BY type;
+
+-- Los 137 tipos distintos y su frecuencia (verificación del ETL: ninguno debe quedar sin clasificar)
+SELECT type, COUNT(*) filas,
+       SUM(CASE WHEN content IS NULL OR content=&#x27;&#x27; THEN 1 ELSE 0 END) vacios
+  FROM tags GROUP BY type ORDER BY filas DESC;
+SELECT COUNT(DISTINCT type) tipos_distintos FROM tags;   -- esperado: 137
+
+-- La firma digital del Pre-Test es base64 de un canvas (dataURL): se revisa aparte, no se imprime
+SELECT id, nss, LENGTH(content) largo, LEFT(content, 30) inicio
+  FROM tags WHERE type=&#x27;drawdataUrlPRETEST&#x27; AND content&lt;&gt;&#x27;&#x27; ORDER BY id DESC LIMIT 5;
+
+-- ---------- 6. Calidad conocida en `tags` (spec §5) ----------
+SELECT &#x27;content vacío (27% es normal, EAV disperso)&#x27; hallazgo, COUNT(*) filas FROM tags WHERE content IS NULL OR content=&#x27;&#x27;
+UNION ALL SELECT &#x27;nss NULL (legítimas, no excluir)&#x27;, COUNT(*) FROM tags WHERE nss IS NULL
+UNION ALL SELECT &#x27;content con encoding roto&#x27;, COUNT(*) FROM tags WHERE content REGEXP &#x27;Ã|Â|�&#x27;;
+
+-- ---------- 7. Rango de ids (NO es denso: el PHP hace DELETE+INSERT, no UPDATE) ----------
+SELECT &#x27;files&#x27; tabla, MIN(id) id_min, MAX(id) id_max, COUNT(*) filas, MAX(id)-MIN(id)+1-COUNT(*) huecos FROM files
+UNION ALL SELECT &#x27;tags&#x27;, MIN(id), MAX(id), COUNT(*), MAX(id)-MIN(id)+1-COUNT(*) FROM tags;
+
+-- ---------- 8. Exportar la muestra a CSV (opcional, para compartir) ----------
+-- Requiere permisos de FILE en el servidor MariaDB; si no, usar el cliente:
+--   mysql ... -e &quot;SELECT ...&quot; --batch &gt; muestra_files.tsv
+-- SELECT id, nss, name, date_upload, type, LENGTH(url)
+--   INTO OUTFILE &#x27;/tmp/muestra_files.csv&#x27; FIELDS TERMINATED BY &#x27;,&#x27; ENCLOSED BY &#x27;&quot;&#x27; LINES TERMINATED BY &#x27;\n&#x27;
+--   FROM files ORDER BY id LIMIT 200;
+</pre></div>
+
+<h2>7. Qué falta para poder correrlo</h2>
+<ol>
+<li><strong>Abrir el puerto 3306</strong> de <code>10.249.249.4</code> hacia donde vaya a correr la extracción (tarea 0.5 del plan de migración). Es el bloqueo de hoy.</li>
+<li>Confirmar credenciales de sólo lectura (la spec trae el usuario <code>root</code>; conviene un usuario de sólo lectura para esto).</li>
+<li>Correr el script y guardar la salida; con ella se ajusta el ETL y se cierra la verificación de la spec §6.</li>
+</ol>
+<p class="foot">Fuentes de lo marcado como verificado: <code>docs/etl-migracion-historica-especificacion.md</code> §2, §3 y §5 (consultas directas al origen del 13 y 20-ago-2026), <code>src/main/resources/db/sql/app_domain/tags-salud.sql</code> (<code>FN_MED_TAG_GROUP</code>, 137 tipos) y el runner propio <code>com.onest.app.catalog.file.etl</code>. Generado el 22-sep-2026.</p>
+</div>
+<script>
+function copiar(id, btn) {
+  navigator.clipboard.writeText(document.getElementById(id).textContent).then(function () { btn.textContent = "Copiado"; setTimeout(function () { btn.textContent = "Copiar"; }, 1500); });
+}
+</script>
+</body></html>
