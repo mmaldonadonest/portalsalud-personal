@@ -22,8 +22,10 @@
  *   - Content-Length real; y si el servidor comprime y no se puede apagar, no se manda
  *     (anunciar un tamaño distinto al recibido es lo que corta la descarga).
  *   - Ya no escribe el archivo al directorio web.
- *   - Content-Disposition: attachment por defecto (no pasa por el visor de PDF);
- *     ?disp=inline para previsualizar.
+ *   - Content-Disposition: inline por defecto (previsualiza en el visor del navegador);
+ *     ?disp=attachment fuerza la descarga. Nota: con el Content-Length vacio del script
+ *     original, el visor de PDF de Chrome cortaba el flujo; con la cabecera correcta
+ *     inline ya funciona.
  *   - filename + filename* (RFC 5987): nombres con acentos ya no salen con %20.
  *   - `data` validado como entero; 404 con texto claro si no existe.
  *   - Extension por magic-bytes cuando el nombre no la trae.
@@ -203,8 +205,9 @@ $tipos = array(
 );
 $mime = isset($tipos[$ext]) ? $tipos[$ext] : 'application/octet-stream';
 
-// Descarga directa por defecto (el boton dice "Descargar archivo"); ?disp=inline previsualiza.
-$disposicion = (isset($_GET['disp']) && $_GET['disp'] === 'inline') ? 'inline' : 'attachment';
+// Previsualizacion en el navegador por defecto (decision del usuario, 23-sep-2026);
+// ?disp=attachment fuerza la descarga a disco.
+$disposicion = (isset($_GET['disp']) && $_GET['disp'] === 'attachment') ? 'attachment' : 'inline';
 
 $nombreAscii = preg_replace('/[^A-Za-z0-9._-]/', '_', $nombre);
 if ($nombreAscii === '' || $nombreAscii === null) {
