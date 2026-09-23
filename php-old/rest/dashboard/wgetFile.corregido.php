@@ -38,8 +38,15 @@ error_reporting(E_ALL);
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
-// 4. Sin compresión ni buffers pendientes en una respuesta binaria.
-ini_set('zlib.output_compression', 'Off');
+// 4. Sin compresión ni buffers pendientes en una respuesta binaria. Si el servidor
+//    comprime (zlib de PHP o mod_deflate de Apache) y ademas mandamos Content-Length,
+//    el navegador recibe menos bytes de los anunciados y guarda un archivo vacio.
+@ini_set('zlib.output_compression', 'Off');
+if (function_exists('apache_setenv')) {
+    @apache_setenv('no-gzip', '1');
+}
+$compresionActiva = (string) ini_get('zlib.output_compression');
+$compresionActiva = ($compresionActiva !== '' && $compresionActiva !== '0' && strtolower($compresionActiva) !== 'off');
 while (ob_get_level() > 0) {
     ob_end_clean();
 }
@@ -76,7 +83,43 @@ if (!isset($data->response) || count($data->response) === 0) {
 // vinieran varios, concatenarlos produciria un PDF corrupto: se toma el primero.
 $filedat = $data->response[0];
 
-$decoded = base64_decode($filedat->url, true);
+// El contenido guardado puede traer el prefijo "data:application/pdf;base64," y/o saltos
+// de linea: en modo estricto base64_decode devolveria false. Se limpia antes de decodificar.
+$crudo = isset($filedat->url) ? (string) $filedat->url : '';
+$pos = strpos($crudo, 'base64,');
+if ($pos !== false) {
+    $crudo = substr($crudo, $pos + 7);
+}
+$crudo = preg_replace('/\s+/', '', $crudo);
+$decoded = base64_decode($crudo, true);
+if ($decoded === false) {
+    $decoded = base64_decode($crudo);   // tolerante: ignora caracteres invalidos
+}
+
+// Modo diagnostico: wgetFile.php?data=<id>&debug=1 -> JSON con lo que ve el servidor,
+// sin mandar el binario. Sirve para saber si el problema es la BD, PHP o el navegador.
+if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode(array(
+        'id'                 => $datas,
+        'filas_encontradas'  => count($data->response),
+        'name'               => isset($filedat->name) ? $filedat->name : null,
+        'type'               => isset($filedat->type) ? $filedat->type : null,
+        'date_upload'        => isset($filedat->date_upload) ? $filedat->date_upload : null,
+        'largo_base64_crudo' => strlen(isset($filedat->url) ? $filedat->url : ''),
+        'inicio_base64'      => substr((string) (isset($filedat->url) ? $filedat->url : ''), 0, 24),
+        'largo_decodificado' => ($decoded === false ? -1 : strlen($decoded)),
+        'primeros_bytes_hex' => ($decoded === false ? null : strtoupper(bin2hex(substr($decoded, 0, 8)))),
+        'es_pdf'             => ($decoded !== false && substr($decoded, 0, 4) === '%PDF'),
+        'json_last_error'    => json_last_error_msg(),
+        'memory_limit'       => ini_get('memory_limit'),
+        'memoria_pico_mb'    => round(memory_get_peak_usage(true) / 1048576, 1),
+        'compresion_activa'  => $compresionActiva,
+        'php'                => PHP_VERSION,
+    ));
+    exit;
+}
+
 if ($decoded === false || $decoded === '') {
     error_log('[wgetFile] base64 invalido o vacio para files.id=' . $datas);
     header('HTTP/1.1 500 Internal Server Error');
@@ -128,8 +171,12 @@ header('Content-Disposition: ' . $disposicion . '; filename="' . $nombreAscii . 
        . "filename*=UTF-8''" . rawurlencode($nombre));
 header('Content-Description: File Transfer');
 header('Content-Transfer-Encoding: binary');
-// 2. El tamaño real de lo que se envia.
-header('Content-Length: ' . strlen($decoded));
+// 2. El tamaño real de lo que se envia. Si el servidor esta comprimiendo y no se pudo
+//    apagar, NO se manda Content-Length: anunciar un tamaño distinto al recibido es lo
+//    que hace que el navegador guarde un archivo vacio o corte la conexion.
+if (!$compresionActiva) {
+    header('Content-Length: ' . strlen($decoded));
+}
 header('Cache-Control: private, max-age=0, must-revalidate');
 header('Pragma: public');
 header('X-Content-Type-Options: nosniff');
