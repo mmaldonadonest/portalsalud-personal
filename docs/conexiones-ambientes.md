@@ -18,19 +18,23 @@ guardan en `credenciales-acceso.local.html` (local) o en el gestor de contraseñ
 | QA | `200.94.116.132:1521/orclpdb`, esquema `ONEWMS_QA` | `http://10.249.249.3/biows/ords/security/Servcio` |
 | **Producción** | **por definir — Fase 0.1 del plan** | **base entregada 23-sep-2026, datos abajo** |
 
-## Producción — base de ORDS (entregada 23-sep-2026)
-
-Por completar con lo que entregó infraestructura (sin contraseñas):
+## Producción — base de ORDS (entregada e inventariada 23-sep-2026)
 
 | Dato | Valor |
 |---|---|
-| Host / IP | _(pendiente)_ |
-| Puerto | _(pendiente)_ |
-| Servicio / SID / PDB | _(pendiente)_ |
-| Esquema / usuario | _(pendiente)_ |
-| URL base de ORDS | _(pendiente)_ |
-| ¿Ya trae el esquema legacy cargado? (`BIO_EMPLEADO`, `TBL_SERV_*`) | _(lo responde el inventario)_ |
-| ¿Alojará también el esquema `APP_*` del portal? | _(decisión 0.1)_ |
+| Base / PDB | `PDBPRD` |
+| Host | `onestdb` |
+| Esquema / usuario | `BIOMETRICO` |
+| Versión | Oracle 19c Enterprise Edition |
+| Tablespace | `BIOMETRICO` (105 GB usados) |
+| URL base de ORDS | _(pendiente — confirmar si es la misma `10.249.249.3/biows/ords/security`)_ |
+| ¿Trae el esquema legacy? | **Sí**, completo y con datos productivos (33,907 empleados) |
+| ¿Trae las 11 tablas creadas por el portal? | **Sí, ya existen** → ver `fase1-inventario-resultado.md` |
+| ¿Alojará el esquema `APP_*` del portal? | **No se recomienda**: ya hay 10 tablas `APP_*` de otro sistema y el usuario tiene privilegios de DDL. Propuesta: esquema propio en la misma `PDBPRD` |
+
+**Importante (hallazgo del inventario):** todo indica que la ORDS que usamos como "QA"
+(`10.249.249.3`) apunta a **esta misma base**, es decir que el desarrollo se hizo contra
+producción. Confirmarlo con `docs/ords-inventario-produccion-seguimiento.sql` §1.
 
 ### Primer paso, sin tocar nada: inventario de sólo lectura
 
