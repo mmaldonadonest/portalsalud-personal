@@ -1,135 +1,182 @@
 <?php
 /* =============================================================================
- * wgetFile.php — versión corregida (23-sep-2026)
+ * wgetFile.php — versión corregida v3 (23-sep-2026)
  * Descarga de un archivo de `files` (examen medico) del portal PHP v2.
  *
- * Reemplaza a la versión original, que provocaba en algunas PCs:
- *    GET chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai/... net::ERR_CONNECTION_RESET
- * (mhjfbmdgcf... es el visor de PDF integrado de Chrome: recibía un flujo cuyo
- *  Content-Length no correspondía al cuerpo enviado y cortaba la conexión).
+ * SINTOMAS QUE CORRIGE
+ *   v1 (original): en algunas PCs, "net::ERR_CONNECTION_RESET" desde el visor de PDF
+ *                  de Chrome (chrome-extension://mhjfbmdgcf...) y, despues, archivo de
+ *                  0 bytes con "la conexion se interrumpio".
  *
- * Qué se corrigió respecto del original:
- *   1. display_errors apagado: cualquier warning de PHP se imprimía DENTRO del PDF
- *      y lo corrompía. Ahora los errores van al log del servidor.
- *   2. Content-Length = strlen($decoded) (bytes realmente enviados). Antes era
- *      filesize($file) sobre un archivo recién escrito: si la escritura fallaba por
- *      permisos, filesize() devolvía false -> cabecera vacía -> flujo cortado.
- *   3. Ya NO escribe el archivo al directorio web (era innecesario y además dejaba
- *      archivos con nombre venido de la BD dentro del docroot).
- *   4. Se limpian los buffers de salida y se desactiva la compresión antes de mandar
- *      bytes binarios (un gzip a medias también resetea la conexión).
- *   5. Content-Disposition: attachment por defecto -> descarga directa, sin pasar por
- *      el visor de PDF (que es donde fallaba). Para previsualizar en el navegador:
- *      wgetFile.php?data=123&disp=inline
- *   6. Nombre de archivo con filename + filename* (RFC 5987). El urlencode() anterior
- *      mostraba nombres con %20 y rompía los ~96 nombres con acentos mal codificados.
- *   7. `data` se valida como entero antes de llegar al SQL, y si no hay registro se
- *      responde 404 con texto claro en vez de un 200 vacío.
- *   8. Extensión resuelta por magic-bytes cuando el nombre no la trae (3 casos
- *      conocidos en la tabla `files`), igual que hace el portal Java.
+ * CAUSA PRINCIPAL (v3): el camino original hacia CUATRO copias del archivo en memoria
+ *   para un solo PDF:  mysqli_fetch_array (devuelve las columnas dos veces, numerica y
+ *   asociativa) -> json_encode (escapa y copia) -> json_decode (otra copia) ->
+ *   base64_decode (otra). Un PDF de 5 MB llega a ~40 MB de RAM; si memory_limit es
+ *   32M/64M, PHP muere a media respuesta y el navegador guarda 0 bytes con
+ *   "conexion interrumpida" (el fatal no se ve porque display_errors esta apagado).
+ *   Ahora se consulta la fila directamente y se decodifica EN LA BASE con FROM_BASE64(),
+ *   asi PHP recibe el binario una sola vez.
  *
- * Despliegue: respaldar el wgetFile.php actual y subir éste con ese nombre.
+ * OTROS ARREGLOS RESPECTO DEL ORIGINAL
+ *   - display_errors apagado (antes los warnings se imprimian DENTRO del PDF).
+ *   - Content-Length real; y si el servidor comprime y no se puede apagar, no se manda
+ *     (anunciar un tamaño distinto al recibido es lo que corta la descarga).
+ *   - Ya no escribe el archivo al directorio web.
+ *   - Content-Disposition: attachment por defecto (no pasa por el visor de PDF);
+ *     ?disp=inline para previsualizar.
+ *   - filename + filename* (RFC 5987): nombres con acentos ya no salen con %20.
+ *   - `data` validado como entero; 404 con texto claro si no existe.
+ *   - Extension por magic-bytes cuando el nombre no la trae.
+ *   - Salida en bloques de 64 KB.
+ *
+ * DIAGNOSTICO
+ *   wgetFile.php?data=<id>&debug=1  -> JSON con lo que ve el servidor, sin mandar el
+ *   binario (tamaños, primeros bytes, memoria, limites, version de MySQL/PHP).
+ *
+ * Despliegue: respaldar el wgetFile.php actual y subir este con ese nombre.
  * ============================================================================= */
 
 require_once('../../app/app.php');
 
-// 1. Errores al log, NUNCA a la salida (corromperían el binario).
+// --- Errores al log, NUNCA a la salida (corromperian el binario) -------------
 error_reporting(E_ALL);
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
-// 4. Sin compresión ni buffers pendientes en una respuesta binaria. Si el servidor
-//    comprime (zlib de PHP o mod_deflate de Apache) y ademas mandamos Content-Length,
-//    el navegador recibe menos bytes de los anunciados y guarda un archivo vacio.
+// --- Memoria y tiempo: un PDF grande y su decodificacion necesitan holgura ---
+@ini_set('memory_limit', '512M');
+@set_time_limit(300);
+
+// --- Sin compresion ni buffers pendientes en una respuesta binaria -----------
 @ini_set('zlib.output_compression', 'Off');
 if (function_exists('apache_setenv')) {
     @apache_setenv('no-gzip', '1');
 }
-$compresionActiva = (string) ini_get('zlib.output_compression');
-$compresionActiva = ($compresionActiva !== '' && $compresionActiva !== '0' && strtolower($compresionActiva) !== 'off');
+$compresion = (string) ini_get('zlib.output_compression');
+$compresionActiva = ($compresion !== '' && $compresion !== '0' && strtolower($compresion) !== 'off');
 while (ob_get_level() > 0) {
     ob_end_clean();
 }
 
-if (strtoupper($_SERVER['REQUEST_METHOD']) !== 'GET') {
-    header('HTTP/1.1 405 Method Not Allowed');
-    header('Allow: GET');
+function salirConTexto($estado, $mensaje)
+{
+    header('HTTP/1.1 ' . $estado);
     header('Content-Type: text/plain; charset=UTF-8');
-    echo 'Metodo no permitido.';
+    echo $mensaje;
     exit;
 }
 
-// 7. El parametro `data` es el id de `files`: debe ser entero.
+if (strtoupper($_SERVER['REQUEST_METHOD']) !== 'GET') {
+    header('Allow: GET');
+    salirConTexto('405 Method Not Allowed', 'Metodo no permitido.');
+}
+
+// `data` es el id de `files` (llave primaria): debe ser entero.
 $datas = isset($_GET['data']) ? trim($_GET['data']) : '';
 if ($datas === '' || !ctype_digit($datas)) {
-    header('HTTP/1.1 400 Bad Request');
-    header('Content-Type: text/plain; charset=UTF-8');
-    echo 'Parametro data invalido.';
-    exit;
+    salirConTexto('400 Bad Request', 'Parametro data invalido.');
 }
+$id = (int) $datas;
+$debug = (isset($_GET['debug']) && $_GET['debug'] === '1');
 
 $model = new app;
-$json = $model->getFileExMedPdf($datas);
-$data = json_decode($json);
-
-if (!isset($data->response) || count($data->response) === 0) {
-    header('HTTP/1.1 404 Not Found');
-    header('Content-Type: text/plain; charset=UTF-8');
-    echo 'No se encontro el archivo solicitado (id ' . $datas . ').';
-    exit;
+$conn = $model->conn;
+if (!$conn) {
+    error_log('[wgetFile] sin conexion a la base');
+    salirConTexto('500 Internal Server Error', 'Sin conexion a la base de datos.');
 }
 
-// Se envia UN archivo por peticion (id es llave primaria). Si por algun motivo
-// vinieran varios, concatenarlos produciria un PDF corrupto: se toma el primero.
-$filedat = $data->response[0];
+/* Decodificacion EN LA BASE (FROM_BASE64, MySQL >= 5.6 / MariaDB >= 10.0.5):
+   PHP recibe el binario ya decodificado, una sola vez, sin pasar por JSON.
+   SUBSTRING_INDEX(...,'base64,',-1) quita el prefijo "data:application/pdf;base64,"
+   si lo hubiera (si no esta, devuelve la cadena completa). */
+$sqlBase = "SELECT name, type, date_upload, LENGTH(url) AS largo_b64, %s AS bin
+              FROM `files`
+             WHERE id = " . $id . " AND type = 'examen_medico'";
+$expresionBin = "FROM_BASE64(REPLACE(REPLACE(SUBSTRING_INDEX(url,'base64,',-1), '\\n', ''), '\\r', ''))";
 
-// El contenido guardado puede traer el prefijo "data:application/pdf;base64," y/o saltos
-// de linea: en modo estricto base64_decode devolveria false. Se limpia antes de decodificar.
-$crudo = isset($filedat->url) ? (string) $filedat->url : '';
-$pos = strpos($crudo, 'base64,');
-if ($pos !== false) {
-    $crudo = substr($crudo, $pos + 7);
+$decodificadoEn = 'mysql';
+$res = @mysqli_query($conn, sprintf($sqlBase, $expresionBin));
+if ($res === false) {
+    // MySQL viejo sin FROM_BASE64: se trae el base64 y se decodifica en PHP.
+    $decodificadoEn = 'php';
+    $res = mysqli_query($conn, sprintf($sqlBase, 'url'));
+    if ($res === false) {
+        error_log('[wgetFile] error de consulta para id=' . $id . ': ' . mysqli_error($conn));
+        salirConTexto('500 Internal Server Error', 'Error al consultar el archivo.');
+    }
 }
-$crudo = preg_replace('/\s+/', '', $crudo);
-$decoded = base64_decode($crudo, true);
-if ($decoded === false) {
-    $decoded = base64_decode($crudo);   // tolerante: ignora caracteres invalidos
+$fila = mysqli_fetch_assoc($res);
+mysqli_free_result($res);
+
+if ($fila === null || $fila === false) {
+    salirConTexto('404 Not Found', 'No se encontro el archivo solicitado (id ' . $id . ').');
 }
 
-// Modo diagnostico: wgetFile.php?data=<id>&debug=1 -> JSON con lo que ve el servidor,
-// sin mandar el binario. Sirve para saber si el problema es la BD, PHP o el navegador.
-if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+$decoded = isset($fila['bin']) ? $fila['bin'] : null;
+if ($decodificadoEn === 'php' && $decoded !== null) {
+    $crudo = (string) $decoded;
+    $pos = strpos($crudo, 'base64,');
+    if ($pos !== false) {
+        $crudo = substr($crudo, $pos + 7);
+    }
+    $crudo = preg_replace('/\s+/', '', $crudo);
+    $decoded = base64_decode($crudo, true);
+    if ($decoded === false) {
+        $decoded = base64_decode($crudo);   // tolerante: ignora caracteres invalidos
+    }
+    unset($crudo);
+}
+// FROM_BASE64 devuelve NULL si el contenido no es base64 valido: se reintenta en PHP.
+if ($decoded === null && $decodificadoEn === 'mysql') {
+    $res2 = mysqli_query($conn, sprintf($sqlBase, 'url'));
+    if ($res2 !== false) {
+        $fila2 = mysqli_fetch_assoc($res2);
+        mysqli_free_result($res2);
+        if ($fila2 !== null && $fila2 !== false) {
+            $crudo = (string) $fila2['bin'];
+            $pos = strpos($crudo, 'base64,');
+            if ($pos !== false) {
+                $crudo = substr($crudo, $pos + 7);
+            }
+            $decoded = base64_decode(preg_replace('/\s+/', '', $crudo));
+            $decodificadoEn = 'php (respaldo)';
+            unset($crudo, $fila2);
+        }
+    }
+}
+
+$nombre = isset($fila['name']) ? (string) $fila['name'] : ('archivo-' . $id);
+$largoBin = ($decoded === false || $decoded === null) ? 0 : strlen($decoded);
+
+// --- Modo diagnostico: no manda el binario ----------------------------------
+if ($debug) {
     header('Content-Type: application/json; charset=UTF-8');
     echo json_encode(array(
-        'id'                 => $datas,
-        'filas_encontradas'  => count($data->response),
-        'name'               => isset($filedat->name) ? $filedat->name : null,
-        'type'               => isset($filedat->type) ? $filedat->type : null,
-        'date_upload'        => isset($filedat->date_upload) ? $filedat->date_upload : null,
-        'largo_base64_crudo' => strlen(isset($filedat->url) ? $filedat->url : ''),
-        'inicio_base64'      => substr((string) (isset($filedat->url) ? $filedat->url : ''), 0, 24),
-        'largo_decodificado' => ($decoded === false ? -1 : strlen($decoded)),
-        'primeros_bytes_hex' => ($decoded === false ? null : strtoupper(bin2hex(substr($decoded, 0, 8)))),
-        'es_pdf'             => ($decoded !== false && substr($decoded, 0, 4) === '%PDF'),
-        'json_last_error'    => json_last_error_msg(),
+        'id'                 => $id,
+        'name'               => $nombre,
+        'type'               => isset($fila['type']) ? $fila['type'] : null,
+        'date_upload'        => isset($fila['date_upload']) ? $fila['date_upload'] : null,
+        'largo_base64'       => isset($fila['largo_b64']) ? (int) $fila['largo_b64'] : null,
+        'largo_decodificado' => $largoBin,
+        'decodificado_en'    => $decodificadoEn,
+        'primeros_bytes_hex' => $largoBin > 0 ? strtoupper(bin2hex(substr($decoded, 0, 8))) : null,
+        'es_pdf'             => ($largoBin > 3 && substr($decoded, 0, 4) === '%PDF'),
         'memory_limit'       => ini_get('memory_limit'),
         'memoria_pico_mb'    => round(memory_get_peak_usage(true) / 1048576, 1),
         'compresion_activa'  => $compresionActiva,
         'php'                => PHP_VERSION,
+        'mysql'              => mysqli_get_server_info($conn),
     ));
     exit;
 }
 
-if ($decoded === false || $decoded === '') {
-    error_log('[wgetFile] base64 invalido o vacio para files.id=' . $datas);
-    header('HTTP/1.1 500 Internal Server Error');
-    header('Content-Type: text/plain; charset=UTF-8');
-    echo 'El archivo esta vacio o dañado en la base de datos.';
-    exit;
+if ($largoBin === 0) {
+    error_log('[wgetFile] contenido vacio o base64 invalido en files.id=' . $id);
+    salirConTexto('500 Internal Server Error', 'El archivo esta vacio o dañado en la base de datos.');
 }
 
-// 8. Extension: la del nombre, o deducida del contenido si no la trae.
-$nombre = isset($filedat->name) ? (string) $filedat->name : ('archivo-' . $datas);
+// --- Extension: la del nombre, o deducida del contenido ----------------------
 $info = pathinfo($nombre);
 $ext = isset($info['extension']) ? strtolower($info['extension']) : '';
 if ($ext === '') {
@@ -156,14 +203,12 @@ $tipos = array(
 );
 $mime = isset($tipos[$ext]) ? $tipos[$ext] : 'application/octet-stream';
 
-// 5. Descarga directa por defecto (el boton dice "Descargar archivo"); `disp=inline`
-//    para previsualizar. El visor de PDF de Chrome solo entra en juego con inline.
+// Descarga directa por defecto (el boton dice "Descargar archivo"); ?disp=inline previsualiza.
 $disposicion = (isset($_GET['disp']) && $_GET['disp'] === 'inline') ? 'inline' : 'attachment';
 
-// 6. Nombre seguro para la cabecera: ASCII de respaldo + filename* con UTF-8.
 $nombreAscii = preg_replace('/[^A-Za-z0-9._-]/', '_', $nombre);
 if ($nombreAscii === '' || $nombreAscii === null) {
-    $nombreAscii = 'archivo-' . $datas . ($ext !== '' ? '.' . $ext : '');
+    $nombreAscii = 'archivo-' . $id . ($ext !== '' ? '.' . $ext : '');
 }
 
 header('Content-Type: ' . $mime);
@@ -171,16 +216,17 @@ header('Content-Disposition: ' . $disposicion . '; filename="' . $nombreAscii . 
        . "filename*=UTF-8''" . rawurlencode($nombre));
 header('Content-Description: File Transfer');
 header('Content-Transfer-Encoding: binary');
-// 2. El tamaño real de lo que se envia. Si el servidor esta comprimiendo y no se pudo
-//    apagar, NO se manda Content-Length: anunciar un tamaño distinto al recibido es lo
-//    que hace que el navegador guarde un archivo vacio o corte la conexion.
 if (!$compresionActiva) {
-    header('Content-Length: ' . strlen($decoded));
+    header('Content-Length: ' . $largoBin);
 }
 header('Cache-Control: private, max-age=0, must-revalidate');
 header('Pragma: public');
 header('X-Content-Type-Options: nosniff');
 header('Accept-Ranges: none');
 
-echo $decoded;
+// Salida en bloques de 64 KB.
+for ($i = 0; $i < $largoBin; $i += 65536) {
+    echo substr($decoded, $i, 65536);
+    flush();
+}
 exit;
