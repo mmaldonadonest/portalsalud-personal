@@ -1,5 +1,10 @@
 # Especificación ETL — Migración histórica (MariaDB → Oracle)
 
+> **23-sep-2026 — el ETL ya no vive dentro del portal.** El runner (`com.onest.app.catalog.file.etl`)
+> se movió tal cual a un proyecto Maven independiente en `etl/` (`portal-salud-etl`, ejecutable
+> `java -jar`), junto con las clases de almacenamiento que necesita. El WAR del portal ya no lleva
+> el driver de MariaDB ni el perfil `etl`. Instrucciones de construcción y corrida: `etl/README.md`.
+
 **Estado:** decisión de negocio tomada el 20 de agosto de 2026 — la migración histórica **sí entra en el alcance**. Se ejecutará con un ETL en Oracle, a cargo de un **equipo externo**. Este documento es la especificación técnica para ese equipo: qué migrar, de dónde, a dónde, y qué ya sabemos por experiencia propia.
 
 ---

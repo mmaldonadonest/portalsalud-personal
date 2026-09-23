@@ -74,7 +74,7 @@ Ya viven en la Oracle del legacy y el portal las lee/escribe **por los WS de ORD
 
 | Grupo | Tablas | Mueve datos | Responsable |
 |---|---|---|---|
-| A — ETL legacy | **2** | Sí (21,475 archivos + 550,560 tags) | Equipo ETL externo |
+| A — ETL legacy | **2** | Sí (21,475 archivos + 550,560 tags) | Equipo ETL externo (proyecto `etl/`, ver `etl/README.md`) |
 | B — Base del portal | **22** | No (sólo semillas y roles/menús de QA) | DBA + Miguel |
 | C — ORDS nuevas | **11** | No (semillas de catálogo; cuenta→predio lo captura negocio) | Miguel |
 | D — Legacy existente | ~60 | No se toca | — |
