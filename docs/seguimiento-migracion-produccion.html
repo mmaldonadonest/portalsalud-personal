@@ -116,6 +116,7 @@ const FASES = [
     ['3.3', 'Verificar cada WS con el curl de su script', '', 'ords', 'Miguel'],
   ]},
   { id: 'F4', titulo: 'Fase 4 — Datos: histórico y catálogos', tag: '½ jornada + negocio', desc: 'El ETL lo corre el equipo externo con la spec etl-migracion-historica-especificacion.md.', tareas: [
+    ['4.0', 'Prueba de humo del ETL ya separado (proyecto etl/)', 'mvn -f etl/pom.xml package + java -jar ... --etl.files.mode=sample contra Oracle LOCAL. Confirmar mismas rutas de sharding y checksums que la corrida del 13-ago. PENDIENTE desde el 23-sep.', 'ext', 'Miguel'],
     ['4.1', 'ETL histórico MariaDB → Oracle prod (files 21,448 / tags 550,560)', 'Requiere 0.5 (puerto 3306) y Fase 2. Verificar conteos (§6 de la spec). Respaldo del esquema antes.', 'ext', 'Equipo ETL'],
     ['4.2', 'Predios (17) y cuenta→predio', 'Hoy 2 de 260 cuentas asignadas. Propuesta: CSV con ~30 deducibles del nombre + el resto lo llena negocio; carga por /admin/predios o SQL.', 'negocio', 'Negocio'],
     ['4.3', 'Roles y menús por rol exportados de QA', 'USER, ADM, ENFERMERO, ROLE_ADMIN, ROLE_MEDICO_ANALISTA + APP_MENU_ROLE como INSERTs. Limpiar rol duplicado MEDICO_ANALISTA (id 42).', 'portal', 'Miguel'],

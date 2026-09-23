@@ -70,6 +70,21 @@ Est. **1 jornada** (el usuario publica handlers en minutos; el tiempo es verific
 
 ## Fase 4 — Datos: histórico y catálogos
 
+**4.0 PENDIENTE — validar el ETL ya separado (23-sep-2026).** El ETL se movió del WAR a un proyecto
+Maven independiente (`etl/`, ver `etl/README.md`): mismo código, pero nunca se ha ejecutado desde
+ahí. **Antes de usarlo contra cualquier base real hay que correr una prueba de humo**:
+
+```bash
+mvn -f etl/pom.xml package
+java -jar etl/target/portal-salud-etl.jar --etl.files.mode=sample --etl.tags.mode=sample
+```
+
+contra el **Oracle local** (`PROYECTO_BASE_PDB`) y la copia local de MariaDB, y confirmar que
+genera **las mismas rutas de sharding y los mismos checksums** que la corrida verificada del
+13-ago-2026 (21,448 archivos / 550,560 tags). Lo ejecuta el usuario, no el agente.
+
+
+
 | Dato | Fuente | Cómo | Estado |
 |---|---|---|---|
 | Histórico `files` (21,448) y `tags` (550,560) | MariaDB `servicioMedico` | ETL equipo externo → `APP_FS_FILE` + filesystem + `MED_TAG` (spec en `etl-migracion-historica-especificacion.md`). Requiere puerto 3306 y el esquema de la Fase 2 | Ya ejecutado en QA/local; **pendiente en prod** |
