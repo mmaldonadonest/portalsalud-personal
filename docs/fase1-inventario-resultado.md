@@ -131,3 +131,87 @@ pena reportarlo al DBA: un esquema con 91 objetos inválidos es señal de recomp
 3. **Decidir el esquema del portal** (0.1) — recomendación: esquema y usuario propios en `PDBPRD`.
 4. Ejecutar la limpieza de datos de prueba aquí, con respaldo previo.
 5. Verificar los WS con `curl` (lo que queda de la Fase 3).
+
+---
+
+# Resultado del seguimiento (misma sesión, 23-sep-2026)
+
+Salida de `docs/ords-inventario-produccion-seguimiento.sql`.
+
+## §1 — CONFIRMADO: el desarrollo se hizo contra producción
+
+Los datos de prueba están en esta base. La ORDS que llamábamos "QA" es esta misma.
+
+| Dónde | Filas de prueba | Detalle |
+|---|---|---|
+| `TBL_SERV_CONSULTA_MEDICA` | **3** | REG_ID 1068 (11-sep), 1088 (14-sep), 1108 (19-sep) — NSS `30048315698` |
+| `TBL_SERV_INCAPACIDAD_MEDICA` | **8** | REG_ID 1661–1665 (27-ago), 1681, 1682 (2-sep), 1701 (14-sep) |
+| `SERV_MED_RESULTADO_EXAMEN` / `_GENERALES` / `SERV_MED_FILES` | 2 cada una | |
+| Tablas creadas por el portal | accidentes 4 (+4 seguimiento), antidoping 7 / 7 / 2, maternidad 2, restricciones 3, examen_hist 50, cuenta_predio 4 | todo es nuestro: el PHP no tiene esos módulos |
+| Catálogos | predios **17**, causas **24** | se conservan |
+| Depuración | **BUG 299,683** · PRUEBA 11,355 · ONSYS_DEBUG 290 | basura de los `insert into bug` de los handlers |
+
+**Dos NSS que NO son de prueba y no hay que tocar:**
+- `07180371705` — incapacidad del **23-SEP-26** (de hoy): captura real del PHP.
+- `92088502122` — 1 consulta + 1 incapacidad del 25-ago: **confirmar con negocio**. Aparece como
+  ejemplo en una pantalla del portal, pero pudo ser captura real.
+
+El script `ords-limpieza-datos-prueba.sql` ya quedó actualizado con estos números y avisos.
+
+## §2 — CONFIRMADO: `EMP_STATUS = 0` es el empleado vigente
+
+Los tres NSS conocidos (los tres activos) tienen **status 0**: Miguel `30048315698` (alta 22-nov-10),
+Mauricio `68958027838` (30-ene-17), Mariana `90099119373` (29-jun-26).
+
+Altas de los últimos 90 días: **652 con status 0**, 500 con 1, 9 con 99 — es decir, `1` no es sólo
+histórico viejo: hay bajas recientes. Interpretación de trabajo: **0 = vigente, 1 = baja**; `99`
+(2,154 registros, altas de 2002-2016) y `100` (12) son otros estados **por confirmar con RH**.
+Hay 2 registros con status nulo, uno de ellos el NSS dummy `00000000099`.
+
+Sigue en pie el hallazgo previo: el WS de examen valida `EMP_status = 1`, o sea lo contrario.
+
+## §3 — CONFIRMADO: el catálogo ICD tiene el mismo hueco
+
+`SERV_MED_CAT_INDICE_IDC10` — columnas `CLAVE_ID` (no `CLAVE`, por eso mi consulta falló con
+`ORA-00904`, sin consecuencia) y `CLAVE_NOMBRE`. **909 claves**, las mismas de siempre: sólo
+capítulos A y B (`A96.X`, `A98.0`, …). Si la nota médica debe llevar diagnóstico codificado
+completo, hay que cargar el CIE-10 íntegro — es tema de negocio, no del portal.
+
+## §4 — CORRECCIÓN IMPORTANTE sobre el `id_app`
+
+Con la salida en mano, el asunto es distinto a lo que escribí arriba:
+
+- **El gate del SSO del portal Java NO usa ORDS en producción.** Con `portal.permissions.source=LOCAL`
+  (lo que trae el perfil `prod`), `BiowsModulePermissionClient` ni siquiera se instancia: quien
+  responde `findRoleId` es `LocalModulePermissionClient`, contra `APP_SEC_USER` de la base del
+  portal. Por lo tanto **`portal.biows.app-id=13` es irrelevante mientras la fuente sea LOCAL**.
+- **Lo que sí depende de ORDS es el launcher:** muestra el mosaico de una app cuando el usuario
+  tiene rol en ella (`TBL_APP_ROL_USUARIO`). Hoy:
+  - app **13 SERVICIO MEDICO** (`sso=0`): 39 usuarios — 2 con rol 1 (`USER`), 23 con rol 2 (`ADM`),
+    14 con rol 3 (`ENFERMERO`). Son los del **PHP v2**.
+  - app **27 PORTAL SALUD** (`sso=1`): **0 usuarios, 0 roles, 0 menús**.
+- De los NSS conocidos, sólo Mauricio `68958027838` tiene rol (app 13, rol 2 = `ADM`). Miguel y
+  Mariana no tienen rol en ninguna app: por eso a Mariana no le aparecía el portal en el launcher.
+
+**Qué hay que hacer para que la gente entre por el launcher:**
+1. Dar de alta **roles** para la app 27 en `TBL_APPS_ROL` (los mismos tres: `USER`=1, `ADM`=2,
+   `ENFERMERO`=3) y **usuarios** en `TBL_APP_ROL_USUARIO` con `id_app=27`. Se pueden copiar los 39
+   de la app 13. **Sin mover los de la 13**, que los sigue usando el PHP v2.
+2. Cargar esos mismos usuarios en la base del portal (`APP_SEC_USER` + rol), que es lo que de
+   verdad valida el portal Java. Es parte de la Fase 4.
+3. `portal.biows.app-id`: dejarlo en **27** por coherencia (y porque aplicaría si alguna vez se
+   cambia a `source=ORDS`). Conviene exponerlo como variable de entorno.
+
+No hace falta cargar menús en `TBL_APPS_ROL_MENU` para la 27: el menú lateral del portal Java sale
+del esquema local (`APP_MENU` / `APP_MENU_ROLE`).
+
+## Qué cambia en el plan
+
+| Antes | Ahora |
+|---|---|
+| Fase 3 = aplicar 27 scripts `ords-*.sql` | **Ya están aplicados.** Queda sólo verificar los WS con `curl` |
+| Limpieza de datos de prueba = "en QA" | **Va aquí, en producción**, con respaldo previo |
+| Decisión 0.1 pendiente sin datos | Con datos: **esquema propio** (10 tablas `APP_*` ajenas, usuario con DDL) |
+| `EMP_STATUS` incógnita | **0 = vigente**; falta confirmar 99 y 100 con RH |
+| ICD "quizá esté completo en prod" | **909 claves, mismo hueco** |
+| "El portal valida el SSO con id_app=13" | **Con `source=LOCAL` valida local**; el `id_app` importa para el launcher, y ahí la app es la **27**, hoy sin usuarios |

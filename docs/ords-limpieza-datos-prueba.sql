@@ -13,8 +13,22 @@
 --     por fecha sola. Si en el inventario apareció otro NSS de prueba, agrégalo a la lista.
 --   * Sección C (BUG/PRUEBA/ONSYS_DEBUG): se vacían; son tablas de depuración de los handlers.
 --   * NO se tocan: SERV_MED_PREDIO (17 predios), SERV_MED_CAT_CAUSA_CONSULTA (23 causas),
---     TBL_APPS_* (roles/menús/usuarios de las apps), biometrico_*, catálogos ICD.
+--     TBL_APPS_* (roles/menús/usuarios de las apps), biometrico_*, SERV_MED_CAT_INDICE_IDC10 (ICD).
 --   * Antes de correr: respaldo del esquema (expdp) o al menos de estas tablas.
+--
+-- ACTUALIZADO 23-sep-2026 con el inventario real contra BIOMETRICO@PDBPRD
+-- (ver docs/fase1-inventario-resultado.md). Lo que cae, ya contado:
+--   TBL_SERV_CONSULTA_MEDICA     3 filas (REG_ID 1068, 1088, 1108 - NSS 30048315698)
+--   TBL_SERV_INCAPACIDAD_MEDICA  8 filas (REG_ID 1661-1665, 1681, 1682, 1701 - mismo NSS)
+--   SERV_MED_RESULTADO_EXAMEN / _GENERALES / SERV_MED_FILES: 2 filas cada una
+--   accidentes 4 + seguimiento 4, antidoping 7/7/2, maternidad 2, restricciones 3,
+--   cuenta_predio 4, examen_hist 50 (revisar antes, ver nota en el bloque A)
+--   BUG 299,683 | PRUEBA 11,355 | ONSYS_DEBUG 290
+--
+-- *** NSS QUE NO SE TOCAN (captura real, verificado 23-sep) ***
+--   07180371705  incapacidad del 23-SEP-26 (del dia; no es nuestra)
+--   92088502122  1 consulta + 1 incapacidad del 25-AGO-26 - CONFIRMAR con negocio antes de
+--                decidir. Este script NO los incluye: solo borra los 3 NSS de la lista.
 -- =====================================================================================
 
 DEFINE nss_prueba = "('30048315698','90099119373','68958027838')";
@@ -29,8 +43,13 @@ DELETE FROM SERV_MED_ANTIDOPING_SELECCION;
 DELETE FROM SERV_MED_ANTIDOPING_INVENTARIO;
 DELETE FROM SERV_MED_MATERNIDAD_SEGUIMIENTO;
 DELETE FROM SERV_MED_RESTRICCION_ASIGNADA;
+-- examen_hist: 50 filas el 23-sep. La creo este proyecto, pero conviene MIRAR de quien son
+-- antes de vaciarla; si hay NSS que no son de prueba, acotar el DELETE por NSS:
+--   SELECT NSS, COUNT(*) FROM SERV_MED_RESULTADO_EXAMEN_HIST GROUP BY NSS ORDER BY 2 DESC;
 DELETE FROM SERV_MED_RESULTADO_EXAMEN_HIST;
--- Cuenta→predio: sólo las asignaciones de prueba (ajusta o comenta si ya hay reales)
+-- Cuenta→predio: 4 filas el 23-sep (eran 2 el 14-sep). Revisar cuales son antes de borrar;
+-- si negocio ya capturo asignaciones reales, ajustar esta lista:
+--   SELECT REG_ID, CUENTA_NOMBRE, PREDIO_ID, FECHA_ASIGNACION, ID_USUARIO FROM SERV_MED_CUENTA_PREDIO ORDER BY REG_ID;
 DELETE FROM SERV_MED_CUENTA_PREDIO WHERE UPPER(CUENTA_NOMBRE) IN ('47 BRAND','AVANTE');
 
 -- ---------- B) Legacy: SOLO NSS de prueba ----------
@@ -89,6 +108,8 @@ DELETE FROM SERV_MED_URINARIO               WHERE NSS IN &nss_prueba;
 -- SERV_MED_ANT_PER_PATOLOGICOS, SERV_MED_CARDIO_NO_PATO, SERV_MED_DIGESTIVO, SERV_MED_OFTALMOLOGICO.
 
 -- ---------- C) Tablas de depuración de los handlers ----------
+-- 23-sep: BUG 299,683 filas | PRUEBA 11,355 | ONSYS_DEBUG 290. Es lo que dejaron los
+-- 'insert into bug' de los handlers PL/SQL; vaciarlas ademas libera espacio.
 DELETE FROM BUG;
 DELETE FROM PRUEBA;
 DELETE FROM ONSYS_DEBUG;
@@ -104,7 +125,7 @@ UNION ALL SELECT 'restricciones', COUNT(*) FROM SERV_MED_RESTRICCION_ASIGNADA
 UNION ALL SELECT 'cuenta_predio', COUNT(*) FROM SERV_MED_CUENTA_PREDIO
 UNION ALL SELECT 'bug', COUNT(*) FROM BUG
 UNION ALL SELECT 'predios (debe seguir 17)', COUNT(*) FROM SERV_MED_PREDIO
-UNION ALL SELECT 'causas (debe seguir 23)', COUNT(*) FROM SERV_MED_CAT_CAUSA_CONSULTA;
+UNION ALL SELECT 'causas (debe seguir 24)', COUNT(*) FROM SERV_MED_CAT_CAUSA_CONSULTA;
 
 -- Si todo cuadra:
 -- COMMIT;
