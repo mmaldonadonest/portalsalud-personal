@@ -54,6 +54,7 @@
   tr.blk td{background:#fff7f7}
   .nota{width:100%}
   .foot{color:var(--ink-3);font-size:12px;margin-top:28px}
+  .aviso{border-left:4px solid var(--brand);background:#eff6ff;padding:10px 14px;border-radius:6px;margin:0 0 18px;font-size:13px;line-height:1.5}
   .pill{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;margin-left:6px}
   .pill.portal{background:#eef2ff;color:#3730a3}.pill.ords{background:#fdf4ff;color:#86198f}.pill.infra{background:#f0fdfa;color:#0f766e}.pill.negocio{background:var(--warn-bg);color:var(--warn)}.pill.ext{background:#f1f5f9;color:#475569}
   @media (max-width:760px){td.t{width:auto} th:nth-child(4),td:nth-child(4){display:none}}
@@ -64,6 +65,15 @@
 <div class="wrap">
   <h1>Migración a producción — Portal Salud Personal</h1>
   <p class="sub">Seguimiento del plan <code>docs/plan-migracion-produccion.md</code>. El estado se guarda en este navegador; usa Exportar/Importar para compartirlo. <span id="ultimo"></span></p>
+
+  <div class="aviso">
+    <strong>Actualizado con el inventario del 23-sep-2026</strong> (detalle en <code>docs/fase1-inventario-resultado.md</code>):
+    la base es <code>BIOMETRICO@PDBPRD</code> (Oracle 19c) y <strong>es la misma que usamos como "QA"</strong> — el desarrollo
+    se hizo contra producción. Consecuencias ya reflejadas abajo: las 11 tablas del portal <strong>ya existen</strong> (la Fase 3
+    se reduce a verificar WS y dar de alta la app 27), la <strong>limpieza de datos de prueba va sobre producción</strong>,
+    <code>EMP_STATUS = 0</code> es el empleado vigente, el catálogo ICD tiene 909 claves (sólo capítulos A y B), y el
+    <strong>launcher publica la app 27 "PORTAL SALUD" sin usuarios ni roles</strong>.
+  </div>
 
   <div class="toolbar">
     <button class="primary" onclick="exportar()">⬇ Exportar estado (JSON)</button>
@@ -84,7 +94,7 @@
 <script>
 const FASES = [
   { id: 'F0', titulo: 'Fase 0 — Decisiones e infraestructura', tag: 'bloqueante', desc: 'Sin esto no hay Fase 2 ni ETL. Nada de esto es código.', tareas: [
-    ['0.1', 'Definir dónde vive la base del portal en prod (esquema APP_*/MED_TAG)', 'Hoy application-prod.properties apunta a QA (ONEWMS_QA) de forma provisional. ¿Esquema nuevo en la Oracle de prod del biométrico o instancia aparte?', 'negocio', 'DBA'],
+    ['0.1', 'Definir dónde vive la base del portal en prod (esquema APP_*/MED_TAG)', 'RECOMENDACIÓN CON DATOS (23-sep): esquema y usuario PROPIOS en PDBPRD, no dentro de BIOMETRICO — ahí ya hay 10 tablas APP_* de otro sistema y el usuario tiene CREATE TABLE / DROP ANY VIEW / EXP-IMP_FULL_DATABASE. Pedir además un usuario de sólo lectura para pruebas.', 'negocio', 'DBA'],
     ['0.2', 'Servidor de aplicación (Tomcat 11 + JDK 21)', '¿10.249.249.4 (donde está files.root) u otro? Usuario del servicio, puertos.', 'infra', 'Infra'],
     ['0.3', 'nginx: URL pública y configuración', 'proxy_pass a /portal-salud/, proxy_cookie_path /portal-salud / (sin slash final), sub_filter, client_max_body_size 25m. Misma config probada en QA.', 'infra', 'Infra'],
     ['0.4', 'portal.files.root creado y escribible por Tomcat', '/mnt/data/onedev/apps/exec/filessalud (usuario onedev). Ahí van PDFs y Excel importados.', 'infra', 'Infra'],
@@ -93,15 +103,17 @@ const FASES = [
     ['0.7', 'Ventana de salida y responsable go/no-go', '', 'negocio', 'Negocio'],
     ['0.8', 'application-prod.properties con datasource definitivo (o SPRING_DATASOURCE_* en Tomcat)', 'No dejar ONEWMS_QA en prod. Verificar el banner "BASE DE DATOS ACTIVA" al arrancar.', 'portal', 'Miguel'],
   ]},
-  { id: 'F1', titulo: 'Fase 1 — Inventario ORDS: QA vs producción', tag: '1 jornada', desc: 'El "análisis del biométrico", acotado a un diff: qué WS/tablas que usa el portal existen ya en ORDS prod.', tareas: [
-    ['1.0a', 'Inventario de datos de prueba en ORDS (ords-limpieza-datos-prueba-inventario.sql)', 'Sólo SELECT. Revisar fila por fila: NSS 30048315698 / 90099119373 / 68958027838; tablas del portal completas; BUG/PRUEBA/ONSYS_DEBUG.', 'ords', 'Miguel'],
-    ['1.0b', 'Limpieza de datos de prueba en ORDS (ords-limpieza-datos-prueba.sql)', 'Respaldo antes. COMMIT sólo si la verificación da 0 en lo de prueba y 17 predios / 23 causas intactos.', 'ords', 'Miguel'],
-    ['1.0c', 'Limpieza en la base del portal (99_limpieza_datos_prueba_portal.sql) + binarios en files.root', 'Sólo si prod reutiliza el esquema de QA. Conserva todo lo CREATED_BY = ETL_LEGACY.', 'portal', 'Miguel'],
-    ['1.1', 'Obtener URL base y esquema de la ORDS de producción', '¿Misma 10.249.249.3 con otro esquema? Credenciales para curl.', 'ords', 'Miguel'],
-    ['1.2', 'Matriz de WS consumidos por el portal → existe en prod (sí/no)', '17 WS legacy (docs/contextoWS.txt) + los nuevos/clonados de docs/ords-*.sql (27). Verificar con curl.', 'ords', 'Miguel'],
-    ['1.3', 'Tablas nuevas del esquema legacy → existen en prod', 'SERV_MED_PREDIO, SERV_MED_CUENTA_PREDIO, accidentes-seguimiento, antidoping-selección/consumibles, causas, restricciones, maternidad, usuario_email.', 'ords', 'Miguel'],
-    ['1.4', 'Catálogos con datos que importan', 'biometrico_cuenta / _SAP (cuentas históricas), TBL_APPS_ROL_MENU app 13 por rol (gate SSO), ICD (909 claves A–B), SERV_MED_ANT_LABORALES (stub).', 'ords', 'Miguel'],
-    ['1.5', 'Lectura contra datos de prod con los scripts Playwright', 'smoke.js + dashboards apuntando a ORDS prod: parsers de fechas/rellenos aguantan.', 'portal', 'Miguel'],
+  { id: 'F1', titulo: 'Fase 1 — Inventario ORDS: QA vs producción', tag: 'inventario HECHO 23-sep', desc: 'Inventario ejecutado contra BIOMETRICO@PDBPRD; resultados en docs/fase1-inventario-resultado.md. Queda la limpieza y la verificación de WS.', tareas: [
+    ['1.0a', 'Inventario de datos de prueba en ORDS — HECHO 23-sep', 'CONFIRMADO que están en producción: 3 consultas (REG_ID 1068, 1088, 1108), 8 incapacidades (1661-1665, 1681, 1682, 1701), examen y archivos del NSS 30048315698; accidentes 4+4, antidoping 7/7/2, maternidad 2, restricciones 3, examen_hist 50, cuenta_predio 4. BUG 299,683 | PRUEBA 11,355 | ONSYS_DEBUG 290.', 'ords', 'Miguel'],
+    ['1.0d', 'Revisar examen_hist (50) y cuenta_predio (4) antes de borrar', 'SELECT NSS, COUNT(*) FROM SERV_MED_RESULTADO_EXAMEN_HIST GROUP BY NSS; y el detalle de SERV_MED_CUENTA_PREDIO (eran 2 el 14-sep: puede que negocio ya capture asignaciones reales).', 'ords', 'Miguel'],
+    ['1.0e', 'Confirmar con negocio los NSS 92088502122 y 07180371705', 'NO se borran: 07180371705 tiene una incapacidad del 23-SEP (captura real) y 92088502122 una consulta + una incapacidad del 25-AGO por confirmar.', 'negocio', 'Negocio'],
+    ['1.0b', 'Limpieza de datos de prueba en ORDS (ords-limpieza-datos-prueba.sql)', 'SOBRE PRODUCCIÓN: respaldo (expdp) obligatorio antes. Script ya actualizado con los conteos reales. COMMIT sólo si la verificación da 0 en lo de prueba y quedan 17 predios / 24 causas.', 'ords', 'Miguel'],
+    ['1.0c', 'Limpieza en la base del portal (99_limpieza_datos_prueba_portal.sql) + binarios en files.root', 'Aplica sólo al esquema del portal (hoy QA). Conserva todo lo CREATED_BY = ETL_LEGACY.', 'portal', 'Miguel'],
+    ['1.1', 'URL base y esquema de la ORDS de producción — HECHO 23-sep', 'Base BIOMETRICO@PDBPRD (Oracle 19c, host onestdb). Todo indica que la ORDS 10.249.249.3 apunta aquí: las 11 tablas del portal ya existen y PR_SERVICIO_MED_EXAMEN2 se modificó el 17/08/2026. Falta confirmar la URL pública de ORDS de prod.', 'ords', 'Miguel'],
+    ['1.2', 'Matriz de WS consumidos por el portal → verificar con curl', 'Las tablas y procedimientos ya están (PR_SERVICIO_MED_CONSULTA / EXAMEN1 / EXAMEN2 VALID). Queda probar cada WS con el curl de su script, incluidos los clones *_cta.', 'ords', 'Miguel'],
+    ['1.3', 'Tablas del esquema legacy → HECHO 23-sep', 'Las 15 del legacy y las 11 creadas por el portal EXISTEN. No hay que crear nada (ver Fase 3).', 'ords', 'Miguel'],
+    ['1.4', 'Catálogos → HECHO 23-sep', 'ICD = SERV_MED_CAT_INDICE_IDC10 (columnas CLAVE_ID / CLAVE_NOMBRE): 909 claves, sólo capítulos A y B, mismo hueco que en QA. EMP_STATUS: 0 = vigente (confirmado con 3 NSS activos); faltan 99 (2,154) y 100 (12) por definir con RH.', 'ords', 'Miguel'],
+    ['1.5', 'Lectura contra datos de prod con los scripts Playwright', 'smoke.js + dashboards apuntando a ORDS prod: comprobar que los parsers de fechas/rellenos aguantan con el volumen real (33,907 empleados, 3,213 exámenes).', 'portal', 'Miguel'],
   ]},
   { id: 'F2', titulo: 'Fase 2 — Base del portal (JDBC) en producción', tag: '½ jornada', desc: 'Todos los scripts son idempotentes. Orden estricto.', tareas: [
     ['2.1', '00_init_oracle21c.sql', 'APP_SEC_*, APP_MENU, APP_AUD_EVENT, APP_FS_FILE, jobs (autoritativo).', 'portal', 'DBA'],
@@ -110,14 +122,16 @@ const FASES = [
     ['2.4', 'Semilla del primer ADMIN', 'seeds/user-68958027838.sql o el NSS que se decida. Sin él nadie entra a /admin.', 'portal', 'Miguel'],
     ['2.5', 'Verificación: user_tables APP_% + MED_TAG y arranque del WAR con ddl-auto=validate', 'Si falta algo el log dice "Schema-validation: missing table".', 'portal', 'Miguel'],
   ]},
-  { id: 'F3', titulo: 'Fase 3 — ORDS de producción', tag: '1 jornada', desc: 'Sólo lo que falte según la Fase 1. Un WS productivo nunca se modifica: se clona. Los *-qa.sql no van.', tareas: [
-    ['3.1', 'Aplicar los ords-*.sql faltantes (orden del paso-a-produccion-dos-bases.md)', 'Los 7 de Dashboard en orden: predio-cuenta → lista-union → cuenta-en-reportes → cuenta-en-antidoping → diagnostico-en-consultas → maternidad-dashboard → incapacidades-criterio-fecha-inicio; más los de módulos.', 'ords', 'Miguel'],
-    ['3.2', 'Alta de menús app 13 en TBL_APPS_ROL_MENU para los roles de prod', 'Se usa para el gate del SSO (consulta_app_rol_usuario) aunque el menú sea LOCAL.', 'ords', 'Miguel'],
-    ['3.3', 'Verificar cada WS con el curl de su script', '', 'ords', 'Miguel'],
+  { id: 'F3', titulo: 'Fase 3 — ORDS de producción', tag: 'se redujo: ya está aplicado', desc: 'El inventario mostró que las 11 tablas y los procedimientos YA EXISTEN en BIOMETRICO@PDBPRD. Queda verificar los WS y resolver el acceso por el launcher (app 27).', tareas: [
+    ['3.1', 'Aplicar los ords-*.sql faltantes — SIN PENDIENTES', 'Las 11 tablas del portal ya existen y los PR_SERVICIO_MED_* están VALID. Revisar únicamente si falta algún clon *_cta de los reportes; si no, esta tarea se cierra.', 'ords', 'Miguel'],
+    ['3.2', 'Dar de alta la app 27 PORTAL SALUD en el launcher', 'El launcher publica la app 27 (sso=1) y hoy tiene 0 roles, 0 usuarios y 0 menús: por eso el mosaico no aparece. Copiar los 3 roles (USER=1, ADM=2, ENFERMERO=3) y los 39 usuarios de la app 13 a la 27, SIN mover los de la 13 (los usa el PHP v2).', 'ords', 'Miguel'],
+    ['3.3', 'Verificar cada WS con el curl de su script', 'Con datos reales ya, no de prueba.', 'ords', 'Miguel'],
+    ['3.4', 'Reportar al DBA los 91 objetos INVALID del esquema', 'Ninguno es del servicio médico (son vistas y procs de asistencia, nómina y capacitación), pero conviene recompilarlos.', 'infra', 'DBA'],
   ]},
   { id: 'F4', titulo: 'Fase 4 — Datos: histórico y catálogos', tag: '½ jornada + negocio', desc: 'El ETL lo corre el equipo externo con la spec etl-migracion-historica-especificacion.md.', tareas: [
     ['4.0', 'Prueba de humo del ETL ya separado (proyecto etl/)', 'mvn -f etl/pom.xml package + java -jar ... --etl.files.mode=sample contra Oracle LOCAL. Confirmar mismas rutas de sharding y checksums que la corrida del 13-ago. PENDIENTE desde el 23-sep.', 'ext', 'Miguel'],
     ['4.1', 'ETL histórico MariaDB → Oracle prod (files 21,448 / tags 550,560)', 'Requiere 0.5 (puerto 3306) y Fase 2. Verificar conteos (§6 de la spec). Respaldo del esquema antes.', 'ext', 'Equipo ETL'],
+    ['4.6', 'Confirmar con RH el catálogo de EMP_STATUS', '0 = vigente (confirmado). Falta saber qué significan 1 (28,155), 99 (2,154) y 100 (12), y si el portal debe filtrar por ese campo en algún listado.', 'negocio', 'Negocio'],
     ['4.2', 'Predios (17) y cuenta→predio', 'Hoy 2 de 260 cuentas asignadas. Propuesta: CSV con ~30 deducibles del nombre + el resto lo llena negocio; carga por /admin/predios o SQL.', 'negocio', 'Negocio'],
     ['4.3', 'Roles y menús por rol exportados de QA', 'USER, ADM, ENFERMERO, ROLE_ADMIN, ROLE_MEDICO_ANALISTA + APP_MENU_ROLE como INSERTs. Limpiar rol duplicado MEDICO_ANALISTA (id 42).', 'portal', 'Miguel'],
     ['4.4', 'Usuarios: alta por NSS en /admin/usuarios', 'Sin contraseñas (valida ORDS). Lista inicial de quién tiene qué rol.', 'negocio', 'Negocio'],
