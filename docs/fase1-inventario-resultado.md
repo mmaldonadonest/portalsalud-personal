@@ -215,3 +215,38 @@ del esquema local (`APP_MENU` / `APP_MENU_ROLE`).
 | `EMP_STATUS` incógnita | **0 = vigente**; falta confirmar 99 y 100 con RH |
 | ICD "quizá esté completo en prod" | **909 claves, mismo hueco** |
 | "El portal valida el SSO con id_app=13" | **Con `source=LOCAL` valida local**; el `id_app` importa para el launcher, y ahí la app es la **27**, hoy sin usuarios |
+
+---
+
+## Decisión sobre la limpieza (23-sep-2026)
+
+**No se borra ningún dato por NSS.** El usuario depurará manualmente los registros de prueba
+cuando lo decida. De la limpieza previa a producción **sólo se harán las tablas de paso / debug**,
+y también de forma manual: `docs/ords-limpieza-debug.sql` (BUG 299,683 · PRUEBA 11,355 ·
+ONSYS_DEBUG 290). `docs/ords-limpieza-datos-prueba.sql` queda **EN PAUSA**, como referencia.
+
+### Por qué fue acertado revisar antes: `SERV_MED_RESULTADO_EXAMEN_HIST`
+
+Las 50 filas **no son todas nuestras**. Reparto real:
+
+| NSS | Filas | |
+|---|---|---|
+| `30048315698` | 26 | NSS de prueba |
+| `68917304278` | 7 | |
+| `02229815655` | 6 | |
+| `07160015108` | 3 | |
+| `45927014667` | 2 | |
+| `62150082097` | 2 | |
+| `26179715326` | 1 | |
+| `30190093523` | 1 | **usuario real de la app 13 del PHP** (aparece en `TBL_APP_ROL_USUARIO`) |
+| `68958027838` | 1 | Mauricio (usuario real, además de probador) |
+| `92088502122` | 1 | el NSS en duda |
+
+Es decir, **24 de 50 filas son historial ajeno**. El script traía `DELETE FROM
+SERV_MED_RESULTADO_EXAMEN_HIST;` sin condición, que las habría borrado: ya quedó corregido a un
+`DELETE ... WHERE NSS IN (...)` comentado. Lo mismo aplica a `SERV_MED_CUENTA_PREDIO`, que pasó de
+2 filas (14-sep) a 4 (23-sep): conviene ver el detalle antes de tocarla.
+
+Conclusión operativa: las tablas que creó el portal **no son "sólo nuestras"** — el PHP v2 también
+escribe en algunas a través de los procedimientos compartidos. Cualquier borrado futuro debe ir
+acotado por NSS y revisado fila por fila.

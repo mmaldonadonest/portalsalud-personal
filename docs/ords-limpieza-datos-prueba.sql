@@ -1,4 +1,18 @@
 -- =====================================================================================
+-- *** EN PAUSA — NO EJECUTAR (decision del usuario, 23-sep-2026) ***
+--
+-- De la limpieza previa a produccion solo se haran las tablas de paso / debug
+-- (ver docs/ords-limpieza-debug.sql). Los registros por NSS y los de las tablas de modulos
+-- del portal NO se borran por ahora: el usuario los depurara MANUALMENTE cuando lo decida.
+-- Este archivo se conserva como referencia de que habria que borrar y con que criterios.
+--
+-- ADEMAS, ojo con dos DELETE de este script si algun dia se retoma:
+--   * SERV_MED_RESULTADO_EXAMEN_HIST: NO vaciar la tabla. Verificado el 23-sep: de sus 50
+--     filas solo 26 son del NSS de prueba; las otras 24 son de 9 NSS distintos (entre ellos
+--     30190093523, usuario real de la app 13 del PHP). Es historial ajeno.
+--   * SERV_MED_CUENTA_PREDIO: revisar el detalle antes; paso de 2 filas (14-sep) a 4 (23-sep),
+--     puede que negocio ya este capturando asignaciones reales.
+-- =====================================================================================
 -- ords-limpieza-datos-prueba.sql  —  ORDS / esquema legacy (NO base del portal)
 -- Paso 2 de la limpieza de datos de prueba antes de producción. Correr DESPUÉS de revisar la
 -- salida de ords-limpieza-datos-prueba-inventario.sql, con los MISMOS parámetros.
@@ -43,10 +57,10 @@ DELETE FROM SERV_MED_ANTIDOPING_SELECCION;
 DELETE FROM SERV_MED_ANTIDOPING_INVENTARIO;
 DELETE FROM SERV_MED_MATERNIDAD_SEGUIMIENTO;
 DELETE FROM SERV_MED_RESTRICCION_ASIGNADA;
--- examen_hist: 50 filas el 23-sep. La creo este proyecto, pero conviene MIRAR de quien son
--- antes de vaciarla; si hay NSS que no son de prueba, acotar el DELETE por NSS:
---   SELECT NSS, COUNT(*) FROM SERV_MED_RESULTADO_EXAMEN_HIST GROUP BY NSS ORDER BY 2 DESC;
-DELETE FROM SERV_MED_RESULTADO_EXAMEN_HIST;
+-- examen_hist: NO se vacia. Verificado 23-sep: 50 filas de 10 NSS distintos y solo 26 son
+-- del NSS de prueba; el resto es historial real (p.ej. 30190093523, usuario del PHP).
+-- Si alguna vez se depura, SOLO por NSS de prueba:
+-- DELETE FROM SERV_MED_RESULTADO_EXAMEN_HIST WHERE NSS IN &nss_prueba;
 -- Cuenta→predio: 4 filas el 23-sep (eran 2 el 14-sep). Revisar cuales son antes de borrar;
 -- si negocio ya capturo asignaciones reales, ajustar esta lista:
 --   SELECT REG_ID, CUENTA_NOMBRE, PREDIO_ID, FECHA_ASIGNACION, ID_USUARIO FROM SERV_MED_CUENTA_PREDIO ORDER BY REG_ID;
@@ -108,11 +122,10 @@ DELETE FROM SERV_MED_URINARIO               WHERE NSS IN &nss_prueba;
 -- SERV_MED_ANT_PER_PATOLOGICOS, SERV_MED_CARDIO_NO_PATO, SERV_MED_DIGESTIVO, SERV_MED_OFTALMOLOGICO.
 
 -- ---------- C) Tablas de depuración de los handlers ----------
--- 23-sep: BUG 299,683 filas | PRUEBA 11,355 | ONSYS_DEBUG 290. Es lo que dejaron los
--- 'insert into bug' de los handlers PL/SQL; vaciarlas ademas libera espacio.
-DELETE FROM BUG;
-DELETE FROM PRUEBA;
-DELETE FROM ONSYS_DEBUG;
+-- MOVIDO a docs/ords-limpieza-debug.sql (es lo unico que se va a ejecutar por ahora).
+-- DELETE FROM BUG;          -- 299,683 filas al 23-sep
+-- DELETE FROM PRUEBA;       --  11,355
+-- DELETE FROM ONSYS_DEBUG;  --     290
 
 -- ---------- Verificación (debe dar 0 en todo lo de prueba) ----------
 SELECT 'consultas nss prueba' q, COUNT(*) n FROM TBL_SERV_CONSULTA_MEDICA WHERE NSS IN &nss_prueba
