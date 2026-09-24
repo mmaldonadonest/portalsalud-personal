@@ -31,12 +31,51 @@
 SET SERVEROUTPUT ON;
 
 -- -------------------------------------------------------------------------------------
--- PASO 0: que hay hoy (solo lectura). Revisar la salida antes de seguir.
+-- PASO 0: conteo EXACTO de filas antes de renombrar (solo lectura).
+--
+-- Usa COUNT(*), NO el NUM_ROWS de user_tables: NUM_ROWS son estadisticas del optimizador
+-- y casi siempre estan atrasadas. En la corrida en local (24-sep) NUM_ROWS decia 21,449
+-- en APP_FS_FILE y el COUNT(*) real era 21,455: parecia que el renombrado habia agregado
+-- 6 filas y era solo la estadistica vieja. El PASO 4 (d) hace el mismo COUNT(*) sobre los
+-- nombres nuevos, asi que las dos listas se comparan directamente, fila por fila.
 -- -------------------------------------------------------------------------------------
-SELECT table_name, num_rows FROM user_tables
- WHERE table_name LIKE 'APP\_%' ESCAPE '\' OR table_name LIKE 'MED\_%' ESCAPE '\'
-    OR table_name LIKE 'SERV\_MED\_%' ESCAPE '\'
- ORDER BY table_name;
+DECLARE
+  PROCEDURE contar(p_tabla VARCHAR2) IS
+    v_filas  NUMBER;
+    v_existe NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO v_existe FROM user_tables WHERE table_name = p_tabla;
+    IF v_existe = 0 THEN
+      DBMS_OUTPUT.PUT_LINE(RPAD(p_tabla, 32) || '  (no existe en este ambiente)');
+      RETURN;
+    END IF;
+    EXECUTE IMMEDIATE 'SELECT COUNT(*) FROM ' || p_tabla INTO v_filas;
+    DBMS_OUTPUT.PUT_LINE(RPAD(p_tabla, 32) || TO_CHAR(v_filas, '9,999,999,999'));
+  END;
+BEGIN
+  DBMS_OUTPUT.PUT_LINE('--- filas ANTES del renombrado (COUNT(*) exacto) ---');
+  contar('APP_AUDIT_SQL_EXECUTION');
+  contar('APP_AUD_EVENT');
+  contar('APP_FS_FILE');
+  contar('APP_FS_FILE_ACCESS_LOG');
+  contar('APP_FS_FILE_ORPHAN_TRACKING');
+  contar('APP_FS_FILE_POLICY');
+  contar('APP_FS_FILE_VERSION');
+  contar('APP_IMPORT_FILA');
+  contar('APP_IMPORT_LOTE');
+  contar('APP_JOB_CATALOG');
+  contar('APP_MENU');
+  contar('APP_MENU_ROLE');
+  contar('APP_NOTIF_TEMPLATE');
+  contar('APP_SEC_PERMISSION');
+  contar('APP_SEC_ROLE');
+  contar('APP_SEC_ROLE_PERMISSION');
+  contar('APP_SEC_USER');
+  contar('APP_SEC_USER_ROLE');
+  contar('MED_TAG');
+  contar('MED_TAG_MIG_LOG');
+END;
+/
 
 PROMPT ============================================================
 PROMPT [1/4] BORRAR triggers, vistas, procedimientos y funcion VIEJOS
@@ -269,13 +308,49 @@ SELECT object_name, object_type, status FROM user_objects
  WHERE status <> 'VALID' AND object_name LIKE 'SERV\_MED\_%' ESCAPE '\'
  ORDER BY object_type, object_name;
 
--- (d) Conteo de filas: debe coincidir con lo que habia ANTES del renombrado.
-SELECT 'SERV_MED_TAG'     t, COUNT(*) filas FROM SERV_MED_TAG
-UNION ALL SELECT 'SERV_MED_FS_FILE',  COUNT(*) FROM SERV_MED_FS_FILE
-UNION ALL SELECT 'SERV_MED_SEC_USER', COUNT(*) FROM SERV_MED_SEC_USER
-UNION ALL SELECT 'SERV_MED_MENU',     COUNT(*) FROM SERV_MED_MENU
-UNION ALL SELECT 'SERV_MED_MENU_ROLE',COUNT(*) FROM SERV_MED_MENU_ROLE;
+-- (d) Conteo EXACTO de filas despues del renombrado. Compararlo LINEA POR LINEA con la
+--     lista del PASO 0: mismo COUNT(*), mismos nombres en el mismo orden. Las tablas que
+--     el PASO 0 reporto como "(no existe en este ambiente)" las crea vacias el DDL
+--     consolidado en el paso siguiente.
+DECLARE
+  PROCEDURE contar(p_tabla VARCHAR2) IS
+    v_filas  NUMBER;
+    v_existe NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO v_existe FROM user_tables WHERE table_name = p_tabla;
+    IF v_existe = 0 THEN
+      DBMS_OUTPUT.PUT_LINE(RPAD(p_tabla, 32) || '  (no existe en este ambiente)');
+      RETURN;
+    END IF;
+    EXECUTE IMMEDIATE 'SELECT COUNT(*) FROM ' || p_tabla INTO v_filas;
+    DBMS_OUTPUT.PUT_LINE(RPAD(p_tabla, 32) || TO_CHAR(v_filas, '9,999,999,999'));
+  END;
+BEGIN
+  DBMS_OUTPUT.PUT_LINE('--- filas DESPUES del renombrado (COUNT(*) exacto) ---');
+  contar('SERV_MED_AUDIT_SQL_EXECUTION');
+  contar('SERV_MED_AUD_EVENT');
+  contar('SERV_MED_FS_FILE');
+  contar('SERV_MED_FS_FILE_ACCESS_LOG');
+  contar('SERV_MED_FS_FILE_ORPHAN');
+  contar('SERV_MED_FS_FILE_POLICY');
+  contar('SERV_MED_FS_FILE_VERSION');
+  contar('SERV_MED_IMPORT_FILA');
+  contar('SERV_MED_IMPORT_LOTE');
+  contar('SERV_MED_JOB_CATALOG');
+  contar('SERV_MED_MENU');
+  contar('SERV_MED_MENU_ROLE');
+  contar('SERV_MED_NOTIF_TEMPLATE');
+  contar('SERV_MED_SEC_PERMISSION');
+  contar('SERV_MED_SEC_ROLE');
+  contar('SERV_MED_SEC_ROLE_PERMISSION');
+  contar('SERV_MED_SEC_USER');
+  contar('SERV_MED_SEC_USER_ROLE');
+  contar('SERV_MED_TAG');
+  contar('SERV_MED_TAG_MIG_LOG');
+END;
+/
 
--- Recordatorio: falta el PASO 4 del encabezado -> correr 00_init_oracle21c.sql y
--- app_domain/tags-salud.sql para recrear vistas, procedimientos, funcion y triggers.
+-- Recordatorio: falta el PASO 5 del encabezado -> correr
+-- prod/01_ddl_portal_en_biometrico.sql, que recrea vistas, procedimientos, funcion y
+-- triggers con los nombres nuevos y crea las tablas que falten en este ambiente.
 
