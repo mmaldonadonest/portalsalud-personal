@@ -70,7 +70,7 @@
     <strong>Actualizado con el inventario del 23-sep-2026</strong> (detalle en <code>docs/fase1-inventario-resultado.md</code>):
     la base es <code>BIOMETRICO@PDBPRD</code> (Oracle 19c) y <strong>es la misma que usamos como "QA"</strong> — el desarrollo
     se hizo contra producción. Consecuencias ya reflejadas abajo: las 11 tablas del portal <strong>ya existen</strong> (la Fase 3
-    se reduce a verificar WS y dar de alta la app 27), la <strong>limpieza de datos por NSS queda EN PAUSA</strong> (sólo se vaciarán las tablas de debug, a mano),
+    se reduce a verificar WS y dar de alta la app 27), la <strong>limpieza de datos por NSS queda CANCELADA</strong> (sólo se vaciarán las tablas de debug, a mano),
     <code>EMP_STATUS = 0</code> es el empleado vigente, el catálogo ICD tiene 909 claves (sólo capítulos A y B), y el
     <strong>launcher publica la app 27 "PORTAL SALUD" sin usuarios ni roles</strong>.
   </div>
@@ -107,9 +107,9 @@ const FASES = [
     ['1.0a', 'Inventario de datos de prueba en ORDS — HECHO 23-sep', 'CONFIRMADO que están en producción: 3 consultas (REG_ID 1068, 1088, 1108), 8 incapacidades (1661-1665, 1681, 1682, 1701), examen y archivos del NSS 30048315698; accidentes 4+4, antidoping 7/7/2, maternidad 2, restricciones 3, examen_hist 50, cuenta_predio 4. BUG 299,683 | PRUEBA 11,355 | ONSYS_DEBUG 290.', 'ords', 'Miguel'],
     ['1.0d', 'Revisar examen_hist y cuenta_predio — HECHO 23-sep', 'examen_hist: 50 filas de 10 NSS y sólo 26 son de prueba; 24 son historial ajeno (incl. 30190093523, usuario real del PHP). El DELETE sin condición del script ya se corrigió. cuenta_predio pasó de 2 a 4 filas: revisar el detalle si alguna vez se depura.', 'ords', 'Miguel'],
     ['1.0e', 'Confirmar con negocio los NSS 92088502122 y 07180371705', 'NO se borran: 07180371705 tiene una incapacidad del 23-SEP (captura real) y 92088502122 una consulta + una incapacidad del 25-AGO por confirmar.', 'negocio', 'Negocio'],
-    ['1.0b', 'Borrado de datos de prueba por NSS — EN PAUSA (decisión 23-sep)', 'NO se ejecuta. El usuario depurará manualmente los registros de prueba cuando lo decida. docs/ords-limpieza-datos-prueba.sql queda como referencia, con los DELETE por NSS y el aviso de no vaciar examen_hist.', 'ords', 'Miguel'],
+    ['1.0b', 'Borrado de datos de prueba por NSS — CANCELADO (decisión 23-sep)', 'Descartado definitivamente: no se ejecuta desde script. Si hay que depurar algo, lo hará el usuario a mano, fila por fila. docs/ords-limpieza-datos-prueba.sql quedó con todo su contenido comentado, sólo como referencia histórica.', 'ords', 'Miguel'],
     ['1.0f', 'Vaciar tablas de paso / debug (ords-limpieza-debug.sql)', 'Lo único que sí se va a limpiar, y manualmente: BUG 299,683 · PRUEBA 11,355 · ONSYS_DEBUG 290. No las lee ninguna app y libera espacio. COMMIT manual, respaldo antes.', 'ords', 'Miguel'],
-    ['1.0c', 'Limpieza en la base del portal (99_limpieza_datos_prueba_portal.sql) + binarios en files.root', 'EN PAUSA por la misma decisión. Aplica sólo al esquema del portal; conserva todo lo CREATED_BY = ETL_LEGACY.', 'portal', 'Miguel'],
+    ['1.0c', 'Limpieza en la base del portal (99_limpieza_datos_prueba_portal.sql) + binarios en files.root', 'CANCELADA por la misma decisión. Aplica sólo al esquema del portal; si alguna vez se retoma, conserva todo lo CREATED_BY = ETL_LEGACY.', 'portal', 'Miguel'],
     ['1.1', 'URL base y esquema de la ORDS de producción — HECHO 23-sep', 'Base BIOMETRICO@PDBPRD (Oracle 19c, host onestdb). Todo indica que la ORDS 10.249.249.3 apunta aquí: las 11 tablas del portal ya existen y PR_SERVICIO_MED_EXAMEN2 se modificó el 17/08/2026. Falta confirmar la URL pública de ORDS de prod.', 'ords', 'Miguel'],
     ['1.2', 'Matriz de WS consumidos por el portal → verificar con curl', 'Las tablas y procedimientos ya están (PR_SERVICIO_MED_CONSULTA / EXAMEN1 / EXAMEN2 VALID). Queda probar cada WS con el curl de su script, incluidos los clones *_cta.', 'ords', 'Miguel'],
     ['1.3', 'Tablas del esquema legacy → HECHO 23-sep', 'Las 15 del legacy y las 11 creadas por el portal EXISTEN. No hay que crear nada (ver Fase 3).', 'ords', 'Miguel'],

@@ -1,17 +1,25 @@
 -- =====================================================================================
--- *** EN PAUSA — NO EJECUTAR (decision del usuario, 23-sep-2026) ***
+-- *** CANCELADO — NO SE VA A EJECUTAR (decision del usuario, 23-sep-2026) ***
 --
--- De la limpieza previa a produccion solo se haran las tablas de paso / debug
--- (ver docs/ords-limpieza-debug.sql). Los registros por NSS y los de las tablas de modulos
--- del portal NO se borran por ahora: el usuario los depurara MANUALMENTE cuando lo decida.
--- Este archivo se conserva como referencia de que habria que borrar y con que criterios.
+-- El borrado de datos de prueba POR NSS queda descartado: no se ejecuta ni ahora ni mas
+-- adelante desde este script. Si en algun momento hay que depurar registros concretos, lo
+-- hara el usuario A MANO, fila por fila, decidiendo caso por caso.
 --
--- ADEMAS, ojo con dos DELETE de este script si algun dia se retoma:
---   * SERV_MED_RESULTADO_EXAMEN_HIST: NO vaciar la tabla. Verificado el 23-sep: de sus 50
---     filas solo 26 son del NSS de prueba; las otras 24 son de 9 NSS distintos (entre ellos
---     30190093523, usuario real de la app 13 del PHP). Es historial ajeno.
---   * SERV_MED_CUENTA_PREDIO: revisar el detalle antes; paso de 2 filas (14-sep) a 4 (23-sep),
---     puede que negocio ya este capturando asignaciones reales.
+-- Por que se descarto (verificado el 23-sep contra BIOMETRICO@PDBPRD):
+--   * La base es PRODUCCION y es la misma que usabamos como "QA": los registros de prueba
+--     conviven con datos reales del PHP v2.
+--   * Las tablas que creo el portal NO son "solo nuestras": el PHP tambien escribe en algunas
+--     via los procedimientos compartidos. Ejemplo comprobado: SERV_MED_RESULTADO_EXAMEN_HIST
+--     tiene 50 filas de 10 NSS distintos y solo 26 son del NSS de prueba; un DELETE sin
+--     condicion habria borrado historial ajeno (entre otros, el de 30190093523, usuario real).
+--   * SERV_MED_CUENTA_PREDIO paso de 2 filas (14-sep) a 4 (23-sep): negocio podria estar
+--     capturando asignaciones reales.
+--
+-- Lo unico que SI se limpia es docs/ords-limpieza-debug.sql (BUG / PRUEBA / ONSYS_DEBUG),
+-- y tambien de forma manual.
+--
+-- ESTE ARCHIVO SE CONSERVA SOLO COMO REFERENCIA HISTORICA: todo su contenido ejecutable
+-- quedo comentado a proposito. No descomentar sin una decision explicita del usuario.
 -- =====================================================================================
 -- ords-limpieza-datos-prueba.sql  —  ORDS / esquema legacy (NO base del portal)
 -- Paso 2 de la limpieza de datos de prueba antes de producción. Correr DESPUÉS de revisar la
@@ -45,18 +53,18 @@
 --                decidir. Este script NO los incluye: solo borra los 3 NSS de la lista.
 -- =====================================================================================
 
-DEFINE nss_prueba = "('30048315698','90099119373','68958027838')";
+-- DEFINE nss_prueba = "('30048315698','90099119373','68958027838')";
 
-SET SERVEROUTPUT ON
+-- SET SERVEROUTPUT ON
 
 -- ---------- A) Tablas creadas por el portal Java ----------
-DELETE FROM SERV_MED_ACCIDENTE_SEGUIMIENTO;     -- hijas primero (FK a SERV_MED_ACCIDENTE)
-DELETE FROM SERV_MED_ACCIDENTE;
-DELETE FROM SERV_MED_ANTIDOPING_RESULTADO;
-DELETE FROM SERV_MED_ANTIDOPING_SELECCION;
-DELETE FROM SERV_MED_ANTIDOPING_INVENTARIO;
-DELETE FROM SERV_MED_MATERNIDAD_SEGUIMIENTO;
-DELETE FROM SERV_MED_RESTRICCION_ASIGNADA;
+-- DELETE FROM SERV_MED_ACCIDENTE_SEGUIMIENTO;     -- hijas primero (FK a SERV_MED_ACCIDENTE)
+-- DELETE FROM SERV_MED_ACCIDENTE;
+-- DELETE FROM SERV_MED_ANTIDOPING_RESULTADO;
+-- DELETE FROM SERV_MED_ANTIDOPING_SELECCION;
+-- DELETE FROM SERV_MED_ANTIDOPING_INVENTARIO;
+-- DELETE FROM SERV_MED_MATERNIDAD_SEGUIMIENTO;
+-- DELETE FROM SERV_MED_RESTRICCION_ASIGNADA;
 -- examen_hist: NO se vacia. Verificado 23-sep: 50 filas de 10 NSS distintos y solo 26 son
 -- del NSS de prueba; el resto es historial real (p.ej. 30190093523, usuario del PHP).
 -- Si alguna vez se depura, SOLO por NSS de prueba:
@@ -64,59 +72,59 @@ DELETE FROM SERV_MED_RESTRICCION_ASIGNADA;
 -- Cuenta→predio: 4 filas el 23-sep (eran 2 el 14-sep). Revisar cuales son antes de borrar;
 -- si negocio ya capturo asignaciones reales, ajustar esta lista:
 --   SELECT REG_ID, CUENTA_NOMBRE, PREDIO_ID, FECHA_ASIGNACION, ID_USUARIO FROM SERV_MED_CUENTA_PREDIO ORDER BY REG_ID;
-DELETE FROM SERV_MED_CUENTA_PREDIO WHERE UPPER(CUENTA_NOMBRE) IN ('47 BRAND','AVANTE');
+-- DELETE FROM SERV_MED_CUENTA_PREDIO WHERE UPPER(CUENTA_NOMBRE) IN ('47 BRAND','AVANTE');
 
 -- ---------- B) Legacy: SOLO NSS de prueba ----------
 -- Consultas e incapacidades capturadas desde el portal para los NSS de prueba
-DELETE FROM TBL_SERV_CONSULTA_MEDICA     WHERE NSS IN &nss_prueba;
-DELETE FROM TBL_SERV_INCAPACIDAD_MEDICA  WHERE NSS IN &nss_prueba;
-DELETE FROM SER_MED_REGISTRO_MEDICO      WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_FILES               WHERE NSS IN &nss_prueba;
+-- DELETE FROM TBL_SERV_CONSULTA_MEDICA     WHERE NSS IN &nss_prueba;
+-- DELETE FROM TBL_SERV_INCAPACIDAD_MEDICA  WHERE NSS IN &nss_prueba;
+-- DELETE FROM SER_MED_REGISTRO_MEDICO      WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_FILES               WHERE NSS IN &nss_prueba;
 
 -- Examen médico: una fila por NSS en cada sección (las 41 tablas que escriben
 -- PR_SERVICIO_MED_EXAMEN1/2). Se borra el examen completo de los NSS de prueba.
-DELETE FROM SERV_MED_ABDOMEN                WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_AGUDEZA_VISUAL         WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_ANT_LABORALES          WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_DET_ANT_LABORALES      WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_ANT_PATOLOGICOS        WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_BOCA                   WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_CARDIOPATIAS           WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_COLUMNA_VERTEBRAL      WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_COLUMNA_VERTEBRAL_AUX  WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_CRANEO                 WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_CUELLO                 WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_DIAGNOSTICO            WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_DIENTES                WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_ENDOCRINAS             WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_ENDOCRI_NO_PATO        WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_ESTUDIOS_REALIZADOS    WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_EXPLORACION_FISICA     WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_EXTREMIDADES           WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_GENERALES              WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_GENITALES              WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_HEREDOFAMILIAR         WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_INMUNIZACIONES         WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_INT_APARATO_SIST       WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_MENTALES               WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_MUS_ESQUELETICO        WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_NARIZ                  WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_NEFROPATIA             WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_NEUMOPATICA            WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_NEUROLOGIA             WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_OBESIDAD               WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_OIDOS                  WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_OTRAS                  WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_PADECI_ACTUAL          WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_PIEL                   WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_PLAN_TERAPIA           WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_RENAL                  WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_RESULTADO_EXAMEN       WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_SIST_NERVIOSO          WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_TORAX                  WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_TOXICOLOGICO           WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_TOXI_NO_PATO           WHERE NSS IN &nss_prueba;
-DELETE FROM SERV_MED_URINARIO               WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_ABDOMEN                WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_AGUDEZA_VISUAL         WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_ANT_LABORALES          WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_DET_ANT_LABORALES      WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_ANT_PATOLOGICOS        WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_BOCA                   WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_CARDIOPATIAS           WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_COLUMNA_VERTEBRAL      WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_COLUMNA_VERTEBRAL_AUX  WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_CRANEO                 WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_CUELLO                 WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_DIAGNOSTICO            WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_DIENTES                WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_ENDOCRINAS             WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_ENDOCRI_NO_PATO        WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_ESTUDIOS_REALIZADOS    WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_EXPLORACION_FISICA     WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_EXTREMIDADES           WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_GENERALES              WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_GENITALES              WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_HEREDOFAMILIAR         WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_INMUNIZACIONES         WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_INT_APARATO_SIST       WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_MENTALES               WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_MUS_ESQUELETICO        WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_NARIZ                  WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_NEFROPATIA             WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_NEUMOPATICA            WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_NEUROLOGIA             WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_OBESIDAD               WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_OIDOS                  WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_OTRAS                  WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_PADECI_ACTUAL          WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_PIEL                   WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_PLAN_TERAPIA           WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_RENAL                  WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_RESULTADO_EXAMEN       WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_SIST_NERVIOSO          WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_TORAX                  WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_TOXICOLOGICO           WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_TOXI_NO_PATO           WHERE NSS IN &nss_prueba;
+-- DELETE FROM SERV_MED_URINARIO               WHERE NSS IN &nss_prueba;
 -- Estas secciones no llevan NSS en su INSERT del handler (se ligan por otra clave); si el
 -- inventario muestra filas de prueba, borrarlas a mano: SERV_MED_ANT_GIN_OBSTETRICOS,
 -- SERV_MED_ANT_PER_PATOLOGICOS, SERV_MED_CARDIO_NO_PATO, SERV_MED_DIGESTIVO, SERV_MED_OFTALMOLOGICO.
@@ -128,17 +136,17 @@ DELETE FROM SERV_MED_URINARIO               WHERE NSS IN &nss_prueba;
 -- DELETE FROM ONSYS_DEBUG;  --     290
 
 -- ---------- Verificación (debe dar 0 en todo lo de prueba) ----------
-SELECT 'consultas nss prueba' q, COUNT(*) n FROM TBL_SERV_CONSULTA_MEDICA WHERE NSS IN &nss_prueba
-UNION ALL SELECT 'incapacidades nss prueba', COUNT(*) FROM TBL_SERV_INCAPACIDAD_MEDICA WHERE NSS IN &nss_prueba
-UNION ALL SELECT 'examen generales nss prueba', COUNT(*) FROM SERV_MED_GENERALES WHERE NSS IN &nss_prueba
-UNION ALL SELECT 'accidentes', COUNT(*) FROM SERV_MED_ACCIDENTE
-UNION ALL SELECT 'antidoping resultado', COUNT(*) FROM SERV_MED_ANTIDOPING_RESULTADO
-UNION ALL SELECT 'maternidad', COUNT(*) FROM SERV_MED_MATERNIDAD_SEGUIMIENTO
-UNION ALL SELECT 'restricciones', COUNT(*) FROM SERV_MED_RESTRICCION_ASIGNADA
-UNION ALL SELECT 'cuenta_predio', COUNT(*) FROM SERV_MED_CUENTA_PREDIO
-UNION ALL SELECT 'bug', COUNT(*) FROM BUG
-UNION ALL SELECT 'predios (debe seguir 17)', COUNT(*) FROM SERV_MED_PREDIO
-UNION ALL SELECT 'causas (debe seguir 24)', COUNT(*) FROM SERV_MED_CAT_CAUSA_CONSULTA;
+-- SELECT 'consultas nss prueba' q, COUNT(*) n FROM TBL_SERV_CONSULTA_MEDICA WHERE NSS IN &nss_prueba
+-- UNION ALL SELECT 'incapacidades nss prueba', COUNT(*) FROM TBL_SERV_INCAPACIDAD_MEDICA WHERE NSS IN &nss_prueba
+-- UNION ALL SELECT 'examen generales nss prueba', COUNT(*) FROM SERV_MED_GENERALES WHERE NSS IN &nss_prueba
+-- UNION ALL SELECT 'accidentes', COUNT(*) FROM SERV_MED_ACCIDENTE
+-- UNION ALL SELECT 'antidoping resultado', COUNT(*) FROM SERV_MED_ANTIDOPING_RESULTADO
+-- UNION ALL SELECT 'maternidad', COUNT(*) FROM SERV_MED_MATERNIDAD_SEGUIMIENTO
+-- UNION ALL SELECT 'restricciones', COUNT(*) FROM SERV_MED_RESTRICCION_ASIGNADA
+-- UNION ALL SELECT 'cuenta_predio', COUNT(*) FROM SERV_MED_CUENTA_PREDIO
+-- UNION ALL SELECT 'bug', COUNT(*) FROM BUG
+-- UNION ALL SELECT 'predios (debe seguir 17)', COUNT(*) FROM SERV_MED_PREDIO
+-- UNION ALL SELECT 'causas (debe seguir 24)', COUNT(*) FROM SERV_MED_CAT_CAUSA_CONSULTA;
 
 -- Si todo cuadra:
 -- COMMIT;

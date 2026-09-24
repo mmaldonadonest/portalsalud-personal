@@ -218,7 +218,12 @@ del esquema local (`APP_MENU` / `APP_MENU_ROLE`).
 
 ---
 
-## Decisión sobre la limpieza (23-sep-2026)
+## Decisión sobre la limpieza (23-sep-2026) — CANCELADA la limpieza por NSS
+
+**El borrado de datos de prueba por NSS queda descartado definitivamente.** No se ejecutará desde
+script, ni ahora ni más adelante. Si en algún momento hay que depurar registros concretos, lo hará
+el usuario **a mano, fila por fila**. `docs/ords-limpieza-datos-prueba.sql` quedó con **todo su
+contenido comentado**, sólo como referencia histórica de qué se habría borrado y con qué criterio.
 
 **No se borra ningún dato por NSS.** El usuario depurará manualmente los registros de prueba
 cuando lo decida. De la limpieza previa a producción **sólo se harán las tablas de paso / debug**,
