@@ -180,24 +180,45 @@ DECLARE
   END;
 
   -- La tabla dueña se busca en el diccionario: asi no hay que mantenerla a mano.
+  --
+  -- OJO (detectado en local el 24-sep): una PK o UNIQUE declarada con nombre se apoya en
+  -- un INDICE al que Oracle le pone EL MISMO nombre que la constraint, y
+  -- ALTER TABLE ... RENAME CONSTRAINT *no* renombra ese indice. Si no se renombra aparte,
+  -- queda un PK_MED_TAG suelto dentro del esquema compartido, que es justo lo que el
+  -- prefijo SERV_MED_ venia a evitar. Por eso el indice se revisa SIEMPRE, incluso cuando
+  -- la constraint ya estaba renombrada de una corrida anterior.
   PROCEDURE ren_constraint(p_viejo VARCHAR2, p_nuevo VARCHAR2) IS
-    v_tabla USER_CONSTRAINTS.TABLE_NAME%TYPE;
-    v_nuevo NUMBER;
+    v_tabla   USER_CONSTRAINTS.TABLE_NAME%TYPE;
+    v_nuevo   NUMBER;
+    v_indice  NUMBER;
+
+    PROCEDURE ren_indice_de_apoyo IS
+    BEGIN
+      SELECT COUNT(*) INTO v_indice FROM user_indexes WHERE index_name = p_viejo;
+      IF v_indice = 0 THEN
+        RETURN;
+      END IF;
+      EXECUTE IMMEDIATE 'ALTER INDEX ' || p_viejo || ' RENAME TO ' || p_nuevo;
+      DBMS_OUTPUT.PUT_LINE('[OK]   indice de apoyo ' || RPAD(p_viejo, 22) || ' -> ' || p_nuevo);
+    END;
   BEGIN
     SELECT COUNT(*) INTO v_nuevo FROM user_constraints WHERE constraint_name = p_nuevo;
     IF v_nuevo > 0 THEN
       DBMS_OUTPUT.PUT_LINE('[SKIP] constraint ya renombrada: ' || p_nuevo);
+      ren_indice_de_apoyo;          -- pudo quedar pendiente de una corrida previa
       RETURN;
     END IF;
     BEGIN
       SELECT table_name INTO v_tabla FROM user_constraints WHERE constraint_name = p_viejo;
     EXCEPTION WHEN NO_DATA_FOUND THEN
       DBMS_OUTPUT.PUT_LINE('[SKIP] constraint inexistente: ' || p_viejo);
+      ren_indice_de_apoyo;          -- el indice puede existir aunque la constraint no
       RETURN;
     END;
     EXECUTE IMMEDIATE 'ALTER TABLE ' || v_tabla || ' RENAME CONSTRAINT ' || p_viejo ||
                       ' TO ' || p_nuevo;
     DBMS_OUTPUT.PUT_LINE('[OK]   constraint ' || RPAD(p_viejo, 28) || ' -> ' || p_nuevo);
+    ren_indice_de_apoyo;
   END;
 BEGIN
   ren_indice('UX_NOTIF_TEMPLATE_CODE_CHANNEL',   'SERV_MED_UX_NOTIF_TPL_CH');
@@ -349,6 +370,20 @@ BEGIN
   contar('SERV_MED_TAG_MIG_LOG');
 END;
 /
+
+-- (e) Nombres VIEJOS que hayan quedado sueltos colgando de una tabla ya renombrada.
+--     Debe dar 0 filas. Los SYS_% se excluyen: son los indices que Oracle genera solo
+--     para las PK declaradas sin nombre, y siempre se llaman asi, en todos los ambientes.
+SELECT 'INDEX' tipo, index_name nombre, table_name tabla FROM user_indexes
+ WHERE table_name LIKE 'SERV\_MED\_%' ESCAPE '\'
+   AND index_name NOT LIKE 'SERV\_MED\_%' ESCAPE '\'
+   AND index_name NOT LIKE 'SYS\_%' ESCAPE '\'
+UNION ALL
+SELECT 'CONSTRAINT', constraint_name, table_name FROM user_constraints
+ WHERE table_name LIKE 'SERV\_MED\_%' ESCAPE '\'
+   AND constraint_name NOT LIKE 'SERV\_MED\_%' ESCAPE '\'
+   AND constraint_name NOT LIKE 'SYS\_%' ESCAPE '\'
+ ORDER BY 1, 2;
 
 -- Recordatorio: falta el PASO 5 del encabezado -> correr
 -- prod/01_ddl_portal_en_biometrico.sql, que recrea vistas, procedimientos, funcion y
