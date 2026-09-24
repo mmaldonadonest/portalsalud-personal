@@ -9,20 +9,20 @@
   Icono/label/accion/tipo se resuelven por CODE (llave estable, ver
   docs/plan-rbac-local.md), no por el id_menu numerico - ese id ya NO es
   confiable como llave: viene de ORDS (1-14 fijo) cuando portal.permissions.source
-  =ORDS, pero viene del IDENTITY autogenerado de APP_MENU (cualquier numero,
+  =ORDS, pero viene del IDENTITY autogenerado de SERV_MED_MENU (cualquier numero,
   segun el orden real de insercion) cuando =LOCAL. idToCode traduce los 14
   ids clasicos de ORDS al mismo CODE que usa el esquema local, para que ambas
   fuentes compartan un solo set de mapas.
 
-  Titulo/icono: prioridad a m.nombreMenu/m.icon (viene de APP_MENU.TITLE/ICON
+  Titulo/icono: prioridad a m.nombreMenu/m.icon (viene de SERV_MED_MENU.TITLE/ICON
   para la fuente LOCAL, editable en BD sin redeploy - asi se pueden reorganizar
-  nombres/iconos/orden de los modulos a discrecion por rol via APP_MENU_ROLE,
+  nombres/iconos/orden de los modulos a discrecion por rol via SERV_MED_MENU_ROLE,
   sin tocar codigo). El mapa fijo 'labels'/'icons' de abajo queda solo como
   fallback si la BD no trae dato (ej. ORDS nunca manda icono).
 
   'action'/'tipo' SI siguen fijos a proposito: cada uno apunta a una pantalla
   ya construida en Java/JS, no son datos de presentacion reorganizables - una
-  fila de APP_MENU sin match aqui cae en el placeholder "disponible en una
+  fila de SERV_MED_MENU sin match aqui cae en el placeholder "disponible en una
   proxima entrega" de abrirModulo() (ver pages/nss-search.html), nunca en un
   403 real (ClinicalAccessFilter no depende de esto, sigue 100% en codigo).
 

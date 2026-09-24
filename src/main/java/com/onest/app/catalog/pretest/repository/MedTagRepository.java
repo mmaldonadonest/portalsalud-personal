@@ -10,9 +10,9 @@ import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.stereotype.Repository;
 
 /**
- * Acceso JDBC a MED_TAG (EAV). Replica el patron del legacy:
+ * Acceso JDBC a SERV_MED_TAG (EAV). Replica el patron del legacy:
  * lectura = ultimo por (nss,type) [ORDER BY id DESC]; escritura = DELETE+INSERT
- * por campo (insertDatsExpFis). MED_TAG.CONTENT es CLOB (soporta la firma base64).
+ * por campo (insertDatsExpFis). SERV_MED_TAG.CONTENT es CLOB (soporta la firma base64).
  */
 @Repository
 public class MedTagRepository {
@@ -29,7 +29,7 @@ public class MedTagRepository {
         jdbc.query(
                 "SELECT TYPE, CONTENT FROM ("
                         + "  SELECT TYPE, CONTENT, ROW_NUMBER() OVER (PARTITION BY TYPE ORDER BY ID DESC) rn"
-                        + "  FROM MED_TAG WHERE NSS = ? AND TYPE LIKE ?"
+                        + "  FROM SERV_MED_TAG WHERE NSS = ? AND TYPE LIKE ?"
                         + ") WHERE rn = 1",
                 (RowCallbackHandler) rs -> map.put(rs.getString("TYPE"), rs.getString("CONTENT")),
                 nss, "%" + suffix);
@@ -42,7 +42,7 @@ public class MedTagRepository {
         jdbc.query(
                 "SELECT TYPE, CONTENT FROM ("
                         + "  SELECT TYPE, CONTENT, ROW_NUMBER() OVER (PARTITION BY TYPE ORDER BY ID DESC) rn"
-                        + "  FROM MED_TAG WHERE NSS = ? AND TYPE LIKE ?"
+                        + "  FROM SERV_MED_TAG WHERE NSS = ? AND TYPE LIKE ?"
                         + ") WHERE rn = 1",
                 (RowCallbackHandler) rs -> map.put(rs.getString("TYPE"), rs.getString("CONTENT")),
                 nss, prefix + "%");
@@ -52,16 +52,16 @@ public class MedTagRepository {
     /** DELETE + INSERT del valor de un campo (como insertDatsExpFis). */
     /** Fecha del ultimo registro guardado para el NSS con TYPE LIKE %suffix (null si no hay ninguno). */
     public java.time.LocalDateTime ultimoGuardado(String nss, String suffix) {
-        return jdbc.query("SELECT MAX(CREATED_AT) FROM MED_TAG WHERE NSS = ? AND TYPE LIKE ?",
+        return jdbc.query("SELECT MAX(CREATED_AT) FROM SERV_MED_TAG WHERE NSS = ? AND TYPE LIKE ?",
                 rs -> rs.next() && rs.getTimestamp(1) != null ? rs.getTimestamp(1).toLocalDateTime() : null,
                 nss, "%" + suffix);
     }
 
     public void upsert(String nss, String type, String content, String tagGroup, String createdBy) {
-        jdbc.update("DELETE FROM MED_TAG WHERE NSS = ? AND TYPE = ?", nss, type);
+        jdbc.update("DELETE FROM SERV_MED_TAG WHERE NSS = ? AND TYPE = ?", nss, type);
         jdbc.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(
-                    "INSERT INTO MED_TAG (NSS, TYPE, CONTENT, TAG_GROUP, CREATED_BY) VALUES (?,?,?,?,?)");
+                    "INSERT INTO SERV_MED_TAG (NSS, TYPE, CONTENT, TAG_GROUP, CREATED_BY) VALUES (?,?,?,?,?)");
             ps.setString(1, nss);
             ps.setString(2, type);
             if (content == null) {

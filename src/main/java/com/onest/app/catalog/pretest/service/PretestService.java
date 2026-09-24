@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Pre-Test (U03): cuestionario EAV en MED_TAG. Cada campo se guarda con TYPE = <base>PRETEST
+ * Pre-Test (U03): cuestionario EAV en SERV_MED_TAG. Cada campo se guarda con TYPE = <base>PRETEST
  * y TAG_GROUP='PRETEST'. Equivale a pretest.php (load) + savePretest.php (save).
  */
 @Service

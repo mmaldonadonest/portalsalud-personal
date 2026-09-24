@@ -9,7 +9,7 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "APP_SEC_ROLE")
+@Table(name = "SERV_MED_SEC_ROLE")
 public class AppSecRole {
 
     @Id

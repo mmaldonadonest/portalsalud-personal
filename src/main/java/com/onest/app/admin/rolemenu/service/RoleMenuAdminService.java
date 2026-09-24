@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Checklist de menus por rol (/admin/roles/{id}/menus) - la granularidad rol->menu
  * que motivo todo el RBAC local (ver docs/plan-rbac-local.md). Reemplaza el
- * INSERT/DELETE manual en APP_MENU_ROLE que se veni haciendo por SQL Developer.
+ * INSERT/DELETE manual en SERV_MED_MENU_ROLE que se veni haciendo por SQL Developer.
  */
 @Service
 public class RoleMenuAdminService {

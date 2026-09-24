@@ -7,7 +7,7 @@ import java.lang.annotation.Target;
 
 /**
  * Marca un handler que ESCRIBE (alta, cambio, borrado, exportacion) para que
- * {@link AuditoriaInterceptor} lo registre en APP_AUD_EVENT al terminar con exito.
+ * {@link AuditoriaInterceptor} lo registre en SERV_MED_AUD_EVENT al terminar con exito.
  *
  * <p>Se pone solo en escrituras reales: muchos POST del portal son lecturas
  * (form-urlencoded fiel al PHP) y no deben ensuciar la bitacora. Sin AOP a proposito:

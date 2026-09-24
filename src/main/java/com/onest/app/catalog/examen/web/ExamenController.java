@@ -160,7 +160,7 @@ public class ExamenController {
     }
 
     /**
-     * Guarda los contactos de emergencia (EAV via MED_TAG, independiente del examen -> WS).
+     * Guarda los contactos de emergencia (EAV via SERV_MED_TAG, independiente del examen -> WS).
      * Recibe los 3x5 campos (contactoEmer{campo}{indice}).
      */
     @PostMapping(
@@ -186,7 +186,7 @@ public class ExamenController {
     }
 
     /**
-     * Guarda los diagnosticos secundarios (EAV via MED_TAG, independiente del examen -> WS).
+     * Guarda los diagnosticos secundarios (EAV via SERV_MED_TAG, independiente del examen -> WS).
      * Recibe los 3 campos (diagnosticoSecundario{indice}).
      */
     @PostMapping(

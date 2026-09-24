@@ -424,8 +424,8 @@ public class ExamenService {
     /**
      * Antecedentes laborales (resumen): la tabla del WS solo trae el stub que el PHP mandaba
      * hardcodeado (pension="true", edad 20, 3 trabajos; confirmado 12-sep-2026: 3,209 de
-     * 3,212 filas) o nada. Lo capturado de verdad vive en MED_TAG (el PHP lo guardaba en
-     * "tags"). Si el WS viene vacio o con el stub, se precarga desde MED_TAG; lo que el
+     * 3,212 filas) o nada. Lo capturado de verdad vive en SERV_MED_TAG (el PHP lo guardaba en
+     * "tags"). Si el WS viene vacio o con el stub, se precarga desde SERV_MED_TAG; lo que el
      * usuario guarde desde aqui va al WS como siempre.
      */
     private void completarDesdeTags(Map<String, String> data, String nss) {

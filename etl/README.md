@@ -4,8 +4,8 @@ Proceso de consola (Spring Boot, sin web) que migra el histórico del portal PHP
 
 | Origen (MariaDB `servicioMedico`) | Destino |
 |---|---|
-| `files` (≈21,475 filas, ~18 GB de base64) | metadatos → `APP_FS_FILE` · binario decodificado → filesystem (`portal.files.root`) |
-| `tags` (≈550,560 filas) | `MED_TAG` (EAV, `longtext` → `CLOB`) |
+| `files` (≈21,475 filas, ~18 GB de base64) | metadatos → `SERV_MED_FS_FILE` · binario decodificado → filesystem (`portal.files.root`) |
+| `tags` (≈550,560 filas) | `SERV_MED_TAG` (EAV, `longtext` → `CLOB`) |
 
 Especificación completa (mapeo columna por columna, hallazgos de calidad, verificación):
 `../docs/etl-migracion-historica-especificacion.md`. Muestra del origen:
@@ -35,7 +35,7 @@ mvn -f etl/pom.xml package        # genera etl/target/portal-salud-etl.jar
 |---|---|
 | `ETL_SOURCE_URL` | MariaDB origen. **Siempre con `characterEncoding=UTF-8`** |
 | `ETL_SOURCE_USER` / `ETL_SOURCE_PASSWORD` | credenciales del origen |
-| `ETL_TARGET_URL` | Oracle destino (el esquema del portal: `APP_FS_FILE`, `MED_TAG`) |
+| `ETL_TARGET_URL` | Oracle destino (el esquema del portal: `SERV_MED_FS_FILE`, `SERV_MED_TAG`) |
 | `ETL_TARGET_USER` / `ETL_TARGET_PASSWORD` | credenciales del destino |
 | `ETL_FILES_ROOT` | raíz de archivos; **debe ser la misma `portal.files.root` del portal** |
 | `ETL_FILES_MODE` · `ETL_TAGS_MODE` | `none` (default) · `sample` · `full` |
@@ -64,7 +64,7 @@ Es **idempotente**: `files` se salta lo ya cargado por `BUSINESS_KEY` (`legacy-<
 1. El esquema destino debe existir (`00_init_oracle21c.sql`, `app-fs-file.sql`, `tags-salud.sql`).
 2. `ETL_FILES_ROOT` creado y escribible por el usuario que corre el ETL.
 3. Puerto 3306 del origen accesible desde donde corra el ETL.
-4. **Ojo con `UX_FS_FILE_CHECKSUM`**: hay 261 duplicados legítimos de contenido en `files`; con ese
+4. **Ojo con `SERV_MED_UX_FS_FILE_CHECKSUM`**: hay 261 duplicados legítimos de contenido en `files`; con ese
    índice único la carga truena con `ORA-00001`. Relajarlo o manejar el choque.
 5. `COUNT(*)` del origen tomado **en ese momento** (la base productiva sigue creciendo) para la
    verificación final de la spec §6.

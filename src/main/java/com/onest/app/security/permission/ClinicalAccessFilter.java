@@ -84,7 +84,7 @@ public class ClinicalAccessFilter extends OncePerRequestFilter {
     // true cuando portal.permissions.source=LOCAL: la decision real debe comparar por
     // CODE (permissionService.tieneAccesoPorCodigo), no por id_menu - con la fuente
     // local, PermissionService.modulosPermitidos() ya no trae los ids fijos 1-14 de
-    // ORDS (vienen del IDENTITY de APP_MENU, numeracion arbitraria) asi que comparar
+    // ORDS (vienen del IDENTITY de SERV_MED_MENU, numeracion arbitraria) asi que comparar
     // por id ahi seria comparar numeros que no significan lo mismo. Ver docs/plan-rbac-local.md.
     private final boolean useLocalKeys;
 

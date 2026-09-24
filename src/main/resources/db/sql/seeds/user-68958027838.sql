@@ -12,7 +12,7 @@
 -- =====================================================================
 
 -- (defensivo) asegurar rol admin; normalmente ya existe por 00_init_oracle21c.sql
-MERGE INTO APP_SEC_ROLE t
+MERGE INTO SERV_MED_SEC_ROLE t
 USING (SELECT 'ROLE_ADMIN' AS CODE, 'Administrador' AS NAME FROM dual) s
 ON (t.CODE = s.CODE)
 WHEN NOT MATCHED THEN
@@ -21,7 +21,7 @@ WHEN NOT MATCHED THEN
 /
 
 -- Usuario
-MERGE INTO APP_SEC_USER u
+MERGE INTO SERV_MED_SEC_USER u
 USING (
   SELECT '68958027838'                                                  AS USERNAME,
          '68958027838@onest.local'                                      AS EMAIL,
@@ -36,11 +36,11 @@ WHEN NOT MATCHED THEN
 /
 
 -- Asignacion usuario -> rol admin
-MERGE INTO APP_SEC_USER_ROLE ur
+MERGE INTO SERV_MED_SEC_USER_ROLE ur
 USING (
   SELECT u.ID AS USER_ID, r.ID AS ROLE_ID
-  FROM APP_SEC_USER u
-  JOIN APP_SEC_ROLE r ON r.CODE = 'ROLE_ADMIN'
+  FROM SERV_MED_SEC_USER u
+  JOIN SERV_MED_SEC_ROLE r ON r.CODE = 'ROLE_ADMIN'
   WHERE u.USERNAME = '68958027838'
 ) s
 ON (ur.USER_ID = s.USER_ID AND ur.ROLE_ID = s.ROLE_ID)
@@ -54,9 +54,9 @@ COMMIT;
 
 -- Verificacion rapida
 SELECT u.USERNAME, u.ACCOUNT_STATUS, u.ACTIVE, r.CODE AS ROLE_CODE
-  FROM APP_SEC_USER u
-  JOIN APP_SEC_USER_ROLE ur ON ur.USER_ID = u.ID
-  JOIN APP_SEC_ROLE r       ON r.ID = ur.ROLE_ID
+  FROM SERV_MED_SEC_USER u
+  JOIN SERV_MED_SEC_USER_ROLE ur ON ur.USER_ID = u.ID
+  JOIN SERV_MED_SEC_ROLE r       ON r.ID = ur.ROLE_ID
  WHERE u.USERNAME = '68958027838';
 /
 

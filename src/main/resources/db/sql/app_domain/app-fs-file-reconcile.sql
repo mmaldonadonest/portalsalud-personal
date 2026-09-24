@@ -1,5 +1,5 @@
 -- =============================================================================
--- APP_FS_FILE — RECONCILIACIÓN de esquema (parche QA)
+-- SERV_MED_FS_FILE — RECONCILIACIÓN de esquema (parche QA)
 -- =============================================================================
 -- Proyecto : Portal Salud — portalsalud-personal
 -- Fecha    : 2026-07-21
@@ -8,7 +8,7 @@
 --
 -- CAUSA RAÍZ
 -- ──────────
--- Existían DOS definiciones de APP_FS_FILE, ambas con guard idempotente
+-- Existían DOS definiciones de SERV_MED_FS_FILE, ambas con guard idempotente
 -- (SKIP si SQLCODE=-955):
 --   · 00_init_oracle21c.sql        -> forma SIN NSS / FILE_TYPE / DATE_UPLOAD, usa CURRENT_VERSION
 --   · app_domain/app-fs-file.sql   -> forma que espera el código Java (FsFileRepository)
@@ -26,7 +26,7 @@ SET SERVEROUTPUT ON;
 DECLARE
   PROCEDURE add_col_if_absent(p_col VARCHAR2, p_ddl VARCHAR2) IS
   BEGIN
-    EXECUTE IMMEDIATE 'ALTER TABLE APP_FS_FILE ADD (' || p_ddl || ')';
+    EXECUTE IMMEDIATE 'ALTER TABLE SERV_MED_FS_FILE ADD (' || p_ddl || ')';
     DBMS_OUTPUT.PUT_LINE('[OK]   columna agregada: ' || p_col);
   EXCEPTION WHEN OTHERS THEN
     IF SQLCODE = -1430 THEN                       -- column already exists
@@ -44,7 +44,7 @@ BEGIN
   -- CURRENT_VERSION es NOT NULL y el INSERT del repo NO la setea. Garantizamos su
   -- DEFAULT para que el INSERT no falle con ORA-01400 (cannot insert NULL).
   BEGIN
-    EXECUTE IMMEDIATE 'ALTER TABLE APP_FS_FILE MODIFY (CURRENT_VERSION DEFAULT 1)';
+    EXECUTE IMMEDIATE 'ALTER TABLE SERV_MED_FS_FILE MODIFY (CURRENT_VERSION DEFAULT 1)';
     DBMS_OUTPUT.PUT_LINE('[OK]   CURRENT_VERSION DEFAULT 1 garantizado');
   EXCEPTION WHEN OTHERS THEN
     DBMS_OUTPUT.PUT_LINE('[WARN] no se pudo fijar DEFAULT en CURRENT_VERSION: ' || SQLERRM);
@@ -53,23 +53,23 @@ END;
 /
 
 -- Backfill mínimo para filas ya migradas/insertadas antes del parche
-UPDATE APP_FS_FILE SET VERSION     = 1           WHERE VERSION     IS NULL;
-UPDATE APP_FS_FILE SET DATE_UPLOAD = CREATED_AT  WHERE DATE_UPLOAD IS NULL;
+UPDATE SERV_MED_FS_FILE SET VERSION     = 1           WHERE VERSION     IS NULL;
+UPDATE SERV_MED_FS_FILE SET DATE_UPLOAD = CREATED_AT  WHERE DATE_UPLOAD IS NULL;
 COMMIT;
 
 -- Índices que acompañan los patrones de acceso (add-if-not-exists via -955)
-BEGIN EXECUTE IMMEDIATE 'CREATE INDEX IDX_APP_FS_FILE_TYPE     ON APP_FS_FILE (FILE_TYPE)';
-  DBMS_OUTPUT.PUT_LINE('[OK]   IDX_APP_FS_FILE_TYPE');
-EXCEPTION WHEN OTHERS THEN IF SQLCODE=-955 THEN DBMS_OUTPUT.PUT_LINE('[SKIP] IDX_APP_FS_FILE_TYPE'); ELSE RAISE; END IF; END;
+BEGIN EXECUTE IMMEDIATE 'CREATE INDEX SERV_MED_IDX_FS_FILE_TYPE     ON SERV_MED_FS_FILE (FILE_TYPE)';
+  DBMS_OUTPUT.PUT_LINE('[OK]   SERV_MED_IDX_FS_FILE_TYPE');
+EXCEPTION WHEN OTHERS THEN IF SQLCODE IN (-955, -1408) THEN DBMS_OUTPUT.PUT_LINE('[SKIP] SERV_MED_IDX_FS_FILE_TYPE'); ELSE RAISE; END IF; END;
 /
-BEGIN EXECUTE IMMEDIATE 'CREATE INDEX IDX_APP_FS_FILE_NSS_TYPE ON APP_FS_FILE (NSS, FILE_TYPE)';
-  DBMS_OUTPUT.PUT_LINE('[OK]   IDX_APP_FS_FILE_NSS_TYPE');
-EXCEPTION WHEN OTHERS THEN IF SQLCODE=-955 THEN DBMS_OUTPUT.PUT_LINE('[SKIP] IDX_APP_FS_FILE_NSS_TYPE'); ELSE RAISE; END IF; END;
+BEGIN EXECUTE IMMEDIATE 'CREATE INDEX SERV_MED_IDX_FS_FILE_NSS_TYPE ON SERV_MED_FS_FILE (NSS, FILE_TYPE)';
+  DBMS_OUTPUT.PUT_LINE('[OK]   SERV_MED_IDX_FS_FILE_NSS_TYPE');
+EXCEPTION WHEN OTHERS THEN IF SQLCODE IN (-955, -1408) THEN DBMS_OUTPUT.PUT_LINE('[SKIP] SERV_MED_IDX_FS_FILE_NSS_TYPE'); ELSE RAISE; END IF; END;
 /
 
 -- Verificación final
-PROMPT === Columnas de APP_FS_FILE tras el parche ===
+PROMPT === Columnas de SERV_MED_FS_FILE tras el parche ===
 SELECT column_name, data_type, data_length, nullable
 FROM   user_tab_columns
-WHERE  table_name = 'APP_FS_FILE'
+WHERE  table_name = 'SERV_MED_FS_FILE'
 ORDER  BY column_id;

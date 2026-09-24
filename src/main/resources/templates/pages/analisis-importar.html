@@ -11,8 +11,8 @@
   Cargar archivo (.xlsx/.xlsm/.csv) + Proceso de importacion (6 pasos) + Calidad de datos
   (procesados/correctos/advertencia/rechazados + dona) + Incidencias por hoja. Aqui el
   proceso es REAL: /api/analisis/importar lee el archivo con POI, valida, detecta duplicados
-  y deja todo en staging (APP_IMPORT_LOTE/FILA, db/sql/app_domain/app-import.sql); el binario
-  va al filesystem como los PDF (APP_FS_FILE, FILE_TYPE=importacion, versionado por nombre).
+  y deja todo en staging (SERV_MED_IMPORT_LOTE/FILA, db/sql/app_domain/app-import.sql); el binario
+  va al filesystem como los PDF (SERV_MED_FS_FILE, FILE_TYPE=importacion, versionado por nombre).
 
   Lo que NO hace, y lo dice en pantalla: escribir en tablas finales. No existen los layouts
   destino todavia; cuando lleguen, el mapeo hoja -> tabla sale de la temporal.

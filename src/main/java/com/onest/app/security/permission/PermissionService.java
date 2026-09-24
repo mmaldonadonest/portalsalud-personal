@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>Se cachea la lista completa de {@link ModuleDto} (no solo los id_menu) porque
  * la llave que de verdad identifica un modulo depende de la fuente: ORDS solo trae
  * id_menu (numeracion fija 1-14, code siempre null); el esquema local solo trae un
- * id_menu util como PK tecnica (numeracion arbitraria segun el IDENTITY de APP_MENU,
+ * id_menu util como PK tecnica (numeracion arbitraria segun el IDENTITY de SERV_MED_MENU,
  * NO comparable con la de ORDS) pero SI trae un code estable. Ver docs/plan-rbac-local.md.
  */
 @Service

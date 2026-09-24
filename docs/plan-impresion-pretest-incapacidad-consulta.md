@@ -10,7 +10,7 @@
 
 | Módulo | ¿Plantilla en el legacy? | ¿Datos suficientes? | ¿Tiene firma? | ¿Puede imprimir? |
 |---|---|---|---|---|
-| **Pre-Test** | No hay PDF, **sí hay la vista completa** del PHP (`view/content/pretest.html`, 705 líneas) que sirve de contenido | **Sí, completo** — 27 campos + 15 preguntas + síntomas COVID + comentarios | **Sí** (`drawdataUrl` en `MED_TAG`) | **Sí, es el mejor candidato** |
+| **Pre-Test** | No hay PDF, **sí hay la vista completa** del PHP (`view/content/pretest.html`, 705 líneas) que sirve de contenido | **Sí, completo** — 27 campos + 15 preguntas + síntomas COVID + comentarios | **Sí** (`drawdataUrl` en `SERV_MED_TAG`) | **Sí, es el mejor candidato** |
 | **Incapacidad** | No | **Sí** — 21 campos del WS `consulta_incapacidad` | **Sí, y con datos reales** (6 de 7 registros del NSS de prueba traen firma) | Sí, pero **decidir qué documento es** (ver §4) |
 | **Consulta médica** | No hay PDF; la vista `consultaMedica.html` del PHP da el orden de los campos | **Sí** — 18 campos (signos vitales, motivo, exploración, diagnóstico, tratamiento) + adjuntos | Campo sí; **0 de 3 NSS probados tienen firma real** (el histórico se guardó sin ella) | Sí |
 
@@ -22,7 +22,7 @@ Conclusión: **se puede**, con la misma mecánica ya probada en el examen (vista
 
 ## 2. Qué datos hay exactamente (verificado contra los WS, 14-sep-2026)
 
-### Pre-Test — `MED_TAG` (base del portal), sufijo `PRETEST`
+### Pre-Test — `SERV_MED_TAG` (base del portal), sufijo `PRETEST`
 - **Identificación** (27 campos): nss, cuenta, puesto, agencia, apellidos, nombre, fecha de nacimiento, estado civil, IMSS, teléfonos (personal, casa), domicilio (calle, número, colonia, delegación), contacto de emergencia y a quién contactar.
 - **Cuestionario de salud** (7): operado <6 meses, medicamentos, alergias, fracturas/hernias, embarazo, enfermedades, consumo de drogas — cada uno Sí/No + observaciones.
 - **Síntomas COVID** (8): tos, fiebre, dolor de cabeza, dificultad respiratoria, dolor de garganta, escurrimiento nasal, ojos rojos, dolor muscular — Sí/No + observaciones.
@@ -34,7 +34,7 @@ Conclusión: **se puede**, con la misma mecánica ya probada en el examen (vista
 folio, ramo, tipo, fecha de inicio, fecha de término, días autorizados, salario integrado, costo, imputable, estado de dictamen, goce de sueldo, complemento salarial, rubro, fecha de alta, ST2, alta, salario acumulado, URL de archivos, **firma digital**, fecha de registro.
 
 ### Consulta médica — WS `Servcio/conuslta_medica_usuario`
-fecha, tipo de consulta, área de accidente, área involucrada, causa, peso, talla, IMC, FC, FR, TA, temperatura, motivo, exploración, diagnóstico, tratamiento, usuario que capturó, **firma digital**, y la relación con sus **adjuntos** (`APP_FS_FILE`).
+fecha, tipo de consulta, área de accidente, área involucrada, causa, peso, talla, IMC, FC, FR, TA, temperatura, motivo, exploración, diagnóstico, tratamiento, usuario que capturó, **firma digital**, y la relación con sus **adjuntos** (`SERV_MED_FS_FILE`).
 
 En los tres casos la **ficha del empleado** (nombre, RFC, NSS, cuenta, empresa, puesto, edad, sexo) sale de `NssSearchService`, igual que en el expediente del examen.
 
@@ -72,7 +72,7 @@ Lo sensato es **extraer eso a un fragmento común** (`fragments/documento-print.
 | # | Paso | Detalle | Est. |
 |---|---|---|---|
 | 1 | Fragmento común de impresión | Extraer del examen el CSS `@media print`, encabezado/pie por hoja, `?auto=1`; dejarlo reutilizable | 1.5 h |
-| 2 | Documento de **Pre-Test** | `GET /api/nss/pretest/imprimir?nss=` → vista con ficha + 15 preguntas + COVID + comentarios + firma; datos desde `MED_TAG` (sin WS) | 2.5 h |
+| 2 | Documento de **Pre-Test** | `GET /api/nss/pretest/imprimir?nss=` → vista con ficha + 15 preguntas + COVID + comentarios + firma; datos desde `SERV_MED_TAG` (sin WS) | 2.5 h |
 | 3 | Documento de **Consulta médica** | `GET /api/nss/consulta/imprimir?nss=&id=` → nota médica con signos vitales, motivo, exploración, diagnóstico, tratamiento, adjuntos y firma | 2 h |
 | 4 | Documento de **Incapacidad** | `GET /api/nss/incapacidad/imprimir?nss=&id=` → constancia con folio, ramo, tipo, periodo, días, dictamen, costo y firma | 2 h |
 | 5 | Botón "Imprimir" en los detalles | Modal de consulta y de incapacidad + pantalla de Pre-Test | 0.5 h |
@@ -83,7 +83,7 @@ Lo sensato es **extraer eso a un fragmento común** (`fragments/documento-print.
 
 Anclado al precedente real: el documento del examen (518 variables, 12 hojas) llevó ~4 h porque se portó con script desde el PHP; estos tres son mucho más chicos (18–50 campos) pero se escriben desde cero y necesitan definición de contenido.
 
-**No requiere SQL ni cambios en ORDS**: los tres leen de fuentes que ya consume el portal (WS existentes + `MED_TAG` + `APP_FS_FILE`).
+**No requiere SQL ni cambios en ORDS**: los tres leen de fuentes que ya consume el portal (WS existentes + `SERV_MED_TAG` + `SERV_MED_FS_FILE`).
 
 ---
 

@@ -1,14 +1,14 @@
-# Normalización de encoding en `MED_TAG.CONTENT` — reporte y plan
+# Normalización de encoding en `SERV_MED_TAG.CONTENT` — reporte y plan
 
 **Fecha:** 13 de agosto de 2026
-**Alcance:** tabla `MED_TAG` (Oracle, destino del ETL de `servicioMedico.tags`)
+**Alcance:** tabla `SERV_MED_TAG` (Oracle, destino del ETL de `servicioMedico.tags`)
 **Estado:** diagnóstico completo y verificado — **fix no ejecutado todavía**, pendiente de luz verde
 
 ---
 
 ## 1. Qué se encontró
 
-Revisando `MED_TAG` en SQL Developer se detectaron valores con acentos y `ñ` corruptos (ej. `"3 aÃ±os"` en vez de `"3 años"`, `"presiÃ³n hidrÃ¡ulica"` en vez de `"presión hidráulica"`).
+Revisando `SERV_MED_TAG` en SQL Developer se detectaron valores con acentos y `ñ` corruptos (ej. `"3 aÃ±os"` en vez de `"3 años"`, `"presiÃ³n hidrÃ¡ulica"` en vez de `"presión hidráulica"`).
 
 ## 2. Causa raíz confirmada
 
@@ -22,7 +22,7 @@ Un detalle adicional que costó encontrar: 5 posiciones de cp1252 (`0x81`, `0x8D
 
 | Métrica | Valor |
 |---|---|
-| Filas de `MED_TAG` con `CONTENT` no vacío | 400,293 |
+| Filas de `SERV_MED_TAG` con `CONTENT` no vacío | 400,293 |
 | Filas con la marca de corrupción (`Ã`) | 5,453 (1.36%) |
 | **Reversibles de forma segura y verificada** | **5,453 (100%)** |
 
@@ -67,12 +67,12 @@ Un detalle adicional que costó encontrar: 5 posiciones de cp1252 (`0x81`, `0x8D
 ## 5. Plan de ejecución
 
 1. **Este reporte** — evidencia y alcance antes de tocar datos (hecho, este documento).
-2. **Ejecutar el `UPDATE` controlado** contra `MED_TAG` en Oracle local: para cada fila candidata, recalcular el fix, re-validar el *round-trip* estricto en el momento de la ejecución (no confiar en el escaneo previo) y actualizar solo si valida — mismo criterio de seguridad que el diagnóstico, no un `REPLACE` ciego de caracteres.
+2. **Ejecutar el `UPDATE` controlado** contra `SERV_MED_TAG` en Oracle local: para cada fila candidata, recalcular el fix, re-validar el *round-trip* estricto en el momento de la ejecución (no confiar en el escaneo previo) y actualizar solo si valida — mismo criterio de seguridad que el diagnóstico, no un `REPLACE` ciego de caracteres.
 3. **Verificación post-fix**: re-correr el escaneo. Debe dar 0 filas candidatas restantes (o solo casos genuinamente nuevos que aparezcan por otra causa, no por este patrón).
 4. **Spot-check manual**: releer 5-10 filas al azar de la tabla en SQL Developer para confirmar visualmente.
-5. **No aplica a MariaDB origen** — el arreglo es solo en Oracle (`MED_TAG`), el dato de MariaDB queda como está (es la copia de trabajo, no el sistema de producción).
+5. **No aplica a MariaDB origen** — el arreglo es solo en Oracle (`SERV_MED_TAG`), el dato de MariaDB queda como está (es la copia de trabajo, no el sistema de producción).
 
 ### Fuera de alcance de este plan (mencionar, no ejecutar todavía)
 
-- Los ~96 nombres de archivo con encoding roto en `APP_FS_FILE.ORIGINAL_NAME` (documentados en la migración de `files`, decisión previa: corregir a mano). La técnica de este documento (cp1252 + relleno Latin-1 en los 5 huecos) probablemente los resuelve también — evaluar si conviene aplicarla ahí en vez de corrección manual, en un pase aparte.
-- `MED_TAG.NSS` y `MED_TAG.TYPE` no se revisaron (son NSS numérico y nombres de campo en inglés/código, sin acentos por diseño — riesgo de corrupción ahí es nulo).
+- Los ~96 nombres de archivo con encoding roto en `SERV_MED_FS_FILE.ORIGINAL_NAME` (documentados en la migración de `files`, decisión previa: corregir a mano). La técnica de este documento (cp1252 + relleno Latin-1 en los 5 huecos) probablemente los resuelve también — evaluar si conviene aplicarla ahí en vez de corrección manual, en un pase aparte.
+- `SERV_MED_TAG.NSS` y `SERV_MED_TAG.TYPE` no se revisaron (son NSS numérico y nombres de campo en inglés/código, sin acentos por diseño — riesgo de corrupción ahí es nulo).

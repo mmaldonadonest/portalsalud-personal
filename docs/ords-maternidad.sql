@@ -6,9 +6,9 @@
 --           viven SERV_MED_ACCIDENTE, SERV_MED_RESULTADO_EXAMEN_HIST, etc.
 -- Fecha   : 21 de agosto de 2026
 -- Motivo  : "Maternidad — seguimiento completo" se re-diseñó como tabla dedicada
---           en vez de EAV sobre MED_TAG — "seguimiento" implica historial a lo
+--           en vez de EAV sobre SERV_MED_TAG — "seguimiento" implica historial a lo
 --           largo del embarazo (semanas que avanzan, próxima revisión, varios
---           chequeos); el patrón MED_TAG "ultimo valor por campo" pierde ese
+--           chequeos); el patrón SERV_MED_TAG "ultimo valor por campo" pierde ese
 --           historial en cada guardado nuevo. Mismo patrón que
 --           SERV_MED_RESULTADO_EXAMEN_HIST/SERV_MED_ACCIDENTE: cada alta es
 --           un registro nuevo (un chequeo), no un upsert que pisa el anterior.

@@ -55,8 +55,8 @@
 
 <table>
 <tr><th>Tabla <span class="pill my">MariaDB</span></th><th>Qué guarda</th><th>Destino <span class="pill or">Oracle</span></th><th>Estado</th></tr>
-<tr><td class="mono">files</td><td>Todo archivo adjunto del expediente: exámenes médicos, laboratorios, notas médicas y de incapacidad, y los adjuntos de una consulta. El binario va <strong>en base64 dentro de la columna <code>url</code></strong>.</td><td>Metadatos → <code>APP_FS_FILE</code>; binario decodificado → filesystem (<code>portal.files.root</code>)</td><td>Migrado y verificado contra Oracle <strong>local</strong> (21,448 filas); pendiente contra el destino real</td></tr>
-<tr><td class="mono">tags</td><td>Patrón EAV (una fila por campo): Pre-Test de ingreso, historia laboral, examen físico, contactos de emergencia, vacunas, firma digital.</td><td><code>MED_TAG</code> (EAV puro, <code>longtext</code> → <code>CLOB</code>)</td><td>Migrado y verificado contra Oracle <strong>local</strong> (550,560 filas); pendiente contra el destino real</td></tr>
+<tr><td class="mono">files</td><td>Todo archivo adjunto del expediente: exámenes médicos, laboratorios, notas médicas y de incapacidad, y los adjuntos de una consulta. El binario va <strong>en base64 dentro de la columna <code>url</code></strong>.</td><td>Metadatos → <code>SERV_MED_FS_FILE</code>; binario decodificado → filesystem (<code>portal.files.root</code>)</td><td>Migrado y verificado contra Oracle <strong>local</strong> (21,448 filas); pendiente contra el destino real</td></tr>
+<tr><td class="mono">tags</td><td>Patrón EAV (una fila por campo): Pre-Test de ingreso, historia laboral, examen físico, contactos de emergencia, vacunas, firma digital.</td><td><code>SERV_MED_TAG</code> (EAV puro, <code>longtext</code> → <code>CLOB</code>)</td><td>Migrado y verificado contra Oracle <strong>local</strong> (550,560 filas); pendiente contra el destino real</td></tr>
 </table>
 
 <h2>2. Estructura exacta <span class="pill real">SHOW CREATE TABLE del origen</span></h2>
@@ -108,7 +108,7 @@ CREATE TABLE `tags` (
 </table></div>
 
 <h4>Los 137 tipos reales, agrupados <span class="pill real">verificado contra el PHP y la BD</span></h4>
-<p>La función <code>FN_MED_TAG_GROUP</code> (en <code>tags-salud.sql</code>, ya en el destino) clasifica cada <code>type</code>; el ETL no calcula el grupo, lo pide a esa función:</p>
+<p>La función <code>SERV_MED_FN_TAG_GROUP</code> (en <code>tags-salud.sql</code>, ya en el destino) clasifica cada <code>type</code>; el ETL no calcula el grupo, lo pide a esa función:</p>
 <table>
 <tr><th>Grupo</th><th>Regla / tipos</th></tr>
 <tr><td class="mono">PRETEST</td><td>todo <code>type</code> con sufijo <code>%PRETEST%</code> — el Pre-Test de ingreso completo (datos, 7 preguntas de salud, 8 síntomas, comentarios)</td></tr>
@@ -125,7 +125,7 @@ CREATE TABLE `tags` (
 
 <h2>4. Mapeo al destino Oracle <span class="pill real">ya ejecutado end-to-end en local</span></h2>
 <table>
-<tr><th><code>files</code> <span class="pill my">MariaDB</span></th><th>→ <code>APP_FS_FILE</code> + filesystem <span class="pill or">Oracle</span></th></tr>
+<tr><th><code>files</code> <span class="pill my">MariaDB</span></th><th>→ <code>SERV_MED_FS_FILE</code> + filesystem <span class="pill or">Oracle</span></th></tr>
 <tr><td class="mono">nss</td><td><code>NSS</code> tal cual</td></tr>
 <tr><td class="mono">id</td><td><code>BUSINESS_KEY</code> = <code>'legacy-' || id</code> (idempotencia: se puede reintentar sin duplicar)</td></tr>
 <tr><td class="mono">type</td><td><code>FILE_TYPE</code> tal cual, sin normalizar</td></tr>
@@ -135,10 +135,10 @@ CREATE TABLE `tags` (
 <tr><td>—</td><td><code>CREATED_BY = 'ETL_LEGACY'</code> (así se distingue lo migrado de lo capturado en el portal)</td></tr>
 </table>
 <table>
-<tr><th><code>tags</code> <span class="pill my">MariaDB</span></th><th>→ <code>MED_TAG</code> <span class="pill or">Oracle</span></th></tr>
+<tr><th><code>tags</code> <span class="pill my">MariaDB</span></th><th>→ <code>SERV_MED_TAG</code> <span class="pill or">Oracle</span></th></tr>
 <tr><td class="mono">nss / type / content</td><td><code>NSS</code> / <code>TYPE</code> / <code>CONTENT</code> tal cual (<code>longtext</code> → <code>CLOB</code>)</td></tr>
 <tr><td class="mono">id</td><td><code>SOURCE_ID</code> (idempotencia)</td></tr>
-<tr><td>—</td><td><code>TAG_GROUP</code> = <code>FN_MED_TAG_GROUP(type)</code>, <code>CREATED_BY='ETL_LEGACY'</code>, <code>MIGRATED_AT</code>/<code>CREATED_AT</code> = fecha de la corrida</td></tr>
+<tr><td>—</td><td><code>TAG_GROUP</code> = <code>SERV_MED_FN_TAG_GROUP(type)</code>, <code>CREATED_BY='ETL_LEGACY'</code>, <code>MIGRATED_AT</code>/<code>CREATED_AT</code> = fecha de la corrida</td></tr>
 </table>
 
 <h2>5. Calidad de los datos: lo que ya se sabe <span class="pill real">medido en el origen</span></h2>
@@ -146,7 +146,7 @@ CREATE TABLE `tags` (
 <tr><th>Tabla</th><th>Hallazgo</th><th>Qué hacer</th></tr>
 <tr><td class="mono">files</td><td><strong>27 filas con <code>url</code> vacío</strong> (huérfanas)</td><td>Excluir de la carga</td></tr>
 <tr><td class="mono">files</td><td><strong>3 nombres sin extensión</strong></td><td>Resolver por magic-bytes (<code>%PDF</code>, <code>\x89PNG</code>, <code>\xFF\xD8\xFF</code>)</td></tr>
-<tr><td class="mono">files</td><td><strong>261 duplicados de contenido</strong> por <code>MD5(url)</code></td><td>Son registros de negocio legítimos: <strong>no</strong> deduplicar. Ojo: el índice único <code>UX_FS_FILE_CHECKSUM</code> del destino choca con esto (<code>ORA-00001</code>) — relajarlo o manejar el choque</td></tr>
+<tr><td class="mono">files</td><td><strong>261 duplicados de contenido</strong> por <code>MD5(url)</code></td><td>Son registros de negocio legítimos: <strong>no</strong> deduplicar. Ojo: el índice único <code>SERV_MED_UX_FS_FILE_CHECKSUM</code> del destino choca con esto (<code>ORA-00001</code>) — relajarlo o manejar el choque</td></tr>
 <tr><td class="mono">files</td><td><strong>~96 nombres (0.45 %) con encoding roto</strong> preexistente (doble-encoding en el origen)</td><td>Cosmético: sólo afecta el nombre mostrado, no el contenido ni la localización</td></tr>
 <tr><td class="mono">tags</td><td><strong>27 % de <code>content</code> vacío</strong></td><td>Normal en EAV disperso, no es corrupción</td></tr>
 <tr><td class="mono">tags</td><td><strong>117 filas con <code>nss</code> NULL</strong></td><td>Dato legítimo, no excluir</td></tr>
@@ -263,7 +263,7 @@ UNION ALL SELECT &#x27;tags&#x27;, MIN(id), MAX(id), COUNT(*), MAX(id)-MIN(id)+1
 <li>Confirmar credenciales de sólo lectura (la spec trae el usuario <code>root</code>; conviene un usuario de sólo lectura para esto).</li>
 <li>Correr el script y guardar la salida; con ella se ajusta el ETL y se cierra la verificación de la spec §6.</li>
 </ol>
-<p class="foot">Fuentes de lo marcado como verificado: <code>docs/etl-migracion-historica-especificacion.md</code> §2, §3 y §5 (consultas directas al origen del 13 y 20-ago-2026), <code>src/main/resources/db/sql/app_domain/tags-salud.sql</code> (<code>FN_MED_TAG_GROUP</code>, 137 tipos) y el runner propio <code>com.onest.app.catalog.file.etl</code>. Generado el 22-sep-2026.</p>
+<p class="foot">Fuentes de lo marcado como verificado: <code>docs/etl-migracion-historica-especificacion.md</code> §2, §3 y §5 (consultas directas al origen del 13 y 20-ago-2026), <code>src/main/resources/db/sql/app_domain/tags-salud.sql</code> (<code>SERV_MED_FN_TAG_GROUP</code>, 137 tipos) y el runner propio <code>com.onest.app.catalog.file.etl</code>. Generado el 22-sep-2026.</p>
 </div>
 <script>
 function copiar(id, btn) {

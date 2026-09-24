@@ -61,7 +61,7 @@ public class PortalUserDetailsService implements UserDetailsService {
     /**
      * El email real vive en bio_empleado, resuelto via el WS aislado
      * Servcio/usuario_email (ver docs/ords-usuario-email-nuevo.sql) - se prefiere
-     * sobre APP_SEC_USER.EMAIL (que puede ser un placeholder local, ej. el seed de
+     * sobre SERV_MED_SEC_USER.EMAIL (que puede ser un placeholder local, ej. el seed de
      * pruebas). Cualquier fallo de red cae al email local sin romper el login.
      */
     private String resolveEmail(AppSecUser user) {

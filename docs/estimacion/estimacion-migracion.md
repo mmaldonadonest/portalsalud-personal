@@ -27,7 +27,7 @@
 |----|-------------|:---:|---|
 | **U01** | Búsqueda por NSS (searchEmploye) | Completo | POST→HTML, flujos ORDS encadenados, página `/nss`, shortcut en header |
 | **U02** | Menú dinámico de módulos + permisos | Completo | validateModules (2 llamadas ORDS) → submenú lateral |
-| **U03** | Pre-Test y Checklist | Completo | Laboratorio (MED_FILE) + Pre-Test EAV ~55 campos (MED_TAG) |
+| **U03** | Pre-Test y Checklist | Completo | Laboratorio (MED_FILE) + Pre-Test EAV ~55 campos (SERV_MED_TAG) |
 | **U04** | Expediente general + consultas | Completo | Historial + detalle + alta + IMC + ICD + firma + adjuntos |
 | **U05** | Incapacidades + archivo | Completo | Lista + detalle + alta |
 | **U06** | Notas e históricos PDF | Completo | Histórico E.M / Nota médica / Nota incapacidad (módulo genérico por tipo) |
@@ -44,7 +44,7 @@ Leyenda: **Completo** = migrado y compilando · **Parcial** = base lista, falta 
 ## Infraestructura transversal lograda
 
 - Cliente ORDS (`biowsRestClient`) que tolera `text/html` con cuerpo JSON (como el `json_decode` del PHP).
-- Tablas de aterrizaje **`MED_FILE`** (adjuntos BLOB) y **`MED_TAG`** (EAV) aplicadas en **QA y local**.
+- Tablas de aterrizaje **`MED_FILE`** (adjuntos BLOB) y **`SERV_MED_TAG`** (EAV) aplicadas en **QA y local**.
 - Gestión de archivos: upload / download / delete + módulo genérico por tipo (laboratorio, examen_medico, nota_medica, nota_incapacidad).
 - Componentes reutilizados entre módulos: firma digital (canvas), buscador + Exportar a Excel, modales de detalle, guardado genérico con adjuntos.
 - Usuario de prueba sembrado (`68958027838` / `admin`, rol ROLE_ADMIN).

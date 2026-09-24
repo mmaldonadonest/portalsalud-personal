@@ -14,7 +14,7 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 /**
- * Acceso JDBC a APP_FS_FILE (metadatos de archivos). El binario NO se guarda
+ * Acceso JDBC a SERV_MED_FS_FILE (metadatos de archivos). El binario NO se guarda
  * aqui: vive en el filesystem y esta tabla solo referencia su STORAGE_PATH.
  */
 @Repository
@@ -44,7 +44,7 @@ public class FsFileRepository {
     /** Siguiente VERSION para un archivo del mismo nombre y tipo (importador Excel: se versiona, nunca se pisa). */
     public int siguienteVersion(String fileType, String originalName) {
         Integer max = jdbc.queryForObject(
-                "SELECT COALESCE(MAX(VERSION), 0) FROM APP_FS_FILE WHERE FILE_TYPE = ? AND UPPER(ORIGINAL_NAME) = UPPER(?)",
+                "SELECT COALESCE(MAX(VERSION), 0) FROM SERV_MED_FS_FILE WHERE FILE_TYPE = ? AND UPPER(ORIGINAL_NAME) = UPPER(?)",
                 Integer.class, fileType, originalName);
         return (max == null ? 0 : max) + 1;
     }
@@ -56,7 +56,7 @@ public class FsFileRepository {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbc.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(
-                    "INSERT INTO APP_FS_FILE (NSS, BUSINESS_KEY, FILE_TYPE, ORIGINAL_NAME, EXTENSION, MIME_TYPE, "
+                    "INSERT INTO SERV_MED_FS_FILE (NSS, BUSINESS_KEY, FILE_TYPE, ORIGINAL_NAME, EXTENSION, MIME_TYPE, "
                             + "SIZE_BYTES, CHECKSUM_SHA256, STORAGE_PATH, STORAGE_PROVIDER, STATUS, VERSION, "
                             + "DATE_UPLOAD, CREATED_BY) "
                             + "VALUES (?,?,?,?,?,?,?,?,?,?, 'ACTIVE', ?, ?, ?)",
@@ -84,14 +84,14 @@ public class FsFileRepository {
     /** Para idempotencia del ETL legacy: evita reinsertar un {@code BUSINESS_KEY} ya migrado. */
     public boolean existsByBusinessKey(String businessKey) {
         Integer count = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM APP_FS_FILE WHERE BUSINESS_KEY = ?", Integer.class, businessKey);
+                "SELECT COUNT(*) FROM SERV_MED_FS_FILE WHERE BUSINESS_KEY = ?", Integer.class, businessKey);
         return count != null && count > 0;
     }
 
     /** Ubicacion (nombre + mime + ruta) para descargar un archivo activo. */
     public Optional<StoredFileLocation> findLocation(long id) {
         List<StoredFileLocation> list = jdbc.query(
-                "SELECT ORIGINAL_NAME, MIME_TYPE, STORAGE_PATH FROM APP_FS_FILE WHERE ID = ? AND STATUS = 'ACTIVE'",
+                "SELECT ORIGINAL_NAME, MIME_TYPE, STORAGE_PATH FROM SERV_MED_FS_FILE WHERE ID = ? AND STATUS = 'ACTIVE'",
                 (rs, i) -> new StoredFileLocation(rs.getString("ORIGINAL_NAME"), rs.getString("MIME_TYPE"),
                         rs.getString("STORAGE_PATH")),
                 id);
@@ -101,7 +101,7 @@ public class FsFileRepository {
     /** Ruta relativa del binario, para borrarlo del filesystem. */
     public Optional<String> findStoragePathById(long id) {
         List<String> list = jdbc.query(
-                "SELECT STORAGE_PATH FROM APP_FS_FILE WHERE ID = ?",
+                "SELECT STORAGE_PATH FROM SERV_MED_FS_FILE WHERE ID = ?",
                 (rs, i) -> rs.getString("STORAGE_PATH"),
                 id);
         return list.stream().findFirst();
@@ -112,7 +112,7 @@ public class FsFileRepository {
             return List.of();
         }
         return jdbc.query(
-                "SELECT ID, ORIGINAL_NAME, SIZE_BYTES, DATE_UPLOAD, MIME_TYPE FROM APP_FS_FILE "
+                "SELECT ID, ORIGINAL_NAME, SIZE_BYTES, DATE_UPLOAD, MIME_TYPE FROM SERV_MED_FS_FILE "
                         + "WHERE FILE_TYPE = ? AND STATUS = 'ACTIVE' ORDER BY ID DESC",
                 META_MAPPER,
                 fileType);
@@ -123,14 +123,14 @@ public class FsFileRepository {
             return List.of();
         }
         return jdbc.query(
-                "SELECT ID, ORIGINAL_NAME, SIZE_BYTES, DATE_UPLOAD, MIME_TYPE FROM APP_FS_FILE "
+                "SELECT ID, ORIGINAL_NAME, SIZE_BYTES, DATE_UPLOAD, MIME_TYPE FROM SERV_MED_FS_FILE "
                         + "WHERE NSS = ? AND FILE_TYPE = ? AND STATUS = 'ACTIVE' ORDER BY ID DESC",
                 META_MAPPER,
                 nss.trim(), fileType);
     }
 
     public int deleteById(long id) {
-        return jdbc.update("DELETE FROM APP_FS_FILE WHERE ID = ?", id);
+        return jdbc.update("DELETE FROM SERV_MED_FS_FILE WHERE ID = ?", id);
     }
 
     private static final RowMapper<MedFileMeta> META_MAPPER = (rs, i) -> new MedFileMeta(

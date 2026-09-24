@@ -19,7 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 /**
  * Upload/download de adjuntos del expediente.
  * Reemplaza uploadFile.php (subida) y downloadPDFCons (descarga base64) del legacy.
- * Modelo acordado: metadatos en BD (APP_FS_FILE) + binario en filesystem
+ * Modelo acordado: metadatos en BD (SERV_MED_FS_FILE) + binario en filesystem
  * (portal.files.root); el binario NO se guarda en base de datos.
  */
 @Controller

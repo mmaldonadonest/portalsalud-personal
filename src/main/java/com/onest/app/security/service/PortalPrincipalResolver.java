@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
  * un usuario ya autenticado, sin importar el metodo de autenticacion. Extraido de
  * {@code LegacyPhpAuthenticationProvider} para que el login SSO del launcher (que valida
  * identidad via JWT, no password) reuse exactamente el mismo armado de sesion en vez de
- * duplicarlo - roles/autoridades SIEMPRE salen de APP_SEC_USER/APP_SEC_USER_ROLE local
+ * duplicarlo - roles/autoridades SIEMPRE salen de SERV_MED_SEC_USER/SERV_MED_SEC_USER_ROLE local
  * (BD = autorizacion), nunca del proveedor de autenticacion (ORDS o JWT del IdP).
  */
 @Component

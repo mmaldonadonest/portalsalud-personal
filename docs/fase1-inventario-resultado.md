@@ -62,9 +62,9 @@ siendo la 13? De eso depende:
 
 - Ya hay **10 tablas `APP_*` de otro sistema** (`APP_CONFIG_EXCEL`, `APP_TAREAS`, `APP_REPORTES`,
   `APP_DEBUG`, `APP_ESTADO`, …). Ninguna choca por nombre exacto con las nuestras
-  (`APP_SEC_*`, `APP_MENU*`, `APP_AUD_EVENT`, `APP_FS_FILE`, `APP_IMPORT_*`), pero el prefijo ya
+  (`APP_SEC_*`, `SERV_MED_MENU*`, `SERV_MED_AUD_EVENT`, `SERV_MED_FS_FILE`, `APP_IMPORT_*`), pero el prefijo ya
   está ocupado por terceros y el riesgo de colisión futura es real.
-- **`MED_TAG` no existe** aquí (confirma que el histórico aún no se migró a esta base).
+- **`SERV_MED_TAG` no existe** aquí (confirma que el histórico aún no se migró a esta base).
 - El usuario `BIOMETRICO` tiene `CREATE TABLE`, `CREATE ANY VIEW`, `DROP ANY VIEW`, `CREATE ROLE`,
   `CREATE JOB`, `EXP/IMP_FULL_DATABASE` y `UNLIMITED TABLESPACE`: demasiados privilegios para que
   una aplicación web se conecte con él.
@@ -120,7 +120,7 @@ pena reportarlo al DBA: un esquema con 91 objetos inválidos es señal de recomp
 | Tablas creadas por el portal (11) | **Todas existen** → la Fase 3 se reduce a verificar WS |
 | Procedimientos del servicio médico | **VALID** |
 | Catálogo ICD | Existe como `SERV_MED_CAT_INDICE_IDC10` (falta conteo) |
-| Esquema del portal (`APP_SEC_*`, `MED_TAG`) | **No existe** → Fase 2, en esquema propio |
+| Esquema del portal (`APP_SEC_*`, `SERV_MED_TAG`) | **No existe** → Fase 2, en esquema propio |
 | Tablas de depuración | Existen → limpieza |
 
 ## Siguientes pasos
@@ -183,7 +183,7 @@ Con la salida en mano, el asunto es distinto a lo que escribí arriba:
 
 - **El gate del SSO del portal Java NO usa ORDS en producción.** Con `portal.permissions.source=LOCAL`
   (lo que trae el perfil `prod`), `BiowsModulePermissionClient` ni siquiera se instancia: quien
-  responde `findRoleId` es `LocalModulePermissionClient`, contra `APP_SEC_USER` de la base del
+  responde `findRoleId` es `LocalModulePermissionClient`, contra `SERV_MED_SEC_USER` de la base del
   portal. Por lo tanto **`portal.biows.app-id=13` es irrelevante mientras la fuente sea LOCAL**.
 - **Lo que sí depende de ORDS es el launcher:** muestra el mosaico de una app cuando el usuario
   tiene rol en ella (`TBL_APP_ROL_USUARIO`). Hoy:
@@ -197,13 +197,13 @@ Con la salida en mano, el asunto es distinto a lo que escribí arriba:
 1. Dar de alta **roles** para la app 27 en `TBL_APPS_ROL` (los mismos tres: `USER`=1, `ADM`=2,
    `ENFERMERO`=3) y **usuarios** en `TBL_APP_ROL_USUARIO` con `id_app=27`. Se pueden copiar los 39
    de la app 13. **Sin mover los de la 13**, que los sigue usando el PHP v2.
-2. Cargar esos mismos usuarios en la base del portal (`APP_SEC_USER` + rol), que es lo que de
+2. Cargar esos mismos usuarios en la base del portal (`SERV_MED_SEC_USER` + rol), que es lo que de
    verdad valida el portal Java. Es parte de la Fase 4.
 3. `portal.biows.app-id`: dejarlo en **27** por coherencia (y porque aplicaría si alguna vez se
    cambia a `source=ORDS`). Conviene exponerlo como variable de entorno.
 
 No hace falta cargar menús en `TBL_APPS_ROL_MENU` para la 27: el menú lateral del portal Java sale
-del esquema local (`APP_MENU` / `APP_MENU_ROLE`).
+del esquema local (`SERV_MED_MENU` / `SERV_MED_MENU_ROLE`).
 
 ## Qué cambia en el plan
 

@@ -30,7 +30,7 @@ import org.springframework.stereotype.Service;
  *   <li>WS consulta_examen (412 campos, "SECCION.CAMPO") - ya lo trae ExamenClient.getExamenData.</li>
  *   <li>WS del empleado (nombre, RFC, cuenta, puesto...) - NssSearchService.</li>
  *   <li>Tabla legacy "tags" (80 valores: contactos de emergencia, trabajos anteriores, dientes,
- *       tipo de examen, oidos...) - hoy MED_TAG en la base del portal (migracion U09).</li>
+ *       tipo de examen, oidos...) - hoy SERV_MED_TAG en la base del portal (migracion U09).</li>
  * </ul>
  *
  * <p>El mapeo variable PHP -> fuente/ruta/transformacion vive en
@@ -129,7 +129,7 @@ public class ExamenDocumentoService {
         try {
             tagValues = tags.latestByNssAndTypeSuffix(nssLimpio, "");
         } catch (RuntimeException ex) {
-            log.warn("[examen-doc] sin MED_TAG para {}: {}", nssLimpio, ex.getMessage());
+            log.warn("[examen-doc] sin SERV_MED_TAG para {}: {}", nssLimpio, ex.getMessage());
             tagValues = Map.of();
         }
 

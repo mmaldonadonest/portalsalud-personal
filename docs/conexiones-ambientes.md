@@ -12,7 +12,7 @@ guardan en `credenciales-acceso.local.html` (local) o en el gestor de contraseñ
 
 ## Ambientes
 
-| Ambiente | Base del portal (JDBC, `APP_*`, `MED_TAG`) | ORDS / legacy (WS `Servcio/*`) |
+| Ambiente | Base del portal (JDBC, `APP_*`, `SERV_MED_TAG`) | ORDS / legacy (WS `Servcio/*`) |
 |---|---|---|
 | Local | Oracle XE `localhost:1521/PROYECTO_BASE_PDB`, esquema `USR_BOILERPLATE` | — (consume la de QA) |
 | QA | `200.94.116.132:1521/orclpdb`, esquema `ONEWMS_QA` | `http://10.249.249.3/biows/ords/security/Servcio` |
@@ -46,7 +46,7 @@ Lo corre el usuario y pega la salida. Responde:
 3. Estado de procedimientos/funciones (`PR_SERVICIO_MED_*`) y si hay objetos `INVALID`.
 4. Qué valores usa `EMP_STATUS` aquí (criterio real de empleado vigente).
 5. Si el gate del SSO (`TBL_APPS_ROL_MENU`, `id_app = 13`) ya tiene menús por rol.
-6. Si ya hay tablas `APP_*` / `MED_TAG` en ese esquema.
+6. Si ya hay tablas `APP_*` / `SERV_MED_TAG` en ese esquema.
 7. Privilegios y espacio del usuario (para el ETL).
 
 Con esa salida se llena la matriz "existe / falta" de la Fase 1 y se decide qué scripts

@@ -11,7 +11,7 @@
 --           login (registro_app) ni este WS lo traian. Confirmado por el usuario
 --           que bio_empleado SI tiene columna emp_email, accesible por NSS.
 --           docs/plan-tareas-concretas.html / memoria del proyecto: "el email
---           tiene que salir del WS, no de un campo manual en APP_SEC_USER".
+--           tiene que salir del WS, no de un campo manual en SERV_MED_SEC_USER".
 --
 -- Como aplicar (SQL Developer > conexion > RESTful Services):
 --   1. Abrir el handler POST existente "usuario" (modulo Catalogo).

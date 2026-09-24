@@ -19,7 +19,7 @@ Orden recomendado: **0 → 1 → 2 → 3 en paralelo con 4 → 5 → 6 → 7.**
 
 | # | Decisión / recurso | Estado hoy | Quién |
 |---|---|---|---|
-| 0.1 | **Base del portal en prod** (esquema para `APP_*`, `MED_TAG`): ¿esquema nuevo en la Oracle de producción del biométrico (`10.249.249.3`) o instancia aparte? | `application-prod.properties` apunta **provisionalmente a QA** (`ONEWMS_QA`); "la Oracle de producción real todavía no existe" (spec ETL) | DBA + Miguel |
+| 0.1 | **Base del portal en prod** (esquema para `APP_*`, `SERV_MED_TAG`): ¿esquema nuevo en la Oracle de producción del biométrico (`10.249.249.3`) o instancia aparte? | `application-prod.properties` apunta **provisionalmente a QA** (`ONEWMS_QA`); "la Oracle de producción real todavía no existe" (spec ETL) | DBA + Miguel |
 | 0.2 | Servidor de aplicación: Tomcat 11 + JDK 21 en `10.249.249.4` (donde ya está `portal.files.root`), o dónde | Existe QA en `qa-vital.onestcloud.mx` detrás de nginx | Infra |
 | 0.3 | URL pública y nginx (`proxy_pass` a `/portal-salud/`, `proxy_cookie_path /portal-salud /;`, `sub_filter`, `client_max_body_size 25m`) | Config de QA documentada y probada | Infra |
 | 0.4 | `portal.files.root` = `/mnt/data/onedev/apps/exec/filessalud` creado y escribible por Tomcat | Ruta confirmada; permisos por confirmar | Infra |
@@ -52,11 +52,11 @@ Objetivo: saber exactamente qué de lo que el portal usa existe ya en la ORDS de
 
 En el esquema decidido en 0.1, en este orden (todos idempotentes):
 
-1. `00_init_oracle21c.sql` (autoritativo: `APP_SEC_*`, `APP_MENU`, `APP_AUD_EVENT`, `APP_FS_FILE`, jobs).
-2. `01_rbac_local.sql` (roles/menús locales, `APP_MENU_ROLE`) → `02_fix_expediente_general_duplicado.sql` → `03_menu_examenes.sql` → `03_null_password_legacy_php.sql`.
+1. `00_init_oracle21c.sql` (autoritativo: `APP_SEC_*`, `SERV_MED_MENU`, `SERV_MED_AUD_EVENT`, `SERV_MED_FS_FILE`, jobs).
+2. `01_rbac_local.sql` (roles/menús locales, `SERV_MED_MENU_ROLE`) → `02_fix_expediente_general_duplicado.sql` → `03_menu_examenes.sql` → `03_null_password_legacy_php.sql`.
 3. `app_domain/app-fs-file.sql` + `app-fs-file-reconcile.sql`, `app-import.sql`, `tags-salud.sql`, `files-salud.sql`.
 4. Semilla del **primer `ADMIN`** (`seeds/user-68958027838.sql` o el NSS que se decida): sin él nadie entra a `/admin`.
-5. Verificación: `SELECT table_name FROM user_tables WHERE table_name LIKE 'APP_%' OR table_name = 'MED_TAG'` y arranque del WAR con `ddl-auto=validate` (si falta algo, el log dice `Schema-validation: missing table`).
+5. Verificación: `SELECT table_name FROM user_tables WHERE table_name LIKE 'APP_%' OR table_name = 'SERV_MED_TAG'` y arranque del WAR con `ddl-auto=validate` (si falta algo, el log dice `Schema-validation: missing table`).
 
 Est. **½ jornada**.
 
@@ -87,9 +87,9 @@ genera **las mismas rutas de sharding y los mismos checksums** que la corrida ve
 
 | Dato | Fuente | Cómo | Estado |
 |---|---|---|---|
-| Histórico `files` (21,448) y `tags` (550,560) | MariaDB `servicioMedico` | ETL equipo externo → `APP_FS_FILE` + filesystem + `MED_TAG` (spec en `etl-migracion-historica-especificacion.md`). Requiere puerto 3306 y el esquema de la Fase 2 | Ya ejecutado en QA/local; **pendiente en prod** |
+| Histórico `files` (21,448) y `tags` (550,560) | MariaDB `servicioMedico` | ETL equipo externo → `SERV_MED_FS_FILE` + filesystem + `SERV_MED_TAG` (spec en `etl-migracion-historica-especificacion.md`). Requiere puerto 3306 y el esquema de la Fase 2 | Ya ejecutado en QA/local; **pendiente en prod** |
 | Predios (17) y cuenta→predio | `SERV_MED_PREDIO` / `SERV_MED_CUENTA_PREDIO` (ORDS) | Pantalla `/admin/predios` o SQL. **Hoy sólo 2 de 260 cuentas tienen predio**; sin esto la Vista por Predio y filtros quedan en "Sin asignar". Propuesta: CSV con ~30 deducibles del nombre + el resto lo llena negocio | Pendiente de negocio |
-| Roles, menús por rol, usuarios | `APP_SEC_ROLE`, `APP_MENU_ROLE`, `APP_SEC_USER_ROLE` (portal) | Exportar de QA (roles USER/ADM/ENFERMERO/ROLE_ADMIN/ROLE_MEDICO_ANALISTA + sus menús) como `INSERT`s; usuarios se van dando de alta por NSS en `/admin/usuarios`. Limpiar el rol duplicado `MEDICO_ANALISTA` (id 42) | Pendiente |
+| Roles, menús por rol, usuarios | `SERV_MED_SEC_ROLE`, `SERV_MED_MENU_ROLE`, `SERV_MED_SEC_USER_ROLE` (portal) | Exportar de QA (roles USER/ADM/ENFERMERO/ROLE_ADMIN/ROLE_MEDICO_ANALISTA + sus menús) como `INSERT`s; usuarios se van dando de alta por NSS en `/admin/usuarios`. Limpiar el rol duplicado `MEDICO_ANALISTA` (id 42) | Pendiente |
 | Causas de consulta (23), restricciones (16 fijas) | ORDS | Vienen en sus `ords-*.sql` (seed incluido) | Con Fase 3 |
 | Importador Excel | `APP_IMPORT_*` | Sólo estructura; los lotes de QA no se migran | — |
 
@@ -107,7 +107,7 @@ Est. **1 jornada** incluyendo correcciones menores.
 
 ## Fase 6 — Convivencia con el PHP y corte
 
-- **No hay corte de datos**: PHP y Java escriben en la misma ORDS; el portal Java sólo agrega tablas propias (`APP_*`, `MED_TAG`) y WS clonados. Pueden convivir el tiempo que se quiera.
+- **No hay corte de datos**: PHP y Java escriben en la misma ORDS; el portal Java sólo agrega tablas propias (`APP_*`, `SERV_MED_TAG`) y WS clonados. Pueden convivir el tiempo que se quiera.
 - Lo único que se duplica es el **histórico de archivos/tags** (MariaDB vs Oracle): definir la fecha de corte del ETL y, a partir de ella, que los adjuntos nuevos se suban sólo por el portal Java (o repetir el ETL incremental por `SOURCE_ID`, que es idempotente).
 - Usuarios: el login por contraseña sigue validando contra ORDS (mismo password que el PHP), así que no hay migración de credenciales.
 - Retiro del PHP: decisión de negocio, no técnica; se puede apagar por módulo.

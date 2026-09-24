@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Asignacion de rol local por NSS (/admin/usuarios) - reemplaza el INSERT/UPDATE
- * manual en APP_SEC_USER/APP_SEC_USER_ROLE que se venia haciendo por SQL Developer.
+ * manual en SERV_MED_SEC_USER/SERV_MED_SEC_USER_ROLE que se venia haciendo por SQL Developer.
  * Ver docs/plan-rbac-local.md.
  *
  * <p>Busqueda SIEMPRE via NssSearchClient.findUsuario() directo (NO

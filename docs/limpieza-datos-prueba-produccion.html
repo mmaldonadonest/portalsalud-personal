@@ -35,7 +35,7 @@
 <h1>Limpieza de datos de prueba antes de producción</h1>
 <p class="sub">Portal Salud Personal · tarea 1.0 del plan de migración (<code>docs/plan-migracion-produccion.md</code>) · 21-sep-2026. Runbook para correr en SQL Developer. Scripts fuente en el repo: <code>docs/ords-limpieza-datos-prueba-inventario.sql</code>, <code>docs/ords-limpieza-datos-prueba.sql</code>, <code>src/main/resources/db/sql/99_limpieza_datos_prueba_portal.sql</code>.</p>
 
-<div class="callout rojo"><strong>Hay dos bases y cada script va a una.</strong> <span class="pill ords">ORDS</span> = esquema del legacy PHP (<code>TBL_SERV_*</code>, <code>SERV_MED_*</code>, <code>BIO_*</code>) donde conviven <em>datos reales de producción del PHP</em> con lo que probamos. <span class="pill portal">Portal</span> = esquema propio del portal Java (<code>APP_*</code>, <code>MED_TAG</code>), hoy <code>ONEWMS_QA</code>. Confundirlos no da error al ejecutar, pero borra en el lugar equivocado.</div>
+<div class="callout rojo"><strong>Hay dos bases y cada script va a una.</strong> <span class="pill ords">ORDS</span> = esquema del legacy PHP (<code>TBL_SERV_*</code>, <code>SERV_MED_*</code>, <code>BIO_*</code>) donde conviven <em>datos reales de producción del PHP</em> con lo que probamos. <span class="pill portal">Portal</span> = esquema propio del portal Java (<code>APP_*</code>, <code>SERV_MED_TAG</code>), hoy <code>ONEWMS_QA</code>. Confundirlos no da error al ejecutar, pero borra en el lugar equivocado.</div>
 
 <h2>1. Qué se considera "de prueba"</h2>
 <table>
@@ -291,7 +291,7 @@ UNION ALL SELECT &#x27;causas (debe seguir 23)&#x27;, COUNT(*) FROM SERV_MED_CAT
 
 <h2>5. Script 3 — Base del portal <span class="pill portal">Portal</span> <span class="pill del">sólo si prod reutiliza QA</span></h2>
 <div class="code"><div class="code-h"><span>sql-portal</span><button onclick="copiar('sql-portal',this)">Copiar</button></div><pre id="sql-portal">-- =====================================================================================
--- 99_limpieza_datos_prueba_portal.sql  —  BASE DEL PORTAL (JDBC: APP_*, MED_TAG), NO ORDS.
+-- 99_limpieza_datos_prueba_portal.sql  —  BASE DEL PORTAL (JDBC: APP_*, SERV_MED_TAG), NO ORDS.
 -- Limpieza de datos de prueba capturados durante el desarrollo (21-sep-2026).
 --
 -- SOLO aplica si producción va a REUTILIZAR el esquema de QA (ONEWMS_QA). Si prod nace con
@@ -307,48 +307,48 @@ UNION ALL SELECT &#x27;causas (debe seguir 23)&#x27;, COUNT(*) FROM SERV_MED_CAT
 DEFINE nss_prueba = &quot;(&#x27;30048315698&#x27;,&#x27;90099119373&#x27;,&#x27;68958027838&#x27;)&quot;;
 
 -- ---------- Inventario ----------
-SELECT &#x27;APP_FS_FILE prueba (no ETL)&#x27; q, COUNT(*) n FROM APP_FS_FILE WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; AND NSS IN &amp;nss_prueba
-UNION ALL SELECT &#x27;APP_FS_FILE no ETL (todos los NSS)&#x27;, COUNT(*) FROM APP_FS_FILE WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27;
-UNION ALL SELECT &#x27;APP_FS_FILE ETL (se conserva)&#x27;, COUNT(*) FROM APP_FS_FILE WHERE CREATED_BY = &#x27;ETL_LEGACY&#x27;
-UNION ALL SELECT &#x27;MED_TAG prueba (no ETL)&#x27;, COUNT(*) FROM MED_TAG WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; AND NSS IN &amp;nss_prueba
-UNION ALL SELECT &#x27;MED_TAG ETL (se conserva)&#x27;, COUNT(*) FROM MED_TAG WHERE CREATED_BY = &#x27;ETL_LEGACY&#x27;
-UNION ALL SELECT &#x27;APP_IMPORT_LOTE&#x27;, COUNT(*) FROM APP_IMPORT_LOTE
-UNION ALL SELECT &#x27;APP_IMPORT_FILA&#x27;, COUNT(*) FROM APP_IMPORT_FILA
-UNION ALL SELECT &#x27;APP_AUD_EVENT&#x27;, COUNT(*) FROM APP_AUD_EVENT;
+SELECT &#x27;SERV_MED_FS_FILE prueba (no ETL)&#x27; q, COUNT(*) n FROM SERV_MED_FS_FILE WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; AND NSS IN &amp;nss_prueba
+UNION ALL SELECT &#x27;SERV_MED_FS_FILE no ETL (todos los NSS)&#x27;, COUNT(*) FROM SERV_MED_FS_FILE WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27;
+UNION ALL SELECT &#x27;SERV_MED_FS_FILE ETL (se conserva)&#x27;, COUNT(*) FROM SERV_MED_FS_FILE WHERE CREATED_BY = &#x27;ETL_LEGACY&#x27;
+UNION ALL SELECT &#x27;SERV_MED_TAG prueba (no ETL)&#x27;, COUNT(*) FROM SERV_MED_TAG WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; AND NSS IN &amp;nss_prueba
+UNION ALL SELECT &#x27;SERV_MED_TAG ETL (se conserva)&#x27;, COUNT(*) FROM SERV_MED_TAG WHERE CREATED_BY = &#x27;ETL_LEGACY&#x27;
+UNION ALL SELECT &#x27;SERV_MED_IMPORT_LOTE&#x27;, COUNT(*) FROM SERV_MED_IMPORT_LOTE
+UNION ALL SELECT &#x27;SERV_MED_IMPORT_FILA&#x27;, COUNT(*) FROM SERV_MED_IMPORT_FILA
+UNION ALL SELECT &#x27;SERV_MED_AUD_EVENT&#x27;, COUNT(*) FROM SERV_MED_AUD_EVENT;
 
 -- Archivos de prueba: nombre y ruta física (el binario en portal.files.root hay que borrarlo aparte)
-SELECT ID, NSS, FILE_TYPE, ORIGINAL_NAME, CREATED_AT, CREATED_BY FROM APP_FS_FILE
+SELECT ID, NSS, FILE_TYPE, ORIGINAL_NAME, CREATED_AT, CREATED_BY FROM SERV_MED_FS_FILE
  WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; ORDER BY CREATED_AT;
 
 -- ---------- Limpieza ----------
 -- 1) Adjuntos capturados en pruebas (metadatos; el archivo físico se borra del filesystem con la lista de arriba)
-DELETE FROM APP_FS_FILE WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; AND NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_FS_FILE WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; AND NSS IN &amp;nss_prueba;
 -- Lotes del importador Excel de pruebas (los binarios también viven en files.root)
-DELETE FROM APP_FS_FILE WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; AND FILE_TYPE = &#x27;importacion&#x27;;
-DELETE FROM APP_IMPORT_FILA;
-DELETE FROM APP_IMPORT_LOTE;
+DELETE FROM SERV_MED_FS_FILE WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; AND FILE_TYPE = &#x27;importacion&#x27;;
+DELETE FROM SERV_MED_IMPORT_FILA;
+DELETE FROM SERV_MED_IMPORT_LOTE;
 
 -- 2) Pre-Test y tags capturados en pruebas para los NSS de prueba (el histórico ETL no se toca)
-DELETE FROM MED_TAG WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; AND NSS IN &amp;nss_prueba;
+DELETE FROM SERV_MED_TAG WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; AND NSS IN &amp;nss_prueba;
 
 -- 3) Bitácora de auditoría: es de desarrollo, se vacía para arrancar limpia en prod
-DELETE FROM APP_AUD_EVENT;
+DELETE FROM SERV_MED_AUD_EVENT;
 
 -- 4) Rol duplicado MEDICO_ANALISTA (id 42, sin ROLE_): Security usa ROLE_MEDICO_ANALISTA (id 43)
-DELETE FROM APP_SEC_USER_ROLE WHERE ROLE_ID IN (SELECT ID FROM APP_SEC_ROLE WHERE CODE = &#x27;MEDICO_ANALISTA&#x27;);
-DELETE FROM APP_MENU_ROLE     WHERE ROLE_ID IN (SELECT ID FROM APP_SEC_ROLE WHERE CODE = &#x27;MEDICO_ANALISTA&#x27;);
-DELETE FROM APP_SEC_ROLE      WHERE CODE = &#x27;MEDICO_ANALISTA&#x27;;
+DELETE FROM SERV_MED_SEC_USER_ROLE WHERE ROLE_ID IN (SELECT ID FROM SERV_MED_SEC_ROLE WHERE CODE = &#x27;MEDICO_ANALISTA&#x27;);
+DELETE FROM SERV_MED_MENU_ROLE     WHERE ROLE_ID IN (SELECT ID FROM SERV_MED_SEC_ROLE WHERE CODE = &#x27;MEDICO_ANALISTA&#x27;);
+DELETE FROM SERV_MED_SEC_ROLE      WHERE CODE = &#x27;MEDICO_ANALISTA&#x27;;
 
--- NO se tocan: APP_SEC_USER / APP_SEC_ROLE (resto) / APP_MENU / APP_MENU_ROLE (roles y menús
+-- NO se tocan: SERV_MED_SEC_USER / SERV_MED_SEC_ROLE (resto) / SERV_MED_MENU / SERV_MED_MENU_ROLE (roles y menús
 -- que sí van a prod), ni nada con CREATED_BY = &#x27;ETL_LEGACY&#x27;.
 
 -- ---------- Verificación ----------
-SELECT &#x27;fs_file prueba&#x27; q, COUNT(*) n FROM APP_FS_FILE WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; AND NSS IN &amp;nss_prueba
-UNION ALL SELECT &#x27;med_tag prueba&#x27;, COUNT(*) FROM MED_TAG WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; AND NSS IN &amp;nss_prueba
-UNION ALL SELECT &#x27;import lotes&#x27;, COUNT(*) FROM APP_IMPORT_LOTE
-UNION ALL SELECT &#x27;auditoria&#x27;, COUNT(*) FROM APP_AUD_EVENT
-UNION ALL SELECT &#x27;fs_file ETL (debe seguir igual)&#x27;, COUNT(*) FROM APP_FS_FILE WHERE CREATED_BY = &#x27;ETL_LEGACY&#x27;
-UNION ALL SELECT &#x27;med_tag ETL (debe seguir igual)&#x27;, COUNT(*) FROM MED_TAG WHERE CREATED_BY = &#x27;ETL_LEGACY&#x27;;
+SELECT &#x27;fs_file prueba&#x27; q, COUNT(*) n FROM SERV_MED_FS_FILE WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; AND NSS IN &amp;nss_prueba
+UNION ALL SELECT &#x27;med_tag prueba&#x27;, COUNT(*) FROM SERV_MED_TAG WHERE CREATED_BY &lt;&gt; &#x27;ETL_LEGACY&#x27; AND NSS IN &amp;nss_prueba
+UNION ALL SELECT &#x27;import lotes&#x27;, COUNT(*) FROM SERV_MED_IMPORT_LOTE
+UNION ALL SELECT &#x27;auditoria&#x27;, COUNT(*) FROM SERV_MED_AUD_EVENT
+UNION ALL SELECT &#x27;fs_file ETL (debe seguir igual)&#x27;, COUNT(*) FROM SERV_MED_FS_FILE WHERE CREATED_BY = &#x27;ETL_LEGACY&#x27;
+UNION ALL SELECT &#x27;med_tag ETL (debe seguir igual)&#x27;, COUNT(*) FROM SERV_MED_TAG WHERE CREATED_BY = &#x27;ETL_LEGACY&#x27;;
 
 -- COMMIT;
 -- ROLLBACK;

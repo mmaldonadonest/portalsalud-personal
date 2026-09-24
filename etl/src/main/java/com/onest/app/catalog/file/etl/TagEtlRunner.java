@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
- * Runner del ETL de {@code servicioMedico.tags} (MariaDB legacy) -> {@code MED_TAG}
+ * Runner del ETL de {@code servicioMedico.tags} (MariaDB legacy) -> {@code SERV_MED_TAG}
  * (Oracle). Landing EAV fiel, sin normalizar (ver tags-salud.sql notas 2 y 3).
  *
  * <p>Activar con {@code --spring.profiles.active=local,etl --etl.tags.mode=sample|full}.

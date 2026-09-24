@@ -20,11 +20,11 @@ Carga completa de los dos orígenes legacy (`files`, `tags`) desde MariaDB local
 | Datos binarios movidos | **15.0 GB** (21,676 PDFs decodificados) |
 | Filas en cuarentena | **0** |
 
-## `tags` → `MED_TAG`
+## `tags` → `SERV_MED_TAG`
 
 **550,760 / 550,760 (100%)**
 
-Cuestionarios EAV (Pre-Test, historia laboral, examen físico, contactos de emergencia) clasificados automáticamente por la función `FN_MED_TAG_GROUP`.
+Cuestionarios EAV (Pre-Test, historia laboral, examen físico, contactos de emergencia) clasificados automáticamente por la función `SERV_MED_FN_TAG_GROUP`.
 
 | | |
 |---|---|
@@ -44,11 +44,11 @@ Cuestionarios EAV (Pre-Test, historia laboral, examen físico, contactos de emer
 | Permiso de examen | 8,955 |
 | Vacunas | 1,856 |
 
-## `files` → `APP_FS_FILE`
+## `files` → `SERV_MED_FS_FILE`
 
 **21,703 / 21,703 (100%)**
 
-Metadatos a `APP_FS_FILE`; binario decodificado (base64 → PDF real) al filesystem con sharding `yyyy/MM/dd/<hash>/<uuid>.pdf` y checksum SHA-256.
+Metadatos a `SERV_MED_FS_FILE`; binario decodificado (base64 → PDF real) al filesystem con sharding `yyyy/MM/dd/<hash>/<uuid>.pdf` y checksum SHA-256.
 
 | | |
 |---|---|
@@ -62,14 +62,14 @@ Metadatos a `APP_FS_FILE`; binario decodificado (base64 → PDF real) al filesys
 | | |
 |---|---:|
 | Archivos en disco | 21,676 |
-| Filas en `APP_FS_FILE` | 21,678¹ |
+| Filas en `SERV_MED_FS_FILE` | 21,678¹ |
 | Extensión `pdf` | 100% |
 
 ¹ Incluye 2 filas de prueba preexistentes a esta migración.
 
 ## Único paso manual pendiente
 
-Los 15GB de binarios quedaron en una carpeta local (no en el servidor real de QA, inalcanzable desde esta máquina). Hay que subir ese contenido para que la app de QA pueda servir los archivos que ya están referenciados en `APP_FS_FILE`.
+Los 15GB de binarios quedaron en una carpeta local (no en el servidor real de QA, inalcanzable desde esta máquina). Hay que subir ese contenido para que la app de QA pueda servir los archivos que ya están referenciados en `SERV_MED_FS_FILE`.
 
 ```
 C:/etl-qa-files

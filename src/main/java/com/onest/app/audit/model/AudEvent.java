@@ -10,7 +10,7 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
 /**
- * Bitacora funcional (APP_AUD_EVENT, creada en db/sql/00_init_oracle21c.sql y vacia hasta el
+ * Bitacora funcional (SERV_MED_AUD_EVENT, creada en db/sql/00_init_oracle21c.sql y vacia hasta el
  * 11-sep-2026: nadie escribia en ella). Una fila por escritura del portal y por login.
  *
  * <p>Mapeo de columnas al vocabulario del modulo Auditoria: EVENT_TYPE = modulo (Consultas,
@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
  * de registro, ENTITY_ID = clave del registro (NSS, id), DETAIL_JSON = detalle legible.
  */
 @Entity
-@Table(name = "APP_AUD_EVENT")
+@Table(name = "SERV_MED_AUD_EVENT")
 public class AudEvent {
 
     @Id

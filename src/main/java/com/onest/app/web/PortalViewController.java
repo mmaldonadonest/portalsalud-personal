@@ -112,7 +112,7 @@ public class PortalViewController {
 
     /**
      * /admin/** protegido con hasRole("ADMIN") en SecurityConfiguration. Roles locales
-     * (APP_SEC_ROLE) - primera de las 3 pantallas admin del plan RBAC local
+     * (SERV_MED_SEC_ROLE) - primera de las 3 pantallas admin del plan RBAC local
      * (docs/plan-rbac-local.md): roles, roles/{id}/menus, usuarios.
      */
     @GetMapping("/admin/roles")

@@ -118,7 +118,7 @@
   <table>
     <thead><tr><th style="width:20%">Componente</th><th class="c" style="width:14%">Estado</th><th>Detalle</th></tr></thead>
     <tbody>
-      <tr><td>Almacenamiento de archivos (metadatos en BD + binario en filesystem)</td><td class="c"><span class="badge ok">Completo</span></td><td>Modelo del contrato: <code>APP_FS_FILE</code> + <code>StorageProvider</code> a disco (sharding por fecha, UUID, checksum SHA-256, escritura atómica). Reemplaza el guardado del binario en BD</td></tr>
+      <tr><td>Almacenamiento de archivos (metadatos en BD + binario en filesystem)</td><td class="c"><span class="badge ok">Completo</span></td><td>Modelo del contrato: <code>SERV_MED_FS_FILE</code> + <code>StorageProvider</code> a disco (sharding por fecha, UUID, checksum SHA-256, escritura atómica). Reemplaza el guardado del binario en BD</td></tr>
       <tr><td>Esquema destino de landing (Oracle)</td><td class="c"><span class="badge ok">Completo</span></td><td>Tablas de aterrizaje (archivos/etiquetas) creadas; función base64→BLOB validada para la migración histórica</td></tr>
       <tr><td>Escritura de datos nuevos</td><td class="c"><span class="badge ok">Completo</span></td><td>Adjuntos (a filesystem), pre-test y exámenes ya se guardan en el modelo definitivo</td></tr>
       <tr><td>Carga masiva histórica</td><td class="c"><span class="badge pend">Pendiente</span></td><td><strong>Bloqueante:</strong> necesita acceso al origen MariaDB (dump o DB-link) para migrar los registros existentes</td></tr>

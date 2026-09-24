@@ -25,7 +25,7 @@ import org.springframework.stereotype.Component;
  *   <li>escritura atomica temp + move</li>
  *   <li>checksum SHA-256 del contenido</li>
  * </ul>
- * El binario NO se guarda en base de datos; solo sus metadatos (APP_FS_FILE).
+ * El binario NO se guarda en base de datos; solo sus metadatos (SERV_MED_FS_FILE).
  */
 @Component
 public class FilesystemStorageProvider implements StorageProvider {

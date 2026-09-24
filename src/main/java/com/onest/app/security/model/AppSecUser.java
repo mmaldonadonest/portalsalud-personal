@@ -14,7 +14,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "APP_SEC_USER")
+@Table(name = "SERV_MED_SEC_USER")
 public class AppSecUser {
 
     @Id
@@ -46,7 +46,7 @@ public class AppSecUser {
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-            name = "APP_SEC_USER_ROLE",
+            name = "SERV_MED_SEC_USER_ROLE",
             joinColumns = @JoinColumn(name = "USER_ID"),
             inverseJoinColumns = @JoinColumn(name = "ROLE_ID")
     )

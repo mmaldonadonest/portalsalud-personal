@@ -19,9 +19,9 @@ Carpeta `src/main/resources/db/sql/`:
 
 | Script | Crea | Módulo |
 |---|---|---|
-| `00_init_oracle21c.sql` | `APP_SEC_*`, `APP_MENU*`, `APP_AUD_EVENT`, `APP_FS_FILE`, jobs… (autoritativo) | Base |
-| `app_domain/app-fs-file.sql` (+ `app-fs-file-reconcile.sql`) | `APP_FS_FILE` si no existe / reconcilia columnas | Adjuntos PDF, importador |
-| `app_domain/app-import.sql` | `APP_IMPORT_LOTE`, `APP_IMPORT_FILA` + índices | **Importar Excel** (staging temporal) |
+| `00_init_oracle21c.sql` | `APP_SEC_*`, `SERV_MED_MENU*`, `SERV_MED_AUD_EVENT`, `SERV_MED_FS_FILE`, jobs… (autoritativo) | Base |
+| `app_domain/app-fs-file.sql` (+ `app-fs-file-reconcile.sql`) | `SERV_MED_FS_FILE` si no existe / reconcilia columnas | Adjuntos PDF, importador |
+| `app_domain/app-import.sql` | `SERV_MED_IMPORT_LOTE`, `SERV_MED_IMPORT_FILA` + índices | **Importar Excel** (staging temporal) |
 | `app_domain/files-salud.sql`, `tags-salud.sql` | landing de la migración histórica | ETL U09 |
 
 Además, en el **servidor** del portal: `portal.files.root` debe existir y ser escribible por Tomcat

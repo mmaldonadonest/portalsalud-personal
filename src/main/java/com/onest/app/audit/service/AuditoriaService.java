@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Bitacora funcional del portal (modulo Auditoria). Escribe en APP_AUD_EVENT y la consulta
+ * Bitacora funcional del portal (modulo Auditoria). Escribe en SERV_MED_AUD_EVENT y la consulta
  * con filtros. Registrar NUNCA lanza: una bitacora caida no debe tumbar la operacion que
  * audita (se loguea y sigue). Usuario, IP y trace-id se toman del contexto del request.
  */

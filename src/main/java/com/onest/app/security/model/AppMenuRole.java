@@ -16,7 +16,7 @@ import jakarta.persistence.Table;
  * la pantalla /admin/roles/{id}/menus y desde LocalModulePermissionClient.
  */
 @Entity
-@Table(name = "APP_MENU_ROLE")
+@Table(name = "SERV_MED_MENU_ROLE")
 public class AppMenuRole {
 
     @Id

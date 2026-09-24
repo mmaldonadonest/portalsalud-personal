@@ -22,7 +22,7 @@ Conclusión: **no es una migración, es funcionalidad nueva** — ni el PHP lo h
 | Qué ve el usuario | Al guardar se abre una pestaña con el documento y aparece el diálogo de imprimir ya abierto: elige "Guardar como PDF" y listo (1 clic). | Al guardar se descarga `examen_<nss>_<fecha>.pdf` directo a la carpeta de descargas, sin diálogo. |
 | Librerías | Ninguna (es lo que ya hace el examen). | `openpdf 2.0.3` o `itext html2pdf 3.0.5` — están en el repositorio Maven local, se pueden agregar offline. Hay que validar licencia: iText 7 es AGPL (uso comercial requiere licencia), OpenPDF es LGPL/MPL (ok). |
 | Fidelidad | La misma vista de siempre; el PDF depende del navegador (Chrome/Edge lo hacen bien). | Layout propio en Java; hay que rehacer el documento en la librería (o render HTML→PDF con html2pdf, que respeta bastante CSS). |
-| Riesgo | Bloqueador de pop-ups: el `window.open` ocurre después de un `fetch` asíncrono; algunos navegadores lo bloquean. Mitigación: abrir la pestaña **en el clic** de Guardar y navegarla al terminar, y además dejar un botón "Descargar documento" en el mensaje de éxito. | El PDF se puede además **guardar en `APP_FS_FILE`** como adjunto del expediente (queda evidencia del documento firmado, descargable después desde Historico E.M / detalle de consulta). |
+| Riesgo | Bloqueador de pop-ups: el `window.open` ocurre después de un `fetch` asíncrono; algunos navegadores lo bloquean. Mitigación: abrir la pestaña **en el clic** de Guardar y navegarla al terminar, y además dejar un botón "Descargar documento" en el mensaje de éxito. | El PDF se puede además **guardar en `SERV_MED_FS_FILE`** como adjunto del expediente (queda evidencia del documento firmado, descargable después desde Historico E.M / detalle de consulta). |
 | Esfuerzo | ~7 h | ~11 h (A + 4 h de librería/render) |
 
 **Recomendación:** hacer **A ahora** (cubre "descarga inmediata" con lo que ya existe) dejando el documento preparado para B: si después quieren el archivo sin diálogo o guardarlo como evidencia en el expediente, B se monta encima sin rehacer nada.
@@ -45,4 +45,4 @@ Conclusión: **no es una migración, es funcionalidad nueva** — ni el PHP lo h
 
 ## 5. Qué NO requiere
 
-Ni SQL en la base del portal ni cambios en ORDS: la firma ya viaja y ya se devuelve en los 3 WS. Si en B se guarda el PDF como adjunto, se usa `APP_FS_FILE` tal cual.
+Ni SQL en la base del portal ni cambios en ORDS: la firma ya viaja y ya se devuelve en los 3 WS. Si en B se guarda el PDF como adjunto, se usa `SERV_MED_FS_FILE` tal cual.

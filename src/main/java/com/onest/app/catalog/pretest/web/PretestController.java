@@ -54,7 +54,7 @@ public class PretestController {
     }
 
     /**
-     * Documento imprimible del Pre-Test (declaracion firmada del trabajador). Datos de MED_TAG
+     * Documento imprimible del Pre-Test (declaracion firmada del trabajador). Datos de SERV_MED_TAG
      * + ficha del empleado; el PDF lo genera el navegador; {@code auto=1} abre el dialogo al
      * cargar. Ver docs/plan-impresion-pretest-incapacidad-consulta.md.
      */

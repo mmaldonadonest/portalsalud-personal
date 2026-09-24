@@ -24,7 +24,7 @@
     <artifactId>portal-salud-etl</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>portal-salud-etl</name>
-    <description>ETL de migracion historica: servicioMedico.files/tags (MariaDB) -> APP_FS_FILE + MED_TAG (Oracle) + filesystem</description>
+    <description>ETL de migracion historica: servicioMedico.files/tags (MariaDB) -> SERV_MED_FS_FILE + SERV_MED_TAG (Oracle) + filesystem</description>
 
     <properties>
         <java.version>21</java.version>
@@ -43,7 +43,7 @@
             <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>
 
-        <!-- Destino: Oracle (APP_FS_FILE, MED_TAG) -->
+        <!-- Destino: Oracle (SERV_MED_FS_FILE, SERV_MED_TAG) -->
         <dependency>
             <groupId>com.oracle.database.jdbc</groupId>
             <artifactId>ojdbc11</artifactId>

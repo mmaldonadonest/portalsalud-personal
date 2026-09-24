@@ -52,7 +52,7 @@ public class ViewModelAdvice {
         }
 
         // Menus por rol para el sidebar (grupo "Examenes"): con fuente LOCAL, los CODE de
-        // APP_MENU_ROLE del usuario; con ORDS no hay codes -> null = el menu no filtra
+        // SERV_MED_MENU_ROLE del usuario; con ORDS no hay codes -> null = el menu no filtra
         // (comportamiento anterior). Nunca lanza: un fallo aqui no debe tumbar la vista.
         attributes.put("menusPermitidos", menusPermitidos());
 

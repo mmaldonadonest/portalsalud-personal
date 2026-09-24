@@ -11,7 +11,7 @@
   Usuario / Modulo / Accion / Desde + tabla fecha, usuario, accion, modulo, registro, detalle, IP.
   Adicional: Hasta, busqueda de texto y paginacion.
 
-  Fuente: APP_AUD_EVENT (existia desde 00_init_oracle21c.sql pero nadie escribia en ella hasta
+  Fuente: SERV_MED_AUD_EVENT (existia desde 00_init_oracle21c.sql pero nadie escribia en ella hasta
   el 11-sep-2026). Escriben: AuditoriaInterceptor (handlers marcados @Auditado = escrituras
   reales del portal), los dos logins (password y SSO) y las exportaciones CSV del dashboard
   (POST /api/auditoria/exportacion desde cada pantalla). La bitacora arranca vacia y se llena
@@ -135,7 +135,7 @@
 
     <p class="fs-11 text-muted mt-3 mb-0">
         <i class="ri-information-line"></i>
-        Fuente: tabla <code>APP_AUD_EVENT</code> del portal. Los registros que se capturan en el
+        Fuente: tabla <code>SERV_MED_AUD_EVENT</code> del portal. Los registros que se capturan en el
         portal PHP productivo no aparecen aquí. Detrás del proxy la IP es la del cliente
         (<code>X-Forwarded-For</code>).
     </p>

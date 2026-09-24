@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 /**
  * Punto de entrada del ETL de migracion historica (U09): lee {@code servicioMedico.files} y
  * {@code servicioMedico.tags} de la MariaDB del legacy PHP y los carga en Oracle
- * ({@code APP_FS_FILE}, {@code MED_TAG}) y en el filesystem del portal.
+ * ({@code SERV_MED_FS_FILE}, {@code SERV_MED_TAG}) y en el filesystem del portal.
  *
  * <p>Proyecto SEPARADO del portal desde el 23-sep-2026: antes vivia dentro del WAR bajo el
  * perfil "etl" y eso significaba llevar el driver de MariaDB a produccion y poder disparar una

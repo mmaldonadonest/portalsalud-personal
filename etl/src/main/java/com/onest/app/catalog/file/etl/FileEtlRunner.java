@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Runner del ETL U09: migra {@code servicioMedico.files} (MariaDB legacy) a
- * filesystem + {@code APP_FS_FILE} (Oracle), llamando a {@link StorageProvider}
+ * filesystem + {@code SERV_MED_FS_FILE} (Oracle), llamando a {@link StorageProvider}
  * + {@link FsFileRepository} directo (NO {@code FileStoreService}: ese rechaza
  * >25MB y extensiones fuera de {pdf,png,jpg,jpeg,docx}; con el, cualquier
  * archivo legacy raro se cae en vez de migrarse - ver plan seccion 4).

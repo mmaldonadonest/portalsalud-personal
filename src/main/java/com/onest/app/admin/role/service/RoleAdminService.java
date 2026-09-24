@@ -11,10 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * CRUD de roles locales (APP_SEC_ROLE) para /admin/roles - ver docs/plan-rbac-local.md.
+ * CRUD de roles locales (SERV_MED_SEC_ROLE) para /admin/roles - ver docs/plan-rbac-local.md.
  * CODE es inmutable una vez creado: es la llave usada como GrantedAuthority de
  * Spring (ej. ROLE_ADMIN, ver LegacyPhpAuthenticationProvider/PortalUserDetailsService)
- * y como referencia en APP_MENU_ROLE/APP_SEC_USER_ROLE - renombrarlo en caliente
+ * y como referencia en SERV_MED_MENU_ROLE/SERV_MED_SEC_USER_ROLE - renombrarlo en caliente
  * podria dejar esas referencias apuntando a un rol "distinto" en la practica.
  * Preferir ACTIVE=N sobre DELETE (a diferencia de ORDS, que borra en duro sin
  * validar huerfanos en TBL_APPS_ROL_MENU/TBL_APP_ROL_USUARIO).

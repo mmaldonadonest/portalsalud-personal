@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Diagnosticos secundarios del Examen (hasta 3), EAV via MED_TAG - mismo patron que
+ * Diagnosticos secundarios del Examen (hasta 3), EAV via SERV_MED_TAG - mismo patron que
  * ContactoEmergenciaService. NSS-scoped (no por consulta/examen individual), igual que
  * Contactos de emergencia - es un dato de la persona, no de un evento puntual.
  */
@@ -38,7 +38,7 @@ public class DiagnosticoSecundarioService {
         return out;
     }
 
-    /** Guarda los 3 slots (DELETE+INSERT por campo, como el resto de MED_TAG). */
+    /** Guarda los 3 slots (DELETE+INSERT por campo, como el resto de SERV_MED_TAG). */
     @Transactional
     public void guardar(String nss, Map<String, String> campos) {
         String normalized = normalizeNss(nss);

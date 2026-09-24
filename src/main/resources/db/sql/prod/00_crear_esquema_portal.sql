@@ -9,8 +9,8 @@
 --   * El usuario BIOMETRICO tiene CREATE TABLE, DROP ANY VIEW, CREATE ROLE,
 --     EXP/IMP_FULL_DATABASE y UNLIMITED TABLESPACE: demasiado poder para una aplicacion web.
 --   * El portal NO necesita leer ninguna tabla del legacy por JDBC. Verificado en el codigo:
---     las unicas tablas que consulta son APP_FS_FILE, APP_IMPORT_LOTE, APP_IMPORT_FILA y
---     MED_TAG, todas suyas. Lo demas (consultas, incapacidades, examen, empleados) lo obtiene
+--     las unicas tablas que consulta son SERV_MED_FS_FILE, SERV_MED_IMPORT_LOTE, SERV_MED_IMPORT_FILA y
+--     SERV_MED_TAG, todas suyas. Lo demas (consultas, incapacidades, examen, empleados) lo obtiene
 --     por los WS de ORDS via HTTP. Es decir: el esquema del portal es INDEPENDIENTE y no
 --     requiere ningun GRANT cruzado contra BIOMETRICO.
 --
@@ -31,7 +31,7 @@
 --   APP_USER     PORTAL_SALUD_APP      con el que se conecta el WAR (solo DML)
 --   RO_USER      PORTAL_SALUD_RO       solo lectura, para pruebas desde equipos de desarrollo
 --   TABLESPACE   PORTAL_SALUD_DATA     o el que indique el DBA
---   CUOTA        2G                    MED_TAG son ~550 mil filas (~52 MB) + APP_FS_FILE solo
+--   CUOTA        2G                    SERV_MED_TAG son ~550 mil filas (~52 MB) + SERV_MED_FS_FILE solo
 --                                      metadatos; los binarios van al filesystem, no a Oracle
 
 -- ---------- 1. Tablespace (omitir si se reutiliza uno existente) ----------
@@ -49,8 +49,8 @@ GRANT CREATE SESSION      TO PORTAL_SALUD;
 GRANT CREATE TABLE        TO PORTAL_SALUD;
 GRANT CREATE SEQUENCE     TO PORTAL_SALUD;
 GRANT CREATE VIEW         TO PORTAL_SALUD;
-GRANT CREATE PROCEDURE    TO PORTAL_SALUD;   -- tags-salud.sql crea FN_MED_TAG_GROUP
-GRANT CREATE TRIGGER      TO PORTAL_SALUD;   -- 00_init crea un trigger de APP_FS_FILE
+GRANT CREATE PROCEDURE    TO PORTAL_SALUD;   -- tags-salud.sql crea SERV_MED_FN_TAG_GROUP
+GRANT CREATE TRIGGER      TO PORTAL_SALUD;   -- 00_init crea un trigger de SERV_MED_FS_FILE
 
 -- ---------- 3. Usuario de la APLICACION (el que va en SPRING_DATASOURCE_USERNAME) ----------
 -- Sin ningun privilegio de DDL: aunque una propiedad mal puesta intentara alterar el esquema,

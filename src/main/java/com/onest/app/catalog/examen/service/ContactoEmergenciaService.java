@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Contactos de emergencia del Examen (hasta 3), EAV via MED_TAG - mismo patron que
+ * Contactos de emergencia del Examen (hasta 3), EAV via SERV_MED_TAG - mismo patron que
  * PretestService, pero sin sufijo: el TYPE ya es el nombre completo con indice
  * (contactoEmer{campo}{indice}), tal cual viene de los datos migrados.
  */
@@ -46,7 +46,7 @@ public class ContactoEmergenciaService {
         return out;
     }
 
-    /** Guarda los 3x5 campos (DELETE+INSERT por campo, como el resto de MED_TAG). */
+    /** Guarda los 3x5 campos (DELETE+INSERT por campo, como el resto de SERV_MED_TAG). */
     @Transactional
     public void guardar(String nss, Map<String, String> campos) {
         String normalized = normalizeNss(nss);

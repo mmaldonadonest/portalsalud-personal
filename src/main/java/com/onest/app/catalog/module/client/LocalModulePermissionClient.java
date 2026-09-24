@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>Un usuario puede tener mas de un rol local a la vez (ej. ROLE_ADMIN, el gate
  * del panel /admin, sembrado aparte de este RBAC) - findRoleId prefiere el rol
- * que de verdad tenga menus asignados en APP_MENU_ROLE (el "rol clinico"), no
+ * que de verdad tenga menus asignados en SERV_MED_MENU_ROLE (el "rol clinico"), no
  * "el primero que se encuentre".
  */
 @Component
@@ -44,7 +44,7 @@ public class LocalModulePermissionClient implements ModulePermissionClient {
                             .toList();
                     // Un usuario puede tener a la vez ROLE_ADMIN (gate del panel /admin,
                     // sin relacion con menus clinicos) y un rol clinico (USER/ADM/ENFERMERO,
-                    // el que SI tiene filas en APP_MENU_ROLE) - preferir el que de verdad
+                    // el que SI tiene filas en SERV_MED_MENU_ROLE) - preferir el que de verdad
                     // tenga menus asignados, no "el primero que se encuentre" (el orden de
                     // un Set no esta garantizado y con ROLE_ADMIN primero el submenu salia
                     // vacio aunque el usuario si tuviera rol clinico).

@@ -12,8 +12,8 @@ Es todo el alcance del ETL. Verificado con `SHOW TABLES FROM servicioMedico` (20
 
 | # | Origen MariaDB `servicioMedico` | Filas (snapshot 13-ago) | Destino | Notas |
 |---|---|---|---|---|
-| 1 | `files` | 21,475 (~18 GB) | `APP_FS_FILE` (metadatos) + **filesystem** `portal.files.root` (binario) | El base64 de `url` **no** entra a Oracle; se decodifica a disco con sharding `yyyy/MM/dd/<2 hex sha256>/<uuid>.<ext>`. Excluir 27 filas con `url` vacío |
-| 2 | `tags` | 550,560 (~52 MB) | `MED_TAG` | EAV puro (`type`=campo, `content`=valor), `longtext` → `CLOB`; `TAG_GROUP` lo calcula `FN_MED_TAG_GROUP` en destino |
+| 1 | `files` | 21,475 (~18 GB) | `SERV_MED_FS_FILE` (metadatos) + **filesystem** `portal.files.root` (binario) | El base64 de `url` **no** entra a Oracle; se decodifica a disco con sharding `yyyy/MM/dd/<2 hex sha256>/<uuid>.<ext>`. Excluir 27 filas con `url` vacío |
+| 2 | `tags` | 550,560 (~52 MB) | `SERV_MED_TAG` | EAV puro (`type`=campo, `content`=valor), `longtext` → `CLOB`; `TAG_GROUP` lo calcula `SERV_MED_FN_TAG_GROUP` en destino |
 
 Marca de origen: ambas cargas escriben `CREATED_BY = 'ETL_LEGACY'`, que es lo que permite distinguirlas después de lo capturado por el portal.
 
@@ -23,16 +23,16 @@ Estructura nueva; sin datos que viajen del legacy, salvo las semillas y lo que s
 
 | Grupo | Tablas | Script | Datos que hay que cargar en prod |
 |---|---|---|---|
-| Seguridad / RBAC | `APP_SEC_USER`, `APP_SEC_ROLE`, `APP_SEC_USER_ROLE`, `APP_SEC_PERMISSION`, `APP_SEC_ROLE_PERMISSION` | `00_init_oracle21c.sql`, `01_rbac_local.sql` | Roles (`USER`, `ADM`, `ENFERMERO`, `ROLE_ADMIN`, `ROLE_MEDICO_ANALISTA`) y el primer usuario ADMIN. Sin contraseñas: el login valida contra ORDS |
-| Menús | `APP_MENU`, `APP_MENU_ROLE` | `01_rbac_local.sql`, `02_fix_expediente_general_duplicado.sql`, `03_menu_examenes.sql` | 20 menús (13 del expediente + 4 archivos//otros + 3 de Exámenes) y su asignación por rol |
-| Auditoría | `APP_AUD_EVENT`, `APP_AUDIT_SQL_EXECUTION` | `00_init_oracle21c.sql` | Ninguno (arranca vacía) |
-| Archivos | `APP_FS_FILE` + satélites `APP_FS_FILE_VERSION`, `APP_FS_FILE_ACCESS_LOG`, `APP_FS_FILE_POLICY`, `APP_FS_FILE_ORPHAN_TRACKING` | `00_init_oracle21c.sql`, `app_domain/app-fs-file.sql` (+ `-reconcile`) | Los metadatos los pone el ETL (grupo A). **Los satélites no los usa el código**, existen por las FKs del script autoritativo |
-| Importador Excel | `APP_IMPORT_LOTE`, `APP_IMPORT_FILA` | `app_domain/app-import.sql` | Ninguno (staging; los lotes de QA no se migran) |
-| EAV histórico | `MED_TAG` + `MED_TAG_MIG_LOG` (bitácora de la corrida) | `app_domain/tags-salud.sql` | El ETL (grupo A). Incluye la función `FN_MED_TAG_GROUP` |
-| Jobs / notificaciones | `APP_JOB_CATALOG`, `APP_NOTIF_TEMPLATE` | `00_init_oracle21c.sql` | Ninguno |
-| Diseño anterior (no usado) | `MED_FILE`, `MED_FILE_MIG_LOG` | `app_domain/files-salud.sql` | **No las usa el portal**: el código escribe en `APP_FS_FILE`. Se dejan por compatibilidad del script; no cargar nada |
+| Seguridad / RBAC | `SERV_MED_SEC_USER`, `SERV_MED_SEC_ROLE`, `SERV_MED_SEC_USER_ROLE`, `SERV_MED_SEC_PERMISSION`, `SERV_MED_SEC_ROLE_PERMISSION` | `00_init_oracle21c.sql`, `01_rbac_local.sql` | Roles (`USER`, `ADM`, `ENFERMERO`, `ROLE_ADMIN`, `ROLE_MEDICO_ANALISTA`) y el primer usuario ADMIN. Sin contraseñas: el login valida contra ORDS |
+| Menús | `SERV_MED_MENU`, `SERV_MED_MENU_ROLE` | `01_rbac_local.sql`, `02_fix_expediente_general_duplicado.sql`, `03_menu_examenes.sql` | 20 menús (13 del expediente + 4 archivos//otros + 3 de Exámenes) y su asignación por rol |
+| Auditoría | `SERV_MED_AUD_EVENT`, `SERV_MED_AUDIT_SQL_EXECUTION` | `00_init_oracle21c.sql` | Ninguno (arranca vacía) |
+| Archivos | `SERV_MED_FS_FILE` + satélites `SERV_MED_FS_FILE_VERSION`, `SERV_MED_FS_FILE_ACCESS_LOG`, `SERV_MED_FS_FILE_POLICY`, `SERV_MED_FS_FILE_ORPHAN` | `00_init_oracle21c.sql`, `app_domain/app-fs-file.sql` (+ `-reconcile`) | Los metadatos los pone el ETL (grupo A). **Los satélites no los usa el código**, existen por las FKs del script autoritativo |
+| Importador Excel | `SERV_MED_IMPORT_LOTE`, `SERV_MED_IMPORT_FILA` | `app_domain/app-import.sql` | Ninguno (staging; los lotes de QA no se migran) |
+| EAV histórico | `SERV_MED_TAG` + `SERV_MED_TAG_MIG_LOG` (bitácora de la corrida) | `app_domain/tags-salud.sql` | El ETL (grupo A). Incluye la función `SERV_MED_FN_TAG_GROUP` |
+| Jobs / notificaciones | `SERV_MED_JOB_CATALOG`, `SERV_MED_NOTIF_TEMPLATE` | `00_init_oracle21c.sql` | Ninguno |
+| Diseño anterior (no usado) | `MED_FILE`, `MED_FILE_MIG_LOG` | `app_domain/files-salud.sql` | **No las usa el portal**: el código escribe en `SERV_MED_FS_FILE`. Se dejan por compatibilidad del script; no cargar nada |
 
-> Ojo con `APP_FS_FILE`: el script autoritativo crea el índice único `UX_FS_FILE_CHECKSUM`, y en `files` hay **261 duplicados legítimos de contenido** — hay que relajar el índice o manejar el `ORA-00001` antes de correr el ETL.
+> Ojo con `SERV_MED_FS_FILE`: el script autoritativo crea el índice único `SERV_MED_UX_FS_FILE_CHECKSUM`, y en `files` hay **261 duplicados legítimos de contenido** — hay que relajar el índice o manejar el `ORA-00001` antes de correr el ETL.
 
 ## C. Tablas que se CREAN en ORDS (esquema legacy) — 11
 

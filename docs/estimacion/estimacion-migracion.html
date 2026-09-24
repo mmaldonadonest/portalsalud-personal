@@ -57,7 +57,7 @@
     <tbody>
       <tr><td class="c"><strong>U01</strong></td><td>Búsqueda por NSS (searchEmploye)</td><td class="c"><span class="badge ok">Completo</span></td><td>POST→HTML, flujos ORDS encadenados, página <code>/nss</code>, shortcut header</td></tr>
       <tr><td class="c"><strong>U02</strong></td><td>Menú dinámico de módulos + permisos</td><td class="c"><span class="badge ok">Completo</span></td><td>validateModules (2 llamadas ORDS) → submenú lateral</td></tr>
-      <tr><td class="c"><strong>U03</strong></td><td>Pre-Test y Checklist</td><td class="c"><span class="badge ok">Completo</span></td><td>Laboratorio (MED_FILE) + Pre-Test EAV ~55 campos (MED_TAG)</td></tr>
+      <tr><td class="c"><strong>U03</strong></td><td>Pre-Test y Checklist</td><td class="c"><span class="badge ok">Completo</span></td><td>Laboratorio (MED_FILE) + Pre-Test EAV ~55 campos (SERV_MED_TAG)</td></tr>
       <tr><td class="c"><strong>U04</strong></td><td>Expediente general + consultas</td><td class="c"><span class="badge ok">Completo</span></td><td>Historial + detalle + alta + IMC + ICD + firma + adjuntos</td></tr>
       <tr><td class="c"><strong>U05</strong></td><td>Incapacidades + archivo</td><td class="c"><span class="badge ok">Completo</span></td><td>Lista + detalle + alta</td></tr>
       <tr><td class="c"><strong>U06</strong></td><td>Notas e históricos PDF</td><td class="c"><span class="badge ok">Completo</span></td><td>Histórico E.M / Nota médica / Nota incapacidad (módulo genérico por tipo)</td></tr>
@@ -73,7 +73,7 @@
   <h2>Infraestructura transversal lograda</h2>
   <ul>
     <li>Cliente ORDS (<code>biowsRestClient</code>) que tolera <code>text/html</code> con cuerpo JSON (como el <code>json_decode</code> del PHP).</li>
-    <li>Tablas de aterrizaje <strong>MED_FILE</strong> (adjuntos BLOB) y <strong>MED_TAG</strong> (EAV) aplicadas en <strong>QA y local</strong>.</li>
+    <li>Tablas de aterrizaje <strong>MED_FILE</strong> (adjuntos BLOB) y <strong>SERV_MED_TAG</strong> (EAV) aplicadas en <strong>QA y local</strong>.</li>
     <li>Gestión de archivos: upload / download / delete + módulo genérico por tipo (laboratorio, examen_medico, nota_medica, nota_incapacidad).</li>
     <li>Reutilizados entre módulos: firma digital (canvas), buscador + Exportar a Excel, modales de detalle, guardado genérico con adjuntos.</li>
     <li>Usuario de prueba sembrado (<code>68958027838</code> / <code>admin</code>). Seguridad: selector de estrategia de auth + cabeceras de hardening + trazabilidad por request.</li>

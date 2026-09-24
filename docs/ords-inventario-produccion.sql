@@ -100,10 +100,10 @@ SELECT table_name FROM user_tables WHERE table_name LIKE '%ICD%' OR table_name L
 
 -- ---------- 7. ¿Esta base albergara tambien el esquema del portal (APP_*)? ----------
 -- Si ya hay tablas APP_*, alguien las creo antes; si no, es la Fase 2 del plan.
-SELECT table_name FROM user_tables WHERE table_name LIKE 'APP\_%' ESCAPE '\' OR table_name = 'MED_TAG' ORDER BY 1;
+SELECT table_name FROM user_tables WHERE table_name LIKE 'APP\_%' ESCAPE '\' OR table_name = 'SERV_MED_TAG' ORDER BY 1;
 
 -- Espacio y privilegios del usuario (para dimensionar la carga del ETL: ~18 GB de archivos
--- van al filesystem, no a Oracle, pero MED_TAG son ~550 mil filas).
+-- van al filesystem, no a Oracle, pero SERV_MED_TAG son ~550 mil filas).
 SELECT tablespace_name, ROUND(SUM(bytes)/1024/1024) mb_usados FROM user_segments GROUP BY tablespace_name ORDER BY 2 DESC;
 SELECT * FROM user_sys_privs ORDER BY privilege;
 SELECT granted_role FROM user_role_privs ORDER BY 1;

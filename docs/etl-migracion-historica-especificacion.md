@@ -35,11 +35,11 @@
 
 ### Pre-requisito: el esquema Oracle destino ya debe existir
 
-Este ETL **no crea las tablas destino** — asume que `APP_FS_FILE` y `MED_TAG` ya existen en el schema elegido, con el DDL exacto que usa el portal Java. **Resuelto y re-confirmado para el destino (QA `ONEWMS_QA`):** ambas tablas existen ahí — columnas verificadas directamente con `DESCRIBE` el 2026-08-25 (ver el mapeo exacto en la sección 3) — no hace falta correr ningún script antes de cargar. Se deja la lista de scripts como referencia por si en algún momento el destino cambia a una instancia sin el esquema aplicado:
+Este ETL **no crea las tablas destino** — asume que `SERV_MED_FS_FILE` y `SERV_MED_TAG` ya existen en el schema elegido, con el DDL exacto que usa el portal Java. **Resuelto y re-confirmado para el destino (QA `ONEWMS_QA`):** ambas tablas existen ahí — columnas verificadas directamente con `DESCRIBE` el 2026-08-25 (ver el mapeo exacto en la sección 3) — no hace falta correr ningún script antes de cargar. Se deja la lista de scripts como referencia por si en algún momento el destino cambia a una instancia sin el esquema aplicado:
 
-1. `src/main/resources/db/sql/00_init_oracle21c.sql` — crea `APP_FS_FILE` (script autoritativo) + tablas satélite/FKs.
-2. `src/main/resources/db/sql/app_domain/app-fs-file.sql` y `app-fs-file-reconcile.sql` — reconcilian columnas si `APP_FS_FILE` ya existe con una forma distinta (hay un antecedente real de esto: bug `ORA-00904 FILE_TYPE` por dos `CREATE TABLE` con formas distintas corriendo en el mismo destino).
-3. `src/main/resources/db/sql/app_domain/tags-salud.sql` — crea `MED_TAG` + funciones/vistas auxiliares (`FN_MED_TAG_GROUP`, etc.).
+1. `src/main/resources/db/sql/00_init_oracle21c.sql` — crea `SERV_MED_FS_FILE` (script autoritativo) + tablas satélite/FKs.
+2. `src/main/resources/db/sql/app_domain/app-fs-file.sql` y `app-fs-file-reconcile.sql` — reconcilian columnas si `SERV_MED_FS_FILE` ya existe con una forma distinta (hay un antecedente real de esto: bug `ORA-00904 FILE_TYPE` por dos `CREATE TABLE` con formas distintas corriendo en el mismo destino).
+3. `src/main/resources/db/sql/app_domain/tags-salud.sql` — crea `SERV_MED_TAG` + funciones/vistas auxiliares (`SERV_MED_FN_TAG_GROUP`, etc.).
 
 Confirmar con el equipo del portal Java que estos scripts ya corrieron en el destino elegido antes de intentar cualquier `INSERT` de este ETL.
 
@@ -66,8 +66,8 @@ No asumir ninguna otra ruta sin validarlo con el equipo del portal. El proceso E
 
 | Tabla MariaDB | Filas (snapshot 2026-08-13) | Tamaño | Destino Oracle | Estado |
 |---|---|---|---|---|
-| `files` | 21,475 (`COUNT(*)` real) | ~18 GB (base64) | Metadatos → `APP_FS_FILE`; binario → filesystem (`portal.files.root`, ver sección 1) | Migrado y verificado contra **Oracle LOCAL de desarrollo** (`PROYECTO_BASE_PDB`, 21,448 filas, 2026-08-13) — ver `docs/plan-etl-migracion-files.md` |
-| `tags` | 550,560 (`COUNT(*)` real) | ~52 MB | `MED_TAG` (patrón EAV) | Migrado y verificado contra **Oracle LOCAL de desarrollo** (mismo alcance, 550,560 filas, 2026-08-13) — ver memoria interna `u09-etl` |
+| `files` | 21,475 (`COUNT(*)` real) | ~18 GB (base64) | Metadatos → `SERV_MED_FS_FILE`; binario → filesystem (`portal.files.root`, ver sección 1) | Migrado y verificado contra **Oracle LOCAL de desarrollo** (`PROYECTO_BASE_PDB`, 21,448 filas, 2026-08-13) — ver `docs/plan-etl-migracion-files.md` |
+| `tags` | 550,560 (`COUNT(*)` real) | ~52 MB | `SERV_MED_TAG` (patrón EAV) | Migrado y verificado contra **Oracle LOCAL de desarrollo** (mismo alcance, 550,560 filas, 2026-08-13) — ver memoria interna `u09-etl` |
 
 **⚠️ MariaDB de origen es una base productiva y sigue creciendo con el tiempo.** Los conteos de arriba son un snapshot puntual al 2026-08-13 (`COUNT(*)` directo, no el estimado de `information_schema.TABLES`, que en InnoDB no es confiable). **No usar estos números como cifra fija de verificación.** Antes de la carga real, el equipo ejecutor debe correr `SELECT COUNT(*) FROM files` / `SELECT COUNT(*) FROM tags` contra el origen **en el momento de la ejecución**, y usar ese número (menos los huérfanos documentados en la sección 5) como base real para el checklist de verificación de la sección 6 — no los números de esta tabla.
 
@@ -101,12 +101,12 @@ CREATE TABLE `tags` (
 
 ## 3. Mapeo de destino en Oracle
 
-Columnas reales verificadas en QA (`DESCRIBE APP_FS_FILE` / `DESCRIBE MED_TAG`, 2026-08-25) y valores exactos confirmados contra el runner Java propio ya ejecutado y probado (`com.onest.app.catalog.file.etl`, ver sección 7) — no son una propuesta, es lo que YA corrió con éxito contra Oracle LOCAL.
+Columnas reales verificadas en QA (`DESCRIBE SERV_MED_FS_FILE` / `DESCRIBE SERV_MED_TAG`, 2026-08-25) y valores exactos confirmados contra el runner Java propio ya ejecutado y probado (`com.onest.app.catalog.file.etl`, ver sección 7) — no son una propuesta, es lo que YA corrió con éxito contra Oracle LOCAL.
 
-### `files` → `APP_FS_FILE` + filesystem
-**NO** se guarda el binario en Oracle (se descartó explícitamente meter 13.5GB reales a la BD) — el binario decodificado va al filesystem (sección 1), con sharding `yyyy/MM/dd/<2 hex del sha256>/<uuid>.<ext>`. `APP_FS_FILE` solo guarda metadatos:
+### `files` → `SERV_MED_FS_FILE` + filesystem
+**NO** se guarda el binario en Oracle (se descartó explícitamente meter 13.5GB reales a la BD) — el binario decodificado va al filesystem (sección 1), con sharding `yyyy/MM/dd/<2 hex del sha256>/<uuid>.<ext>`. `SERV_MED_FS_FILE` solo guarda metadatos:
 
-| Columna `APP_FS_FILE` | Origen / valor |
+| Columna `SERV_MED_FS_FILE` | Origen / valor |
 |---|---|
 | `NSS` | `files.nss` tal cual |
 | `BUSINESS_KEY` | `'legacy-' \|\| files.id` — idempotencia (permite reintentar sin duplicar) |
@@ -126,20 +126,20 @@ Columnas reales verificadas en QA (`DESCRIBE APP_FS_FILE` / `DESCRIBE MED_TAG`, 
 
 Excluir las 27 filas con `url` vacío (huérfanas, ver sección 5).
 
-### `tags` → `MED_TAG`
+### `tags` → `SERV_MED_TAG`
 Patrón EAV puro (`type`=campo, `content`=valor), `longtext` → `CLOB`, sin transformación de estructura:
 
-| Columna `MED_TAG` | Origen / valor |
+| Columna `SERV_MED_TAG` | Origen / valor |
 |---|---|
 | `NSS` | `tags.nss` tal cual (117 filas con `nss` NULL son legítimas, no excluir) |
 | `TYPE` | `tags.type` tal cual |
 | `CONTENT` | `tags.content` tal cual (27% vacío es normal, EAV disperso) |
-| `TAG_GROUP` | `FN_MED_TAG_GROUP(tags.type)` — función PL/SQL ya existente en el destino (`tags-salud.sql`), NO calcularlo del lado del ETL |
-| `SOURCE_ID` | `tags.id` — idempotencia (`SELECT COUNT(*) FROM MED_TAG WHERE SOURCE_ID = ?` antes de insertar) |
+| `TAG_GROUP` | `SERV_MED_FN_TAG_GROUP(tags.type)` — función PL/SQL ya existente en el destino (`tags-salud.sql`), NO calcularlo del lado del ETL |
+| `SOURCE_ID` | `tags.id` — idempotencia (`SELECT COUNT(*) FROM SERV_MED_TAG WHERE SOURCE_ID = ?` antes de insertar) |
 | `CREATED_BY` | mismo criterio que `files`, usar un literal identificable (ej. `'ETL_LEGACY'`) |
 | `MIGRATED_AT` / `CREATED_AT` | `SYSTIMESTAMP` (fecha de la corrida del ETL — a diferencia de `files`, aquí no hay una fecha original que preservar) |
 
-Verificación esperada tras la carga: 137 valores distintos de `TYPE`, cero filas con `TAG_GROUP` = `'OTRO'` (indicaría un `type` nuevo no cubierto por `FN_MED_TAG_GROUP`).
+Verificación esperada tras la carga: 137 valores distintos de `TYPE`, cero filas con `TAG_GROUP` = `'OTRO'` (indicaría un `type` nuevo no cubierto por `SERV_MED_FN_TAG_GROUP`).
 
 ---
 
@@ -151,7 +151,7 @@ Verificación esperada tras la carga: 137 valores distintos de `TYPE`, cero fila
 4. **Base64 limpio**, sin prefijo `data:` ni saltos de línea — decodificación directa.
 5. **Commits por lote, no todo en una transacción** — el volumen de `files` es grande (~18GB), evitar un solo `INSERT` masivo.
 6. **Modo de muestra antes de la corrida completa** — validar ~50-60 filas representativas (de cada `type`, incluyendo duplicados y casos límite) antes de correr el total.
-7. **Índice de checksum — RESUELTO en QA (2026-08-25).** El DDL de origen (`00_init_oracle21c.sql`) crea `UX_FS_FILE_CHECKSUM` como UNIQUE sobre `APP_FS_FILE.CHECKSUM_SHA256`; hay contenido duplicado legítimo (mismo PDF adjuntado a varios NSS/consultas — 261 casos conocidos), y con el índice UNIQUE la segunda copia de cada duplicado fallaría con `ORA-00001`. **Ya aplicado en ambos destinos:** Oracle LOCAL de desarrollo y ahora también QA `ONEWMS_QA` quedaron en **NONUNIQUE** (confirmado por consulta directa tras aplicar `docs/ords-fix-checksum-index-qa.sql`). No queda ninguna acción pendiente en este punto.
+7. **Índice de checksum — RESUELTO en QA (2026-08-25).** El DDL de origen (`00_init_oracle21c.sql`) crea `SERV_MED_UX_FS_FILE_CHECKSUM` como UNIQUE sobre `SERV_MED_FS_FILE.CHECKSUM_SHA256`; hay contenido duplicado legítimo (mismo PDF adjuntado a varios NSS/consultas — 261 casos conocidos), y con el índice UNIQUE la segunda copia de cada duplicado fallaría con `ORA-00001`. **Ya aplicado en ambos destinos:** Oracle LOCAL de desarrollo y ahora también QA `ONEWMS_QA` quedaron en **NONUNIQUE** (confirmado por consulta directa tras aplicar `docs/ords-fix-checksum-index-qa.sql`). No queda ninguna acción pendiente en este punto.
 
 ---
 
@@ -166,9 +166,9 @@ Verificación esperada tras la carga: 137 valores distintos de `TYPE`, cero fila
 ## 6. Verificación esperada al terminar
 
 - `COUNT(*)` de origen vs. destino coincide (descontando huérfanos ya documentados).
-- Suma de tamaños de archivo en disco vs. `SIZE_BYTES` en `APP_FS_FILE`.
+- Suma de tamaños de archivo en disco vs. `SIZE_BYTES` en `SERV_MED_FS_FILE`.
 - Muestreo aleatorio: abrir 5-10 archivos migrados y confirmar que son PDFs/imágenes válidos.
-- `MED_TAG`: conteo por `TAG_GROUP` sin filas en categoría "OTRO" (indicaría un `type` nuevo no clasificado).
+- `SERV_MED_TAG`: conteo por `TAG_GROUP` sin filas en categoría "OTRO" (indicaría un `type` nuevo no clasificado).
 
 ---
 

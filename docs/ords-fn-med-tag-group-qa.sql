@@ -1,11 +1,11 @@
 -- =============================================================================
--- FN_MED_TAG_GROUP faltante en QA (ONEWMS_QA) - encontrado 31-ago-2026 al correr
--- el ETL standalone de tags: ORA-00904 "FN_MED_TAG_GROUP": invalid identifier.
--- MED_TAG (la tabla) SI existe en QA; solo falta esta funcion.
+-- SERV_MED_FN_TAG_GROUP faltante en QA (ONEWMS_QA) - encontrado 31-ago-2026 al correr
+-- el ETL standalone de tags: ORA-00904 "SERV_MED_FN_TAG_GROUP": invalid identifier.
+-- SERV_MED_TAG (la tabla) SI existe en QA; solo falta esta funcion.
 -- Copia exacta de src/main/resources/db/sql/app_domain/tags-salud.sql (bloque 3),
 -- ya aplicada y validada contra Oracle LOCAL de desarrollo.
 -- =============================================================================
-CREATE OR REPLACE FUNCTION FN_MED_TAG_GROUP(p_type IN VARCHAR2)
+CREATE OR REPLACE FUNCTION SERV_MED_FN_TAG_GROUP(p_type IN VARCHAR2)
 RETURN VARCHAR2
 DETERMINISTIC
 IS
@@ -15,7 +15,7 @@ BEGIN
     RETURN 'PRETEST';
   END IF;
 
-  -- Firma digital (base64 de canvas HTML - candidato a APP_FS_FILE en fase futura)
+  -- Firma digital (base64 de canvas HTML - candidato a SERV_MED_FS_FILE en fase futura)
   IF p_type = 'drawdataUrlPRETEST' THEN
     RETURN 'FIRMA_DIGITAL';
   END IF;
@@ -80,8 +80,8 @@ BEGIN
   -- Cualquier tipo no clasificado queda en OTRO para revision posterior
   RETURN 'OTRO';
 
-END FN_MED_TAG_GROUP;
+END SERV_MED_FN_TAG_GROUP;
 /
 
 -- Verificacion
-SELECT FN_MED_TAG_GROUP('drawdataUrlPRETEST') AS debe_dar_firma_digital FROM dual;
+SELECT SERV_MED_FN_TAG_GROUP('drawdataUrlPRETEST') AS debe_dar_firma_digital FROM dual;

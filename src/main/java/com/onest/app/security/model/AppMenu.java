@@ -14,7 +14,7 @@ import jakarta.persistence.Table;
  * no se reutiliza la numeracion 1-14 de ORDS.
  */
 @Entity
-@Table(name = "APP_MENU")
+@Table(name = "SERV_MED_MENU")
 public class AppMenu {
 
     @Id

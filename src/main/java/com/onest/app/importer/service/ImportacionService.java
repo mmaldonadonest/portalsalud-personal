@@ -40,8 +40,8 @@ import org.springframework.web.multipart.MultipartFile;
  * Importador Excel (Analisis > Importar Excel). Orquesta los 6 pasos del prototipo:
  * leer + detectar hojas (ExcelLector), validar formato/catalogos y duplicados
  * (ImportValidador), vista previa, confirmar en transaccion y auditar (@Auditado en el
- * controller). Todo queda en staging (APP_IMPORT_LOTE/FILA) porque aun no hay layouts
- * destino; el binario se guarda en el filesystem via StorageProvider + APP_FS_FILE con
+ * controller). Todo queda en staging (SERV_MED_IMPORT_LOTE/FILA) porque aun no hay layouts
+ * destino; el binario se guarda en el filesystem via StorageProvider + SERV_MED_FS_FILE con
  * FILE_TYPE='importacion', versionado por nombre: nunca se pisa una carga anterior.
  */
 @Service
@@ -201,7 +201,7 @@ public class ImportacionService {
         return repository.disponible() ? repository.listar(50) : List.of();
     }
 
-    static final String SIN_TABLAS = "Faltan las tablas APP_IMPORT_LOTE / APP_IMPORT_FILA en la base del portal: "
+    static final String SIN_TABLAS = "Faltan las tablas SERV_MED_IMPORT_LOTE / SERV_MED_IMPORT_FILA en la base del portal: "
             + "aplicar db/sql/app_domain/app-import.sql y volver a intentar";
 
     private void exigirTablas() {

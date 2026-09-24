@@ -18,7 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 /**
  * Almacen de adjuntos del expediente. Modelo de arquitectura acordado:
  * el BINARIO va al filesystem ({@link StorageProvider}) y en la BD
- * (APP_FS_FILE, via {@link FsFileRepository}) solo se guardan los METADATOS + la
+ * (SERV_MED_FS_FILE, via {@link FsFileRepository}) solo se guardan los METADATOS + la
  * ruta. Ya NO se guarda el binario en base de datos.
  */
 @Service

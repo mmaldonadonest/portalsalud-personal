@@ -10,7 +10,7 @@
 --           actualizaciones/observaciones de UN accidente ya registrado en
 --           SERV_MED_ACCIDENTE (docs/ords-accidentes.sql) — no reemplaza esa
 --           tabla, la complementa.
--- Diseño  : se descartó EAV sobre MED_TAG (el patrón que proponía el plan
+-- Diseño  : se descartó EAV sobre SERV_MED_TAG (el patrón que proponía el plan
 --           original) por la MISMA razón que Maternidad se rediseñó de EAV a
 --           tabla dedicada: "Conservar historial de seguimiento" implica
 --           VARIAS entradas por caso a lo largo del tiempo, y EAV solo guarda
