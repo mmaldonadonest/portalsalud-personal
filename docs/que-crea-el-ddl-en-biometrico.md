@@ -160,11 +160,13 @@ De esas 64:
 
 ## 4. Antes de ejecutar
 
-1. **Respaldo del esquema** (`expdp`). El DDL es autoconfirmado: `ROLLBACK` no sirve. El
-   respaldo es lo único que devuelve el estado anterior.
+1. **Respaldo: no es bloqueante.** La base ya tiene respaldo automático, así que no hay que
+   hacer uno a propósito. Se menciona sólo para tenerlo presente: el DDL es autoconfirmado,
+   `ROLLBACK` no sirve, y la vuelta atrás son el respaldo o el script de reversa de la
+   sección 6.
 
-2. **Correr sólo el bloque PRE-CHECK** (está al inicio del mismo archivo, es de solo
-   lectura) y revisar la salida antes de seguir:
+2. **Lo único que sí hay que hacer antes: correr el bloque PRE-CHECK** (está al inicio del
+   mismo archivo, es de solo lectura) y revisar la salida. **Este paso sí es bloqueante:**
 
    | Bloque | Qué debe dar en BIOMETRICO |
    |---|---|

@@ -25,8 +25,10 @@
 -- -------------------------------------------------------------------------------------
 -- ANTES DE EJECUTAR
 -- -------------------------------------------------------------------------------------
--- 1. RESPALDO del esquema (expdp) o al menos constancia de que se puede revertir.
--- 2. Correr el bloque "PRE-CHECK" de aqui abajo. Con el prefijo nuevo hay que revisar TRES
+-- 1. RESPALDO: NO es bloqueante. La base ya tiene respaldo automatico, no hay que hacer
+--    uno a proposito. Se menciona solo para tenerlo presente: este DDL es autoconfirmado,
+--    ROLLBACK no sirve, y la vuelta atras son ese respaldo o prod/02_rollback_portal_en_biometrico.sql.
+-- 2. LO UNICO BLOQUEANTE: correr el bloque "PRE-CHECK" de aqui abajo. Con el prefijo nuevo hay que revisar TRES
 --    cosas, no solo los nombres de tabla:
 --      a) que ninguna tabla SERV_MED_* del portal exista ya,
 --      b) que ningun INDICE ni CONSTRAINT choque por nombre (comparten namespace por esquema),

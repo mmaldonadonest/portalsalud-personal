@@ -21,8 +21,10 @@
 -- hace nada. Si un objeto ya tiene el nombre nuevo, lo reporta y sigue.
 --
 -- ORDEN DE EJECUCION
---   1. Respaldo del esquema.
---   2. Bajar el WAR (que nadie escriba mientras se renombra).
+--   1. Respaldo del esquema: NO bloqueante, ya hay respaldo automatico. Se menciona
+--      porque los RENAME no se deshacen solos.
+--   2. Bajar el WAR (que nadie escriba mientras se renombra). ESTO SI es necesario:
+--      con transacciones abiertas el RENAME falla con ORA-00054.
 --   3. Este script.
 --   4. 00_init_oracle21c.sql  y  app_domain/tags-salud.sql   (recrean vistas/procs/triggers)
 --   5. Levantar el WAR: con ddl-auto=validate, si algo quedo mal no arranca y lo dice.
