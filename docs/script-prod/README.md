@@ -17,6 +17,13 @@ Preparado el **24-sep-2026**.
 | **2** | `02_rbac_produccion.local.sql` | Da de alta el rol `ROLE_MEDICO_ANALISTA`, los 7 usuarios y sus permisos. Trae el `COMMIT` al final. |
 | — | `99_rollback_portal_en_biometrico.sql` | **Sólo si hay que deshacer.** No forma parte de la instalación. |
 
+Y dos archivos de apoyo, que no se ejecutan como parte de la instalación:
+
+| Archivo | Para qué |
+|---|---|
+| `proyeccion-crecimiento.md` | Cuánto va a crecer esto. **Lo que hay que provisionar es disco de archivos, no tablespace** — ver el resumen de abajo. |
+| `medir-crecimiento-tablas.sql` | Solo lectura. Produjo los números de la proyección y sirve para volver a medir en 3 y 6 meses. |
+
 > **`02_rbac_produccion.local.sql` no está en GitHub, a propósito.** Contiene NSS y nombres
 > de empleados reales, así que el `.gitignore` excluye `*.local.sql`. Se entrega por canal
 > interno. Si no lo tienes, pídelo — sin él nadie puede entrar a `/admin` ni al Dashboard
@@ -214,12 +221,35 @@ que las 64 preexistentes sigan ahí, y que las 11 del portal vía ORDS aparezcan
 
 ---
 
+## Capacidad: qué hay que provisionar
+
+Medido el 24-sep-2026 con `medir-crecimiento-tablas.sql`. El detalle está en
+`proyeccion-crecimiento.md`; lo esencial:
+
+| | Hoy | A 5 años |
+|---|---|---|
+| **Filesystem** (los PDF) | **14 GB** | **~207 GB** |
+| Oracle, las 20 tablas del portal | 225 MB | ~3.8 GB |
+| Oracle, las 64 del servicio médico | 35.8 MB | ~700 MB |
+
+**El filesystem crece 54 veces más rápido que la base.** Un PDF promedio pesa 0.66 MB y la
+fila que lo describe 0.33 KB. Como orden de magnitud para la conversación con
+infraestructura: **250 GB de filesystem y 5 GB de tablespace** para cinco años.
+
+Dos advertencias sobre esa cifra:
+
+- El escenario de 207 GB asume el modelo real del negocio —examen inicial al candidato,
+  examen de ingreso y exámenes periódicos— pero con **dos supuestos sin medir**: cuántos
+  candidatos se examinan al mes y cada cuánto es el periódico. Los dos multiplican directo.
+- `SERV_MED_FS_FILE_POLICY` viene con `RETENTION_DAYS = 3650` y **no hay proceso de purga**,
+  así que hoy el crecimiento es acumulativo puro. Definir retención es la palanca que más
+  mueve el número.
+
 ## Lo que falta fuera de la base
 
 - **El directorio de archivos.** Los PDF **no van a Oracle**: van al filesystem
   (`portal.files.root`). Esa carpeta tiene que existir y ser escribible por el usuario del
-  Tomcat. Hoy son 14 GB y la proyección a cinco años llega a ~207 GB
-  (ver `docs/proyeccion-crecimiento.md`).
+  Tomcat, con el espacio de la tabla de arriba.
 - **Las variables de entorno** del Tomcat de producción: `SPRING_DATASOURCE_URL`,
   `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD` y `ORACLE_TNS_ADMIN`.
 - **ORDS** va por su lado: no vive en el esquema del portal.
@@ -231,9 +261,9 @@ que las 64 preexistentes sigan ahí, y que las 11 del portal vía ORDS aparezcan
 | Documento | Para qué |
 |---|---|
 | `docs/que-crea-el-ddl-en-biometrico.md` | La validación del DDL en detalle |
-| `docs/proyeccion-crecimiento.md` | Capacidad a 1, 3 y 5 años |
 | `docs/fase1-inventario-resultado.md` | El inventario de producción que originó todo esto |
 | `docs/seguimiento-migracion-produccion.html` | El tablero de la migración |
 
-Los originales de estos `.sql` viven en `src/main/resources/db/sql/prod/`. Esta carpeta es
-una copia para entrega: si se corrige algo, corregir el original y volver a copiar.
+Los originales viven en `src/main/resources/db/sql/prod/` (los `.sql` de instalación) y en
+`docs/` (la proyección y el medidor). Esta carpeta es una copia para entrega: si se corrige
+algo, corregir el original y volver a copiar, para que el arreglo no se quede sólo aquí.
