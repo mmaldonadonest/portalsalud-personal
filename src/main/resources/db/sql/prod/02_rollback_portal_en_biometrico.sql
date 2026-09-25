@@ -7,14 +7,34 @@
 -- -------------------------------------------------------------------------------------
 -- POR QUE ESTE SCRIPT NO USA COMODINES  (leer antes de improvisar una limpieza)
 -- -------------------------------------------------------------------------------------
--- En BIOMETRICO YA EXISTEN muchas tablas SERV_MED_* del PHP legacy: SERV_MED_CONSULTA,
--- SERV_MED_RESULTADO_EXAMEN_HIST, SERV_MED_CUENTA_PREDIO, SERV_MED_CAT_INDICE_IDC10 y
--- varias mas, con datos reales de produccion.
+-- Inventario real de BIOMETRICO tomado el 24-sep-2026: YA HAY 64 tablas SERV_MED_*, todas
+-- con datos de produccion, y el DDL del portal agrega 20 mas. Despues de instalar, el
+-- esquema tendra 84 tablas con ese prefijo. De las 64 que ya estaban:
 --
---   *** UN  DROP ... WHERE table_name LIKE 'SERV_MED_%'  BORRARIA EL SERVICIO MEDICO. ***
+--   * 53 son del PHP legacy: el expediente clinico completo (SERV_MED_ABDOMEN,
+--     SERV_MED_DIAGNOSTICO, SERV_MED_EXPLORACION_FISICA, SERV_MED_RESULTADO_EXAMEN,
+--     SERV_MED_CAT_INDICE_IDC10 con las 909 claves ICD, SERV_MED_DET_ANT_LABORALES con
+--     37,770 filas...). Cada una ronda las 3,056-3,069 filas: un renglon por examen.
+--
+--   * 11 son DE ESTE PROYECTO, pero del lado de ORDS, no de JDBC: las creamos en agosto
+--     para Accidentes, Antidoping, Causas de consulta, Restricciones, Maternidad y
+--     Predio/Cuenta. El portal las usa por HTTP via los WS de ORDS, NO por la conexion
+--     JDBC, y por eso NO estan entre las 20 de este script:
+--         SERV_MED_ACCIDENTE               SERV_MED_ANTIDOPING_INVENTARIO
+--         SERV_MED_ACCIDENTE_SEGUIMIENTO   SERV_MED_ANTIDOPING_RESULTADO
+--         SERV_MED_CAT_CAUSA_CONSULTA      SERV_MED_ANTIDOPING_SELECCION
+--         SERV_MED_CUENTA_PREDIO           SERV_MED_MATERNIDAD_SEGUIMIENTO
+--         SERV_MED_PREDIO                  SERV_MED_RESTRICCION_ASIGNADA
+--         SERV_MED_RESULTADO_EXAMEN_HIST
+--     TIENEN DATOS REALES y esta reversa NO las toca. Son faciles de confundir con las
+--     nuestras porque tambien son "del portal": la diferencia es la via de acceso.
+--     (Se reconocen en el diccionario porque son las unicas SERV_MED_* sin estadisticas
+--     recolectadas: NUM_ROWS y LAST_ANALYZED en blanco.)
+--
+--   *** UN  DROP ... WHERE table_name LIKE 'SERV_MED_%'  BORRARIA LAS 64. ***
 --
 -- Por eso aqui TODOS los nombres van escritos uno por uno: son exactamente los 20 que
--- crea el DDL del portal y nada mas. Nunca sustituir esta lista por un comodin.
+-- crea el DDL del portal por JDBC y nada mas. Nunca sustituir esta lista por un comodin.
 --
 -- -------------------------------------------------------------------------------------
 -- SALVAGUARDA: no borra tablas CON DATOS
@@ -195,9 +215,10 @@ SELECT table_name FROM user_tables
                       'SERV_MED_TAG_MIG_LOG')
  ORDER BY table_name;
 
--- (b) Las SERV_MED_* del PHP legacy deben seguir INTACTAS. Este conteo tiene que ser el
---     mismo que antes de correr el DDL del portal (tomarlo del PRE-CHECK bloque (c)).
-SELECT COUNT(*) AS serv_med_legacy_restantes FROM user_tables
+-- (b) Las 64 que ya estaban deben seguir INTACTAS: 53 del PHP legacy + 11 del portal via
+--     ORDS. Este conteo tiene que dar 64 (o el numero que arroje el PRE-CHECK bloque (c)
+--     el dia que se instale, si entre tanto alguien agrego otra).
+SELECT COUNT(*) AS serv_med_preexistentes FROM user_tables
  WHERE table_name LIKE 'SERV\_MED\_%' ESCAPE '\'
    AND table_name NOT IN ('SERV_MED_AUDIT_SQL_EXECUTION',
                          'SERV_MED_AUD_EVENT',
@@ -219,6 +240,17 @@ SELECT COUNT(*) AS serv_med_legacy_restantes FROM user_tables
                          'SERV_MED_SEC_USER_ROLE',
                          'SERV_MED_TAG',
                          'SERV_MED_TAG_MIG_LOG');
+
+-- (b2) Nominal, las 11 del portal del lado de ORDS: deben aparecer LAS ONCE. Si falta
+--      alguna, esta reversa borro algo que no debia y hay que restaurar del respaldo.
+SELECT table_name FROM user_tables
+ WHERE table_name IN ('SERV_MED_ACCIDENTE','SERV_MED_ACCIDENTE_SEGUIMIENTO',
+                      'SERV_MED_ANTIDOPING_INVENTARIO','SERV_MED_ANTIDOPING_RESULTADO',
+                      'SERV_MED_ANTIDOPING_SELECCION','SERV_MED_CAT_CAUSA_CONSULTA',
+                      'SERV_MED_CUENTA_PREDIO','SERV_MED_MATERNIDAD_SEGUIMIENTO',
+                      'SERV_MED_PREDIO','SERV_MED_RESTRICCION_ASIGNADA',
+                      'SERV_MED_RESULTADO_EXAMEN_HIST')
+ ORDER BY table_name;
 
 -- (c) Y las APP_* del otro sistema, tambien intactas: deben seguir siendo 10.
 SELECT COUNT(*) AS app_otro_sistema FROM user_tables

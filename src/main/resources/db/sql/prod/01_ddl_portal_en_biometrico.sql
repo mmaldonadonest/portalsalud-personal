@@ -89,8 +89,20 @@ SELECT 'OTRO', object_name FROM user_objects
                        'SERV_MED_TRG_FS_FILE_BU','SERV_MED_TRG_FS_FILE_POLICY_BU')
  ORDER BY 1, 2;
 
--- (c) Inventario actual: que SERV_MED_* hay hoy (del PHP legacy) y que APP_* (de otro sistema)
-SELECT table_name FROM user_tables WHERE table_name LIKE 'SERV\_MED\_%' ESCAPE '\' ORDER BY 1;
+-- (c) Inventario actual, para tener la linea base antes de agregar nada.
+--     El 24-sep-2026 habia 64 tablas SERV_MED_* y 10 APP_*. Si los numeros cambiaron,
+--     averiguar por que ANTES de seguir. De esas 64:
+--        * 53 son del PHP legacy (expediente clinico: ABDOMEN, DIAGNOSTICO,
+--          EXPLORACION_FISICA, CAT_INDICE_IDC10 con las 909 claves ICD, etc.)
+--        * 11 son de ESTE proyecto pero del lado de ORDS, no de JDBC (Accidentes,
+--          Antidoping, Causas, Restricciones, Maternidad, Predio/Cuenta). Tienen datos
+--          reales y este DDL no las toca: son las unicas SERV_MED_* sin estadisticas
+--          recolectadas, asi que se distinguen por NUM_ROWS / LAST_ANALYZED en blanco.
+--     Despues de este DDL el esquema quedara con 84 tablas SERV_MED_*.
+SELECT COUNT(*) AS serv_med_antes FROM user_tables
+ WHERE table_name LIKE 'SERV\_MED\_%' ESCAPE '\';
+SELECT table_name, num_rows, TO_CHAR(last_analyzed, 'DD/MM/YYYY') estadisticas_del
+  FROM user_tables WHERE table_name LIKE 'SERV\_MED\_%' ESCAPE '\' ORDER BY 1;
 SELECT table_name FROM user_tables WHERE table_name LIKE 'APP\_%' ESCAPE '\' ORDER BY 1;
 
 -- (d) Privilegios del usuario con el que se va a ejecutar
