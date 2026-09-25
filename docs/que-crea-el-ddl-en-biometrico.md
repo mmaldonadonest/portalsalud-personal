@@ -72,8 +72,39 @@ sentencia tiene como destino una tabla, índice u objeto ajeno.
 
 Verbos que **no aparecen** en el script:
 
-`DROP TABLE` · `TRUNCATE` · `GRANT` · `REVOKE` · `ALTER USER` · `ALTER SYSTEM` ·
-`ALTER DATABASE` · `CREATE USER` · `CREATE TABLESPACE` · acceso por database link
+`DROP` (de ningún tipo de objeto) · `TRUNCATE` · `GRANT` · `REVOKE` · `ALTER USER` ·
+`ALTER SYSTEM` · `ALTER DATABASE` · `CREATE USER` · `CREATE TABLESPACE` · acceso por
+database link
+
+### Verificación de `DROP` y de comodines `LIKE`
+
+Se revisó línea por línea sobre el archivo tal como se va a ejecutar (2,038 líneas):
+
+| Qué se buscó | Resultado |
+|---|---|
+| `DROP` de cualquier tipo (tabla, índice, vista, trigger, procedimiento) | **0 ocurrencias**, ni en código ni en comentarios |
+| `TRUNCATE` | **0** |
+| `LIKE` sobre `table_name` / `index_name` / `object_name` | 11, **todas dentro de `SELECT`** (bloques PRE-CHECK y VERIFICACIÓN, solo lectura) |
+| `LIKE` dentro de un `DELETE` o `UPDATE` | **0** |
+
+Hay 3 `LIKE` más (líneas 1572, 1594, 1626) dentro de la función `SERV_MED_FN_TAG_GROUP`.
+Operan sobre `p_type`, un parámetro `VARCHAR2` que clasifica tipos de tag (`'%PRETEST%'`,
+`'contactoEmer%'`, `'%INCAP%'`). No tienen relación con nombres de objetos.
+
+**El script no borra nada porque no tiene nada que borrar:** las 20 tablas no existen aún
+en BIOMETRICO, así que su único trabajo es crearlas. Los cuatro `DELETE`/`UPDATE` de más
+abajo usan igualdad exacta sobre tablas que el propio script acaba de crear vacías.
+
+Los `DROP` viven únicamente en el otro archivo, `prod/02_rollback_portal_en_biometrico.sql`
+(la reversa), que **no forma parte de esta ejecución**. Ver la sección 6.
+
+Para reproducir la verificación:
+
+```bash
+grep -niE "\bDROP\b|\bTRUNCATE\b" 01_ddl_portal_en_biometrico.sql   # debe dar 0 lineas
+grep -nE  "LIKE" 01_ddl_portal_en_biometrico.sql                    # revisar que cada
+                                                                     # una este en un SELECT
+```
 
 Los únicos borrados y modificaciones del script, completos:
 
