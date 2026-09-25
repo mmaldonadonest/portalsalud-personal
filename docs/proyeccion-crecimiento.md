@@ -8,16 +8,23 @@ Script: `docs/medir-crecimiento-tablas.sql` (solo lectura).
 
 ## Resumen para quien decide
 
-| | Hoy | A 5 años (escenario probable) |
-|---|---|---|
-| **Filesystem** (los PDF) | **14 GB** | **~71 GB** |
-| **Oracle** (tablas del portal) | 225 MB | ~1.3 GB |
-| Oracle (las 64 del servicio médico) | 35.8 MB | ~290 MB |
+| | Hoy | A 5 años, escenario C | A 5 años, escenario D |
+|---|---|---|---|
+| **Filesystem** (los PDF) | **14 GB** | ~71 GB | **~207 GB** |
+| **Oracle** (tablas del portal) | 225 MB | ~1.3 GB | ~3.8 GB |
+| Oracle (las 64 del servicio médico) | 35.8 MB | ~290 MB | ~700 MB |
 
 **Lo único que hay que provisionar en serio es disco de archivos, no tablespace.** Un PDF
 promedio pesa 0.66 MB y la fila que lo describe pesa 0.33 KB: el filesystem crece **54
-veces más rápido** que la base. Con 100 GB de filesystem y 2 GB de tablespace hay margen
-para cinco años incluso en el escenario alto.
+veces más rápido** que la base.
+
+El escenario a usar es el **D**, que es el modelo real del negocio (examen inicial al
+candidato + examen de ingreso + periódicos). Está **preliminar**: faltan dos datos que
+nadie ha medido —cuántos candidatos se examinan al mes y cada cuánto es el periódico— y
+ambos multiplican directo. Ver la sección 3.D.
+
+Como orden de magnitud para la conversación con infraestructura: **250 GB de filesystem y
+5 GB de tablespace** para cinco años, o menos si se define retención.
 
 Dato que pone todo en contexto: **las 20 tablas del portal (225 MB) van a pesar 6 veces
 más que las 64 tablas del servicio médico que ya existen (35.8 MB)**, y eso sólo por los
@@ -95,9 +102,42 @@ Partiendo de los 14 GB y 225 MB que ya trae la migración histórica:
 | **Filesystem** | **25.5 GB** | **48.5 GB** | **71.4 GB** |
 | Oracle (portal) | 439 MB | 868 MB | 1.3 GB |
 
-El escenario C es el que corresponde al objetivo del proyecto. Si además se digitalizan
-exámenes periódicos de los 3,584 empleados vigentes —no sólo los de ingreso— hay que
-sumarle otro tanto por cada ciclo.
+### D. El modelo real del negocio — **PRELIMINAR, faltan dos datos** (24-sep-2026)
+
+Negocio confirmó que no es un examen por persona, sino **tres momentos distintos**:
+
+1. **Examen inicial al candidato** — antes de contratarlo.
+2. **Examen de ingreso** — ya contratado.
+3. **Exámenes periódicos** — con una periodicidad que todavía no está definida.
+
+Eso deja el escenario C corto: son **al menos 2 exámenes por persona contratada**, más el
+ciclo periódico sobre toda la plantilla vigente.
+
+Estimación gruesa, con los supuestos marcados como tales:
+
+| Concepto | Exámenes/mes | Supuesto |
+|---|---|---|
+| Candidatos | ~217 o más | **DESCONOCIDO**: se asume 1 candidato por alta, pero son más (no todo candidato se contrata) |
+| Ingresos | 217 | medido: 652 altas en 90 días |
+| Periódicos | ~299 | **DESCONOCIDO**: se asume anual sobre los 3,584 vigentes (3,584 ÷ 12) |
+| **Total** | **~733 / mes** | 3.4 veces el escenario C |
+
+| | 1 año | 3 años | 5 años |
+|---|---|---|---|
+| **Filesystem** | **52.7 GB** | **130 GB** | **207 GB** |
+| Oracle (portal) | 946 MB | 2.4 GB | 3.8 GB |
+
+Con este modelo, **100 GB de filesystem no alcanzan**: habría que ir a 250 GB para cinco
+años, o definir retención.
+
+**No tomar estos números como plan todavía.** Dependen de dos cosas que nadie ha medido:
+
+- **Cuántos candidatos se examinan al mes.** Sólo conocemos las altas (217). La relación
+  candidatos/contratados puede ser 1.5:1 o 4:1, y multiplica directo.
+- **Cada cuánto es el examen periódico.** Anual, bienal o por puesto de riesgo cambia el
+  tercer renglón entre 150 y 300 al mes.
+
+Con esos dos números, esta tabla se recalcula en minutos.
 
 ---
 
@@ -144,9 +184,15 @@ Oracle al filesystem: baja el tablespace y sube el disco.
 
 ## 6. Qué falta para cerrar la proyección
 
-1. **Confirmar con negocio el escenario.** ¿El portal va a registrar un examen por cada
-   alta (217/mes), o sigue siendo para un subconjunto? Es la variable que decide entre
-   17 GB y 71 GB.
+1. **Los dos datos que faltan del escenario D** (lo demás ya está medido):
+
+   - **Candidatos examinados por mes.** Sólo tenemos las altas (217/mes). Hace falta la
+     relación candidatos/contratados, o directamente el volumen de exámenes iniciales.
+   - **Periodicidad del examen periódico.** Anual, bienal, o distinta según el puesto de
+     riesgo. Mueve el tercer renglón entre ~150 y ~300 exámenes al mes.
+
+   Con esos dos números el escenario D deja de ser preliminar. Todo lo demás —el costo por
+   examen, los multiplicadores, el peso promedio del PDF— ya está medido.
 
 2. **Medir el directorio real en el servidor de producción**, que es lo único que no se ve
    desde SQL:
