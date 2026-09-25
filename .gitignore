@@ -1,2 +1,6 @@
 /target/
 /etl/target/
+
+# Scripts con datos personales (NSS y nombres de empleados reales): no se versionan.
+# Se entregan por canal interno, no por GitHub. Ver docs/script-prod/README.md.
+*.local.sql
