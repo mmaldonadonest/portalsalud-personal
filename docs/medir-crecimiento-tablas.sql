@@ -132,17 +132,13 @@ END;
 -- 3. LOS DRIVERS DE NEGOCIO
 --    Todo lo demas es un multiplicador de estos. Aqui se miden directo.
 -- -------------------------------------------------------------------------------------
-PROMPT
-PROMPT === examenes por mes (ultimos 24 meses) - driver principal ===
--- Ajustar el nombre de la columna de fecha si la salida del bloque 2 muestra otra.
-SELECT TO_CHAR(f.fecha, 'YYYY-MM') AS mes, COUNT(*) AS examenes
-  FROM (SELECT CAST(NULL AS DATE) AS fecha FROM dual WHERE 1=0) f
- GROUP BY TO_CHAR(f.fecha, 'YYYY-MM');
--- ^ plantilla: sustituir por la tabla y columna reales que salgan en el bloque 2, p.ej.
---   SELECT TO_CHAR(FECHA_EXAMEN,'YYYY-MM') mes, COUNT(*) examenes
+-- PLANTILLA, no se ejecuta: el nombre de la columna de fecha sale del bloque 2 de arriba.
+-- Descomentar sustituyendo <COL> por lo que reporte la columna COL_FECHA de esa tabla.
+--
+--   SELECT TO_CHAR(<COL>,'YYYY-MM') AS mes, COUNT(*) AS examenes
 --     FROM SERV_MED_RESULTADO_EXAMEN
---    WHERE FECHA_EXAMEN >= ADD_MONTHS(SYSDATE,-24)
---    GROUP BY TO_CHAR(FECHA_EXAMEN,'YYYY-MM') ORDER BY 1;
+--    WHERE <COL> >= ADD_MONTHS(SYSDATE,-24)
+--    GROUP BY TO_CHAR(<COL>,'YYYY-MM') ORDER BY 1;
 
 PROMPT
 PROMPT === altas de empleados por mes (driver del pre-test) ===
@@ -171,10 +167,30 @@ PROMPT   altas de empleados    = 652 en 90 dias  =~ 217 / mes
 --     Windows:  powershell "(Get-ChildItem -Recurse C:\portal-salud\files |
 --                            Measure-Object -Sum Length).Sum / 1GB"
 --
--- Y el promedio por archivo sale de la propia tabla:
-SELECT COUNT(*)                                   AS archivos,
-       ROUND(SUM(SIZE_BYTES)/1024/1024/1024, 2)   AS gb_totales,
-       ROUND(AVG(SIZE_BYTES)/1024/1024, 2)        AS mb_promedio,
-       ROUND(MAX(SIZE_BYTES)/1024/1024, 2)        AS mb_mayor
-  FROM SERV_MED_FS_FILE;
--- (correr despues de instalar el portal; en QA ya se puede)
+-- Y el peso real de los binarios sale de la propia tabla, sin tocar el disco.
+-- Va dentro de un bloque con guarda porque en BIOMETRICO la tabla NO EXISTE hasta que se
+-- instale el portal: sin la guarda, el script cerraria con un ORA-00942 confuso.
+DECLARE
+  v_existe NUMBER;
+  v_n NUMBER; v_gb NUMBER; v_prom NUMBER; v_max NUMBER;
+BEGIN
+  SELECT COUNT(*) INTO v_existe FROM user_tables WHERE table_name = 'SERV_MED_FS_FILE';
+  IF v_existe = 0 THEN
+    DBMS_OUTPUT.PUT_LINE('[SKIP] SERV_MED_FS_FILE aun no existe en este esquema: '
+                         || 'el portal no esta instalado. Medir el directorio con du/PowerShell.');
+    RETURN;
+  END IF;
+  SELECT COUNT(*), ROUND(SUM(SIZE_BYTES)/1024/1024/1024, 2),
+         ROUND(AVG(SIZE_BYTES)/1024/1024, 2), ROUND(MAX(SIZE_BYTES)/1024/1024, 2)
+    INTO v_n, v_gb, v_prom, v_max
+    FROM SERV_MED_FS_FILE;
+  DBMS_OUTPUT.PUT_LINE('archivos: ' || v_n || ' | GB totales: ' || v_gb ||
+                       ' | MB promedio: ' || v_prom || ' | MB del mayor: ' || v_max);
+END;
+/
+
+-- Medido en QA el 24-sep-2026, como referencia:
+--   21,677 archivos · 13.98 GB · 0.66 MB promedio · 2 MB el mayor
+--   contra 224.8 MB de TODO el esquema Oracle.
+--   El filesystem pesa ~62 veces mas que la base: ahi esta el problema de capacidad,
+--   no en el tablespace.
