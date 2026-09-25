@@ -4,3 +4,9 @@
 # Scripts con datos personales (NSS y nombres de empleados reales): no se versionan.
 # Se entregan por canal interno, no por GitHub. Ver docs/script-prod/README.md.
 *.local.sql
+
+# Salidas de las corridas en produccion: pueden incluir NSS y nombres reales.
+docs/script-prod/salida_*
+docs/script-prod/seed_tablas
+docs/script-prod/verificacion
+docs/script-prod/acentos_verif
