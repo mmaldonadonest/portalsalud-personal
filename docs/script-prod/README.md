@@ -87,6 +87,48 @@ acaba de insertar.
 Es **idempotente**: cada `CREATE` va dentro de un bloque que ignora `ORA-00955` ("el objeto
 ya existe"), así que se puede volver a correr sin romper nada.
 
+### Revisión estática del archivo (24-sep-2026)
+
+Antes de entregarlo se revisó el `.sql` sin ejecutarlo. Resultados:
+
+| Qué se revisó | Resultado |
+|---|---|
+| Bloques PL/SQL | 64 bloques en 88 tramos separados por `/`; `BEGIN`/`END` balanceados |
+| Literales `q'[…]'` | 21 aperturas / 21 cierres |
+| Nombres de objeto | 85 distintos, el más largo de **30** caracteres |
+| Versión de Oracle que exige | **12.1** (columnas `IDENTITY`). `BIOMETRICO` es **19c**, alcanza de sobra |
+| `DROP` · `TRUNCATE` · `GRANT` · `REVOKE` · `ALTER USER/SYSTEM/DATABASE` · `CREATE USER/TABLESPACE/LINK` · database links | **0 de cada uno** |
+
+> Uno de los scripts de origen se llama `00_init_oracle21c.sql`. Es sólo el nombre del
+> archivo, heredado del ambiente donde se escribió: **no exige Oracle 21c**.
+
+### Una sola precaución: la codificación del archivo
+
+El `.sql` está en **UTF-8** y contiene 13 literales con acentos que se **insertan como
+datos** — por ejemplo `'Ver menú'`, `'Política por defecto para cargas'`,
+`'Purgar auditoría antigua'`, `'Recuperación de contraseña'`.
+
+**En SQL Developer: `Tools > Preferences > Environment > Encoding` debe estar en UTF-8**
+antes de abrir el archivo. Si no, esos textos entran con caracteres corruptos.
+
+Esto **no se probó en QA**, porque allí esas filas ya existían de antes y los `MERGE`
+reportaron `0 rows merged`: nunca llegaron a escribirse. En producción se insertan por
+primera vez.
+
+No es grave —son etiquetas visibles en la aplicación, no claves ni identificadores— y se
+comprueba y corrige después con esto:
+
+```sql
+-- Deben leerse con acentos correctos: "Ver menú", "Purgar auditoría antigua", etc.
+SELECT CODE, NAME FROM SERV_MED_SEC_PERMISSION WHERE CODE = 'MENU_VIEW';
+SELECT CODE, NAME FROM SERV_MED_JOB_CATALOG    WHERE CODE = 'JOB_PURGE_AUDIT';
+SELECT CODE, SUBJECT FROM SERV_MED_NOTIF_TEMPLATE ORDER BY CODE;
+SELECT POLICY_CODE, DESCRIPTION FROM SERV_MED_FS_FILE_POLICY;
+```
+
+Si salieron mal, se arreglan con `UPDATE` sobre esas cuatro tablas; no hace falta volver a
+correr nada.
+
 ### Después
 
 1. `COMMIT;` — los `CREATE` son DDL autoconfirmado, pero los `MERGE`/`INSERT` de las

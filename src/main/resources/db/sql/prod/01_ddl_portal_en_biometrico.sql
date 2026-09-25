@@ -16,8 +16,14 @@
 -- APP_ ya esta ocupado por OTRO sistema (APP_TAREAS, APP_REPORTES, APP_CONFIG_EXCEL y 7 mas).
 -- SERV_MED_ es la convencion del servicio medico en esa base.
 --
--- Se respeta el limite de 30 caracteres del esquema legacy (Oracle 21c admite 128, pero
--- SERV_MED_RESULTADO_EXAMEN_HIST mide exactamente 30: se conserva la convencion).
+-- Se respeta el limite de 30 caracteres del esquema legacy (desde 12.2 Oracle admite 128,
+-- pero SERV_MED_RESULTADO_EXAMEN_HIST mide exactamente 30: se conserva la convencion).
+-- El nombre mas largo que crea este script mide 30, verificado.
+--
+-- VERSION: BIOMETRICO@PDBPRD es Oracle 19c Enterprise Edition. Lo mas nuevo que usa este
+-- script son las columnas IDENTITY (12.1) y el q-quoting de literales (10.1), asi que 19c
+-- alcanza de sobra. Que uno de los scripts de origen se llame 00_init_oracle21c.sql es solo
+-- el nombre del archivo, heredado del ambiente donde se escribio; no exige 21c.
 --
 -- QUIEN LO EJECUTA: el usuario / el DBA, en SQL Developer, conectado como BIOMETRICO.
 -- El agente no ejecuta nada contra esta base (regla del 23-sep-2026).
