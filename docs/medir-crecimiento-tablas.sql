@@ -168,8 +168,13 @@ PROMPT   altas de empleados    = 652 en 90 dias  =~ 217 / mes
 --                            Measure-Object -Sum Length).Sum / 1GB"
 --
 -- Y el peso real de los binarios sale de la propia tabla, sin tocar el disco.
--- Va dentro de un bloque con guarda porque en BIOMETRICO la tabla NO EXISTE hasta que se
--- instale el portal: sin la guarda, el script cerraria con un ORA-00942 confuso.
+--
+-- OJO (corregido 24-sep, fallo en BIOMETRICO): la consulta va por EXECUTE IMMEDIATE, no
+-- como SQL estatico. El SQL estatico dentro de un bloque PL/SQL se resuelve al COMPILAR,
+-- asi que un IF que verifica la existencia NO protege nada: Oracle rechaza el bloque
+-- completo con ORA-06550 / ORA-00942 antes de ejecutar la primera linea. Solo el SQL
+-- dinamico se resuelve en tiempo de ejecucion, que es lo que hace falta aqui porque en
+-- BIOMETRICO la tabla no existe hasta que se instale el portal.
 DECLARE
   v_existe NUMBER;
   v_n NUMBER; v_gb NUMBER; v_prom NUMBER; v_max NUMBER;
@@ -180,10 +185,11 @@ BEGIN
                          || 'el portal no esta instalado. Medir el directorio con du/PowerShell.');
     RETURN;
   END IF;
-  SELECT COUNT(*), ROUND(SUM(SIZE_BYTES)/1024/1024/1024, 2),
-         ROUND(AVG(SIZE_BYTES)/1024/1024, 2), ROUND(MAX(SIZE_BYTES)/1024/1024, 2)
-    INTO v_n, v_gb, v_prom, v_max
-    FROM SERV_MED_FS_FILE;
+  EXECUTE IMMEDIATE
+    'SELECT COUNT(*), ROUND(SUM(SIZE_BYTES)/1024/1024/1024, 2),'
+    || ' ROUND(AVG(SIZE_BYTES)/1024/1024, 2), ROUND(MAX(SIZE_BYTES)/1024/1024, 2)'
+    || ' FROM SERV_MED_FS_FILE'
+    INTO v_n, v_gb, v_prom, v_max;
   DBMS_OUTPUT.PUT_LINE('archivos: ' || v_n || ' | GB totales: ' || v_gb ||
                        ' | MB promedio: ' || v_prom || ' | MB del mayor: ' || v_max);
 END;
