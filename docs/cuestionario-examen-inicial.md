@@ -1,140 +1,145 @@
-# Examen inicial y lista de bloqueados — preguntas para cerrar el requerimiento
+# Examen inicial y lista de bloqueados — cuestionario
 
-**Para:** Servicio Médico y Recursos Humanos · **Fecha:** 25-sep-2026
+**Para:** Servicio Médico y Recursos Humanos · **25-sep-2026**
 
-Revisamos el formato **FT-SO-04 Examen Médico Inicial (rev. 04)** contra lo que el sistema
-captura hoy. La buena noticia: **es el mismo examen**. De los 296 campos del formato, el
-portal ya captura 292, y el tipo "Admisión" ya existe internamente. No hay que construir un
-módulo nuevo.
+Revisamos el formato **FT-SO-04 rev. 04** contra lo que el sistema ya captura: **es el mismo
+examen**. De sus 296 campos, el portal ya guarda 292, y "Admisión" ya existe como tipo. No
+hay que construir un módulo nuevo.
 
-Quedan estas preguntas para cerrar el alcance. Están ordenadas por lo que más cambia el
-trabajo; las marcadas **⬤ crítica** deciden si algo es viable o no.
+Sólo necesitamos estas respuestas para cerrar el alcance. **Se contestan marcando.**
 
 ---
 
-## 1. La lista de bloqueados
+## A · Lista de bloqueados
 
-### ⬤ 1.1 · ¿Al candidato se le da de alta en el sistema **antes** del examen médico, o sólo cuando se le contrata?
+**A1.** Cuando se le hace el examen a un candidato, ¿ya está dado de alta en el sistema con su NSS?
 
-Es la pregunta que decide todo lo demás. El examen se guarda asociado al NSS de la persona.
+- [ ] Sí, se da de alta **antes** del examen
+- [ ] No, se da de alta **sólo si se le contrata**
+- [ ] Depende: ________________
 
-- Si el candidato **ya existe** cuando se le hace el examen → su "no apto" queda guardado y
-  la lista de bloqueados funciona.
-- Si se da de alta **sólo al contratar** → el examen del que no pasó nunca llega a
-  guardarse, y la lista nacería vacía por más pantalla que construyamos. Habría que resolver
-  primero dónde se registra a ese candidato.
+> Si la respuesta es la segunda, el "no apto" de quien no se contrató no se guarda en ningún
+> lado y la lista nacería vacía. Es la pregunta que decide si esto es viable.
 
-*Dato relacionado:* hay **33,907 personas** registradas y sólo **3,584 vigentes**. Las demás
-tienen estatus 1 (28,155), 99 (2,154) o 100 (12). **¿Qué significa cada uno?** Si alguno es
-"candidato" o "rechazado", la respuesta a esta pregunta ya está ahí.
+**A2.** ¿Qué significa cada estatus de empleado? El 0 ya sabemos que es vigente.
 
-### ⬤ 1.2 · "Apto condicionado", ¿bloquea la contratación o sólo obliga a registrar restricciones?
+| Estatus | Personas | Significa |
+|---|---:|---|
+| 1 | 28,155 | ________________ |
+| 99 | 2,154 | ________________ |
+| 100 | 12 | ________________ |
 
-Por definición, *apto condicionado* significa que **sí puede trabajar, con límites** — y para
-eso el sistema ya tiene el módulo de Restricciones Médicas (no cargar peso, no trabajo en
-alturas, etc.).
+**A3.** ¿Quién entra a la lista de bloqueados?
 
-- Si **bloquea** → va en la misma lista que "no apto".
-- Si **no bloquea** → la lista es sólo de no aptos, y lo de apto condicionado es otra cosa:
-  un control de que a esa persona **sí se le hayan capturado sus restricciones**. Podemos
-  hacer esa segunda pantalla, pero es un trabajo distinto.
+- [ ] Sólo los **no aptos**
+- [ ] No aptos **y** aptos condicionados
+- [ ] Otro: ________________
 
-### 1.3 · ¿Qué hace que alguien entre a la lista, y por cuánto tiempo?
+**A4.** ¿"Apto condicionado" impide contratar?
 
-- ¿Cualquier "no apto", o sólo el del examen de admisión?
-- ¿Queda bloqueado para siempre, o vence después de cierto tiempo?
-- Si la persona se vuelve a examinar y sale apto, ¿se le quita el bloqueo automáticamente?
+- [ ] Sí, no se contrata
+- [ ] No, se contrata con restricciones
 
-### 1.4 · ¿Quién la consulta y cómo?
+**A5.** ¿Cuánto dura el bloqueo?
 
-- ¿RH al momento de contratar, o Servicio Médico?
-- ¿Se usa buscando **una persona** (por NSS o CURP), o revisando **la lista completa**?
-  Suponemos lo primero, pero cambia el diseño de la pantalla.
-- ¿Debe tener permiso propio, o basta con el rol que hoy ve los dashboards?
+- [ ] Permanente
+- [ ] ______ meses
+- [ ] Hasta que un examen nuevo salga apto
 
-### 1.5 · ¿Qué se guarda de cada bloqueado?
+**A6.** Si se vuelve a examinar y sale apto, ¿se desbloquea solo?
 
-Nuestra propuesta es registrar **sólo el dictamen** — no apto / apto condicionado, la fecha y
-el tipo de examen — **y no el diagnóstico ni el padecimiento**. El dictamen ya es un veredicto
-de aptitud laboral y evita manejar información clínica en una lista de consulta de RH.
-**¿Están de acuerdo?**
+- [ ] Sí, automático
+- [ ] No, lo tiene que autorizar: ________________
 
-> Nota: una lista que condiciona contrataciones a partir de información médica conviene que
-> tenga visto bueno de RH o jurídico, y que quede por escrito quién puede consultarla.
+**A7.** ¿Quién consulta la lista?
 
----
+- [ ] RH
+- [ ] Servicio Médico
+- [ ] Ambos
 
-## 2. El examen
+**A8.** ¿Cómo la van a usar?
 
-### 2.1 · De los cinco tipos, ¿cuáles se usan de verdad?
+- [ ] Buscando **una persona** (por NSS o CURP)
+- [ ] Revisando **la lista completa**
+- [ ] Las dos
 
-El sistema ya los contempla: **Admisión · Periódico · Cambio de rol · Post incapacidad ·
-Especial**. Vamos a poner el selector en el formulario. ¿Los usan los cinco, sobra alguno, o
-falta alguno?
+**A9.** ¿De acuerdo con que la lista muestre sólo el **dictamen y la fecha**, sin diagnóstico ni padecimiento?
 
-### 2.2 · Confirmar los dos campos nuevos: **cintura** y **cadera**
-
-Están en la revisión 04 del formato y no existen en ningún sistema hoy. ¿Se capturan siempre
-o sólo en ciertos casos? ¿Llevan alguna validación o rango esperado?
-
-### 2.3 · Los antecedentes laborales: ¿se llenan completos?
-
-El formato pide hasta **4 empleos anteriores** con 10 datos cada uno (empresa, giro, puesto,
-turno, antigüedad, salida, descripción, riesgos, EPP, observaciones). Hoy el sistema **sólo
-guarda el resumen**: edad al empezar a trabajar, cuántos trabajos y si tiene pensión.
-
-Habilitar la tabla completa es la tarea más grande del plan. **¿Se llena en la práctica, o en
-el examen de admisión se captura sólo el resumen?** Si en la práctica se llena, la hacemos; si
-no, nos la ahorramos.
-
-### 2.4 · ¿Hay algo del formato en papel que hoy **no** se esté capturando y se extrañe?
-
-Detectamos tres bloques que el sistema imprime pero no deja capturar: el detalle de los 4
-empleos, parte de la exploración física (oximetría, Romberg, voz, tráquea, detalle de oídos y
-lentes por ojo) y unos misceláneos. **¿Los usan?** Si alguno no se usa, lo dejamos fuera.
+- [ ] Sí
+- [ ] No, también debe mostrar: ________________
 
 ---
 
-## 3. Un aviso sobre el histórico
+## B · El examen
 
-Hay que decirlo con claridad para que nadie se lleve una sorpresa:
+**B1.** ¿Cuáles tipos de examen se usan? Marcar todos los que apliquen.
 
-**Hoy el sistema guarda un solo examen por persona, y cada examen nuevo sobrescribe al
-anterior.** No es una decisión del portal: así está construido desde el sistema original.
+- [ ] Admisión
+- [ ] Periódico
+- [ ] Cambio de rol
+- [ ] Post incapacidad
+- [ ] Especial
+- [ ] Falta uno: ________________
 
-- De las **3,213 personas** con examen en el sistema, sólo existe **la última versión**. Lo
-  anterior ya no está y no se puede recuperar.
-- Desde el **17 de agosto de 2026** sí se guarda una bitácora con el dictamen y la fecha de
-  cada examen. Es lo que alimentará la lista de bloqueados, y **hoy tiene unos 24 registros
-  reales**: crece sólo hacia adelante.
+**B2.** Cintura y cadera (son nuevos en la rev. 04, no existen en el sistema). ¿Se miden?
 
-**¿Con eso basta, o necesitan poder abrir el examen completo de hace dos años?** Si lo
-segundo, es un trabajo considerablemente mayor y lo planteamos aparte.
+- [ ] Siempre
+- [ ] Sólo en: ________________
+- [ ] No se usan
+
+**B3.** Antecedentes laborales: el formato pide hasta 4 empleos anteriores con 10 datos cada uno. **En la práctica, ¿cuántos se llenan?**
+
+- [ ] Los 4 completos
+- [ ] Normalmente ______ empleos
+- [ ] Sólo el resumen (edad al empezar a trabajar y cuántos trabajos ha tenido)
+
+> Habilitar la tabla completa es la tarea más grande del plan. Si no se llena, nos la ahorramos.
+
+**B4.** Estos campos están en el formato pero hoy no se pueden capturar. **Marcar los que sí usan:**
+
+- [ ] Oximetría (SpO2)
+- [ ] Romberg
+- [ ] Voz clara y fuerte
+- [ ] Tráquea
+- [ ] Oído derecho e izquierdo por separado (agudeza, conducto, membrana timpánica)
+- [ ] Lentes por ojo
+- [ ] Observaciones generales de exploración
+- [ ] CCA
+- [ ] Fecha de influenza
+- [ ] Cirugía (observaciones)
 
 ---
 
-## 4. Dos datos para planear la infraestructura
+## C · Exámenes anteriores
 
-No son del examen inicial, pero los necesitamos para dimensionar el servidor y evitar
-quedarnos cortos de espacio.
+**C1.** Hoy se guarda **un solo examen por persona**: cada examen nuevo sobrescribe al anterior. Desde el 17-ago-2026 sí queda registrado el dictamen y la fecha de cada uno.
 
-### 4.1 · ¿Cuántos candidatos se examinan al mes?
+- [ ] Con el dictamen y la fecha nos basta
+- [ ] Necesitamos poder **abrir el examen completo** de años anteriores
 
-Sabemos que se dan de alta unas **217 personas al mes**, pero no cuántos candidatos se
-examinan para llegar a esa cifra. ¿Se examinan 2 por cada contratado? ¿4?
-
-### 4.2 · ¿Cada cuánto es el examen periódico?
-
-¿Anual, cada dos años, o depende del puesto de riesgo? Si depende del puesto, ¿cuánta gente
-entra en cada categoría?
-
-*Por qué importa:* cada examen genera en promedio **4.4 MB** de documentos escaneados. Con la
-respuesta a estas dos preguntas sabemos si hay que pedir 70 GB o 250 GB de espacio para los
-próximos cinco años. Hoy llevamos 14 GB.
+> La segunda opción es un trabajo mucho mayor y habría que planearlo aparte. Además, de las
+> 3,213 personas ya examinadas sólo existe la última versión: lo anterior no se puede recuperar.
 
 ---
 
-## Lo que podemos avanzar sin esperar respuestas
+## D · Para dimensionar el servidor
+
+**D1.** ¿Cuántos exámenes de **candidatos** se hacen al mes? ______
+
+> Sabemos que se contratan ~217 personas al mes, pero no cuántos se examinan para llegar a esa cifra.
+
+**D2.** ¿Cada cuánto es el examen **periódico**?
+
+- [ ] Anual
+- [ ] Cada 2 años
+- [ ] Depende del puesto: ________________
+
+> Cada examen genera ~4.4 MB de documentos. Con D1 y D2 sabemos si pedir 70 GB o 250 GB para
+> los próximos 5 años. Hoy llevamos 14 GB.
+
+---
+
+### Mientras tanto
 
 El selector de tipo de examen y los campos de cintura y cadera no dependen de ninguna de
-estas preguntas. Si están de acuerdo, arrancamos por ahí.
+estas respuestas. Si están de acuerdo, avanzamos con eso.
