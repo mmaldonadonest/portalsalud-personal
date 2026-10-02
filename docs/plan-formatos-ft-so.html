@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Formatos FT-SO</title>
+<style>
+  :root{
+    --blanco:#ffffff;
+    --azul:#0057A8; --azul-700:#00549E; --azul-900:#003E75; --azul-300:#4FA8E0; --azul-100:#EAF3FA;
+    --verde:#2B9138; --verde-100:#EAF7EC;
+    --gris-50:#F8FAFC; --gris-100:#F2F4F7; --gris-200:#E1E6EB; --gris-300:#D0D5DD;
+    --gris-500:#667085; --gris-700:#475467; --gris-950:#20252B;
+    --ambar:#8a5300; --ambar-bg:#FFF7E6; --rojo:#B42318; --rojo-bg:#FEF3F2;
+    --fg:var(--gris-950); --muted:var(--gris-500); --line:var(--gris-200);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--blanco);color:var(--fg);
+       font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 16px 80px}
+  .hero{background:var(--azul);color:#fff;margin:0 -16px 28px;padding:30px 16px 26px;}
+  .hero-in{max-width:1068px;margin:0 auto}
+  .hero h1{font-size:1.8rem;margin:0 0 4px;letter-spacing:-.015em;font-weight:700}
+  .hero .sub{opacity:.85;font-size:.94rem;margin:0}
+  .marca{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;opacity:.75;margin-bottom:10px}
+
+  .prog{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:0 0 26px;
+        box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .prog-top{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .prog-top b{font-size:1.02rem;color:var(--azul-900)}
+  .prog-pct{font-size:1.5rem;font-weight:700;color:var(--azul);font-variant-numeric:tabular-nums}
+  .barra{height:26px;border-radius:7px;background:var(--gris-100);overflow:hidden;display:flex;border:1px solid var(--gris-200)}
+  .seg{height:100%;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden}
+  .seg.hecho{background:var(--verde)}
+  .seg.curso{background:var(--azul-300)}
+  .seg.bloqueado{background:var(--ambar)}
+  .seg.pendiente{background:var(--gris-200);color:var(--gris-500)}
+  .leyenda{display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;font-size:.82rem;color:var(--muted)}
+  .leyenda i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+  .fases{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+  .fase{flex:1 1 150px;border:1px solid var(--line);border-radius:9px;padding:10px 12px;background:var(--gris-50)}
+  .fase .t{font-size:.76rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
+  .fase .b{height:6px;border-radius:3px;background:var(--gris-200);margin:7px 0 5px;overflow:hidden}
+  .fase .b span{display:block;height:100%;background:var(--verde)}
+  .fase .n{font-size:.82rem;color:var(--gris-700)}
+
+  .cards{display:flex;flex-wrap:wrap;gap:12px;margin:22px 0 6px}
+  .card{flex:1 1 150px;border:1px solid var(--line);border-radius:10px;padding:13px 15px;background:var(--gris-50)}
+  .card .n{font-size:1.5rem;font-weight:700;color:var(--azul);line-height:1.2}
+  .card .l{font-size:.79rem;color:var(--muted)}
+
+  h2{font-size:1.16rem;margin:42px 0 6px;padding-bottom:7px;color:var(--azul-900);border-bottom:2px solid var(--azul);font-weight:700}
+  h3{font-size:.95rem;margin:26px 0 8px;color:var(--gris-700);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+  p{margin:10px 0}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.89rem}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--azul-100);color:var(--azul-900);font-weight:700;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em}
+  tbody tr:nth-child(even){background:var(--gris-50)}
+  td.id{font-weight:700;color:var(--azul);white-space:nowrap}
+  td.n,th.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  tfoot td{font-weight:700;border-top:2px solid var(--azul);border-bottom:none;background:#fff}
+
+  .tag{display:inline-block;font-size:.71rem;padding:2px 7px;border-radius:99px;border:1px solid var(--gris-300);color:var(--muted);white-space:nowrap;background:#fff}
+  .tag.hecho{background:var(--verde-100);color:var(--verde);border-color:transparent;font-weight:700}
+  .tag.curso{background:var(--azul-100);color:var(--azul-700);border-color:transparent;font-weight:700}
+  .tag.bloqueado{background:var(--ambar-bg);color:var(--ambar);border-color:transparent;font-weight:700}
+  .tag.pendiente{background:var(--gris-100);color:var(--gris-700);border-color:transparent}
+  .tag.mod{background:#fff;color:var(--azul-900)}
+
+  .note{border-left:3px solid var(--azul);background:var(--azul-100);padding:12px 15px;border-radius:0 8px 8px 0;margin:16px 0}
+  .warn{border-left:3px solid var(--ambar);background:var(--ambar-bg);padding:12px 15px;border-radius:0 8px 8px 0;margin:16px 0}
+  .good{border-left:3px solid var(--verde);background:var(--verde-100);padding:12px 15px;border-radius:0 8px 8px 0;margin:16px 0}
+  ul{margin:8px 0;padding-left:22px} li{margin:5px 0}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.86em;background:var(--gris-100);border:1px solid var(--gris-200);border-radius:4px;padding:1px 5px}
+  footer{margin-top:52px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:.81rem}
+  @media (max-width:640px){ th,td{padding:7px 6px;font-size:.83rem} .hero h1{font-size:1.42rem} .prog-pct{font-size:1.25rem} }
+  @media print{ .hero{background:#fff;color:var(--azul-900);margin:0;padding:0 0 10px} .prog,.card,.fase{box-shadow:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hero"><div class="hero-in">
+  <div class="marca">Portal Salud · Salud Ocupacional</div>
+  <h1>Formatos FT-SO: llenado e impresión desde el portal</h1>
+  <p class="sub">23 formatos entregados por Salud Ocupacional (22 Excel + 1 Word). Plan para que cada uno salga lleno con la información que el portal ya guarda, y un módulo nuevo para los que hoy no tienen dónde capturarse. El avance se mide en tareas terminadas, no en tiempo.</p>
+</div></div>
+
+<!-- ===== AVANCE GLOBAL (lo calcula el script al final a partir de la columna Estado) ===== -->
+<div class="prog">
+  <div class="prog-top"><b>Avance global</b><span class="prog-pct" id="pctGlobal">0%</span></div>
+  <div class="barra" id="barraGlobal"></div>
+  <div class="leyenda">
+    <span><i style="background:#2B9138"></i>Hecho</span>
+    <span><i style="background:#4FA8E0"></i>En curso</span>
+    <span><i style="background:#8a5300"></i>Bloqueado (espera decisión)</span>
+    <span><i style="background:#E1E6EB"></i>Pendiente</span>
+  </div>
+  <div class="fases" id="fases"></div>
+</div>
+
+<div class="cards">
+  <div class="card"><div class="n">23</div><div class="l">formatos recibidos</div></div>
+  <div class="card"><div class="n" id="cFormatosOk">0</div><div class="l">formatos que ya salen llenos</div></div>
+  <div class="card"><div class="n" id="cTareas">0</div><div class="l">tareas en el plan</div></div>
+  <div class="card"><div class="n" id="cHechas">0</div><div class="l">tareas hechas</div></div>
+  <div class="card"><div class="n" id="cBloq">0</div><div class="l">tareas bloqueadas</div></div>
+</div>
+
+<div class="note">
+  <b>Cómo se lee el avance.</b> Cada tarea vale lo mismo. El porcentaje global es tareas <i>Hecho</i> entre el total; cada fase tiene el suyo. Para actualizar basta cambiar la etiqueta de la columna <b>Estado</b> (<code>hecho</code>, <code>curso</code>, <code>bloqueado</code>, <code>pendiente</code>) y recargar la página: las barras y los contadores se recalculan solos. Un formato cuenta como "sale lleno" cuando todas sus tareas están en Hecho.
+</div>
+
+<!-- ===== 1. DONDE CAE CADA FORMATO ===== -->
+<h2>1. Dónde se llena cada formato</h2>
+<p>Resultado del análisis de los 23 archivos contra el código del portal. El módulo es el que ya tiene la información (o el que debe tenerla).</p>
+
+<table id="tFormatos">
+  <thead><tr><th>Clave</th><th>Formato</th><th>Módulo</th><th>Situación</th><th>Avance</th></tr></thead>
+  <tbody>
+    <tr data-formato="FT-SO-04"><td class="id">FT-SO-04</td><td>Examen médico inicial (rev. 04)</td><td><span class="tag mod">Examen</span></td><td>Ya se imprime con "Imprimir expediente". Faltan cintura y cadera.</td><td class="n pf">—</td></tr>
+    <tr data-formato="FT-SO-11"><td class="id">FT-SO-11</td><td>Consentimiento de examen médico</td><td><span class="tag mod">Examen</span></td><td>Ya se imprime.</td><td class="n pf">—</td></tr>
+    <tr data-formato="FT-SO-32"><td class="id">FT-SO-32</td><td>Aviso de privacidad (Word)</td><td><span class="tag mod">Examen</span></td><td>Ya se imprime.</td><td class="n pf">—</td></tr>
+    <tr data-formato="FT-SO-17"><td class="id">FT-SO-17</td><td>Examen médico periódico</td><td><span class="tag mod">Examen</span></td><td>Subconjunto del examen; los datos ya existen. Falta plantilla, puesto inicial/actual y departamento.</td><td class="n pf">—</td></tr>
+    <tr data-formato="FT-SO-16"><td class="id">FT-SO-16</td><td>Examen médico cambio de puesto</td><td><span class="tag mod">Examen</span></td><td>Igual que el 17 más puesto anterior, fechas de ingreso y motivo del cambio.</td><td class="n pf">—</td></tr>
+    <tr data-formato="FT-SO-18"><td class="id">FT-SO-18</td><td>Examen médico egreso</td><td><span class="tag mod">Examen</span></td><td>Igual que el 17 más antigüedad y motivo de salida; sin plan terapéutico.</td><td class="n pf">—</td></tr>
+    <tr data-formato="FT-SO-13"><td class="id">FT-SO-13</td><td>Examen médico post incapacidad</td><td><span class="tag mod">Examen + Incapacidad</span></td><td>Ficha, AGO, exploración y resultado del examen; ramo, tipo, fechas y días de Incapacidad. Diagnóstico y tratamiento de la incapacidad no se guardan.</td><td class="n pf">—</td></tr>
+    <tr data-formato="FT-SO-19"><td class="id">FT-SO-19</td><td>Examen inicial "mantenimiento"</td><td><span class="tag mod">Examen</span></td><td>Es el 04 más el bloque "Antecedentes laborales específicos" (altura, en caliente, espacios confinados), que no existe en el portal.</td><td class="n pf">—</td></tr>
+    <tr data-formato="FT-SO-20"><td class="id">FT-SO-20</td><td>Examen periódico "mantenimiento"</td><td><span class="tag mod">Examen</span></td><td>Es el 17 más el mismo bloque.</td><td class="n pf">—</td></tr>
+    <tr data-formato="FT-SO-31"><td class="id">FT-SO-31</td><td>Dictamen de certificación de aptitud</td><td><span class="tag mod">Examen</span></td><td>Pide dictamen por 10 tipos de trabajo, fecha de expedición y vigencia; el portal guarda un solo dictamen.</td><td class="n pf">—</td></tr>
+    <tr data-formato="FT-SO-25"><td class="id">FT-SO-25</td><td>Carta compromiso (apto condicionado)</td><td><span class="tag mod">Examen</span></td><td>Sale del resultado "apto condicionado". Faltan condición a cumplir, fecha de cumplimiento y cumplió sí/no. Los dos archivos recibidos tienen el mismo texto.</td><td class="n pf">—</td></tr>
+    <tr data-formato="FT-SO-05"><td class="id">FT-SO-05</td><td>Cuestionario síntomas osteomusculares</td><td><span class="tag mod">Examen</span></td><td>El examen cubre columna y Lasègue; faltan 6 articulaciones por lado, Schober, palpación y grado 0-4.</td><td class="n pf">—</td></tr>
+    <tr data-formato="FT-SO-30"><td class="id">FT-SO-30</td><td>Pre-test para ingresos por contingencia</td><td><span class="tag mod">Pre-Test</span></td><td>Las 7 preguntas coinciden y ya hay impresión sin clave. Solo ponerle clave y acomodo.</td><td class="n pf">—</td></tr>
+    <tr data-formato="FT-SO-22"><td class="id">FT-SO-22</td><td>Aceptación a CAPA</td><td><span class="tag mod">Antidoping</span></td><td>Carta con 3 huecos: nombre, sustancia positiva (ya existen) y "actualmente estoy ingiriendo" (falta).</td><td class="n pf">—</td></tr>
+    <tr data-formato="FT-SO-14"><td class="id">FT-SO-14</td><td>Cadena de custodia</td><td><span class="tag mod">Antidoping</span></td><td>Faltan identificación, razón de la prueba, % de alcohol, tratamiento médico, fecha/hora/lugar. El formato marca 7 sustancias a la vez; el portal guarda una por registro.</td><td class="n pf">—</td></tr>
+    <tr data-formato="FT-SO-02"><td class="id">FT-SO-02</td><td>Pase de salida</td><td><span class="tag mod">Consulta médica</span></td><td>Faltan fecha de cita, motivo, horas de salida/entrada, regresa, incapacidad.</td><td class="n pf">—</td></tr>
+    <tr data-formato="FT-SO-29"><td class="id">FT-SO-29</td><td>Pase de medicamento</td><td><span class="tag mod">Consulta médica</span></td><td>Padecimiento y medicamento salen de diagnóstico y tratamiento. Faltan vigencia, duración y frecuencia.</td><td class="n pf">—</td></tr>
+    <tr data-formato="NOTA-FT"><td class="id">Nota FT</td><td>Nota de fisioterapia (propuesta, sin clave)</td><td><span class="tag mod">Consulta médica</span></td><td>Pide 3 sesiones de signos vitales y antecedentes de lesión. Sin clave ni revisión todavía.</td><td class="n pf">—</td></tr>
+    <tr data-formato="FT-SO-10"><td class="id">FT-SO-10</td><td>Registro de skin prick test (SPT)</td><td><span class="tag mod">Nuevo: Controles</span></td><td>5 fechas × 6 alérgenos, medicamento actual. No hay módulo.</td><td class="n pf">—</td></tr>
+    <tr data-formato="FT-SO-23"><td class="id">FT-SO-23</td><td>Consentimiento para pruebas especiales</td><td><span class="tag mod">Nuevo: Controles</span></td><td>Autorización, fecha/lugar y resultado de prueba rápida. Dato sensible (VIH). No hay módulo.</td><td class="n pf">—</td></tr>
+    <tr data-formato="FT-SO-24"><td class="id">FT-SO-24</td><td>Carnet de crónico-degenerativas</td><td><span class="tag mod">Nuevo: Controles</span></td><td>Seguimiento mensual: 12 meses × 14 valores, intervenciones, vacuna COVID. No hay módulo.</td><td class="n pf">—</td></tr>
+    <tr data-formato="FT-SO-27"><td class="id">FT-SO-27</td><td>Control de presión arterial</td><td><span class="tag mod">Nuevo: Controles</span></td><td>Bitácora de tomas por brazo con observaciones. No hay módulo.</td><td class="n pf">—</td></tr>
+  </tbody>
+</table>
+
+<div class="warn">
+  <b>Errores en los propios formatos</b> (avisar a Salud Ocupacional antes de reproducirlos):
+  FT-SO-19 y FT-SO-20 dicen "Oído derecho / izquierdo" bajo Agudeza visual;
+  FT-SO-16 y FT-SO-18 dicen "APTO 1945" donde los demás dicen "APTO 45";
+  FT-SO-30 dice "Hoja 1 de 2" pero trae una sola hoja;
+  FT-SO-25 llegó dos veces con el mismo contenido.
+</div>
+
+<!-- ===== 2. PLAN ===== -->
+<h2>2. Plan de trabajo</h2>
+<p>Seis fases. Las primeras aprovechan lo que ya existe (impresión HTML con <code>window.print()</code>, encabezado de formato reutilizable, ficha del trabajador); la fase 5 es el módulo nuevo. La columna <b>Formatos</b> dice a qué formato abona cada tarea.</p>
+
+<div class="note">
+  <b>Decisión de mecánica.</b> Los formatos se reproducen como página HTML imprimible (el PDF lo hace el navegador), igual que hoy el expediente del examen. No se rellena el Excel: obligaría a abrir Excel para imprimir y complica las firmas. Base de datos: todo lo nuevo va a la <b>base del portal</b> (tablas <code>SERV_MED_*</code> dentro de <code>BIOMETRICO</code>); se entrega el <code>.sql</code> y lo corre el usuario. No se modifica ningún WS de ORDS.
+</div>
+
+<h3>Fase 0 · Lo que ya está</h3>
+<table class="plan" data-fase="F0" data-titulo="0 · Ya hecho">
+  <thead><tr><th>#</th><th>Tarea</th><th>Entregable</th><th>Formatos</th><th>Estado</th></tr></thead>
+  <tbody>
+    <tr><td class="id">0.1</td><td>Impresión del expediente del examen (consentimiento + aviso de privacidad + examen inicial), port 1:1 del PHP</td><td><code>examen-documento.html</code>, <code>ExamenDocumentoService</code></td><td data-formatos="FT-SO-04,FT-SO-11,FT-SO-32">04, 11, 32</td><td><span class="tag hecho">hecho</span></td></tr>
+    <tr><td class="id">0.2</td><td>Impresión del Pre-Test (sin clave de control)</td><td><code>pretest-documento.html</code></td><td data-formatos="FT-SO-30">30</td><td><span class="tag hecho">hecho</span></td></tr>
+    <tr><td class="id">0.3</td><td>Encabezado de formato reutilizable (logo, clave, revisión, hoja) + ficha del trabajador + bloque de firmas</td><td><code>fragments/documento-encabezado.html</code></td><td>todos</td><td><span class="tag hecho">hecho</span></td></tr>
+    <tr><td class="id">0.4</td><td>Análisis de los 23 formatos contra el portal (este documento)</td><td><code>docs/plan-formatos-ft-so.html</code></td><td>todos</td><td><span class="tag hecho">hecho</span></td></tr>
+  </tbody>
+</table>
+
+<h3>Fase 1 · Base común del examen</h3>
+<p>Sin esto no se sabe qué formato imprimir para cada persona: el portal guarda un solo examen y nunca captura su tipo.</p>
+<table class="plan" data-fase="F1" data-titulo="1 · Base examen">
+  <thead><tr><th>#</th><th>Tarea</th><th>Entregable</th><th>Formatos</th><th>Estado</th></tr></thead>
+  <tbody>
+    <tr><td class="id">1.1</td><td>Selector de tipo de examen en la captura (admisión, periódico, cambio de puesto, egreso, post incapacidad, mantenimiento inicial, mantenimiento periódico) guardado en <code>SERV_MED_TAG</code> con el mismo tipo que usa el legacy (<code>tipoExamenInputO</code>)</td><td>campo en <code>examen-shell.html</code> + guardado</td><td data-formatos="FT-SO-04,FT-SO-16,FT-SO-17,FT-SO-18,FT-SO-13,FT-SO-19,FT-SO-20">04, 16, 17, 18, 13, 19, 20</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">1.2</td><td>Cintura, cadera y SpO2 en Exploración física (nuevos en la rev. 04; SpO2 ya existe como tag pero no se captura)</td><td>3 campos + impresión en el 04</td><td data-formatos="FT-SO-04,FT-SO-17,FT-SO-19,FT-SO-20">04, 17, 19, 20</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">1.3</td><td>Equivalencia del resultado: el portal guarda apto / no apto / condicionado / restringido y los formatos imprimen "APTO 15 / APTO 45 / CLAVE 60 / CLAVE 30"</td><td>respuesta del servicio médico + tabla de equivalencia en código</td><td data-formatos="FT-SO-04,FT-SO-13,FT-SO-16,FT-SO-17,FT-SO-18,FT-SO-19,FT-SO-20">todos los exámenes</td><td><span class="tag bloqueado">bloqueado</span></td></tr>
+    <tr><td class="id">1.4</td><td>El botón "Imprimir expediente" elige la plantilla según el tipo de examen (hoy siempre imprime el 04)</td><td><code>ExamenController.imprimir</code></td><td data-formatos="FT-SO-16,FT-SO-17,FT-SO-18,FT-SO-13,FT-SO-19,FT-SO-20">16, 17, 18, 13, 19, 20</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">1.5</td><td>Datos de la ficha que el portal no lee del empleado: departamento y escolaridad/profesión (confirmar si el WS del empleado los trae o se capturan en el examen)</td><td>campos o lectura nueva</td><td data-formatos="FT-SO-13,FT-SO-16,FT-SO-17,FT-SO-18,FT-SO-20">13, 16, 17, 18, 20</td><td><span class="tag pendiente">pendiente</span></td></tr>
+  </tbody>
+</table>
+
+<h3>Fase 2 · Exámenes con datos que ya existen</h3>
+<p>Son variantes del examen inicial: misma información, otro acomodo y 2 a 4 campos propios.</p>
+<table class="plan" data-fase="F2" data-titulo="2 · Variantes del examen">
+  <thead><tr><th>#</th><th>Tarea</th><th>Entregable</th><th>Formatos</th><th>Estado</th></tr></thead>
+  <tbody>
+    <tr><td class="id">2.0</td><td>Examen inicial (el que se aplica por primera vez): alinear la plantilla actual, que es el port del PHP, con la rev. 04 del Excel: encabezado y logo nuevos, "Hoja n de 3", renglón TEL. EMERGENCIA / NOMBRE / PARENTESCO en la ficha, cintura y cadera en exploración física, y confirmar los 296 campos uno a uno</td><td>ajuste a <code>examen-documento.html</code></td><td data-formatos="FT-SO-04">04</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">2.1</td><td>Plantilla del examen periódico (2 hojas) + campos puesto inicial / puesto actual</td><td><code>examen-periodico-documento.html</code></td><td data-formatos="FT-SO-17">17</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">2.2</td><td>Plantilla del examen de cambio de puesto + bloque "Cambio de puesto" (puesto anterior, fechas de ingreso, motivo)</td><td>plantilla + 5 campos</td><td data-formatos="FT-SO-16">16</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">2.3</td><td>Plantilla del examen de egreso + turno, antigüedad y motivo de salida; sección "Estudios realizados durante su periodo laboral"</td><td>plantilla + 3 campos</td><td data-formatos="FT-SO-18">18</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">2.4</td><td>Plantilla del examen post incapacidad: cruza la incapacidad más reciente del NSS (ramo, tipo, inicio, término, días) con el examen</td><td>plantilla + lectura de Incapacidad</td><td data-formatos="FT-SO-13">13</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">2.5</td><td>Diagnóstico y tratamiento de la incapacidad (el formato 13 los pide y el WS de incapacidad no los guarda): capturarlos en el examen post incapacidad</td><td>2 campos</td><td data-formatos="FT-SO-13">13</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">2.6</td><td>Pre-Test: clave FT-SO-30 rev. 03 en el encabezado y acomodo igual al formato (hoja 2 por confirmar)</td><td>ajuste a <code>pretest-documento.html</code></td><td data-formatos="FT-SO-30">30</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">2.7</td><td>Verificación en navegador de cada plantilla con un NSS real (A4, saltos de hoja, firmas)</td><td>captura por formato</td><td data-formatos="FT-SO-04,FT-SO-17,FT-SO-16,FT-SO-18,FT-SO-13,FT-SO-30">04, 17, 16, 18, 13, 30</td><td><span class="tag pendiente">pendiente</span></td></tr>
+  </tbody>
+</table>
+
+<h3>Fase 3 · Exámenes que necesitan captura nueva</h3>
+<table class="plan" data-fase="F3" data-titulo="3 · Captura nueva en examen">
+  <thead><tr><th>#</th><th>Tarea</th><th>Entregable</th><th>Formatos</th><th>Estado</th></tr></thead>
+  <tbody>
+    <tr><td class="id">3.1</td><td>Sección "Antecedentes laborales específicos" (certificado en altura / en caliente / espacios confinados + 7 preguntas sí/no con texto) en <code>SERV_MED_TAG</code>, visible solo cuando el tipo es mantenimiento</td><td>sección nueva en el acordeón + guardado</td><td data-formatos="FT-SO-19,FT-SO-20">19, 20</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">3.2</td><td>Plantillas de los exámenes de mantenimiento (inicial 3 hojas, periódico 2 hojas)</td><td>2 plantillas</td><td data-formatos="FT-SO-19,FT-SO-20">19, 20</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">3.3</td><td>Dictamen por tipo de trabajo: 10 renglones (generales, manufactura, vehículos, confinados, alturas, enzimas, vigilancia, brigadistas, cargas, respirador) × apto / no apto / condicionado / no aplica, con fecha de expedición y vigencia</td><td>tabla <code>SERV_MED_DICTAMEN_APTITUD</code> (.sql) + card en Cierre del examen</td><td data-formatos="FT-SO-31">31</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">3.4</td><td>Plantilla del dictamen de certificación</td><td><code>dictamen-documento.html</code></td><td data-formatos="FT-SO-31">31</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">3.5</td><td>Carta compromiso: condición a cumplir, fecha de cumplimiento y cumplió sí/no, ligados al examen con resultado "apto condicionado" (reusa el tipo y fecha del examen de 1.1)</td><td>tabla <code>SERV_MED_CARTA_COMPROMISO</code> (.sql) + card</td><td data-formatos="FT-SO-25">25</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">3.6</td><td>Plantilla de la carta compromiso (4 firmas: trabajador, servicio médico, jefe inmediato, RH)</td><td><code>carta-compromiso-documento.html</code></td><td data-formatos="FT-SO-25">25</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">3.7</td><td>Cuestionario osteomuscular: sección nueva con columna (curvatura, desviación, movilidad-dolor, Lasègue, Schober, palpación) y 6 articulaciones × 2 lados × 8 columnas, grado 0-4</td><td>tabla <code>SERV_MED_OSTEOMUSCULAR</code> (.sql) + sección</td><td data-formatos="FT-SO-05">05</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">3.8</td><td>Plantilla del cuestionario osteomuscular</td><td><code>osteomuscular-documento.html</code></td><td data-formatos="FT-SO-05">05</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">3.9</td><td>Verificación en navegador de las 5 plantillas de esta fase</td><td>captura por formato</td><td data-formatos="FT-SO-19,FT-SO-20,FT-SO-31,FT-SO-25,FT-SO-05">19, 20, 31, 25, 05</td><td><span class="tag pendiente">pendiente</span></td></tr>
+  </tbody>
+</table>
+
+<h3>Fase 4 · Antidoping y Consulta médica</h3>
+<table class="plan" data-fase="F4" data-titulo="4 · Antidoping y Consulta">
+  <thead><tr><th>#</th><th>Tarea</th><th>Entregable</th><th>Formatos</th><th>Estado</th></tr></thead>
+  <tbody>
+    <tr><td class="id">4.1</td><td>Aceptación a CAPA: campo "sustancia que ingiere actualmente" en el registro de antidoping + plantilla (2 copias por hoja, como el formato) + botón Imprimir cuando el status es CAPA</td><td>1 campo + <code>capa-documento.html</code></td><td data-formatos="FT-SO-22">22</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">4.2</td><td>Cadena de custodia: identificación (tipo, emitida por, número), razón de la prueba (aleatoria / periódico / otro), % de alcohol en aire espirado, tratamiento médico (diagnóstico, medicamento, recetado por), fecha, hora y lugar de recolección</td><td>campos nuevos en el alta de antidoping (<code>SERV_MED_TAG</code> o tabla propia, .sql)</td><td data-formatos="FT-SO-14">14</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">4.3</td><td>Cadena de custodia: el formato marca 7 sustancias en una sola prueba y el portal guarda una sustancia por registro. Decidir si el alta permite varias (panel) o si se imprime una por registro</td><td>decisión + ajuste</td><td data-formatos="FT-SO-14">14</td><td><span class="tag bloqueado">bloqueado</span></td></tr>
+    <tr><td class="id">4.4</td><td>Plantilla de cadena de custodia (clave AMP del formato ↔ AMF del portal)</td><td><code>cadena-custodia-documento.html</code></td><td data-formatos="FT-SO-14">14</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">4.5</td><td>Pase de salida: captura chica desde la consulta (fecha de cita, motivo, cita programada / envío, horario, agencia, hora de salida y entrada, regresa, incapacidad días/inicia/termina, observaciones) + plantilla con 2 pases por hoja</td><td>tabla <code>SERV_MED_PASE_SALIDA</code> (.sql) + card + plantilla</td><td data-formatos="FT-SO-02">02</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">4.6</td><td>Pase de medicamento: vigencia, duración del tratamiento, frecuencia y observaciones ligados a una consulta; padecimiento y medicamento vienen del diagnóstico y tratamiento</td><td>tabla <code>SERV_MED_PASE_MEDICAMENTO</code> (.sql) + card + plantilla</td><td data-formatos="FT-SO-29">29</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">4.7</td><td>Nota de fisioterapia: definir con Salud Ocupacional si es un tipo de consulta (con 3 sesiones y antecedentes de lesión) y asignarle clave y revisión. Sin eso no se construye</td><td>decisión</td><td data-formatos="NOTA-FT">Nota FT</td><td><span class="tag bloqueado">bloqueado</span></td></tr>
+    <tr><td class="id">4.8</td><td>Nota de fisioterapia: tipo de consulta "fisioterapia" con antecedentes de lesión y hasta 3 sesiones, firma del fisioterapeuta, plantilla</td><td>campos + plantilla</td><td data-formatos="NOTA-FT">Nota FT</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">4.9</td><td>Verificación en navegador de las 5 plantillas de esta fase</td><td>captura por formato</td><td data-formatos="FT-SO-22,FT-SO-14,FT-SO-02,FT-SO-29,NOTA-FT">22, 14, 02, 29, Nota FT</td><td><span class="tag pendiente">pendiente</span></td></tr>
+  </tbody>
+</table>
+
+<h3>Fase 5 · Módulo nuevo "Controles de salud"</h3>
+<p>Para los 4 formatos sin módulo. Los cuatro son registros de seguimiento en el tiempo (varias tomas por persona), por eso no caben en el examen, que guarda una sola foto. Un módulo por NSS, con una pestaña por formato, y cada pestaña genera su formato al final. Tablas dedicadas (no EAV), como se hizo en Accidentes.</p>
+<table class="plan" data-fase="F5" data-titulo="5 · Módulo Controles">
+  <thead><tr><th>#</th><th>Tarea</th><th>Entregable</th><th>Formatos</th><th>Estado</th></tr></thead>
+  <tbody>
+    <tr><td class="id">5.1</td><td>Diseño de tablas: <code>SERV_MED_SPT</code> + tomas, <code>SERV_MED_PRUEBA_ESPECIAL</code>, <code>SERV_MED_CRONICO</code> + meses, <code>SERV_MED_PRESION</code> + tomas. Todas con NSS, usuario y fecha de registro, insert-only donde aplique</td><td><code>.sql</code> para la base del portal (lo corre el usuario)</td><td data-formatos="FT-SO-10,FT-SO-23,FT-SO-24,FT-SO-27">10, 23, 24, 27</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">5.2</td><td>Módulo en el menú de la persona (misma mecánica que Antidoping / Accidentes: lista + alta + detalle) y permiso en la matriz de roles</td><td>módulo + entrada en RBAC</td><td data-formatos="FT-SO-10,FT-SO-23,FT-SO-24,FT-SO-27">10, 23, 24, 27</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">5.3</td><td>Quién puede ver el consentimiento de pruebas especiales (resultado de VIH): definir rol y si el resultado se imprime o solo se captura</td><td>decisión de Salud Ocupacional</td><td data-formatos="FT-SO-23">23</td><td><span class="tag bloqueado">bloqueado</span></td></tr>
+    <tr><td class="id">5.4</td><td>Skin prick test: cabecera (información médica relevante, puesto) + hasta 5 tomas con fecha, 6 alérgenos (SAB, LIP, NAT, STA, FNA, MAN) con pápula/eritema y controles + y −, medicamento actual, iniciales de quien realiza</td><td>pantalla + guardado</td><td data-formatos="FT-SO-10">10</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">5.5</td><td>Plantilla del registro SPT (5 columnas de toma)</td><td><code>spt-documento.html</code></td><td data-formatos="FT-SO-10">10</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">5.6</td><td>Prueba especial: tipo de anticuerpo, autorización sí/no, firma del trabajador, fecha y lugar de realización, resultado (sospechoso / negativo)</td><td>pantalla + guardado</td><td data-formatos="FT-SO-23">23</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">5.7</td><td>Plantilla del consentimiento para pruebas especiales (texto legal NOM-004 / NOM-010 fijo)</td><td><code>prueba-especial-documento.html</code></td><td data-formatos="FT-SO-23">23</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">5.8</td><td>Carnet crónico-degenerativo: cabecera (diagnóstico, peso año previo, talla, fecha de inicio) + 12 renglones mensuales (estatus, peso, IMC calculado, perímetro abdominal, agudeza visual OD/OI, T/A, FC, glucosa, colesterol, triglicéridos, neuropatía, síntomas, tratamiento, intervención) + intervenciones por mes + vacuna COVID</td><td>pantalla + guardado</td><td data-formatos="FT-SO-24">24</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">5.9</td><td>Plantilla del carnet (una hoja por año)</td><td><code>carnet-cronico-documento.html</code></td><td data-formatos="FT-SO-24">24</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">5.10</td><td>Control de presión arterial: tomas con fecha y hora, brazo derecho, brazo izquierdo y observaciones; lista acumulada por persona</td><td>pantalla + guardado</td><td data-formatos="FT-SO-27">27</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">5.11</td><td>Plantilla del control de presión (2 columnas de tomas por hoja)</td><td><code>presion-documento.html</code></td><td data-formatos="FT-SO-27">27</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">5.12</td><td>Auditoría (<code>@Auditado</code>) en altas e impresiones del módulo</td><td>anotaciones</td><td data-formatos="FT-SO-10,FT-SO-23,FT-SO-24,FT-SO-27">10, 23, 24, 27</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">5.13</td><td>Verificación en navegador de las 4 plantillas y del flujo alta → lista → imprimir</td><td>captura por formato</td><td data-formatos="FT-SO-10,FT-SO-23,FT-SO-24,FT-SO-27">10, 23, 24, 27</td><td><span class="tag pendiente">pendiente</span></td></tr>
+  </tbody>
+</table>
+
+<h3>Fase 6 · Cierre</h3>
+<table class="plan" data-fase="F6" data-titulo="6 · Cierre">
+  <thead><tr><th>#</th><th>Tarea</th><th>Entregable</th><th>Formatos</th><th>Estado</th></tr></thead>
+  <tbody>
+    <tr><td class="id">6.1</td><td>Firma del médico: hoy los documentos llevan la firma fija del Dr. Cerón heredada del PHP. Decidir si se conserva o se imprime nombre y cédula de quien captura (la cédula no existe en ningún catálogo; habría que capturarla por usuario)</td><td>decisión + campo en usuarios si aplica</td><td>todos</td><td><span class="tag bloqueado">bloqueado</span></td></tr>
+    <tr><td class="id">6.2</td><td>Avisar a Salud Ocupacional de los errores encontrados en los formatos y recibir la revisión corregida (o reproducirlos tal cual)</td><td>correo / respuesta</td><td>19, 20, 16, 18, 30, 25</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">6.3</td><td>Manual de usuario: apartado "Imprimir formatos" por módulo y el módulo Controles</td><td><code>manual-usuario-portal-salud.html</code></td><td>todos</td><td><span class="tag pendiente">pendiente</span></td></tr>
+    <tr><td class="id">6.4</td><td>Paso a QA y a producción: <code>.sql</code> de las tablas nuevas (base del portal, dentro de BIOMETRICO) en el orden correcto</td><td>script consolidado</td><td>todos</td><td><span class="tag pendiente">pendiente</span></td></tr>
+  </tbody>
+</table>
+
+<!-- ===== 3. DECISIONES ===== -->
+<h2>3. Decisiones que detienen tareas</h2>
+<p>Las tareas en ámbar esperan una respuesta; lo demás avanza sin ella.</p>
+<table>
+  <thead><tr><th>#</th><th>Pregunta</th><th>Quién responde</th><th>Detiene</th></tr></thead>
+  <tbody>
+    <tr><td class="id">D1</td><td>¿Qué significan "APTO 15 / APTO 45 / CLAVE 60 / CLAVE 30" frente a apto / no apto / condicionado / restringido?</td><td>Servicio médico</td><td>1.3 y la impresión del resultado en todos los exámenes</td></tr>
+    <tr><td class="id">D2</td><td>En cadena de custodia, ¿una prueba cubre las 7 sustancias a la vez? Hoy el portal guarda una sustancia por registro</td><td>Servicio médico</td><td>4.3, 4.4</td></tr>
+    <tr><td class="id">D3</td><td>¿La nota de fisioterapia es un tipo de consulta? ¿Qué clave y revisión lleva?</td><td>Salud Ocupacional</td><td>4.7, 4.8</td></tr>
+    <tr><td class="id">D4</td><td>¿Quién puede ver el resultado de la prueba especial (VIH) y se imprime o no?</td><td>Salud Ocupacional / RH</td><td>5.3, 5.6, 5.7</td></tr>
+    <tr><td class="id">D5</td><td>¿Firma fija del Dr. Cerón o nombre y cédula de quien captura?</td><td>Servicio médico</td><td>6.1</td></tr>
+  </tbody>
+</table>
+
+<footer>Portal Salud · Plan de llenado de formatos FT-SO. El avance se recalcula al abrir la página a partir de la columna Estado de cada tabla de fase.</footer>
+</div>
+
+<script>
+(function(){
+  // Cuenta tareas por estado leyendo la etiqueta de la ultima columna de cada tabla .plan.
+  // No hay pesos: cada tarea vale 1. El avance por formato es tareas hechas / tareas que lo mencionan.
+  var estados = ['hecho','curso','bloqueado','pendiente'];
+  var total = {hecho:0,curso:0,bloqueado:0,pendiente:0}, n = 0;
+  var porFormato = {};
+  var fasesEl = document.getElementById('fases');
+
+  document.querySelectorAll('table.plan').forEach(function(t){
+    var c = {hecho:0,curso:0,bloqueado:0,pendiente:0}, k = 0;
+    t.querySelectorAll('tbody tr').forEach(function(tr){
+      var tag = tr.querySelector('td:last-child .tag');
+      var e = tag ? tag.textContent.trim().toLowerCase() : 'pendiente';
+      if (estados.indexOf(e) < 0) e = 'pendiente';
+      c[e]++; total[e]++; k++; n++;
+      var fcel = tr.querySelector('[data-formatos]');
+      if (fcel) fcel.getAttribute('data-formatos').split(',').forEach(function(f){
+        f = f.trim(); porFormato[f] = porFormato[f] || {t:0,h:0};
+        porFormato[f].t++; if (e === 'hecho') porFormato[f].h++;
+      });
+    });
+    var pct = k ? Math.round(100*c.hecho/k) : 0;
+    var d = document.createElement('div'); d.className = 'fase';
+    d.innerHTML = '<div class="t">' + t.getAttribute('data-titulo') + '</div>' +
+      '<div class="b"><span style="width:' + pct + '%"></span></div>' +
+      '<div class="n">' + pct + '% · ' + c.hecho + ' de ' + k + ' tareas' +
+      (c.bloqueado ? ' · ' + c.bloqueado + ' bloq.' : '') + '</div>';
+    fasesEl.appendChild(d);
+  });
+
+  var pctG = n ? Math.round(100*total.hecho/n) : 0;
+  document.getElementById('pctGlobal').textContent = pctG + '%';
+  var barra = document.getElementById('barraGlobal');
+  estados.forEach(function(e){
+    if (!total[e]) return;
+    var s = document.createElement('div'); s.className = 'seg ' + e;
+    var w = 100*total[e]/n; s.style.width = w + '%';
+    s.textContent = w >= 8 ? total[e] : ''; s.title = e + ': ' + total[e];
+    barra.appendChild(s);
+  });
+  document.getElementById('cTareas').textContent = n;
+  document.getElementById('cHechas').textContent = total.hecho;
+  document.getElementById('cBloq').textContent = total.bloqueado;
+
+  var ok = 0;
+  document.querySelectorAll('#tFormatos tbody tr').forEach(function(tr){
+    var f = tr.getAttribute('data-formato'), r = porFormato[f], cel = tr.querySelector('.pf');
+    if (!r) { cel.textContent = '—'; return; }
+    var p = Math.round(100*r.h/r.t); cel.textContent = p + '%';
+    if (p === 100) { ok++; cel.style.color = '#2B9138'; cel.style.fontWeight = '700'; }
+  });
+  document.getElementById('cFormatosOk').textContent = ok;
+})();
+</script>
+</body>
+</html>
