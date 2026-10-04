@@ -31,25 +31,26 @@
         </div>
     </div>
 
-    <div class="dropdown dropdown-notification ms-3 ms-xl-4">
-        <a href="javascript:void(0)" class="dropdown-link" data-bs-toggle="dropdown" data-bs-auto-close="outside"><small th:text="${notificationCount}">0</small><i class="ri-notification-3-line"></i></a>
+    <!-- Campanita: la llena scripts.html (notifSondear) desde GET /api/notificaciones cada
+         45 s y al cargar; con permiso del navegador tambien lanza el aviso de escritorio.
+         Tabla SERV_MED_NOTIFICACION (db/sql/app_domain/notificaciones.sql). -->
+    <div class="dropdown dropdown-notification ms-3 ms-xl-4" id="notifDropdown">
+        <a href="javascript:void(0)" class="dropdown-link" data-bs-toggle="dropdown" data-bs-auto-close="outside" title="Notificaciones">
+            <small id="notifCount" th:text="${notificationCount}">0</small><i class="ri-notification-3-line"></i>
+        </a>
         <div class="dropdown-menu dropdown-menu-end mt-10-f me--10-f">
-            <div class="dropdown-menu-header">
-                <h6 class="dropdown-menu-title">Notifications</h6>
+            <div class="dropdown-menu-header d-flex justify-content-between align-items-center">
+                <h6 class="dropdown-menu-title mb-0">Notificaciones</h6>
+                <a href="javascript:void(0)" id="notifEscritorio" class="fs-xs d-none" onclick="notifPedirPermisoEscritorio();"
+                   title="Avisar también con una notificación del sistema aunque esta pestaña esté en segundo plano">
+                    <i class="ri-notification-badge-line me-1"></i>Activar avisos de escritorio
+                </a>
             </div>
-            <ul class="list-group" th:if="${!#lists.isEmpty(notifications)}">
-                <li class="list-group-item" th:each="notification : ${notifications}">
-                    <div class="avatar"><span class="avatar-initial bg-primary" th:text="${notification['initial']} ?: 'N'">N</span></div>
-                    <div class="list-group-body">
-                        <p th:text="${notification['message']} ?: 'Nueva notificación disponible.'">Nueva notificación disponible.</p>
-                        <span th:text="${notification['timestamp']} ?: 'Ahora mismo'">Ahora mismo</span>
-                    </div>
-                </li>
-            </ul>
-            <div class="list-group-item text-center py-4" th:if="${#lists.isEmpty(notifications)}">
+            <ul class="list-group" id="notifLista"></ul>
+            <div class="list-group-item text-center py-4" id="notifVacio">
                 <span class="text-muted">Sin notificaciones por mostrar.</span>
             </div>
-            <div class="dropdown-menu-footer"><a href="javascript:void(0)">Show all Notifications</a></div>
+            <div class="dropdown-menu-footer"><a href="javascript:void(0)" id="notifTodasLeidas" onclick="notifMarcarTodasLeidas();">Marcar todas como leídas</a></div>
         </div>
     </div>
 

@@ -28,6 +28,111 @@
         if (activoSidebar) {
             activoSidebar.scrollIntoView({ block: 'center' });
         }
+
+        // ===== Campanita (fragments/header.html) =====
+        // Sondea GET api/notificaciones cada 45 s (y al cargar). Lo nuevo desde la ultima
+        // vez (id mayor al recordado en localStorage) dispara ademas una notificacion de
+        // escritorio si el usuario dio permiso; el permiso solo se puede pedir desde un clic,
+        // por eso el enlace "Activar avisos de escritorio" en el menu.
+        (function () {
+            var CLAVE_ULTIMO = 'portal-salud.notif.ultimoId';
+            var lista = document.getElementById('notifLista');
+            var vacio = document.getElementById('notifVacio');
+            var contador = document.getElementById('notifCount');
+            var enlaceEscritorio = document.getElementById('notifEscritorio');
+            if (!lista || !contador) {
+                return;
+            }
+            function csrfHeaders() {
+                var h = {};
+                var t = document.querySelector('meta[name="_csrf"]');
+                var n = document.querySelector('meta[name="_csrf_header"]');
+                if (t && n) { h[n.content] = t.content; }
+                return h;
+            }
+            function ultimoId() {
+                try { return parseInt(localStorage.getItem(CLAVE_ULTIMO) || '0', 10) || 0; } catch (e) { return 0; }
+            }
+            function recordarUltimo(id) {
+                try { localStorage.setItem(CLAVE_ULTIMO, String(id)); } catch (e) { /* sin storage */ }
+            }
+            function pintarEnlaceEscritorio() {
+                if (!enlaceEscritorio || !('Notification' in window)) { return; }
+                enlaceEscritorio.classList.toggle('d-none', Notification.permission !== 'default');
+            }
+            function avisoEscritorio(item) {
+                if (!('Notification' in window) || Notification.permission !== 'granted') { return; }
+                try {
+                    var n = new Notification(item.titulo, { body: item.mensaje || '', tag: 'portal-salud-' + item.id });
+                    n.onclick = function () { window.focus(); notifAbrir(item.id, item.enlace); n.close(); };
+                } catch (e) { /* algunos navegadores exigen service worker */ }
+            }
+            function pintar(data) {
+                var items = data.items || [];
+                contador.textContent = String(items.length);
+                lista.innerHTML = '';
+                if (vacio) { vacio.style.display = items.length ? 'none' : ''; }
+                items.forEach(function (it) {
+                    var li = document.createElement('li');
+                    li.className = 'list-group-item';
+                    li.style.cursor = 'pointer';
+                    li.innerHTML = '<div class="avatar"><span class="avatar-initial bg-primary"></span></div>'
+                        + '<div class="list-group-body"><p class="mb-0 fw-semibold"></p><p class="mb-0 fs-sm"></p><span></span></div>';
+                    li.querySelector('.avatar-initial').textContent = it.inicial || 'N';
+                    li.querySelectorAll('p')[0].textContent = it.titulo;
+                    li.querySelectorAll('p')[1].textContent = it.mensaje || '';
+                    li.querySelector('span:last-child').textContent = it.fecha + ' · ' + it.hace;
+                    li.onclick = function () { notifAbrir(it.id, it.enlace); };
+                    lista.appendChild(li);
+                });
+                var ultimo = ultimoId();
+                var maxId = ultimo;
+                items.forEach(function (it) {
+                    if (it.id > ultimo) { avisoEscritorio(it); }
+                    if (it.id > maxId) { maxId = it.id; }
+                });
+                if (maxId > ultimo) { recordarUltimo(maxId); }
+            }
+            window.notifSondear = async function () {
+                try {
+                    var r = await fetch(contextPath + 'api/notificaciones', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                    if (r.ok) { pintar(await r.json()); }
+                } catch (e) { /* red: se reintenta en el siguiente sondeo */ }
+            };
+            window.notifAbrir = async function (id, enlace) {
+                try {
+                    await fetch(contextPath + 'api/notificaciones/' + id + '/leida', { method: 'POST', headers: csrfHeaders() });
+                } catch (e) { /* igual navegamos */ }
+                if (enlace) {
+                    window.location.href = contextPath + enlace.replace(/^\//, '');
+                } else {
+                    notifSondear();
+                }
+            };
+            window.notifMarcarTodasLeidas = async function () {
+                // los ids viven en el JSON del servidor; se vuelve a pedir para no guardar estado extra
+                var ids = [];
+                try {
+                    var r = await fetch(contextPath + 'api/notificaciones', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                    if (!r.ok) { return; }
+                    var data = await r.json();
+                    ids = (data.items || []).map(function (it) { return it.id; });
+                    if (ids.length) {
+                        var h = csrfHeaders();
+                        h['Content-Type'] = 'application/json';
+                        await fetch(contextPath + 'api/notificaciones/leidas', { method: 'POST', headers: h, body: JSON.stringify({ ids: ids }) });
+                    }
+                } catch (e) { /* nada */ }
+                notifSondear();
+            };
+            window.notifPedirPermisoEscritorio = function () {
+                if (!('Notification' in window)) { return; }
+                Notification.requestPermission().then(function () { pintarEnlaceEscritorio(); });
+            };
+            pintarEnlaceEscritorio();
+            notifSondear();
+            setInterval(notifSondear, 45000);
+        }());
     </script>
     <th:block th:replace="${pageScripts}"></th:block>
 </th:block>
