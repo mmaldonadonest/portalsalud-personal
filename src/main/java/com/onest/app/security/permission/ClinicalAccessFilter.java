@@ -39,6 +39,9 @@ public class ClinicalAccessFilter extends OncePerRequestFilter {
         RUTAS_CLINICAS.put("/api/nss/expediente", Set.of(6, 7));
         RUTAS_CLINICAS.put("/api/nss/consulta", Set.of(6, 7));
         RUTAS_CLINICAS.put("/api/nss/incapacidades", Set.of(8, 9));
+        // Examen inicial (FT-SO-04) va ANTES de /api/nss/examen porque el match es por prefijo:
+        // ORDS no conoce el menu nuevo, asi que ahi se abre con el mismo id 10 de Examen medico.
+        RUTAS_CLINICAS.put("/api/nss/examen-inicial", Set.of(10));
         RUTAS_CLINICAS.put("/api/nss/examen", Set.of(10));
         RUTAS_CLINICAS.put("/api/nss/restricciones", Set.of(10)); // embebido en el dictamen de Examen
         RUTAS_CLINICAS.put("/api/nss/pretest", Set.of(11));
@@ -55,6 +58,7 @@ public class ClinicalAccessFilter extends OncePerRequestFilter {
         RUTAS_CLINICAS_LOCAL.put("/api/nss/expediente", Set.of("ARCHIVO_CONSULTAS", "CONSULTA_MEDICA"));
         RUTAS_CLINICAS_LOCAL.put("/api/nss/consulta", Set.of("ARCHIVO_CONSULTAS", "CONSULTA_MEDICA"));
         RUTAS_CLINICAS_LOCAL.put("/api/nss/incapacidades", Set.of("INCAPACIDADES", "ARCHIVO_INCAPACIDADES"));
+        RUTAS_CLINICAS_LOCAL.put("/api/nss/examen-inicial", Set.of("EXAMEN_INICIAL", "EXAMEN_MEDICO"));
         RUTAS_CLINICAS_LOCAL.put("/api/nss/examen", Set.of("EXAMEN_MEDICO"));
         RUTAS_CLINICAS_LOCAL.put("/api/nss/restricciones", Set.of("EXAMEN_MEDICO"));
         RUTAS_CLINICAS_LOCAL.put("/api/nss/pretest", Set.of("PRETEST"));

@@ -85,6 +85,62 @@
             <h6 class="fw-semibold mb-2">Otros datos</h6>
             <div class="accordion examen-extra-accordion mb-3" id="examenExtraAccordion">
                 <!--
+                  Datos generales del examen: tipo de examen (FT-SO-04/11: Admision, Periodico, Cambio
+                  de rol, Post incapacidad, Especial), SpO2, cintura y cadera (nuevos en la rev. 04).
+                  EAV via SERV_MED_TAG con los MISMOS tipos que el legacy (tipoExamenInputO, STPO2),
+                  asi el documento impreso los lee sin cambios. Form y boton propios, fuera de
+                  #examenSecciones/#trabajosPrevios para que guardarExamen() no los mande al WS.
+                  Va primero en el acordeon porque el tipo decide que formato se imprime.
+                -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="examenExtraHeaderDatos">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#examenExtraBodyDatos" aria-expanded="false" aria-controls="examenExtraBodyDatos">
+                            Datos generales del examen
+                            <span class="badge bg-light text-dark ms-2" th:if="${datosGenerales.tipoExamen != ''}"
+                                  th:text="${tiposExamen[datosGenerales.tipoExamen]}">Admisión</span>
+                            <span class="badge bg-warning text-dark ms-2" th:if="${datosGenerales.tipoExamen == ''}">Sin tipo de examen</span>
+                        </button>
+                    </h2>
+                    <div class="accordion-collapse collapse" id="examenExtraBodyDatos"
+                         aria-labelledby="examenExtraHeaderDatos" data-bs-parent="#examenExtraAccordion">
+                        <div class="accordion-body" id="datosGeneralesExamen">
+                            <form id="datosGeneralesExamenForm" class="row g-2" novalidate>
+                                <input type="hidden" name="nss" th:value="${nss}">
+                                <div class="col-md-4">
+                                    <label class="form-label mb-1 fs-sm" for="examenTipo">Tipo de examen</label>
+                                    <select class="form-select form-select-sm" name="tipoExamen" id="examenTipo">
+                                        <option value="">Seleccionar...</option>
+                                        <option th:each="t : ${tiposExamen}" th:value="${t.key}" th:text="${t.value}"
+                                                th:selected="${t.key == datosGenerales.tipoExamen}">Admisión</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label mb-1 fs-sm" for="examenSpo2">SpO2 (%)</label>
+                                    <input type="number" min="0" max="100" step="1" class="form-control form-control-sm"
+                                           name="spo2" id="examenSpo2" th:value="${datosGenerales.spo2}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label mb-1 fs-sm" for="examenCintura">Cintura (cm)</label>
+                                    <input type="number" min="0" step="0.1" class="form-control form-control-sm"
+                                           name="cintura" id="examenCintura" th:value="${datosGenerales.cintura}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label mb-1 fs-sm" for="examenCadera">Cadera (cm)</label>
+                                    <input type="number" min="0" step="0.1" class="form-control form-control-sm"
+                                           name="cadera" id="examenCadera" th:value="${datosGenerales.cadera}">
+                                </div>
+                                <div class="col-12 d-flex justify-content-end align-items-center gap-3">
+                                    <span id="datosGeneralesExamenResult" class="fs-sm"></span>
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="guardarDatosGeneralesExamen(this);">
+                                        <i class="ri-save-line me-1"></i> Guardar datos generales
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <!--
                   Antecedentes laborales - trabajos previos (lista repetible, uno por empleo anterior).
                   Guardado CONFIRMADO 2026-08-13 contra el WS real (POST directo a /Servcio/Medico,
                   fila verificada en SERV_MED_DET_ANT_LABORALES con contenido real - primera vez que

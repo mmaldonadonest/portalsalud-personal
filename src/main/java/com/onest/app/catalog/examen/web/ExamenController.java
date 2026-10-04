@@ -2,6 +2,7 @@ package com.onest.app.catalog.examen.web;
 
 import com.onest.app.audit.web.Auditado;
 import com.onest.app.catalog.examen.service.ContactoEmergenciaService;
+import com.onest.app.catalog.examen.service.DatosGeneralesExamenService;
 import com.onest.app.catalog.examen.service.DiagnosticoSecundarioService;
 import com.onest.app.catalog.examen.service.ExamenDocumentoService;
 import com.onest.app.catalog.examen.service.ExamenService;
@@ -32,6 +33,7 @@ public class ExamenController {
     private final ExamenService examenService;
     private final ContactoEmergenciaService contactoEmergenciaService;
     private final DiagnosticoSecundarioService diagnosticoSecundarioService;
+    private final DatosGeneralesExamenService datosGeneralesExamenService;
     private final RestriccionService restriccionService;
     private final NssSearchService nssSearchService;
     private final ExamenDocumentoService examenDocumentoService;
@@ -41,6 +43,7 @@ public class ExamenController {
             ExamenService examenService,
             ContactoEmergenciaService contactoEmergenciaService,
             DiagnosticoSecundarioService diagnosticoSecundarioService,
+            DatosGeneralesExamenService datosGeneralesExamenService,
             RestriccionService restriccionService,
             NssSearchService nssSearchService,
             ExamenDocumentoService examenDocumentoService,
@@ -48,6 +51,7 @@ public class ExamenController {
         this.examenService = examenService;
         this.contactoEmergenciaService = contactoEmergenciaService;
         this.diagnosticoSecundarioService = diagnosticoSecundarioService;
+        this.datosGeneralesExamenService = datosGeneralesExamenService;
         this.restriccionService = restriccionService;
         this.nssSearchService = nssSearchService;
         this.examenDocumentoService = examenDocumentoService;
@@ -85,6 +89,8 @@ public class ExamenController {
             model.addAttribute("grupos", examenService.grupos());
             model.addAttribute("contactos", contactoEmergenciaService.cargar(nss));
             model.addAttribute("diagnosticosSecundarios", diagnosticoSecundarioService.cargar(nss));
+            model.addAttribute("datosGenerales", datosGeneralesExamenService.cargar(nss));
+            model.addAttribute("tiposExamen", datosGeneralesExamenService.tipos());
             model.addAttribute("catalogoRestricciones", restriccionService.catalogo());
             model.addAttribute("restricciones", restriccionService.byNss(nss));
             model.addAttribute("firmaGuardada", examenService.firmaGuardada(nss));
@@ -180,6 +186,32 @@ public class ExamenController {
             });
             contactoEmergenciaService.guardar(nss, campos);
             return "Contactos de emergencia guardados.";
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        }
+    }
+
+    /**
+     * Guarda tipo de examen, SpO2, cintura y cadera (EAV via SERV_MED_TAG, independiente del
+     * examen -> WS). Recibe tipoExamen, spo2, cintura, cadera.
+     */
+    @PostMapping(
+            path = "/examen/datos-generales/save",
+            consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+            produces = "text/plain;charset=UTF-8")
+    @ResponseBody
+    @Auditado(modulo = "Examenes", accion = "update", entidad = "Datos generales del examen", registro = "nss")
+    public String guardarDatosGenerales(@RequestParam MultiValueMap<String, String> params) {
+        try {
+            String nss = params.getFirst("nss");
+            Map<String, String> campos = new LinkedHashMap<>();
+            params.forEach((key, values) -> {
+                if (!"nss".equals(key) && !"_csrf".equals(key)) {
+                    campos.put(key, (values == null || values.isEmpty()) ? "" : values.get(0));
+                }
+            });
+            datosGeneralesExamenService.guardar(nss, campos);
+            return "Datos generales guardados.";
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }

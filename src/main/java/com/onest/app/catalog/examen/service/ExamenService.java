@@ -1,6 +1,7 @@
 package com.onest.app.catalog.examen.service;
 
 import com.onest.app.catalog.examen.client.ExamenClient;
+import com.onest.app.catalog.examen.repository.ExamenHistoricoRepository;
 import com.onest.app.catalog.pretest.repository.MedTagRepository;
 import com.onest.app.catalog.examen.dto.ExamItem;
 import com.onest.app.catalog.examen.dto.ExamenReporteDto;
@@ -342,6 +343,8 @@ public class ExamenService {
 
     private final ExamenClient client;
     private final MedTagRepository tags;
+    private final ExamenHistoricoRepository historico;
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ExamenService.class);
 
     /**
      * Cache corta de la lectura del WS por NSS. El acordeon carga cada seccion con una peticion
@@ -368,9 +371,10 @@ public class ExamenService {
         cacheLectura.remove(nss);
     }
 
-    public ExamenService(ExamenClient client, MedTagRepository tags) {
+    public ExamenService(ExamenClient client, MedTagRepository tags, ExamenHistoricoRepository historico) {
         this.client = client;
         this.tags = tags;
+        this.historico = historico;
     }
 
     /** Nombres de las secciones (orden de navegacion). */
@@ -574,10 +578,60 @@ public class ExamenService {
 
     /** Guarda el examen (CAMBIO). campos = name->value de las secciones cargadas. */
     public String guardar(String nss, Map<String, String> campos, String firma) {
-        invalidar(normalizeNss(nss));
-        String r = client.guardar(normalizeNss(nss), campos == null ? Map.of() : campos, firma);
-        invalidar(normalizeNss(nss));
+        return guardar(nss, campos, firma, ExamenHistoricoRepository.ORIGEN_GENERAL);
+    }
+
+    /**
+     * Guarda y, si el guardado trae dictamen (el examen "cierra"), deja la foto completa en
+     * SERV_MED_EXAMEN_HISTORICO con el origen indicado. Los guardados parciales por seccion
+     * del modulo general no generan fila: solo los que incluyen Resultado del examen.
+     */
+    public String guardar(String nss, Map<String, String> campos, String firma, String origen) {
+        String limpio = normalizeNss(nss);
+        invalidar(limpio);
+        Map<String, String> c = campos == null ? Map.of() : campos;
+        String r = client.guardar(limpio, c, firma);
+        invalidar(limpio);
+        String dictamen = c.getOrDefault("SERV_MED_RESULTADO_EXAMEN.DICTAMEN", "");
+        if (dictamen != null && !dictamen.isBlank()) {
+            registrarHistorico(limpio, origen, dictamen.trim());
+        }
         return r;
+    }
+
+    /**
+     * Foto del examen tal como quedo en el WS (lectura fresca, aplanada) + tipo de examen del
+     * tag del legacy. Nunca lanza: el guardado ya ocurrio y un fallo aqui no debe reportarse
+     * como error del examen.
+     */
+    private void registrarHistorico(String nss, String origen, String dictamen) {
+        try {
+            Map<String, String> data = client.getExamenData(nss);
+            String tipo = null;
+            try {
+                tipo = tags.latestByNssAndTypePrefix(nss, "tipoExamenInputO").get("tipoExamenInputO");
+            } catch (RuntimeException ex) {
+                // sin tag: queda NULL
+            }
+            if (tipo != null && (tipo.isBlank() || "0".equals(tipo.trim()))) {
+                tipo = null;
+            }
+            String json = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(data);
+            String usuario = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() == null
+                    ? "SISTEMA" : org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+            historico.registrar(nss, origen, tipo, dictamen, usuario, json);
+        } catch (Exception ex) {
+            log.warn("[examen] no se pudo registrar el historico de {} ({}): {}", nss, origen, ex.getMessage());
+        }
+    }
+
+    /** Dictamen vigente en el WS (apto/no_apto/...), o vacio si no hay. Para el candado del examen inicial. */
+    public String dictamenVigente(String nss) {
+        try {
+            return dictamenDesdeFlags(datosExamen(normalizeNss(nss)), "SERV_MED_RESULTADO_EXAMEN");
+        } catch (RuntimeException ex) {
+            return "";
+        }
     }
 
     /** Todas las secciones de una vez (para "Abrir todo": 1 peticion HTTP y 1 lectura del WS). */

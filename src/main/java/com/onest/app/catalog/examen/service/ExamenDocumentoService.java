@@ -89,7 +89,7 @@ public class ExamenDocumentoService {
         }
 
         /** Mismo criterio que el PHP: strtolower + lista fija; empty("0") tambien es true en PHP. */
-        private static boolean esRelleno(String s) {
+        static boolean esRelleno(String s) {
             String t = s == null ? "" : s.trim().toLowerCase(Locale.ROOT);
             return t.isEmpty() || t.equals("0") || t.equals("sin observación") || t.equals("sin observacion")
                     || t.equals("sin obs") || t.equals("vacio") || t.equals("sin observaciones");
@@ -164,14 +164,36 @@ public class ExamenDocumentoService {
         // --- lo que el PHP hace con codigo, no con asignaciones
         v.put("edad", edadDesdeRfc(v.get("rfc"), emp));
         v.put("tipoExamenInputO", TIPO_EXAMEN.getOrDefault(limpio(v.get("tipoExamenInputO")), limpio(v.get("tipoExamenInputO"))));
-        v.put("OBSERVACIONESRESEXAM1", switch (limpio(data.get("SERV_MED_RESULTADO_EXAMEN.OBSERVACIONES"))) {
+        // Dictamen: el PHP lo guardaba como codigo 1-4 en OBSERVACIONES; el portal (ambos modulos)
+        // lo guarda en las 4 banderas APTO/NO_APTO/APTO_CONDICIONADO/APTO_RESTRINGIDO y usa
+        // OBSERVACIONES como texto libre. Se imprimen por separado: DICTAMEN (banderas, con
+        // respaldo al codigo viejo para lo migrado) y las observaciones reales (3-oct-2026).
+        String obsRes = limpio(data.get("SERV_MED_RESULTADO_EXAMEN.OBSERVACIONES"));
+        String dictamen = "";
+        if ("1".equals(limpio(data.get("SERV_MED_RESULTADO_EXAMEN.APTO")))) {
+            dictamen = "Apto";
+        } else if ("1".equals(limpio(data.get("SERV_MED_RESULTADO_EXAMEN.NO_APTO")))) {
+            dictamen = "No apto";
+        } else if ("1".equals(limpio(data.get("SERV_MED_RESULTADO_EXAMEN.APTO_CONDICIONADO")))) {
+            dictamen = "Apto condicionado";
+        } else if ("1".equals(limpio(data.get("SERV_MED_RESULTADO_EXAMEN.APTO_RESTRINGIDO")))) {
+            dictamen = "Apto restringido";
+        }
+        String dictamenCodigo = switch (obsRes) {
             case "4", "no_apto" -> "No apto";
             case "1", "apto" -> "Apto";
             case "2", "apto_condicionado" -> "Apto condicionado";
             case "3", "apto_restringido" -> "Apto restringido";
             default -> "";
-        });
+        };
+        v.put("DICTAMEN", dictamen.isEmpty() ? dictamenCodigo : dictamen);
+        // observaciones reales: solo si no son el codigo viejo ni relleno del WS
+        v.put("OBSERVACIONESRESEXAM1", dictamenCodigo.isEmpty() && !Documento.esRelleno(obsRes) ? obsRes : "");
         v.put("ROMBERGEXFIS", esCero(tagValues.get("ROMBERGEXFIS")) ? "Negativo" : "Positivo");
+        // --- rev. 04 del FT-SO-04 (sep-2024): cintura y cadera no existian en el PHP ni en el
+        // JSON de campos; se capturan en Datos generales del examen (SERV_MED_TAG)
+        v.put("CINTURA", limpio(tagValues.get(DatosGeneralesExamenService.CINTURA)));
+        v.put("CADERA", limpio(tagValues.get(DatosGeneralesExamenService.CADERA)));
         // el PHP imprime el "0" del WS tal cual cuando no hay fecha; se conserva
         String firma = data.get("SERV_MED_RESULTADO_EXAMEN.FIRMA_DIGITAL");
         String firmaTrabajador = firma != null && firma.startsWith("data:image") ? firma : null;

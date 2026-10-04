@@ -52,6 +52,16 @@
                         <div class="nom" th:text="${nombreCompleto}">Nombre</div>
                         <div class="sub" th:text="'NSS ' + ${e.nss}">NSS</div>
                     </div>
+                    <!-- PROVISIONAL (3-oct-2026): acceso directo al examen inicial desde la ficha.
+                         El disparo real vendra del sistema OCR por interfaz (solicitud de examen
+                         inicial para el candidato); cuando exista, este boton se sustituye por el
+                         aviso de "examen inicial pendiente" que genere esa solicitud. Ver
+                         docs/integracion-ocr-examen-inicial.md. -->
+                    <button type="button" class="btn btn-sm btn-light ms-auto" style="white-space: nowrap;"
+                            th:attr="data-nss=${e.nss}"
+                            onclick="abrirExamenInicialPrueba(this.dataset.nss);">
+                        <i class="ri-file-add-line me-1"></i>Examen inicial
+                    </button>
                 </div>
 
                 <div class="ficha-datos">

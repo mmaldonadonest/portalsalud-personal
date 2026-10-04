@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Examen medico inicial (FT-SO-04 rev. 04) - asistente por hojas, pensado para quien viene
+  del Excel: una hoja a la vez en el orden del formato, borrador que se guarda solo (sin boton
+  Guardar), "Todo normal" por bloque, Si/No con teclado (S/N) y envio unico al Finalizar.
+
+  `v` = ExamenInicialService.Vista. Las secciones y claves son las MISMAS del modulo Examen
+  medico (ExamenService.CATALOGO); el borrador se guarda en SERV_MED_EXAMEN_BORRADOR y al
+  finalizar todo viaja al WS Servcio/Medico + SERV_MED_TAG con tipo Admision.
+
+  JS: exIniInit / exIniIr / exIniSino / exIniSwitchNormal / exIniAutosave / exIniFinalizar
+  en pages/nss-search.html (loadModuleView llama exIniInit si encuentra #exIni).
+-->
+<div th:fragment="shell" id="exIni" th:attr="data-nss=${v.nss}, data-hoja=${v.hojaActual}, data-total-hojas=${#lists.size(v.hojas)}, data-tiene-inicial=${v.ultimoFinalizado != null}">
+    <style>
+        /* Estilos locales del asistente: nada de esto afecta al modulo Examen medico. */
+        /* Cuadricula uniforme 5 x 2: las 10 pestanas del mismo tamano, nombre corto en una
+           linea (el titulo completo va arriba de la hoja), numero y barra de avance. */
+        .exini-stepper { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; list-style: none; padding: 0; margin: 0 0 14px; }
+        .exini-stepper button { width: 100%; height: 100%; display: flex; align-items: center; gap: 6px; border: 1px solid var(--bs-border-color); background: #fff;
+            border-radius: 8px; padding: 7px 9px; font-size: .8rem; line-height: 1.2; color: #475467; white-space: nowrap; overflow: hidden; }
+        .exini-stepper button .t { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+        .exini-stepper button .n { flex: 0 0 20px; width: 20px; height: 20px; border-radius: 50%; background: #E1E6EB;
+            color: #475467; font-weight: 700; text-align: center; line-height: 20px; font-size: .72rem; }
+        .exini-stepper button.activa { border-color: #0057A8; background: #EAF3FA; color: #003E75; font-weight: 600; }
+        .exini-stepper button.activa .n { background: #0057A8; color: #fff; }
+        .exini-stepper button.completa .n { background: #2B9138; color: #fff; }
+        .exini-stepper button .p { flex: 0 0 34px; height: 4px; border-radius: 2px; background: #E1E6EB; overflow: hidden; }
+        .exini-stepper button .p span { display: block; height: 100%; background: #2B9138; }
+        @media (max-width: 900px) { .exini-stepper { grid-template-columns: repeat(2, 1fr); } }
+        .exini-hoja[hidden] { display: none; }
+        /* Bloque = una seccion del catalogo; su encabezado es una banda azul de borde a borde
+           (y los sub-encabezados una banda mas clara) para que el ojo separe secciones sin
+           tener que leer. */
+        .exini-bloque { border: 1px solid var(--bs-border-color); border-radius: 0; padding: 0 14px 12px; margin-bottom: 12px; background: #fff; }
+        /* Mismo navy del sidebar (--onest-blue-900 -> #0b1c30), esquinas rectas */
+        .exini-bloque-h { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 0 -14px 10px;
+            padding: 8px 14px; background: linear-gradient(90deg, #003E75 0%, #0b1c30 100%); color: #fff; }
+        .exini-bloque-h h6 { margin: 0; font-size: .9rem; color: #fff; }
+        /* Las notas de ayuda del encabezado (.text-muted del theme) tambien en blanco */
+        .exini-bloque-h span { color: #fff !important; font-size: .85rem; opacity: .95; }
+        /* Switch "Todo normal" en la banda: etiqueta blanca, control mas grande que el default */
+        .exini-switch { margin: 0; padding-left: 3.2em; min-height: 0; display: flex; align-items: center; }
+        /* Apagado: pista blanca (sobre la banda navy el gris del theme desaparecia) con la
+           perilla gris oscura de Bootstrap; encendido: verde con perilla blanca. */
+        .exini-switch .form-check-input { width: 2.6em; height: 1.35em; margin-left: -3.2em; margin-top: 0; cursor: pointer; border-color: #fff; background-color: #fff;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23344054'/%3e%3c/svg%3e"); }
+        .exini-switch .form-check-input:focus { box-shadow: 0 0 0 .2rem rgba(255,255,255,.35); border-color: #fff;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23344054'/%3e%3c/svg%3e"); }
+        .exini-switch .form-check-input:checked, .exini-switch .form-check-input:checked:focus {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e"); }
+        .exini-switch .form-check-input:checked { background-color: #2B9138; border-color: #2B9138; }
+        .exini-switch .form-check-label { color: #fff; font-size: .9rem; font-weight: 600; margin-left: 8px; cursor: pointer; }
+        /* Cada renglon es su propia cuadricula: la columna de la etiqueta va FIJA (no en fr)
+           para que Si/No y las opciones arranquen en el mismo punto en todos los renglones. */
+        .exini-fila { display: grid; grid-template-columns: 240px auto minmax(140px, 1fr); gap: 8px; align-items: center;
+            padding: 5px 0; border-bottom: 1px dashed #eef0f3; }
+        .exini-fila:last-child { border-bottom: 0; }
+        .exini-fila .lbl { font-size: .95rem; color: #111; }
+        .exini-sino .btn { min-width: 48px; padding: 3px 10px; font-size: .88rem; color: #111; }
+        .exini-sino .btn.activo-si { background: #B42318; border-color: #B42318; color: #fff; }
+        .exini-sino .btn.activo-no { background: #2B9138; border-color: #2B9138; color: #fff; }
+        .exini-sino:focus-within { outline: 2px solid #4FA8E0; outline-offset: 2px; border-radius: 6px; }
+        .exini-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px 14px; }
+        .exini-grid label { font-size: .9rem; margin-bottom: 2px; color: #111; }
+        /* Exploracion fisica: signos vitales con unidad, y opciones como botones */
+        .exini-sub { font-size: .82rem; text-transform: uppercase; letter-spacing: .05em; color: #002850; font-weight: 700;
+            margin: 12px -14px 6px; padding: 5px 14px; background: #EAF3FA; border-left: 4px solid #003E75; }
+        .exini-sub:first-of-type { margin-top: 0; }
+        .exini-sub-sw { display: flex; justify-content: space-between; align-items: center; }
+        /* Switch dentro de la banda clara: etiqueta azul oscuro, pista gris del theme */
+        .exini-switch-claro .form-check-label { color: #002850; text-transform: none; letter-spacing: 0; font-size: .85rem; }
+        .exini-switch-claro .form-check-input { background-color: #fff; border-color: #98A2B3; }
+        .exini-switch-claro .form-check-input:focus { box-shadow: 0 0 0 .2rem rgba(0,87,168,.25); border-color: #98A2B3; }
+        .exini-switch-claro .form-check-input:checked { background-color: #2B9138; border-color: #2B9138; }
+        .exini-vitales { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 12px; }
+        .exini-vitales label { font-size: .9rem; margin-bottom: 2px; color: #111; }
+        .exini-vitales .input-group-text { font-size: .8rem; color: #111; background: #F2F4F7; }
+        .exini-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .exini-chips .btn { color: #111; font-size: .88rem; }
+        .exini-chips .btn.activo { background: #0057A8; border-color: #0057A8; color: #fff; }
+        /* Dictamen: 4 botones grandes, cada uno con su color; el elegido se rellena */
+        .exini-dictamen .btn { font-size: 1rem; padding: 10px 18px; border-width: 2px; font-weight: 600; }
+        .exini-dictamen .r-apto { border-color: #2B9138; color: #2B9138; }
+        .exini-dictamen .r-cond { border-color: #B54708; color: #B54708; }
+        .exini-dictamen .r-rest { border-color: #0057A8; color: #0057A8; }
+        .exini-dictamen .r-noapto { border-color: #B42318; color: #B42318; }
+        .exini-dictamen .r-apto.activo { background: #2B9138; border-color: #2B9138; color: #fff; }
+        .exini-dictamen .r-cond.activo { background: #B54708; border-color: #B54708; color: #fff; }
+        .exini-dictamen .r-rest.activo { background: #0057A8; border-color: #0057A8; color: #fff; }
+        .exini-dictamen .r-noapto.activo { background: #B42318; border-color: #B42318; color: #fff; }
+        /* Odontograma: pincel + 32 dientes como botones de color */
+        .exini-pincel { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 10px; }
+        .exini-pincel .lbl { font-size: .95rem; color: #111; margin-right: 4px; }
+        .exini-pincel .btn { border: 2px solid #D0D5DD; background: #fff; color: #111; font-size: .88rem; }
+        .exini-pincel .btn.activo { border-color: #111; box-shadow: 0 0 0 2px #111 inset; font-weight: 700; }
+        .exini-pincel .ayuda { flex-basis: 100%; font-size: .85rem; color: #111; }
+        /* Odontograma: 16 columnas fijas por arcada (+ linea media), se encoge al ancho
+           disponible; cada diente es una silueta SVG coloreada por hallazgo */
+        .exini-odonto { display: flex; flex-direction: column; gap: 6px; max-width: 760px; }
+        .exini-odonto .arcada { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)) 6px repeat(8, minmax(0, 1fr)); gap: 3px; align-items: end; }
+        .exini-odonto .linea { width: 2px; background: #003E75; justify-self: center; height: 100%; }
+        .exini-odonto .diente { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; user-select: none; padding: 3px 0; border-radius: 6px; border: 1px solid #E1E6EB; background: #FAFBFC; }
+        .exini-odonto .diente:hover { background: #EAF3FA; border-color: #0057A8; }
+        .exini-odonto .diente svg { width: 100%; max-width: 44px; height: auto; display: block; }
+        .exini-odonto .diente svg path { fill: #fff; stroke: #98A2B3; stroke-width: 2; }
+        .exini-odonto .diente:hover svg path { stroke: #003E75; }
+        .exini-odonto .diente .num { font-size: .78rem; color: #111; font-weight: 600; line-height: 1; margin-bottom: 2px; }
+        .exini-odonto .diente .est { position: absolute; left: 0; right: 0; text-align: center; font-size: 1rem; font-weight: 800; line-height: 1; pointer-events: none; }
+        /* la arcada superior va volteada: raices arriba, corona hacia la linea de oclusion */
+        .exini-odonto .arcada.superior { align-items: start; }
+        .exini-odonto .arcada.superior .diente { flex-direction: column-reverse; }
+        .exini-odonto .arcada.superior .diente .num { margin: 2px 0 0; }
+        .exini-odonto .arcada.superior .diente svg { transform: scaleY(-1); }
+        .exini-odonto .arcada.superior .diente .est { bottom: 24px; }
+        .exini-odonto .arcada.inferior .diente .est { top: 22px; }
+        .d-C { background: #FEE4E2; border-color: #B42318; color: #B42318; }
+        .d-A { background: #E4E7EC; border-color: #475467; color: #344054; }
+        .d-E { background: #EBE9FE; border-color: #6938EF; color: #5925DC; }
+        .d-P { background: #D1E9FF; border-color: #0057A8; color: #0057A8; }
+        .d-X { background: #111; border-color: #111; color: #fff; }
+        .exini-odonto .diente.d-C svg path { fill: #FEE4E2; stroke: #B42318; } .exini-odonto .diente.d-C .est { color: #B42318; }
+        .exini-odonto .diente.d-A svg path { fill: #E4E7EC; stroke: #475467; } .exini-odonto .diente.d-A .est { color: #344054; }
+        .exini-odonto .diente.d-E svg path { fill: #EBE9FE; stroke: #6938EF; } .exini-odonto .diente.d-E .est { color: #5925DC; }
+        .exini-odonto .diente.d-P svg path { fill: #D1E9FF; stroke: #0057A8; } .exini-odonto .diente.d-P .est { color: #0057A8; }
+        .exini-odonto .diente.d-X svg path { fill: #111; stroke: #111; } .exini-odonto .diente.d-X .est { color: #fff; }
+        .exini-odonto .diente.d-X .num { text-decoration: line-through; }
+        .exini-odonto .diente.d-otro svg path { fill: #FFF7E6; stroke: #8a5300; } .exini-odonto .diente.d-otro .est { color: #8a5300; }
+        .exini-leyenda { margin-top: 8px; padding: 6px 10px; font-size: .9rem; color: #111; background: #FFF7E6; border-left: 4px solid #8a5300; }
+        .exini-leyenda strong { color: #8a5300; }
+        .exini-guardado { font-size: .78rem; color: #667085; }
+        .exini-guardado.err { color: #B42318; font-weight: 600; }
+        .exini-ficha td:first-child { width: 38%; color: #111; }
+        #exIni .form-control-sm, #exIni .form-select-sm { font-size: .9rem; color: #111; }
+        @media (max-width: 640px) { .exini-fila { grid-template-columns: 1fr; } }
+    </style>
+
+    <div class="card card-one">
+        <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+                <h6 class="card-title mb-0">Examen médico inicial <span class="text-muted fw-normal">FT-SO-04 rev. 04</span></h6>
+                <div class="fs-xs text-muted">Tipo de examen: <strong>Admisión</strong> · se guarda solo mientras capturas</div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="exini-guardado" id="exIniGuardado"
+                      th:text="${v.borrador != null} ? 'Borrador del ' + ${#temporals.format(v.borrador.updatedAt, 'dd/MM HH:mm')} : 'Sin borrador'">Sin borrador</span>
+                <span class="badge bg-primary" th:text="'Avance ' + ${v.avance} + '%'">Avance 0%</span>
+                <button type="button" class="btn btn-sm btn-outline-primary" th:if="${v.ultimoFinalizado != null}"
+                        th:attr="data-url=@{/api/nss/examen/imprimir(nss=${v.nss},auto=1)}"
+                        onclick="window.open(this.dataset.url, '_blank');">
+                    <i class="ri-printer-line me-1"></i>Imprimir
+                </button>
+                <span class="badge bg-light text-dark" th:text="'NSS ' + ${v.nss}">NSS</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-warning py-2 px-3 fs-sm" th:unless="${v.tablaBorrador}">
+                <i class="ri-alert-line me-1"></i>
+                Falta aplicar <code>db/sql/app_domain/examen-inicial.sql</code> en la base del portal: el borrador no se puede guardar
+                y «Finalizar» no funcionará hasta entonces. La captura se ve, pero se pierde al salir.
+            </div>
+            <!-- Candado (ExamenInicialService.candado): la persona ya tiene examen de otro modulo -->
+            <div class="alert alert-danger py-2 px-3" th:if="${v.candado.bloqueado}">
+                <i class="ri-lock-2-line me-1"></i>
+                <strong>Examen inicial bloqueado.</strong> <span th:text="${v.candado.motivo}">motivo</span>
+                <div class="fs-sm mt-1">Puedes revisar las hojas, pero no se puede finalizar desde aquí.</div>
+            </div>
+            <div class="alert alert-info py-2 px-3 fs-sm" th:if="${v.ultimoFinalizado != null}">
+                <i class="ri-information-line me-1"></i>
+                Este trabajador ya tiene un examen inicial finalizado el
+                <strong th:text="${#temporals.format(v.ultimoFinalizado.fecha, 'dd/MM/yyyy HH:mm')}">fecha</strong>
+                (<span th:text="${v.ultimoFinalizado.usuario}">usuario</span>). Lo que captures aquí lo reemplaza al finalizar.
+            </div>
+
+            <ol class="exini-stepper" id="exIniStepper">
+                <li th:each="h : ${v.hojas}">
+                    <button type="button" th:attr="data-ir=${h.hoja.numero}" th:classappend="${h.hoja.numero == v.hojaActual} ? 'activa' : ''"
+                            th:onclick="|exIniIr(${h.hoja.numero});|" th:title="${h.hoja.titulo}">
+                        <span class="n" th:text="${h.hoja.numero}">1</span><span class="t" th:text="${h.hoja.corto}">Hoja</span>
+                        <span class="p"><span th:style="|width:${h.total == 0 ? 0 : h.capturados * 100 / h.total}%|"></span></span>
+                    </button>
+                </li>
+            </ol>
+
+            <form id="exIniForm" novalidate autocomplete="off" onsubmit="return false;">
+                <input type="hidden" name="nss" th:value="${v.nss}">
+                <input type="hidden" name="hoja" id="exIniHoja" th:value="${v.hojaActual}">
+                <input type="hidden" name="firma" id="firma">
+
+                <section class="exini-hoja" th:each="h : ${v.hojas}" th:attr="data-hoja=${h.hoja.numero}" th:hidden="${h.hoja.numero != v.hojaActual}">
+                    <div class="d-flex justify-content-between align-items-baseline flex-wrap gap-2 mb-2">
+                        <h5 class="mb-0" th:text="${h.hoja.numero} + '. ' + ${h.hoja.titulo}">Hoja</h5>
+                        <span class="text-muted fs-sm" th:text="'Hoja ' + ${h.hoja.numero} + ' de ' + ${#lists.size(v.hojas)}">Hoja 1 de 10</span>
+                    </div>
+                    <p class="text-muted fs-sm mb-3" th:if="${!#strings.isEmpty(h.hoja.ayuda)}" th:text="${h.hoja.ayuda}">ayuda</p>
+
+                    <!-- Hoja 1: ficha (solo lectura, del biometrico) + contactos de emergencia -->
+                    <th:block th:if="${h.hoja.tipo == 'FICHA'}">
+                        <div class="exini-bloque">
+                            <div class="exini-bloque-h"><h6>Datos del trabajador</h6><span class="fs-xs text-muted">Vienen del biométrico; si algo está mal se corrige allá.</span></div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <table class="table table-sm exini-ficha mb-0">
+                                        <tr><td>Nombre</td><td th:text="${v.empleado == null} ? '' : (${v.empleado.completo != null and !v.empleado.completo.isBlank()} ? ${v.empleado.completo} : ${v.empleado.nombre + ' ' + v.empleado.apellidoPaterno + ' ' + v.empleado.apellidoMaterno})">—</td></tr>
+                                        <tr><td>NSS</td><td th:text="${v.nss}">—</td></tr>
+                                        <tr><td>RFC</td><td th:text="${v.empleado == null} ? '' : ${v.empleado.rfc}">—</td></tr>
+                                        <tr><td>Fecha de nacimiento</td><td th:text="${v.empleado == null} ? '' : ${v.empleado.fechaNacimiento}">—</td></tr>
+                                        <tr><td>Sexo</td><td th:text="${v.empleado == null or v.empleado.sexo == null} ? '' : (${v.empleado.sexo == '1'} ? 'Masculino' : (${v.empleado.sexo == '2'} ? 'Femenino' : ${v.empleado.sexo}))">—</td></tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <table class="table table-sm exini-ficha mb-0">
+                                        <tr><td>Empresa</td><td th:text="${v.empleado == null} ? '' : ${v.empleado.nombreEmpresa}">—</td></tr>
+                                        <tr><td>Cuenta</td><td th:text="${v.empleado == null} ? '' : ${v.empleado.cuenta}">—</td></tr>
+                                        <tr><td>Puesto</td><td th:text="${v.empleado == null or v.empleado.nombrePuesto == null or #strings.containsIgnoreCase(v.empleado.nombrePuesto, 'no existe')} ? '' : ${v.empleado.nombrePuesto}">—</td></tr>
+                                        <tr><td>Estado civil</td><td th:text="${v.empleado == null} ? '' : ${v.empleado.estadoCivil}">—</td></tr>
+                                        <tr><td>Domicilio / teléfono</td><td th:text="${v.empleado == null} ? '' : (${v.empleado.direccion} + ' · ' + ${v.empleado.celular})">—</td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="exini-bloque">
+                            <div class="exini-bloque-h"><h6>Teléfonos de emergencia</h6><span class="fs-xs text-muted">Hasta 3 contactos. Con uno basta.</span></div>
+                            <div th:each="c : ${v.contactos}" class="exini-grid mb-2">
+                                <div><label th:text="'Contacto ' + ${c.indice} + ' · nombre'">Nombre</label><input type="text" class="form-control form-control-sm" th:name="${'contactoEmernombre' + c.indice}" th:value="${c.nombre}"></div>
+                                <div><label>Apellido paterno</label><input type="text" class="form-control form-control-sm" th:name="${'contactoEmerapellido_paterno' + c.indice}" th:value="${c.apellidoPaterno}"></div>
+                                <div><label>Apellido materno</label><input type="text" class="form-control form-control-sm" th:name="${'contactoEmerapellido_materno' + c.indice}" th:value="${c.apellidoMaterno}"></div>
+                                <div><label>Parentesco</label><input type="text" class="form-control form-control-sm" th:name="${'contactoEmerparentesco' + c.indice}" th:value="${c.parentesco}"></div>
+                                <div><label>Teléfono</label><input type="tel" class="form-control form-control-sm" th:name="${'contactoEmertelefono' + c.indice}" th:value="${c.telefono}"></div>
+                            </div>
+                        </div>
+                    </th:block>
+
+                    <!-- Secciones del catalogo del examen -->
+                    <div class="exini-bloque" th:each="s, sStat : ${h.secciones}"
+                         th:with="tieneSino=${!#lists.isEmpty(s.items.?[type == 'SINO'])},
+                                  esDientes=${s.nombre == 'Dientes'},
+                                  esExploracion=${s.nombre == 'Exploración física'},
+                                  textoNormal=${(h.hoja.tipo == 'EXPLORACION' or h.hoja.numero == 8 or s.nombre == 'Boca')}">
+                        <div class="exini-bloque-h">
+                            <h6 th:text="${esExploracion} ? 'Signos vitales y exploración general' : ${s.nombre}">Sección</h6>
+                            <div class="form-check form-switch exini-switch" th:if="${tieneSino or textoNormal}"
+                                 th:title="${esExploracion} ? 'Encendido: Sí, serenidad y normal en lo sin contestar (no toca signos vitales). Apagado: limpia el bloque' : (${tieneSino} ? 'Encendido: todo en No. Apagado: todo sin contestar' : 'Encendido: todo en Normal. Apagado: todo vacío')">
+                                <input class="form-check-input" type="checkbox" role="switch" th:id="|exIniSw${h.hoja.numero}_${sStat.index}|"
+                                       th:attr="data-modo=${esExploracion} ? 'exploracion' : (${tieneSino} ? 'sino' : 'texto')"
+                                       onchange="exIniSwitchNormal(this);">
+                                <label class="form-check-label" th:for="|exIniSw${h.hoja.numero}_${sStat.index}|">Todo normal</label>
+                            </div>
+                        </div>
+
+                        <!--
+                          Exploracion fisica: en el PHP original (formsEFis/EFis.html) estos campos NO eran
+                          texto libre: constitucion/emocional/fascies/marcha eran un select de una opcion
+                          (guardado en ECTOMORFICO/SERENIDAD/HIPOCRITA/PARKINSON con el texto literal),
+                          actitud y lenguaje eran Si/No (1/0) y orientacion texto. Aqui se capturan igual
+                          pero con botones y unidades; los valores que viajan son los mismos del legacy.
+                        -->
+                        <th:block th:if="${esExploracion}" th:with="p='SERV_MED_EXPLORACION_FISICA.', ef=${s.valores}">
+                            <div class="exini-sub">Signos vitales</div>
+                            <div class="exini-vitales">
+                                <div><label>Peso</label><div class="input-group input-group-sm"><input type="number" step="0.1" min="0" class="form-control" th:name="${p + 'PESO'}" th:value="${ef[p + 'PESO']}" placeholder="70.5" oninput="exIniImc(this);"><span class="input-group-text">kg</span></div></div>
+                                <div><label>Talla</label><div class="input-group input-group-sm"><input type="number" step="0.01" min="0" class="form-control" th:name="${p + 'TALLA'}" th:value="${ef[p + 'TALLA']}" placeholder="1.70" oninput="exIniImc(this);"><span class="input-group-text">m</span></div></div>
+                                <div><label>IMC <span class="text-muted">(auto)</span></label><div class="input-group input-group-sm"><input type="number" step="0.1" class="form-control" th:name="${p + 'IMC'}" th:value="${ef[p + 'IMC']}" placeholder="24.4"><span class="input-group-text">kg/m²</span></div></div>
+                                <div><label>FC</label><div class="input-group input-group-sm"><input type="number" min="0" class="form-control" th:name="${p + 'FC'}" th:value="${ef[p + 'FC']}" placeholder="72"><span class="input-group-text">lpm</span></div></div>
+                                <div><label>FR</label><div class="input-group input-group-sm"><input type="number" min="0" class="form-control" th:name="${p + 'FR'}" th:value="${ef[p + 'FR']}" placeholder="16"><span class="input-group-text">rpm</span></div></div>
+                                <div><label>T/A</label><div class="input-group input-group-sm"><input type="text" class="form-control" th:name="${p + 'TA'}" th:value="${ef[p + 'TA']}" placeholder="120/80"><span class="input-group-text">mmHg</span></div></div>
+                                <div><label>Temperatura</label><div class="input-group input-group-sm"><input type="number" step="0.1" min="30" max="45" class="form-control" th:name="${p + 'TEMP'}" th:value="${ef[p + 'TEMP']}" placeholder="36.5"><span class="input-group-text">°C</span></div></div>
+                                <div><label>SpO2</label><div class="input-group input-group-sm"><input type="number" min="0" max="100" class="form-control" name="spo2" th:value="${v.datosGenerales.spo2}" placeholder="98"><span class="input-group-text">%</span></div></div>
+                                <div><label>Cintura</label><div class="input-group input-group-sm"><input type="number" step="0.1" min="0" class="form-control" name="cintura" th:value="${v.datosGenerales.cintura}" placeholder="85"><span class="input-group-text">cm</span></div></div>
+                                <div><label>Cadera</label><div class="input-group input-group-sm"><input type="number" step="0.1" min="0" class="form-control" name="cadera" th:value="${v.datosGenerales.cadera}" placeholder="95"><span class="input-group-text">cm</span></div></div>
+                            </div>
+
+                            <div class="exini-sub">Aspecto general</div>
+                            <div class="exini-fila"><span class="lbl">Constitución</span>
+                            <div class="exini-chips" style="grid-column: 2 / 4;" th:with="n=${p + 'ECTOMORFICO'}, val=${ef[n]}">
+                                <input type="hidden" th:name="${n}" th:value="${val}">
+                                <button type="button" th:each="o : ${ {'Ectomórfica':'Ectomórfica (delgado)','Mesomorfo':'Mesomorfo (musculoso)','Endomórfica':'Endomórfica (sobrepeso)'} }"
+                                        class="btn btn-sm btn-outline-secondary" th:classappend="${val == o.key} ? 'activo' : ''"
+                                        th:attr="data-val=${o.key}" th:text="${o.value}" onclick="exIniChip(this);">opción</button>
+                            </div></div>
+
+                            <div class="exini-grupo">
+                            <div class="exini-sub exini-sub-sw"><span>Actitud</span>
+                                <div class="form-check form-switch exini-switch exini-switch-claro" title="Encendido: todo en Sí. Apagado: todo sin contestar">
+                                    <input class="form-check-input" type="checkbox" role="switch" th:id="|exIniSwAct${h.hoja.numero}|" data-modo="si" onchange="exIniSwitchNormal(this);">
+                                    <label class="form-check-label" th:for="|exIniSwAct${h.hoja.numero}|">Todo Sí</label>
+                                </div>
+                            </div>
+                            <div class="exini-fila" th:each="c : ${ {'SATISFACCION':'Satisfacción','COMP_TRABAJO':'Compromiso con el trabajo','COMP_ORGANIZACION':'Compromiso organizacional'} }" th:with="n=${p + c.key}, val=${ef[n]}">
+                                <span class="lbl" th:text="${c.value}">Campo</span>
+                                <div class="btn-group exini-sino" role="group" tabindex="0" onkeydown="exIniTecla(this, event);">
+                                    <input type="hidden" th:name="${n}" th:value="${val}">
+                                    <button type="button" class="btn btn-outline-secondary" th:classappend="${val == '1'} ? 'activo-si' : ''" onclick="exIniSino(this, '1');">Sí</button>
+                                    <button type="button" class="btn btn-outline-secondary" th:classappend="${val == '0'} ? 'activo-no' : ''" onclick="exIniSino(this, '0');">No</button>
+                                </div>
+                                <span></span>
+                            </div>
+                            </div>
+
+                            <div class="exini-grupo">
+                            <div class="exini-sub exini-sub-sw"><span>Orientación</span>
+                                <div class="form-check form-switch exini-switch exini-switch-claro" title="Encendido: todo en Sí. Apagado: todo sin contestar">
+                                    <input class="form-check-input" type="checkbox" role="switch" th:id="|exIniSwOri${h.hoja.numero}|" data-modo="si" onchange="exIniSwitchNormal(this);">
+                                    <label class="form-check-label" th:for="|exIniSwOri${h.hoja.numero}|">Todo Sí</label>
+                                </div>
+                            </div>
+                            <div class="exini-fila" th:each="c : ${ {'TIEMPO':'Orientado en tiempo','ESPACIO':'Orientado en espacio','PERSONA':'Orientado en persona'} }" th:with="n=${p + c.key}, val=${ef[n]}">
+                                <span class="lbl" th:text="${c.value}">Campo</span>
+                                <div class="btn-group exini-sino" role="group" tabindex="0" data-si="Sí" data-no="No" onkeydown="exIniTecla(this, event);">
+                                    <input type="hidden" th:name="${n}" th:value="${val}">
+                                    <button type="button" class="btn btn-outline-secondary" th:classappend="${val == 'Sí'} ? 'activo-si' : ''" onclick="exIniSino(this, '1');">Sí</button>
+                                    <button type="button" class="btn btn-outline-secondary" th:classappend="${val == 'No'} ? 'activo-no' : ''" onclick="exIniSino(this, '0');">No</button>
+                                </div>
+                                <span></span>
+                            </div>
+                            </div>
+
+                            <div class="exini-sub">Estado emocional, fascies y marcha</div>
+                            <div class="exini-fila"><span class="lbl">Estado emocional</span>
+                            <div class="exini-chips" style="grid-column: 2 / 4;" th:with="n=${p + 'SERENIDAD'}, val=${ef[n]}">
+                                <input type="hidden" th:name="${n}" th:value="${val}">
+                                <button type="button" th:each="o : ${ {'serenidad':'Serenidad','interés':'Interés','entusiasta':'Entusiasta','antagónico':'Antagónico','enojo':'Enojo'} }"
+                                        class="btn btn-sm btn-outline-secondary" th:classappend="${val == o.key} ? 'activo' : ''"
+                                        th:attr="data-val=${o.key}" th:text="${o.value}" onclick="exIniChip(this);">opción</button>
+                            </div></div>
+
+                            <div class="exini-fila"><span class="lbl">Fascies</span>
+                            <div class="exini-chips" style="grid-column: 2 / 4;" th:with="n=${p + 'HIPOCRITA'}, val=${ef[n]}">
+                                <input type="hidden" th:name="${n}" th:value="${val}">
+                                <button type="button" th:each="o : ${ {'normal':'Normal','hipocrática':'Hipocrática','ictérica':'Ictérica','anémica':'Anémica','tiroidea':'Tiroidea'} }"
+                                        class="btn btn-sm btn-outline-secondary" th:classappend="${val == o.key} ? 'activo' : ''"
+                                        th:attr="data-val=${o.key}" th:text="${o.value}" onclick="exIniChip(this);">opción</button>
+                            </div></div>
+
+                            <div class="exini-fila"><span class="lbl">Marcha</span>
+                            <div class="exini-chips" style="grid-column: 2 / 4;" th:with="n=${p + 'PARKINSON'}, val=${ef[n]}">
+                                <input type="hidden" th:name="${n}" th:value="${val}">
+                                <button type="button" th:each="o : ${ {'normal':'Normal','parkinson':'Parkinson','hemipléjico':'Hemipléjico','Atáxica':'Atáxica','hemiparesia':'Hemiparesia'} }"
+                                        class="btn btn-sm btn-outline-secondary" th:classappend="${val == o.key} ? 'activo' : ''"
+                                        th:attr="data-val=${o.key}" th:text="${o.value}" onclick="exIniChip(this);">opción</button>
+                            </div></div>
+
+                            <div class="exini-grupo">
+                            <div class="exini-sub exini-sub-sw"><span>Lenguaje</span>
+                                <div class="form-check form-switch exini-switch exini-switch-claro" title="Encendido: todo en Sí. Apagado: todo sin contestar">
+                                    <input class="form-check-input" type="checkbox" role="switch" th:id="|exIniSwLen${h.hoja.numero}|" data-modo="si" onchange="exIniSwitchNormal(this);">
+                                    <label class="form-check-label" th:for="|exIniSwLen${h.hoja.numero}|">Todo Sí</label>
+                                </div>
+                            </div>
+                            <div class="exini-fila" th:each="c : ${ {'LENGUAJE':'Voz clara y fuerte','CONVER_FLUIDA':'Conversación fluida','COHERENCIA_PALABLAS':'Coherencia de palabras'} }" th:with="n=${p + c.key}, val=${ef[n]}">
+                                <span class="lbl" th:text="${c.value}">Campo</span>
+                                <div class="btn-group exini-sino" role="group" tabindex="0" onkeydown="exIniTecla(this, event);">
+                                    <input type="hidden" th:name="${n}" th:value="${val}">
+                                    <button type="button" class="btn btn-outline-secondary" th:classappend="${val == '1'} ? 'activo-si' : ''" onclick="exIniSino(this, '1');">Sí</button>
+                                    <button type="button" class="btn btn-outline-secondary" th:classappend="${val == '0'} ? 'activo-no' : ''" onclick="exIniSino(this, '0');">No</button>
+                                </div>
+                                <span></span>
+                            </div>
+                            </div>
+
+                        </th:block>
+
+                        <!--
+                          Dientes: odontograma con "pincel". Se elige el hallazgo una vez (C/A/E/P/X o
+                          Sano) y se da clic a los dientes; cada diente es un boton con su numero FDI y
+                          un hidden con el MISMO name de siempre (SERV_MED_DIENTES.DIENTE_nn), asi el
+                          WS y el impreso no cambian. Arcada superior 18..11 | 21..28, inferior
+                          48..41 | 31..38 (orden como se ve al paciente de frente).
+                        -->
+                        <th:block th:if="${esDientes}" th:with="pd='SERV_MED_DIENTES.DIENTE_'">
+                            <div class="exini-pincel" id="exIniPincel">
+                                <span class="lbl">Hallazgo:</span>
+                                <button type="button" class="btn btn-sm activo" data-estado="" onclick="exIniPincelSel(this);">Sano</button>
+                                <button type="button" class="btn btn-sm d-C" data-estado="C" onclick="exIniPincelSel(this);"><b>C</b> Caries</button>
+                                <button type="button" class="btn btn-sm d-A" data-estado="A" onclick="exIniPincelSel(this);"><b>A</b> Amalgama</button>
+                                <button type="button" class="btn btn-sm d-E" data-estado="E" onclick="exIniPincelSel(this);"><b>E</b> Endodoncia</button>
+                                <button type="button" class="btn btn-sm d-P" data-estado="P" onclick="exIniPincelSel(this);"><b>P</b> Prótesis</button>
+                                <button type="button" class="btn btn-sm d-X" data-estado="X" onclick="exIniPincelSel(this);"><b>X</b> Ausente</button>
+                                <span class="ayuda">Elige el hallazgo y da clic en los dientes. Clic de nuevo con el mismo hallazgo lo quita.</span>
+                            </div>
+                            <div class="exini-odonto">
+                                <div class="arcada" th:classappend="${arcada.key == 0} ? 'superior' : 'inferior'" th:each="arcada : ${ {0: {18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28}, 1: {48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38}} }">
+                                    <th:block th:each="n, st : ${arcada.value}" th:with="fn=${pd + n}, val=${#strings.trim(s.valores[fn] ?: '')}, est=${#strings.toUpperCase(val)}">
+                                        <div class="linea" th:if="${st.index == 8}"></div>
+                                        <div class="diente" th:classappend="${#lists.contains({'C','A','E','P','X'}, est)} ? ('d-' + ${est}) : (${val != ''} ? 'd-otro' : '')"
+                                             th:attr="data-diente=${n}" th:title="${val != ''} ? ('Diente ' + ${n} + ': ' + ${val}) : ('Diente ' + ${n} + ': sano')"
+                                             onclick="exIniDiente(this);">
+                                            <input type="hidden" th:name="${fn}" th:value="${val}">
+                                            <span class="num" th:text="${n}">11</span>
+                                            <!-- silueta segun el tipo (ultimo digito FDI): 1-3 incisivo/canino, 4-5 premolar,
+                                                 6-8 molar. Corona arriba, raices abajo; la arcada superior se voltea. -->
+                                            <th:block th:with="t=${n % 10}">
+                                                <svg th:if="${t <= 3}" viewBox="0 0 40 52" aria-hidden="true"><path d="M8 12 C8 3 32 3 32 12 C32 20 29 25 27 29 L23 49 C22.5 51.5 17.5 51.5 17 49 L13 29 C11 25 8 20 8 12 Z"/></svg>
+                                                <svg th:if="${t == 4 or t == 5}" viewBox="0 0 40 52" aria-hidden="true"><path d="M7 13 C7 4 16 3 20 8 C24 3 33 4 33 13 C33 21 30 25 28 29 L23 49 C22.5 51.5 17.5 51.5 17 49 L12 29 C10 25 7 21 7 13 Z"/></svg>
+                                                <svg th:if="${t >= 6}" viewBox="0 0 40 52" aria-hidden="true"><path d="M5 14 C5 4 13 2 20 7 C27 2 35 4 35 14 C35 22 32 26 30 30 L28 48 C27.5 51 24 51 23.5 48 L20 36 L16.5 48 C16 51 12.5 51 12 48 L10 30 C8 26 5 22 5 14 Z"/></svg>
+                                            </th:block>
+                                            <span class="est" th:text="${#lists.contains({'C','A','E','P','X'}, est)} ? ${est} : (${val != ''} ? '·' : '')"></span>
+                                        </div>
+                                    </th:block>
+                                </div>
+                            </div>
+                            <div class="exini-leyenda">
+                                <strong>C</strong> caries · <strong>A</strong> amalgama · <strong>E</strong> endodoncia · <strong>P</strong> prótesis · <strong>X</strong> ausente · en blanco = diente sano · <strong>·</strong> = nota de texto del sistema anterior (pasa el cursor para leerla)
+                            </div>
+                        </th:block>
+
+                        <!-- Si/No: una fila por condicion, botones Si/No, observaciones a la derecha -->
+                        <th:block th:if="${!esDientes and tieneSino}">
+                            <div class="exini-fila" th:each="it : ${s.items}" th:if="${it.type == 'SINO'}">
+                                <span class="lbl" th:text="${it.label}">Condición</span>
+                                <div class="btn-group exini-sino" role="group" tabindex="0" th:attr="aria-label=${it.label}" onkeydown="exIniTecla(this, event);">
+                                    <input type="hidden" th:name="${it.fieldName}" th:value="${it.value}">
+                                    <button type="button" class="btn btn-outline-secondary" th:classappend="${it.value == '1'} ? 'activo-si' : ''" onclick="exIniSino(this, '1');">Sí</button>
+                                    <button type="button" class="btn btn-outline-secondary" th:classappend="${it.value != null and it.value != '' and it.value != '1'} ? 'activo-no' : ''" onclick="exIniSino(this, '0');">No</button>
+                                </div>
+                                <input th:if="${it.obsName != null}" type="text" class="form-control form-control-sm" placeholder="Observaciones (si aplica)" th:name="${it.obsName}" th:value="${it.obsValue}">
+                                <span th:unless="${it.obsName != null}"></span>
+                            </div>
+                        </th:block>
+
+                        <!-- Resto: texto / fecha / area / resultado en cuadricula -->
+                        <div class="exini-grid" th:if="${!esDientes and !esExploracion}" th:with="otros=${s.items.?[type != 'SINO']}">
+                            <th:block th:each="it : ${otros}">
+                                <div th:if="${it.type == 'TEXT'}">
+                                    <label th:text="${it.label}">Campo</label>
+                                    <input type="text" class="form-control form-control-sm" data-tipo="TEXT" th:name="${it.fieldName}" th:value="${it.value}">
+                                </div>
+                                <div th:if="${it.type == 'DATE'}">
+                                    <label th:text="${it.label}">Fecha</label>
+                                    <input type="date" class="form-control form-control-sm" th:name="${it.fieldName}" th:value="${it.value}">
+                                </div>
+                                <div th:if="${it.type == 'AREA'}" style="grid-column: 1 / -1;">
+                                    <label th:text="${it.label}">Texto</label>
+                                    <div th:if="${s.nombre == 'Diagnóstico'}" class="d-flex gap-2 mb-2">
+                                        <input type="text" class="form-control form-control-sm" id="examenIcdConsult" autocomplete="off"
+                                               placeholder="Escribe al menos 3 letras del diagnóstico (catálogo ICD)..."
+                                               oninput="buscarIcdDebounced('examenIcdConsult','examenIcdResult','examenDiagnostico');">
+                                        <button type="button" class="btn btn-sm btn-outline-primary text-nowrap" id="examenIcdTodoBtn"
+                                                onclick="toggleIcdCatalogo(this,'examenIcdConsult','examenIcdResult','examenDiagnostico');">
+                                            <i class="ri-list-check me-1"></i>Ver catálogo
+                                        </button>
+                                    </div>
+                                    <div th:if="${s.nombre == 'Diagnóstico'}" id="examenIcdResult" class="mb-2"></div>
+                                    <textarea class="form-control form-control-sm" rows="3" th:name="${it.fieldName}"
+                                              th:id="${s.nombre == 'Diagnóstico'} ? 'examenDiagnostico'"
+                                              th:readonly="${s.nombre == 'Diagnóstico'}"
+                                              th:placeholder="${s.nombre == 'Diagnóstico'} ? 'Se llena desde el buscador ICD de arriba' : ''"
+                                              th:text="${it.value}"></textarea>
+                                </div>
+                                <!-- Dictamen como 4 botones grandes de color (mismos valores que el select del
+                                     modulo general; el hidden conserva el name). -->
+                                <div th:if="${it.type == 'RESULTADO'}" style="grid-column: 1 / -1;">
+                                    <label th:text="${it.label}">Dictamen</label>
+                                    <div class="exini-chips exini-dictamen">
+                                        <input type="hidden" th:name="${it.fieldName}" th:value="${it.value}">
+                                        <button type="button" class="btn r-apto" th:classappend="${it.value == 'apto'} ? 'activo' : ''" data-val="apto" onclick="exIniChip(this);"><i class="ri-checkbox-circle-line"></i> Apto</button>
+                                        <button type="button" class="btn r-cond" th:classappend="${it.value == 'apto_condicionado'} ? 'activo' : ''" data-val="apto_condicionado" onclick="exIniChip(this);"><i class="ri-error-warning-line"></i> Apto condicionado</button>
+                                        <button type="button" class="btn r-rest" th:classappend="${it.value == 'apto_restringido'} ? 'activo' : ''" data-val="apto_restringido" onclick="exIniChip(this);"><i class="ri-forbid-line"></i> Apto restringido</button>
+                                        <button type="button" class="btn r-noapto" th:classappend="${it.value == 'no_apto'} ? 'activo' : ''" data-val="no_apto" onclick="exIniChip(this);"><i class="ri-close-circle-line"></i> No apto</button>
+                                    </div>
+                                </div>
+                            </th:block>
+                        </div>
+                    </div>
+
+                    <!-- Hoja 2: 4 empleos anteriores, una tarjeta por empleo -->
+                    <th:block th:if="${h.hoja.tipo == 'LABORAL'}">
+                        <div class="exini-bloque" th:each="t : ${v.trabajos}">
+                            <div class="exini-bloque-h"><h6 th:text="'Empleo anterior ' + ${t.indice}">Empleo</h6><span class="fs-xs text-muted" th:if="${t.indice == 1}">Del más reciente al más antiguo. Deja vacíos los que no apliquen.</span></div>
+                            <div class="exini-grid">
+                                <div th:each="c : ${camposTrabajo}">
+                                    <label th:text="${c.etiqueta}">Campo</label>
+                                    <input type="text" class="form-control form-control-sm" th:name="${'trabajo' + t.indice + '.' + c.clave}" th:value="${t.campos[c.clave]}">
+                                </div>
+                            </div>
+                        </div>
+                    </th:block>
+
+                    <!-- Hoja 10: firma y finalizar -->
+                    <th:block th:if="${h.hoja.tipo == 'CIERRE'}">
+                        <div class="exini-bloque">
+                            <div class="exini-bloque-h"><h6>Firma del trabajador</h6></div>
+                            <canvas id="firmaCanvas" width="320" height="160" class="border rounded bg-white" style="touch-action: none; cursor: crosshair;"
+                                    th:attr="data-firma-guardada=${v.firmaGuardada}"></canvas>
+                            <div class="mt-2 d-flex align-items-center gap-2 flex-wrap">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="firmaClear"><i class="ri-eraser-line me-1"></i> Limpiar firma</button>
+                                <span id="firmaEstado" class="fs-11 text-muted"></span>
+                            </div>
+                        </div>
+                        <div class="alert alert-light border fs-sm">
+                            <i class="ri-information-line me-1"></i>
+                            Al finalizar, el examen completo se guarda como <strong>Admisión</strong> y, si lleva firma, se abre el expediente listo para imprimir.
+                            Hasta entonces nada sale de aquí: solo existe el borrador.
+                        </div>
+                        <div class="d-flex justify-content-end align-items-center gap-3">
+                            <span id="exIniResult" class="fs-sm"></span>
+                            <button type="button" class="btn btn-success" id="exIniFinalizarBtn" onclick="exIniFinalizar(this);"
+                                    th:disabled="${v.candado.bloqueado}" th:title="${v.candado.bloqueado} ? ${v.candado.motivo} : ''">
+                                <i th:class="${v.candado.bloqueado} ? 'ri-lock-2-line me-1' : 'ri-check-line me-1'"></i> Finalizar examen
+                            </button>
+                        </div>
+                    </th:block>
+                </section>
+            </form>
+
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                <button type="button" class="btn btn-outline-secondary" id="exIniPrev" onclick="exIniIr(-1, true);"><i class="ri-arrow-left-line me-1"></i>Anterior</button>
+                <span class="text-muted fs-sm" id="exIniPos">Hoja 1 de 10</span>
+                <button type="button" class="btn btn-primary" id="exIniNext" onclick="exIniIr(1, true);">Siguiente<i class="ri-arrow-right-line ms-1"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

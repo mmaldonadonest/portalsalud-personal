@@ -148,6 +148,13 @@
                     if (mc) { mc.innerHTML = ''; }
                     if (document.getElementById('nssEmpleadoMarker')) {
                         loadSidebarModules(nss);
+                        // ?abrir=examen-inicial (enlace de la campanita / solicitud OCR): abrir el
+                        // modulo directo, una sola vez por carga de pagina.
+                        var abrir = new URLSearchParams(window.location.search).get('abrir');
+                        if (abrir === 'examen-inicial' && !window.__nssAbrirHecho) {
+                            window.__nssAbrirHecho = true;
+                            loadModuleView('api/nss/examen-inicial', nss);
+                        }
                     }
                 } catch (error) {
                     status.textContent = 'Error de red al consultar: ' + error;
@@ -240,6 +247,10 @@
                         if (document.getElementById('firmaCanvas')) {
                             initSignaturePad();
                         }
+                        // Examen inicial: autoguardado, stepper y teclado (ver exIniInit).
+                        if (document.getElementById('exIni')) {
+                            exIniInit();
+                        }
                     } else {
                         mc.innerHTML = '<div class="alert alert-danger mb-0">Error al cargar el modulo (HTTP ' + response.status + ').</div>';
                     }
@@ -291,6 +302,10 @@
                 }
                 if (action === 'examen') {
                     loadModuleView('api/nss/examen', nss);
+                    return;
+                }
+                if (action === 'examen-inicial') {
+                    loadModuleView('api/nss/examen-inicial', nss);
                     return;
                 }
                 if (action === 'antidoping') {
@@ -567,14 +582,33 @@
                 // AQUI en el clic (window.open tras un await lo bloquea el navegador) y se navega
                 // al documento con ?auto=1 solo si el guardado fue exitoso; si falla, se cierra.
                 var firmaEl = formEl.querySelector('#firma');
-                var urlDocumento = (typeof opts.documentoUrl === 'function' && firmaEl && firmaEl.value)
+                // Por omision "firmado" = hay trazo nuevo en el recuadro. Un modulo puede
+                // ampliarlo con opts.firmado(formEl): el examen inicial lo hace porque su
+                // firma puede venir ya almacenada del WS y el trabajador no vuelve a firmar,
+                // y sin eso el expediente no se abria nunca en ese caso.
+                var firmado = (typeof opts.firmado === 'function')
+                        ? !!opts.firmado(formEl)
+                        : !!(firmaEl && firmaEl.value);
+                var urlDocumento = (typeof opts.documentoUrl === 'function' && firmado)
                         ? opts.documentoUrl(formEl) : null;
                 var ventanaDoc = null;
+                // La pestana se abre AQUI, en el clic: abrirla despues del await la bloquea el
+                // navegador (probado 3-oct: el guardado del examen inicial tarda mas que la
+                // ventana de gracia de Chrome). opts.abrirAlTerminar solo cambia el contenido
+                // provisional: una pantalla de carga con el estilo del portal en vez del texto
+                // plano, y el documento se carga en cuanto el guardado termina.
                 if (urlDocumento) {
                     try {
                         ventanaDoc = window.open('', '_blank');
                         if (ventanaDoc) {
-                            ventanaDoc.document.write('<p style="font:14px system-ui;padding:24px">Guardando y generando el documento para imprimir…</p>');
+                            ventanaDoc.document.write(opts.abrirAlTerminar
+                                ? '<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Generando documento</title></head>'
+                                  + '<body style="margin:0;font:16px system-ui,sans-serif;background:#F8FAFC;color:#20252B;display:flex;align-items:center;justify-content:center;height:100vh">'
+                                  + '<div style="text-align:center"><div style="width:46px;height:46px;border:5px solid #E1E6EB;border-top-color:#0057A8;border-radius:50%;margin:0 auto 18px;animation:g 1s linear infinite"></div>'
+                                  + '<div style="font-weight:600;color:#003E75;font-size:18px">Generando el expediente para imprimir…</div>'
+                                  + '<div style="margin-top:6px;color:#667085">Esta pestaña se actualiza sola al terminar.</div></div>'
+                                  + '<style>@keyframes g{to{transform:rotate(360deg)}}</style></body></html>'
+                                : '<p style="font:14px system-ui;padding:24px">Guardando y generando el documento para imprimir…</p>');
                         }
                     } catch (e) { ventanaDoc = null; }
                 }
@@ -597,7 +631,7 @@
                     }
                 }
                 btn.disabled = true;
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Guardando...';
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> ' + (opts.textoBoton || 'Guardando...');
                 mostrarResultado('Guardando ' + opts.label + '...', false);
                 try {
                     var response = await fetch(contextPath + opts.savePath, {
@@ -627,7 +661,8 @@
                                 a.href = urlDocumento;
                                 a.target = '_blank';
                                 a.className = 'ms-2';
-                                a.innerHTML = '<i class="ri-printer-line me-1"></i>Descargar documento (PDF)';
+                                a.innerHTML = '<i class="ri-printer-line me-1"></i>' + (ventanaDoc ? 'Descargar documento (PDF)' : 'Abrir documento (PDF)');
+                                if (!ventanaDoc) { a.className = 'btn btn-sm btn-primary ms-2'; }
                                 resultEl.appendChild(a);
                             }
                         }
@@ -711,6 +746,492 @@
 
             window.guardarDiagnosticosSecundarios = function (btn) {
                 guardarRegistro(btn, { formId: 'diagnosticosSecundariosForm', savePath: 'api/nss/examen/diagnosticos-secundarios/save', fileInputId: '__none__', label: 'diagnósticos secundarios', resultElId: 'diagnosticosSecundariosResult' });
+            };
+
+            window.guardarDatosGeneralesExamen = function (btn) {
+                guardarRegistro(btn, { formId: 'datosGeneralesExamenForm', savePath: 'api/nss/examen/datos-generales/save', fileInputId: '__none__', label: 'datos generales del examen', resultElId: 'datosGeneralesExamenResult' });
+            };
+
+            // ===== Examen medico inicial (fragments/examen-inicial-shell.html) =====
+            // Asistente por hojas con borrador que se guarda solo: cada cambio en la hoja activa
+            // dispara un autoguardado (debounce) a /api/nss/examen-inicial/borrador con los campos
+            // de ESA hoja; el servidor los funde con el borrador existente. Nada viaja al WS hasta
+            // "Finalizar". Todo cuelga de window.* porque el fragmento se inyecta con innerHTML.
+            var exIniTimer = null;
+            var exIniPendiente = false;
+
+            function exIniRoot() {
+                return document.getElementById('exIni');
+            }
+
+            function exIniHojaActiva() {
+                var root = exIniRoot();
+                return root ? parseInt(root.getAttribute('data-hoja'), 10) || 1 : 1;
+            }
+
+            function exIniCamposDe(section) {
+                var datos = {};
+                section.querySelectorAll('input[name], select[name], textarea[name]').forEach(function (el) {
+                    if (el.type === 'hidden' && (el.name === 'nss' || el.name === 'hoja' || el.name === 'firma')) {
+                        return;
+                    }
+                    datos[el.name] = el.value;
+                });
+                return datos;
+            }
+
+            function exIniMarcarGuardado(texto, esError) {
+                var el = document.getElementById('exIniGuardado');
+                if (!el) {
+                    return;
+                }
+                el.textContent = texto;
+                el.classList.toggle('err', !!esError);
+            }
+
+            // PROVISIONAL: boton "Examen inicial (prueba)" de la ficha (fragments/nss-result.html).
+            // loadModuleView es local a este closure, por eso el puente. Quitar junto con el boton.
+            window.abrirExamenInicialPrueba = function (nss) {
+                loadModuleView('api/nss/examen-inicial', nss);
+            };
+
+            window.exIniInit = function () {
+                var root = exIniRoot();
+                var formEl = document.getElementById('exIniForm');
+                if (!root || !formEl) {
+                    return;
+                }
+                // Cualquier cambio en la hoja activa programa un autoguardado. 'input' cubre
+                // texto mientras se escribe; 'change' cubre selects, fechas y los Si/No (que
+                // disparan change a mano en exIniSino).
+                ['input', 'change'].forEach(function (evt) {
+                    formEl.addEventListener(evt, function (e) {
+                        if (e.target && e.target.name) {
+                            exIniProgramarAutosave();
+                            // el switch "Todo normal" del bloque refleja el estado real
+                            exIniRefrescarSwitches();
+                        }
+                    });
+                });
+                exIniRefrescarSwitches();
+                // Enter en un campo de texto pasa al siguiente campo en vez de no hacer nada
+                // (comodidad heredada de Excel: Enter = siguiente celda).
+                formEl.addEventListener('keydown', function (e) {
+                    if (e.key !== 'Enter' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON') {
+                        return;
+                    }
+                    e.preventDefault();
+                    var focusables = Array.prototype.slice.call(formEl.querySelectorAll('section:not([hidden]) input:not([type=hidden]), section:not([hidden]) select, section:not([hidden]) textarea, section:not([hidden]) .exini-sino'));
+                    var i = focusables.indexOf(e.target);
+                    if (i >= 0 && i + 1 < focusables.length) {
+                        focusables[i + 1].focus();
+                    }
+                });
+                exIniPintarNav();
+            };
+
+            function exIniProgramarAutosave() {
+                exIniPendiente = true;
+                exIniMarcarGuardado('Cambios sin guardar…', false);
+                if (exIniTimer) {
+                    clearTimeout(exIniTimer);
+                }
+                exIniTimer = setTimeout(function () { exIniAutosave(); }, 1200);
+            }
+
+            window.exIniAutosave = async function (hojaForzada) {
+                var root = exIniRoot();
+                if (!root) {
+                    return;
+                }
+                if (exIniTimer) {
+                    clearTimeout(exIniTimer);
+                    exIniTimer = null;
+                }
+                var hoja = hojaForzada || exIniHojaActiva();
+                var section = root.querySelector('section.exini-hoja[data-hoja="' + hoja + '"]');
+                if (!section) {
+                    return;
+                }
+                var t = document.querySelector('meta[name="_csrf"]');
+                var h = document.querySelector('meta[name="_csrf_header"]');
+                var headers = { 'Content-Type': 'application/json', 'Accept': 'text/plain' };
+                if (t && h) { headers[h.content] = t.content; }
+                try {
+                    var response = await fetch(contextPath + 'api/nss/examen-inicial/borrador', {
+                        method: 'POST', headers: headers,
+                        body: JSON.stringify({ nss: root.getAttribute('data-nss'), hoja: exIniHojaActiva(), datos: exIniCamposDe(section) })
+                    });
+                    var txt = await response.text();
+                    if (response.ok) {
+                        exIniPendiente = false;
+                        exIniMarcarGuardado('Guardado ' + txt, false);
+                        exIniPintarStepper();
+                    } else {
+                        exIniMarcarGuardado('No se pudo guardar el borrador (HTTP ' + response.status + '): ' + txt, true);
+                    }
+                } catch (error) {
+                    exIniMarcarGuardado('Sin conexión: el borrador no se guardó', true);
+                }
+            };
+
+            // n = numero de hoja, o delta (+1/-1) si relativo=true.
+            window.exIniIr = function (n, relativo) {
+                var root = exIniRoot();
+                if (!root) {
+                    return;
+                }
+                var total = parseInt(root.getAttribute('data-total-hojas'), 10) || 10;
+                var actual = exIniHojaActiva();
+                var destino = relativo ? actual + n : n;
+                if (destino < 1 || destino > total || destino === actual) {
+                    return;
+                }
+                // La hoja que se abandona se guarda ya (sin esperar el debounce)
+                if (exIniPendiente) {
+                    exIniAutosave(actual);
+                }
+                root.querySelectorAll('section.exini-hoja').forEach(function (s) {
+                    s.hidden = parseInt(s.getAttribute('data-hoja'), 10) !== destino;
+                });
+                root.setAttribute('data-hoja', String(destino));
+                var hojaInput = document.getElementById('exIniHoja');
+                if (hojaInput) {
+                    hojaInput.value = String(destino);
+                }
+                exIniPintarNav();
+                // Recordar en que hoja se quedo (aunque no haya cambios): se manda la hoja
+                // destino con sus campos tal cual estan.
+                exIniAutosave(destino);
+                root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                var primero = root.querySelector('section.exini-hoja[data-hoja="' + destino + '"] input:not([type=hidden]), section.exini-hoja[data-hoja="' + destino + '"] .exini-sino');
+                if (primero) {
+                    setTimeout(function () { primero.focus(); }, 300);
+                }
+            };
+
+            function exIniPintarNav() {
+                var root = exIniRoot();
+                if (!root) {
+                    return;
+                }
+                var total = parseInt(root.getAttribute('data-total-hojas'), 10) || 10;
+                var actual = exIniHojaActiva();
+                var pos = document.getElementById('exIniPos');
+                if (pos) { pos.textContent = 'Hoja ' + actual + ' de ' + total; }
+                var prev = document.getElementById('exIniPrev');
+                var next = document.getElementById('exIniNext');
+                if (prev) { prev.disabled = actual <= 1; }
+                if (next) { next.disabled = actual >= total; }
+                root.querySelectorAll('#exIniStepper button[data-ir]').forEach(function (b) {
+                    b.classList.toggle('activa', parseInt(b.getAttribute('data-ir'), 10) === actual);
+                });
+            }
+
+            // Barra de avance de cada hoja del stepper, calculada en el navegador con lo que hay
+            // en pantalla (el servidor la calcula igual al recargar).
+            function exIniPintarStepper() {
+                var root = exIniRoot();
+                if (!root) {
+                    return;
+                }
+                root.querySelectorAll('section.exini-hoja').forEach(function (s) {
+                    var n = parseInt(s.getAttribute('data-hoja'), 10);
+                    var campos = s.querySelectorAll('input[name]:not([type=hidden]), select[name], textarea[name], input[type=hidden][name]:not([name=nss]):not([name=hoja]):not([name=firma])');
+                    var llenos = 0;
+                    campos.forEach(function (el) { if (el.value && String(el.value).trim() !== '') { llenos++; } });
+                    var btn = root.querySelector('#exIniStepper button[data-ir="' + n + '"]');
+                    if (btn) {
+                        var bar = btn.querySelector('.p span');
+                        if (bar) { bar.style.width = (campos.length ? Math.round(100 * llenos / campos.length) : 0) + '%'; }
+                        btn.classList.toggle('completa', campos.length > 0 && llenos === campos.length);
+                    }
+                });
+            }
+
+            // Si/No como botones: el valor vive en el hidden; S/N por teclado sobre el grupo.
+            // `valor` es '1' (Si) o '0' (No); lo que se GUARDA sale de data-si/data-no del grupo
+            // (default 1/0; orientacion en Exploracion fisica guarda "Sí"/"No" porque el WS lo
+            // tiene como texto y el impreso lo pinta literal).
+            function exIniValoresSino(grupo) {
+                return { si: grupo.getAttribute('data-si') || '1', no: grupo.getAttribute('data-no') || '0' };
+            }
+
+            function exIniPintarSino(grupo) {
+                var v = exIniValoresSino(grupo);
+                var hidden = grupo.querySelector('input[type=hidden]');
+                var botones = grupo.querySelectorAll('button');
+                botones[0].classList.toggle('activo-si', hidden.value === v.si);
+                botones[1].classList.toggle('activo-no', hidden.value === v.no);
+            }
+
+            window.exIniSino = function (btn, valor) {
+                var grupo = btn.closest('.exini-sino');
+                if (!grupo) {
+                    return;
+                }
+                var v = exIniValoresSino(grupo);
+                var hidden = grupo.querySelector('input[type=hidden]');
+                var nuevo = valor === '1' ? v.si : v.no;
+                // segundo clic en el mismo = sin contestar
+                hidden.value = hidden.value === nuevo ? '' : nuevo;
+                exIniPintarSino(grupo);
+                hidden.dispatchEvent(new Event('change', { bubbles: true }));
+                // Con Si, llevar el cursor a las observaciones de esa fila
+                var fila = grupo.closest('.exini-fila');
+                var obs = fila ? fila.querySelector('input[type=text]') : null;
+                if (hidden.value === v.si && obs) {
+                    obs.focus();
+                }
+            };
+
+            // Chips de UNA opcion (constitucion, emocional, fascies, marcha): el texto literal
+            // del legacy va al hidden; clic en la activa la desmarca.
+            window.exIniChip = function (btn) {
+                var grupo = btn.closest('.exini-chips');
+                var hidden = grupo.querySelector('input[type=hidden]');
+                var val = btn.getAttribute('data-val');
+                hidden.value = hidden.value === val ? '' : val;
+                grupo.querySelectorAll('button').forEach(function (b) {
+                    b.classList.toggle('activo', b.getAttribute('data-val') === hidden.value);
+                });
+                hidden.dispatchEvent(new Event('change', { bubbles: true }));
+            };
+
+            // Odontograma: pincel (hallazgo elegido) + clic por diente. El estado vive en el
+            // hidden del diente (C/A/E/P/X o vacio = sano); clic con el mismo hallazgo lo quita.
+            var exIniPincelEstado = '';
+
+            window.exIniPincelSel = function (btn) {
+                exIniPincelEstado = btn.getAttribute('data-estado') || '';
+                btn.closest('.exini-pincel').querySelectorAll('button').forEach(function (b) {
+                    b.classList.toggle('activo', b === btn);
+                });
+            };
+
+            window.exIniDiente = function (div) {
+                var hidden = div.querySelector('input[type=hidden]');
+                var actual = (hidden.value || '').trim().toUpperCase();
+                var nuevo = (exIniPincelEstado && actual === exIniPincelEstado) ? '' : exIniPincelEstado;
+                hidden.value = nuevo;
+                ['d-C', 'd-A', 'd-E', 'd-P', 'd-X', 'd-otro'].forEach(function (c) { div.classList.remove(c); });
+                if (nuevo) { div.classList.add('d-' + nuevo); }
+                div.querySelector('.est').textContent = nuevo;
+                div.title = 'Diente ' + div.getAttribute('data-diente') + ': ' + (nuevo || 'sano');
+                hidden.dispatchEvent(new Event('change', { bubbles: true }));
+            };
+
+            // IMC = peso / talla^2, calculado al escribir peso o talla (talla en m; si capturan
+            // cm, >3, se convierte). Se puede corregir a mano despues.
+            window.exIniImc = function (inp) {
+                var cont = inp.closest('.exini-vitales');
+                if (!cont) {
+                    return;
+                }
+                var peso = parseFloat((cont.querySelector('input[name$=".PESO"]') || {}).value);
+                var talla = parseFloat((cont.querySelector('input[name$=".TALLA"]') || {}).value);
+                var imc = cont.querySelector('input[name$=".IMC"]');
+                if (!imc || !(peso > 0) || !(talla > 0)) {
+                    return;
+                }
+                if (talla > 3) { talla = talla / 100; }
+                imc.value = (peso / (talla * talla)).toFixed(1);
+            };
+
+            window.exIniTecla = function (grupo, e) {
+                var k = (e.key || '').toLowerCase();
+                var botones = grupo.querySelectorAll('button');
+                if (k === 's' || k === '1') { e.preventDefault(); exIniSino(botones[0], '1'); }
+                else if (k === 'n' || k === '0') { e.preventDefault(); exIniSino(botones[1], '0'); }
+                else if (k === 'enter') {
+                    // Enter: siguiente grupo Si/No de la misma hoja (Tab ya lo hace solo)
+                    e.preventDefault();
+                    var todos = Array.prototype.slice.call(grupo.closest('section').querySelectorAll('.exini-sino'));
+                    var i = todos.indexOf(grupo);
+                    if (i >= 0 && i + 1 < todos.length) { todos[i + 1].focus(); }
+                }
+            };
+
+            // "Todo normal" como switch en la banda de cada bloque. ENCENDER aplica lo normal al
+            // bloque completo (sino: todo No y observaciones en blanco; texto: todo "Normal";
+            // exploracion: Si/serenidad/normal solo en lo sin contestar, sin tocar signos
+            // vitales). APAGAR limpia el bloque (sin contestar / vacio). Tras cualquier cambio
+            // el switch se recalcula para reflejar si el bloque sigue "todo normal" o no.
+            function exIniAplicarNormal(bloque, modo) {
+                var cambiados = 0;
+                if (modo === 'si') {
+                    // sub-grupos de exploracion general (actitud, orientacion, lenguaje): lo normal es Si
+                    bloque.querySelectorAll('.exini-sino').forEach(function (g) {
+                        var hidden = g.querySelector('input[type=hidden]');
+                        var si = exIniValoresSino(g).si;
+                        if (hidden.value !== si) { hidden.value = si; exIniPintarSino(g); cambiados++; }
+                    });
+                } else if (modo === 'sino') {
+                    bloque.querySelectorAll('.exini-sino').forEach(function (g) {
+                        var hidden = g.querySelector('input[type=hidden]');
+                        var fila = g.closest('.exini-fila');
+                        var obs = fila ? fila.querySelector('input[type=text]') : null;
+                        if (obs && obs.value) { obs.value = ''; cambiados++; }
+                        var no = exIniValoresSino(g).no;
+                        if (hidden.value !== no) { hidden.value = no; exIniPintarSino(g); cambiados++; }
+                    });
+                } else if (modo === 'exploracion') {
+                    bloque.querySelectorAll('.exini-sino').forEach(function (g) {
+                        var hidden = g.querySelector('input[type=hidden]');
+                        if (!hidden.value) { hidden.value = exIniValoresSino(g).si; exIniPintarSino(g); cambiados++; }
+                    });
+                    bloque.querySelectorAll('.exini-chips').forEach(function (g) {
+                        var hidden = g.querySelector('input[type=hidden]');
+                        if (hidden.value) { return; }
+                        var pref = g.querySelector('button[data-val="normal"], button[data-val="serenidad"]');
+                        if (pref) { exIniChip(pref); cambiados++; }
+                    });
+                } else {
+                    bloque.querySelectorAll('input[data-tipo="TEXT"]').forEach(function (inp) {
+                        if (inp.value.trim() !== 'Normal') { inp.value = 'Normal'; cambiados++; }
+                    });
+                }
+                return cambiados;
+            }
+
+            function exIniLimpiarBloque(bloque, modo) {
+                bloque.querySelectorAll('.exini-sino').forEach(function (g) {
+                    var hidden = g.querySelector('input[type=hidden]');
+                    hidden.value = '';
+                    exIniPintarSino(g);
+                    var fila = g.closest('.exini-fila');
+                    var obs = fila ? fila.querySelector('input[type=text]') : null;
+                    if (obs) { obs.value = ''; }
+                });
+                if (modo === 'exploracion') {
+                    bloque.querySelectorAll('.exini-chips').forEach(function (g) {
+                        g.querySelector('input[type=hidden]').value = '';
+                        g.querySelectorAll('button').forEach(function (b) { b.classList.remove('activo'); });
+                    });
+                } else if (modo === 'texto') {
+                    bloque.querySelectorAll('input[data-tipo="TEXT"]').forEach(function (inp) { inp.value = ''; });
+                }
+            }
+
+            // true si el bloque esta "todo normal" segun su modo
+            function exIniEsNormal(bloque, modo) {
+                var ok = true;
+                if (modo === 'si') {
+                    bloque.querySelectorAll('.exini-sino').forEach(function (g) {
+                        if (g.querySelector('input[type=hidden]').value !== exIniValoresSino(g).si) { ok = false; }
+                    });
+                } else if (modo === 'sino') {
+                    bloque.querySelectorAll('.exini-sino').forEach(function (g) {
+                        if (g.querySelector('input[type=hidden]').value !== exIniValoresSino(g).no) { ok = false; }
+                    });
+                } else if (modo === 'exploracion') {
+                    bloque.querySelectorAll('.exini-sino').forEach(function (g) {
+                        if (g.querySelector('input[type=hidden]').value !== exIniValoresSino(g).si) { ok = false; }
+                    });
+                    bloque.querySelectorAll('.exini-chips').forEach(function (g) {
+                        var v = g.querySelector('input[type=hidden]').value;
+                        var tieneNormal = !!g.querySelector('button[data-val="normal"], button[data-val="serenidad"]');
+                        if (tieneNormal && v !== 'normal' && v !== 'serenidad') { ok = false; }
+                    });
+                } else {
+                    bloque.querySelectorAll('input[data-tipo="TEXT"]').forEach(function (inp) {
+                        if (inp.value.trim() !== 'Normal') { ok = false; }
+                    });
+                }
+                return ok;
+            }
+
+            window.exIniRefrescarSwitches = function () {
+                var root = exIniRoot();
+                if (!root) { return; }
+                root.querySelectorAll('.exini-switch input[type=checkbox]').forEach(function (sw) {
+                    var bloque = sw.closest('.exini-grupo') || sw.closest('.exini-bloque');
+                    if (bloque) { sw.checked = exIniEsNormal(bloque, sw.getAttribute('data-modo')); }
+                });
+            };
+
+            window.exIniSwitchNormal = function (sw) {
+                // un switch dentro de un sub-grupo (Actitud, Orientacion, Lenguaje) solo manda ahi
+                var bloque = sw.closest('.exini-grupo') || sw.closest('.exini-bloque');
+                if (!bloque) { return; }
+                var modo = sw.getAttribute('data-modo');
+                if (sw.checked) {
+                    exIniAplicarNormal(bloque, modo);
+                } else {
+                    exIniLimpiarBloque(bloque, modo);
+                }
+                exIniProgramarAutosave();
+                // el estado real lo dice exIniEsNormal (en exploracion puede quedar incompleto), y
+                // el switch del bloque padre / de los sub-grupos se recalcula a la vez
+                exIniRefrescarSwitches();
+            };
+
+            // Finalizar: manda el formulario COMPLETO (las 10 hojas, no solo la activa) para que
+            // nada quede fuera del borrador, y el servidor reparte al WS + tags. Con firma, se
+            // abre el expediente impreso (mismo mecanismo que guardarExamen, via guardarRegistro).
+            window.exIniFinalizar = function (btn) {
+                var diag = document.getElementById('examenDiagnostico');
+                var dictamen = document.querySelector('#exIniForm [name="SERV_MED_RESULTADO_EXAMEN.DICTAMEN"]');
+                var resultEl = document.getElementById('exIniResult');
+                if (dictamen && !dictamen.value) {
+                    pintarResultadoInline(resultEl, 'Selecciona el resultado del examen antes de finalizar.', true);
+                    // el dictamen es un hidden con botones al lado: llevar la vista ahi
+                    var grupoDictamen = dictamen.closest('.exini-dictamen');
+                    (grupoDictamen || dictamen).scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
+                if (diag && !diag.value.trim()) {
+                    pintarResultadoInline(resultEl, 'Captura el diagnóstico desde el catálogo ICD antes de finalizar.', true);
+                    var buscador = document.getElementById('examenIcdConsult');
+                    if (buscador) { buscador.focus(); }
+                    return;
+                }
+                // Confirmacion segun el dictamen: que queda registrado y que sigue
+                var etiquetas = { apto: 'APTO', no_apto: 'NO APTO', apto_condicionado: 'APTO CONDICIONADO', apto_restringido: 'APTO RESTRINGIDO' };
+                var msg = '¿Finalizar el examen inicial con dictamen ' + (etiquetas[dictamen.value] || dictamen.value) + '?\n\n';
+                if (dictamen.value === 'no_apto') {
+                    msg += 'La persona quedará registrada como NO APTA para ingreso. Para cambiarlo habrá que aplicarle un nuevo examen inicial.';
+                } else if (dictamen.value === 'apto_condicionado') {
+                    msg += 'Quedará registrada como apta con condición. Recuerda dejar la condición en Carta compromiso / Restricciones médicas.';
+                } else if (dictamen.value === 'apto_restringido') {
+                    msg += 'Quedará registrada como apta con restricción. Recuerda capturar la restricción en Restricciones médicas.';
+                } else {
+                    msg += 'Quedará registrada como apta para ingreso.';
+                }
+                msg += '\n\nSe guarda como examen de Admisión y se abre el expediente para imprimir.';
+                if (exIniRoot().getAttribute('data-tiene-inicial') === 'true') {
+                    msg += '\nEsta persona ya tenía un examen inicial: el nuevo lo reemplaza.';
+                }
+                if (!window.confirm(msg)) {
+                    return;
+                }
+                var nss = exIniRoot().getAttribute('data-nss');
+                guardarRegistro(btn, {
+                    formId: 'exIniForm',
+                    savePath: 'api/nss/examen-inicial/finalizar',
+                    fileInputId: '__none__',
+                    label: 'examen inicial',
+                    resultElId: 'exIniResult',
+                    // Mismo criterio que guardarExamen: trazo nuevo, o firma ya almacenada
+                    // en el WS junto con el dictamen. El dictamen ya se validó arriba, así
+                    // que llegados aquí siempre tiene valor.
+                    firmado: function (formEl) {
+                        var firmaEl = formEl.querySelector('#firma');
+                        if (firmaEl && firmaEl.value) { return true; }
+                        var canvasFirma = document.getElementById('firmaCanvas');
+                        return !!(canvasFirma && canvasFirma.dataset.firmaGuardada);
+                    },
+                    documentoUrl: function () {
+                        return contextPath + 'api/nss/examen/imprimir?nss=' + encodeURIComponent(nss) + '&auto=1';
+                    },
+                    abrirAlTerminar: true,
+                    textoBoton: 'Finalizando y generando el documento…',
+                    onSuccess: function () {
+                        exIniMarcarGuardado('Examen finalizado', false);
+                        var fin = document.getElementById('exIniFinalizarBtn');
+                        if (fin) { fin.disabled = true; }
+                    }
+                });
             };
 
             // Advierte (sin bloquear) si el folio capturado ya existe para el NSS en pantalla.
