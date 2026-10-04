@@ -21,6 +21,15 @@
         <java.version>21</java.version>
         <maven.compiler.release>21</maven.compiler.release>
         <skipTests>true</skipTests>
+        <!-- Valores que Maven inyecta en application*.properties al empaquetar (el parent de
+             Spring Boot filtra esos archivos con delimitador @...@). Por defecto: perfil local
+             y credenciales de produccion VACIAS, para que un WAR armado sin pensar nunca pegue
+             a produccion. El perfil de Maven "prod" (abajo) los llena desde un archivo que git
+             ignora. -->
+        <portal.perfil>local</portal.perfil>
+        <prod.datasource.url></prod.datasource.url>
+        <prod.datasource.username></prod.datasource.username>
+        <prod.datasource.password></prod.datasource.password>
     </properties>
 
     <dependencies>
@@ -138,4 +147,41 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- WAR de PRODUCCION con todo adentro: `mvn -Pprod -DskipTests clean package`.
+             Lee config/produccion/portal-salud.local.properties (IGNORADO por git, ver
+             .gitignore *.local.properties) y mete perfil prod + url directa + usuario +
+             contrasena en el WAR. Sin properties externos, sin variables de entorno, sin
+             tnsnames.ora en el servidor (decision del 3-oct-2026). La contrasena nunca
+             pasa por el repositorio. -->
+        <profile>
+            <id>prod</id>
+            <properties>
+                <portal.perfil>prod</portal.perfil>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>properties-maven-plugin</artifactId>
+                        <version>1.2.1</version>
+                        <executions>
+                            <execution>
+                                <phase>initialize</phase>
+                                <goals>
+                                    <goal>read-project-properties</goal>
+                                </goals>
+                                <configuration>
+                                    <files>
+                                        <file>${project.basedir}/config/produccion/portal-salud.local.properties</file>
+                                    </files>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
