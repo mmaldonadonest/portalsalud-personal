@@ -8,6 +8,8 @@
 *.local.bat
 *.local.cmd
 *.local.ps1
+# Copia local de las credenciales de produccion (config/produccion/*.local.properties)
+*.local.properties
 
 # Salidas de las corridas en produccion: pueden incluir NSS y nombres reales.
 docs/script-prod/salida_*
