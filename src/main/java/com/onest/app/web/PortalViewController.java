@@ -33,6 +33,10 @@ public class PortalViewController {
         MODULOS_ANALISIS.put("accidentabilidad", "Accidentabilidad");
         MODULOS_ANALISIS.put("antidoping", "Antidoping");
         MODULOS_ANALISIS.put("inventario", "Inventario");
+        // "Inventario" es el control de kits de ANTIDOPING; esto es otra cosa: cuantas piezas de
+        // medicamento se consumieron. Se llama "consumo" y no "consumibles" para que no se
+        // confunda con aquel.
+        MODULOS_ANALISIS.put("consumo", "Consumo de Medicamentos");
         MODULOS_ANALISIS.put("maternidad", "Maternidad");
         MODULOS_ANALISIS.put("empleados", "Empleados");
         MODULOS_ANALISIS.put("importar", "Importar Excel");
@@ -194,6 +198,9 @@ public class PortalViewController {
         }
         if ("musculoesqueleticas".equals(modulo)) {
             return "pages/analisis-musculoesqueleticas";
+        }
+        if ("consumo".equals(modulo)) {
+            return "pages/analisis-consumo";
         }
         if ("auditoria".equals(modulo)) {
             return "pages/analisis-auditoria";

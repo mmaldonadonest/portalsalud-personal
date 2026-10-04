@@ -36,8 +36,23 @@ public class LegacyDataSourceConfig {
         return new DataSourceProperties();
     }
 
+    /**
+     * DataSource de DESTINO (Oracle del portal).
+     *
+     * <p><b>El {@code @ConfigurationProperties} de abajo no es decorativo.</b> Al declarar este
+     * bean a mano se pierde la autoconfiguracion de Spring Boot, y con ella el bloque
+     * {@code spring.datasource.hikari.*}: sin esta anotacion, el pool arranca con los defaults de
+     * HikariCP &mdash;{@code maximum-pool-size=10} y {@code minimum-idle} igualado a ese valor&mdash;
+     * y <b>precarga las diez conexiones al iniciar</b>.
+     *
+     * <p>Diez logins fallidos de golpe son exactamente el limite del perfil {@code DEFAULT} de
+     * Oracle. Asi se bloqueo la cuenta BIOMETRICO en produccion el 27-sep-2026. Con el pool
+     * acotado en {@code application.properties}, una credencial equivocada cuesta <b>un</b>
+     * intento.
+     */
     @Bean
     @Primary
+    @ConfigurationProperties(prefix = "spring.datasource.hikari")
     public DataSource dataSource(@Qualifier("primaryDataSourceProperties") DataSourceProperties properties) {
         return properties.initializeDataSourceBuilder().build();
     }

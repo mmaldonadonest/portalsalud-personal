@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  portal-salud-excel-loader — carga de los Excel de MORBILIDAD 2026 al portal.
+
+  Proyecto INDEPENDIENTE del portal, por la misma razon que etl/: Apache POI son varios MB
+  de dependencias que no tienen por que viajar en el WAR de produccion para una carga que
+  se corre una sola vez. Y porque asi no hay forma de disparar una carga masiva por un
+  perfil mal puesto.
+
+  Destino (base del PORTAL, JDBC):
+    SERV_MED_BITACORA_LOTE / _EVENTO / _ATRIBUTO      (docs/script-prod/excel-01-ddl-bitacora.sql)
+    SERV_MED_BITACORA_ESTADO_MES / _METRICA / _NOMENCL (docs/script-prod/excel-02-ddl-seguimiento.sql)
+
+  Plan y estimados: docs/plan-carga-excel-2026.html
+  Hallazgos del origen: docs/carga-historica-morbilidad-hallazgos.md
+
+  Se construye aparte:  mvn -f excel-loader/pom.xml package
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.4.3</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>mx.onest</groupId>
+    <artifactId>portal-salud-excel-loader</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>portal-salud-excel-loader</name>
+    <description>Carga de los Excel de MORBILIDAD 2026 a SERV_MED_BITACORA_*</description>
+
+    <properties>
+        <java.version>21</java.version>
+        <maven.compiler.release>21</maven.compiler.release>
+        <poi.version>5.4.1</poi.version>
+        <skipTests>true</skipTests>
+    </properties>
+
+    <dependencies>
+        <!-- Sin web: proceso de consola que corre y termina -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+
+        <!-- Destino: Oracle -->
+        <dependency>
+            <groupId>com.oracle.database.jdbc</groupId>
+            <artifactId>ojdbc11</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!--
+          Hace falta SOLO para leer un wallet de Oracle (cwallet.sso). Sin el, una
+          conexion por wallet falla con un error de PKI que no dice "te falta un jar".
+          Se agrego el 30-sep-2026 al preparar la carga a produccion, donde el destino
+          se resuelve por alias TNS y las credenciales pueden vivir en el wallet en vez
+          de en el .bat.
+        -->
+        <dependency>
+            <groupId>com.oracle.database.security</groupId>
+            <artifactId>oraclepki</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!--
+          Apache POI. Hacen falta LAS DOS:
+            poi      -> HSSF, para los .xls OLE2 binarios (60 de los 132 archivos de 2026)
+            poi-ooxml-> XSSF, para .xlsx y .xlsm (64 + 8)
+          Verificado el 29-sep-2026: ninguna extension miente, los .xls son OLE2 de verdad.
+        -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>portal-salud-excel-loader</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.onest.excel.ExcelLoaderApplication</mainClass>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <release>${maven.compiler.release}</release>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

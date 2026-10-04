@@ -4,6 +4,7 @@ import com.onest.app.catalog.dashboard.dto.ConteoSimpleDto;
 import com.onest.app.catalog.dashboard.dto.DashboardConsultaDto;
 import com.onest.app.catalog.dashboard.dto.PuntoMensualDto;
 import com.onest.app.catalog.dashboard.dto.SeriePredioDto;
+import com.onest.app.catalog.dashboard.repository.BitacoraHistoricoRepository;
 import com.onest.app.catalog.expediente.dto.ConsultaReporteDto;
 import com.onest.app.catalog.expediente.service.ExpedienteService;
 import java.time.LocalDate;
@@ -47,10 +48,14 @@ public class DashboardConsultaService {
 
     private final ExpedienteService expedienteService;
     private final DashboardPredioFiltro predioFiltro;
+    private final BitacoraHistoricoRepository historico;
 
-    public DashboardConsultaService(ExpedienteService expedienteService, DashboardPredioFiltro predioFiltro) {
+    public DashboardConsultaService(ExpedienteService expedienteService,
+                                    DashboardPredioFiltro predioFiltro,
+                                    BitacoraHistoricoRepository historico) {
         this.expedienteService = expedienteService;
         this.predioFiltro = predioFiltro;
+        this.historico = historico;
     }
 
     /** Sin corte por predio/cuenta - el que ya usa /home desde el 17-ago. */
@@ -124,18 +129,74 @@ public class DashboardConsultaService {
             }
         }
 
-        List<PuntoMensualDto> tendencia = new ArrayList<>();
-        porMes.forEach((mes, cantidad) -> tendencia.add(new PuntoMensualDto(mes, cantidad)));
-        if (sinFecha > 0) {
-            tendencia.add(new PuntoMensualDto("Sin fecha", sinFecha));
-        }
-
         // Personas != atenciones: la misma persona puede consultar varias veces en el rango.
         long totalPersonas = filas.stream()
                 .map(ConsultaReporteDto::nss)
                 .filter(nss -> nss != null && !nss.isBlank())
                 .distinct()
                 .count();
+
+        // --- Historico cargado de los Excel del servicio medico ------------------------
+        // Se suman AGREGADOS, no filas: el historico de 2026 son ~20 mil atenciones y traerlas
+        // a memoria en cada carga de pantalla no tendria sentido. Cada consulta del repositorio
+        // devuelve ya el conteo por categoria y aqui solo se acumulan sobre los mismos Map.
+        long atencionesHistorico = 0;
+        if (historico.hayDatos()) {
+            LocalDate desde = FechaFiltro.aFecha(fechaInicial).orElse(null);
+            LocalDate hasta = FechaFiltro.aFecha(fechaFinal).orElse(null);
+
+            atencionesHistorico = historico.totalAtenciones(desde, hasta, predio, cuenta);
+
+            // El filtro de NSS NO aplica de este lado: los Excel no traen NSS y descartar por
+            // eso tiraria el 100% del historico. La identidad se resuelve por nombre.
+            //
+            // LIMITACION CONOCIDA: las dos fuentes cuentan personas con criterios distintos
+            // -NSS en ORDS, nombre normalizado en el historico- asi que alguien presente en las
+            // dos cuenta dos veces en el periodo donde se traslapan. Hoy no es material: ORDS
+            // solo tiene 209 renglones y son de prueba (fdsfds, pepegrillo). Desaparece en
+            // cuanto se fije la fecha de corte entre una fuente y otra.
+            totalPersonas += historico.totalPersonas(desde, hasta, predio, cuenta);
+
+            sumar(porCausa, historico.porAtributo("CAUSA", desde, hasta, predio, cuenta, 0));
+            sumar(porTipoConsulta, historico.porAtributo("RAMO", desde, hasta, predio, cuenta, 0));
+            sumar(porGenero, historico.porColumna("GENERO", desde, hasta, predio, cuenta, 0));
+            sumar(porCuenta, historico.porColumna("CUENTA", desde, hasta, predio, cuenta, 0));
+            sumar(porPredio, historico.porColumna("PREDIO", desde, hasta, predio, cuenta, 0));
+            // El rango de edad ya viene resuelto: el Excel lo trae como bucket y el cargador lo
+            // dejo en el mismo formato que produce rangoEdad(). Por eso NO pasa por ahi.
+            sumar(porEdad, historico.porColumna("RANGO_EDAD", desde, hasta, predio, cuenta, 0));
+
+            List<PuntoMensualDto> mensualHistorico =
+                    historico.tendenciaMensual(desde, hasta, predio, cuenta);
+            mensualHistorico.forEach(p -> porMes.merge(p.mes(), p.cantidad(), Long::sum));
+
+            // Los renglones sin mes quedan fuera de tendenciaMensual -la consulta exige ANIO y
+            // MES- pero SI entran en totalAtenciones. Sin sumarlos aqui, las barras totalizan
+            // menos que el KPI y no hay forma de saber por que faltan.
+            sinFecha += Math.max(0, atencionesHistorico
+                    - mensualHistorico.stream().mapToLong(PuntoMensualDto::cantidad).sum());
+
+            historico.tendenciaPorPredio(desde, hasta, predio, cuenta)
+                    .forEach(f -> porPredioMes
+                            .computeIfAbsent((String) f[0], k -> new TreeMap<>())
+                            .merge((String) f[1], (Long) f[2], Long::sum));
+        }
+
+        // La serie mensual se arma AQUI y no junto al recorrido de ORDS, aunque ahi ya estaba
+        // completo el porMes de ORDS.
+        //
+        // Hasta el 30-sep-2026 se armaba arriba, antes del bloque del historico. Como es una
+        // copia -una lista de PuntoMensualDto, no una vista del Map-, todo lo que el historico
+        // metia despues en porMes no llegaba nunca a la grafica. Resultado: el KPI de atenciones
+        // contaba las 24 mil del Excel y la grafica "Atenciones mensuales" solo veia las de ORDS,
+        // que son 209 renglones de prueba. La pantalla decia "Sin atenciones en el periodo" junto
+        // a una tarjeta con 134. El mismo porMes alimenta las dos cosas; lo unico que fallaba era
+        // el momento de la foto.
+        List<PuntoMensualDto> tendencia = new ArrayList<>();
+        porMes.forEach((mes, cantidad) -> tendencia.add(new PuntoMensualDto(mes, cantidad)));
+        if (sinFecha > 0) {
+            tendencia.add(new PuntoMensualDto("Sin fecha", sinFecha));
+        }
 
         // Solo los predios con mas atenciones, y "Sin asignar" fuera: no es un predio real y
         // hoy concentraria casi todo, aplastando la escala de los demas.
@@ -152,7 +213,7 @@ public class DashboardConsultaService {
 
         return new DashboardConsultaDto(
                 fechaInicial, fechaFinal,
-                filas.size(), totalAccidentesEmergencias,
+                filas.size() + atencionesHistorico, totalAccidentesEmergencias,
                 aConteo(porTipoConsulta, Integer.MAX_VALUE),
                 aConteo(porAreaAccidente, Integer.MAX_VALUE),
                 aConteo(porCausa, topCausas > 0 ? topCausas : MAX_CAUSAS),
@@ -225,6 +286,16 @@ public class DashboardConsultaService {
     }
 
     /** Mismo criterio que DashboardIncapacidadesService.mesDe() - ver ese comentario. */
+    /**
+     * Acumula un agregado del historico sobre el Map que ya trae lo de ORDS.
+     *
+     * <p>Se suman agregados y no filas: es lo que permite que el historico entre sin traer sus
+     * ~20 mil renglones a memoria.
+     */
+    private static void sumar(Map<String, Long> destino, List<ConteoSimpleDto> agregado) {
+        agregado.forEach(c -> destino.merge(c.clave(), c.cantidad(), Long::sum));
+    }
+
     private static Optional<YearMonth> mesDe(String fecha) {
         if (fecha == null || fecha.isBlank()) {
             return Optional.empty();

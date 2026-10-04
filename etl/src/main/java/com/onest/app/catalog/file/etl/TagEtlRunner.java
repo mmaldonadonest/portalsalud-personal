@@ -1,6 +1,8 @@
 package com.onest.app.catalog.file.etl;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,10 +51,13 @@ public class TagEtlRunner implements CommandLineRunner {
     private void runSample() {
         List<Long> ids = reader.sampleIds();
         log.info("[etl-tags] modo=sample, {} ids seleccionados", ids.size());
+        Set<Long> yaMigrados = writer.sourceIdsExistentes();
         Stats stats = new Stats();
+        List<LegacyTagRow> buffer = new ArrayList<>();
         for (LegacyTagRow row : reader.findByIds(ids)) {
-            procesar(row, stats);
+            acumular(row, yaMigrados, buffer, stats);
         }
+        vaciar(buffer, stats);
         stats.log("sample");
     }
 
@@ -60,19 +65,33 @@ public class TagEtlRunner implements CommandLineRunner {
         long minId = reader.minId();
         long maxId = reader.maxId();
         log.info("[etl-tags] modo=full, rango de ids [{}, {}], lote={}", minId, maxId, batchSize);
+
+        // UNA consulta en vez de medio millon. Ver la nota de latencia en MedTagWriter.
+        Set<Long> yaMigrados = writer.sourceIdsExistentes();
+        log.info("[etl-tags] ya migrados en el destino: {}", yaMigrados.size());
+
         Stats stats = new Stats();
+        List<LegacyTagRow> buffer = new ArrayList<>(batchSize);
         for (long from = minId; from <= maxId; from += batchSize) {
             long to = Math.min(from + batchSize - 1, maxId);
             for (LegacyTagRow row : reader.findByIdRange(from, to)) {
-                procesar(row, stats);
+                acumular(row, yaMigrados, buffer, stats);
             }
             log.info("[etl-tags] lote [{}, {}] listo - acumulado: {}", from, to, stats);
         }
+        vaciar(buffer, stats);
         stats.log("full");
     }
 
-    private void procesar(LegacyTagRow row, Stats stats) {
-        if (writer.existsBySourceId(row.id())) {
+    /**
+     * Clasifica una fila y la deja lista para el siguiente lote.
+     *
+     * <p>La comprobacion de "ya migrado" sale del {@code Set} en memoria, no de una consulta.
+     * Es el cambio que convierte una corrida de 30 horas en uno de minutos: ver la nota de
+     * latencia en {@link MedTagWriter}.
+     */
+    private void acumular(LegacyTagRow row, Set<Long> yaMigrados, List<LegacyTagRow> buffer, Stats stats) {
+        if (yaMigrados.contains(row.id())) {
             stats.yaExistia.incrementAndGet();
             return;
         }
@@ -81,8 +100,19 @@ public class TagEtlRunner implements CommandLineRunner {
             stats.sinType.incrementAndGet();
             return;
         }
-        writer.insert(row.nss(), row.type(), row.content(), row.id(), CREATED_BY);
-        stats.migrado.incrementAndGet();
+        buffer.add(row);
+        if (buffer.size() >= batchSize) {
+            vaciar(buffer, stats);
+        }
+    }
+
+    /** Manda el lote acumulado en un solo viaje y lo limpia. */
+    private void vaciar(List<LegacyTagRow> buffer, Stats stats) {
+        if (buffer.isEmpty()) {
+            return;
+        }
+        stats.migrado.addAndGet(writer.insertBatch(buffer, CREATED_BY));
+        buffer.clear();
     }
 
     private static final class Stats {

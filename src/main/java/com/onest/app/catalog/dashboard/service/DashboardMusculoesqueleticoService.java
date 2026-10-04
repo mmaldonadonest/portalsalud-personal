@@ -5,6 +5,7 @@ import com.onest.app.catalog.dashboard.dto.DashboardMusculoesqueleticoDto;
 import com.onest.app.catalog.dashboard.dto.PuntoMensualDto;
 import com.onest.app.catalog.dashboard.service.LesionMusculoesqueletica.Clasificacion;
 import com.onest.app.catalog.dashboard.service.LesionMusculoesqueletica.Grupo;
+import com.onest.app.catalog.dashboard.repository.BitacoraHistoricoRepository;
 import com.onest.app.catalog.expediente.dto.ConsultaReporteDto;
 import com.onest.app.catalog.expediente.service.ExpedienteService;
 import java.time.LocalDate;
@@ -42,10 +43,14 @@ public class DashboardMusculoesqueleticoService {
 
     private final ExpedienteService expedienteService;
     private final DashboardPredioFiltro predioFiltro;
+    private final BitacoraHistoricoRepository historico;
 
-    public DashboardMusculoesqueleticoService(ExpedienteService expedienteService, DashboardPredioFiltro predioFiltro) {
+    public DashboardMusculoesqueleticoService(ExpedienteService expedienteService,
+                                              DashboardPredioFiltro predioFiltro,
+                                              BitacoraHistoricoRepository historico) {
         this.expedienteService = expedienteService;
         this.predioFiltro = predioFiltro;
+        this.historico = historico;
     }
 
     public DashboardMusculoesqueleticoDto resumen(String fechaInicial, String fechaFinal, String predio, String cuenta) {
@@ -97,6 +102,46 @@ public class DashboardMusculoesqueleticoService {
             } else {
                 sinFecha++;
             }
+        }
+
+        // --- Historico cargado de los Excel del servicio medico ------------------------
+        // Aqui el dato viene MEJOR que en el sistema vivo: el bloque CAUSAS MUSCULO
+        // ESQUELETICAS trae 15 columnas y la enfermera marca una, o sea que la clasificacion
+        // ya esta hecha. No hay clave CIE-10 que interpretar ni region que deducir del area
+        // involucrada. Por eso este modulo, que "arranca vacio a proposito" con ORDS, es el
+        // que mas gana con la carga.
+        long totalHistorico = 0;
+        long personasHistorico = 0;
+        if (historico.hayDatos()) {
+            LocalDate desde = FechaFiltro.aFecha(fechaInicial).orElse(null);
+            LocalDate hasta = FechaFiltro.aFecha(fechaFinal).orElse(null);
+
+            totalHistorico = historico.totalAtenciones(desde, hasta, predio, cuenta);
+            personasHistorico = historico.personasConLesion(desde, hasta, predio, cuenta);
+
+            for (ConteoSimpleDto e : historico.lesionesMusculoesqueleticas(desde, hasta, predio, cuenta)) {
+                Optional<Clasificacion> c = LesionMusculoesqueletica.clasificarDeEtiquetaExcel(e.clave());
+                if (c.isEmpty()) {
+                    // Etiqueta fuera del catalogo conocido: el origen agrego un tipo nuevo.
+                    // Se cuenta como lesion pero no se clasifica, en vez de forzarla a un grupo.
+                    lesiones += e.cantidad();
+                    porTipo.merge(e.clave(), e.cantidad(), Long::sum);
+                    continue;
+                }
+                lesiones += e.cantidad();
+                switch (c.get().grupo()) {
+                    case ALGIA -> algias += e.cantidad();
+                    case COLUMNA -> columna += e.cantidad();
+                    case TRAUMATISMO -> traumatismos += e.cantidad();
+                    case FRACTURA -> fracturas += e.cantidad();
+                }
+                porTipo.merge(c.get().tipo(), e.cantidad(), Long::sum);
+                porRegion.merge(c.get().region(), e.cantidad(), Long::sum);
+            }
+            historico.lesionesPorPredio(desde, hasta, predio, cuenta)
+                    .forEach(p -> porPredio.merge(p.clave(), p.cantidad(), Long::sum));
+            historico.tendenciaLesiones(desde, hasta, predio, cuenta)
+                    .forEach(p -> porMes.merge(p.mes(), p.cantidad(), Long::sum));
         }
 
         List<PuntoMensualDto> tendencia = new ArrayList<>();

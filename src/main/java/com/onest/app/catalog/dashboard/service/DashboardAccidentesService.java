@@ -7,6 +7,7 @@ import com.onest.app.catalog.dashboard.dto.ConteoCruzadoDto;
 import com.onest.app.catalog.dashboard.dto.SerieMensualDto;
 import com.onest.app.catalog.dashboard.dto.DashboardAccidentesDto;
 import com.onest.app.catalog.dashboard.dto.PuntoMensualDto;
+import com.onest.app.catalog.dashboard.repository.BitacoraHistoricoRepository;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -33,11 +34,16 @@ public class DashboardAccidentesService {
 
     private final AccidenteService accidenteService;
     private final DashboardPredioFiltro predioFiltro;
+    private final BitacoraHistoricoRepository historico;
 
-    public DashboardAccidentesService(AccidenteService accidenteService, DashboardPredioFiltro predioFiltro) {
+    public DashboardAccidentesService(AccidenteService accidenteService,
+                                      DashboardPredioFiltro predioFiltro,
+                                      BitacoraHistoricoRepository historico) {
         this.accidenteService = accidenteService;
         this.predioFiltro = predioFiltro;
+        this.historico = historico;
     }
+
 
     /** Sin corte por predio/cuenta - el que usa /home. */
     public DashboardAccidentesDto resumen(String fechaInicial, String fechaFinal) {
@@ -90,6 +96,49 @@ public class DashboardAccidentesService {
             }
         }
 
+        // --- Historico cargado de los Excel del servicio medico -------------------------------
+        long accidentesHistorico = 0;
+        if (historico.hayAccidentes()) {
+            LocalDate desde = FechaFiltro.aFecha(fechaInicial).orElse(null);
+            LocalDate hasta = FechaFiltro.aFecha(fechaFinal).orElse(null);
+
+            var tot = historico.totalesAccidentes(desde, hasta, predio, cuenta);
+            accidentesHistorico = tot.accidentes();
+            totalCosto += tot.costo();
+
+            acumularHistorico(porTipoRiesgo,
+                    historico.accidentesPorTipoRiesgo(desde, hasta, predio, cuenta));
+            acumularHistorico(porStatus,
+                    historico.accidentesPorColumna("ESTATUS", desde, hasta, predio, cuenta));
+            acumularHistorico(porPredio,
+                    historico.accidentesPorColumna("PREDIO", desde, hasta, predio, cuenta));
+
+            // La causa NO trae costo: viene del nombre del atributo, no de un valor numerico, asi
+            // que se suma la cantidad y el costo se queda en cero para esa parte. Es preferible a
+            // repartir el costo del accidente entre sus causas, que seria inventarlo.
+            historico.accidentesPorCausaRt(desde, hasta, predio, cuenta).forEach(x ->
+                    porCausaRt.computeIfAbsent(etiqueta(x.clave()), k -> new Acumulador())
+                            .sumarVarios(x.cantidad(), 0));
+
+            var mensualHistorico = historico.accidentesTendencia(desde, hasta, predio, cuenta);
+            mensualHistorico.forEach(p -> porMes.merge(p.mes(), p.cantidad(), Long::sum));
+
+            // Los accidentes sin mes quedan fuera de la tendencia pero si cuentan en el total.
+            sinFecha += Math.max(0, accidentesHistorico
+                    - mensualHistorico.stream().mapToLong(PuntoMensualDto::cantidad).sum());
+
+            historico.accidentesPorTipo("PREDIO", desde, hasta, predio, cuenta).forEach(x ->
+                    predioTipo.computeIfAbsent(x.clave(), k -> new LinkedHashMap<>())
+                            .computeIfAbsent(etiqueta(x.valor()), k -> new Acumulador())
+                            .sumarVarios(x.cantidad(), 0));
+            historico.accidentesPorTipo("MES", desde, hasta, predio, cuenta).forEach(x ->
+                    tipoMes.computeIfAbsent(etiqueta(x.valor()), k -> new TreeMap<>())
+                            .merge(x.clave(), x.cantidad(), Long::sum));
+        }
+
+        // Se arma DESPUES del bloque del historico, no antes. Ver la nota larga en
+        // DashboardConsultaService: la lista es una copia de porMes, asi que armarla arriba
+        // dejaba fuera todo lo del Excel y la grafica salia vacia junto a un KPI con datos.
         List<PuntoMensualDto> tendencia = new ArrayList<>();
         porMes.forEach((mes, cantidad) -> tendencia.add(new PuntoMensualDto(mes, cantidad)));
         if (sinFecha > 0) {
@@ -98,7 +147,7 @@ public class DashboardAccidentesService {
 
         return new DashboardAccidentesDto(
                 fechaInicial, fechaFinal,
-                filas.size(), totalCosto,
+                filas.size() + accidentesHistorico, totalCosto,
                 aConteo(porTipoRiesgo), aConteo(porCausaRt), aConteo(porStatus), aConteo(porPredio),
                 tendencia,
                 predioTipo.entrySet().stream()
@@ -121,10 +170,31 @@ public class DashboardAccidentesService {
             this.cantidad++;
             this.costo += costo;
         }
+
+        /** Para el historico, que llega ya agrupado por la base. */
+        void sumarVarios(long accidentes, double costo) {
+            this.cantidad += accidentes;
+            this.costo += costo;
+        }
     }
 
     private static void acumular(Map<String, Acumulador> mapa, String clave, double costo) {
         mapa.computeIfAbsent(clave, k -> new Acumulador()).sumar(costo);
+    }
+
+    /**
+     * Mete los grupos del historico en los mismos acumuladores que llena el WS.
+     *
+     * <p>Se suma por clave: {@code LABORAL} existe en los dos origenes y tiene que salir una barra
+     * con el total, no dos barras iguales.
+     */
+    private static void acumularHistorico(
+            Map<String, Acumulador> mapa,
+            List<BitacoraHistoricoRepository.AgrupadoAccidente> grupos) {
+        for (var g : grupos) {
+            mapa.computeIfAbsent(etiqueta(g.clave()), k -> new Acumulador())
+                    .sumarVarios(g.accidentes(), g.costo());
+        }
     }
 
     private static List<ConteoCostoDto> aConteo(Map<String, Acumulador> mapa) {

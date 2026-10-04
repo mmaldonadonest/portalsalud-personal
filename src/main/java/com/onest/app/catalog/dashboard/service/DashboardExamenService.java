@@ -1,8 +1,10 @@
 package com.onest.app.catalog.dashboard.service;
 
 import com.onest.app.catalog.dashboard.dto.ConteoDictamenDto;
+import com.onest.app.catalog.dashboard.dto.ConteoSimpleDto;
 import com.onest.app.catalog.dashboard.dto.DashboardExamenDto;
 import com.onest.app.catalog.dashboard.dto.PuntoMensualDto;
+import com.onest.app.catalog.dashboard.repository.BitacoraHistoricoRepository;
 import com.onest.app.catalog.examen.dto.ExamenReporteDto;
 import com.onest.app.catalog.examen.service.ExamenService;
 import java.time.LocalDate;
@@ -23,6 +25,18 @@ import org.springframework.stereotype.Service;
  * ExamenService.reportePorFecha() (Servcio/consulta_examen_fecha, aplicado y
  * verificado 2026-08-17 sobre SERV_MED_RESULTADO_EXAMEN_HIST) - SIN datos
  * retroactivos, el historial arranco vacio ese dia.
+ *
+ * <p><b>Desde el 30-sep-2026 suma tambien el historico de los Excel.</b> Eso cambia la premisa de
+ * arriba: la pantalla ya no arranca vacia. El WS sigue trayendo lo que se captura en el portal
+ * desde agosto de 2026, y {@link BitacoraHistoricoRepository} trae los 8,616 examenes de 2026 que
+ * el servicio medico venia llevando en Excel. Los dos origenes se pintan en la misma barra
+ * apilada, con la equivalencia de dictamenes en {@link DictamenExamen}.
+ *
+ * <p>Una diferencia entre los dos vale tenerla presente: el WS permite que <b>un examen traiga
+ * varios dictamenes marcados</b> &mdash;por eso la nota al pie de la pantalla advierte que la suma
+ * de los cuatro puede superar el total&mdash;, mientras que en el Excel el bloque es "marca con 1"
+ * y el cargador se queda con el primero, dejando aviso. Del lado del historico, entonces, la suma
+ * de los cuatro dictamenes si cuadra con el total.
  */
 @Service
 public class DashboardExamenService {
@@ -32,10 +46,13 @@ public class DashboardExamenService {
 
     private final ExamenService examenService;
     private final DashboardPredioFiltro predioFiltro;
+    private final BitacoraHistoricoRepository historico;
 
-    public DashboardExamenService(ExamenService examenService, DashboardPredioFiltro predioFiltro) {
+    public DashboardExamenService(ExamenService examenService, DashboardPredioFiltro predioFiltro,
+                                  BitacoraHistoricoRepository historico) {
         this.examenService = examenService;
         this.predioFiltro = predioFiltro;
+        this.historico = historico;
     }
 
     /** Sin corte por predio/cuenta - el que usa /home. */
@@ -99,6 +116,43 @@ public class DashboardExamenService {
             }
         }
 
+        // --- Historico cargado de los Excel del servicio medico -------------------------------
+        // Los 8,616 examenes de 2026 de las tres familias: ingreso, periodico y pos incapacidad.
+        // Se suman a lo del WS en los mismos acumuladores, para que la barra apilada no tenga que
+        // saber de donde vino cada renglon.
+        long totalHistorico = 0;
+        if (historico.hayExamenes()) {
+            LocalDate desde = FechaFiltro.aFecha(fechaInicial).orElse(null);
+            LocalDate hasta = FechaFiltro.aFecha(fechaFinal).orElse(null);
+
+            totalHistorico = historico.totalExamenes(desde, hasta, predio, cuenta);
+
+            for (ConteoSimpleDto d : historico.examenesPorDictamen(desde, hasta, predio, cuenta)) {
+                Optional<DictamenExamen> dic = DictamenExamen.deEtiquetaExcel(d.clave());
+                if (dic.isEmpty()) {
+                    // Etiqueta sin codigo reconocible: cuenta en el total pero no en ningun
+                    // dictamen. Es preferible que la suma de los cuatro quede corta y se note,
+                    // a meterla al bucket equivocado.
+                    continue;
+                }
+                switch (dic.get()) {
+                    case APTO -> apto += d.cantidad();
+                    case NO_APTO -> noApto += d.cantidad();
+                    case CONDICIONADO -> aptoCondicionado += d.cantidad();
+                    case RESTRINGIDO -> aptoRestringido += d.cantidad();
+                }
+            }
+
+            sumarCruce(porPredio, historico.examenesPorPredioYDictamen(desde, hasta, predio, cuenta));
+
+            // El cruce por mes alimenta dos cosas -la barra apilada y la serie simple- y se
+            // consulta UNA vez. Pedirlo dos veces eran dos viajes a la base por cada carga de
+            // pantalla para traer exactamente lo mismo.
+            var porMesHistorico = historico.examenesPorMesYDictamen(desde, hasta, predio, cuenta);
+            sumarCruce(porMesDictamen, porMesHistorico);
+            porMesHistorico.forEach(x -> porMes.merge(x.clave(), x.cantidad(), Long::sum));
+        }
+
         List<PuntoMensualDto> tendencia = new ArrayList<>();
         porMes.forEach((mes, cantidad) -> tendencia.add(new PuntoMensualDto(mes, cantidad)));
         if (sinFecha > 0) {
@@ -107,10 +161,27 @@ public class DashboardExamenService {
 
         return new DashboardExamenDto(
                 fechaInicial, fechaFinal,
-                filas.size(), apto, noApto, aptoCondicionado, aptoRestringido,
+                filas.size() + (int) totalHistorico,
+                apto, noApto, aptoCondicionado, aptoRestringido,
                 aConteo(porPredio, true),
                 tendencia,
                 aConteo(porMesDictamen, false));
+    }
+
+    /**
+     * Mete los cruces del historico en los mismos acumuladores que llena el WS.
+     *
+     * <p>Cada renglon del cruce es (clave, dictamen, cantidad), asi que se suma {@code cantidad}
+     * veces al bucket que toca. La etiqueta que no se reconoce suma al total del grupo pero a
+     * ningun dictamen, igual que en los KPIs: el hueco se ve en la barra y eso es lo que se busca.
+     */
+    private static void sumarCruce(Map<String, Acumulador> destino,
+                                   List<BitacoraHistoricoRepository.Cruce> cruces) {
+        for (BitacoraHistoricoRepository.Cruce x : cruces) {
+            Acumulador a = destino.computeIfAbsent(x.clave(), k -> new Acumulador());
+            Optional<DictamenExamen> dic = DictamenExamen.deEtiquetaExcel(x.valor());
+            a.sumarVarios(x.cantidad(), dic.orElse(null));
+        }
     }
 
     /** Acumula un examen por cada dictamen marcado. Un examen puede traer mas de uno. */
@@ -134,6 +205,26 @@ public class DashboardExamenService {
             }
             if (esRestr) {
                 restr++;
+            }
+        }
+
+        /**
+         * Suma varios examenes que comparten el mismo dictamen, que es como llega el historico:
+         * ya agrupado por la base.
+         *
+         * @param dictamen {@code null} cuando la etiqueta del Excel no se reconocio. En ese caso
+         *                 suma al total del grupo y a ningun dictamen, a proposito.
+         */
+        void sumarVarios(long cuantos, DictamenExamen dictamen) {
+            cantidad += cuantos;
+            if (dictamen == null) {
+                return;
+            }
+            switch (dictamen) {
+                case APTO -> apto += cuantos;
+                case NO_APTO -> noApto += cuantos;
+                case CONDICIONADO -> cond += cuantos;
+                case RESTRINGIDO -> restr += cuantos;
             }
         }
     }

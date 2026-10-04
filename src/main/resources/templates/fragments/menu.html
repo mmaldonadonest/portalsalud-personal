@@ -90,6 +90,12 @@
                 <li class="nav-item">
                     <a th:href="@{/analisis/inventario}" href="/analisis/inventario" class="nav-link" th:classappend="${currentPath == '/analisis/inventario'} ? ' active' : ''"><i class="ri-archive-line"></i> <span>Inventario</span></a>
                 </li>
+                <!-- "Inventario" de arriba es el control de kits de ANTIDOPING. Esto es otra cosa:
+                     piezas de medicamento consumidas, del historico de Excel. Van juntos en Control
+                     y por eso el titulo dice "de Medicamentos", para que no se confundan. -->
+                <li class="nav-item">
+                    <a th:href="@{/analisis/consumo}" href="/analisis/consumo" class="nav-link" th:classappend="${currentPath == '/analisis/consumo'} ? ' active' : ''"><i class="ri-capsule-line"></i> <span>Consumo de Medicamentos</span></a>
+                </li>
                 <li class="nav-item">
                     <a th:href="@{/analisis/maternidad}" href="/analisis/maternidad" class="nav-link" th:classappend="${currentPath == '/analisis/maternidad'} ? ' active' : ''"><i class="ri-parent-line"></i> <span>Maternidad</span></a>
                 </li>

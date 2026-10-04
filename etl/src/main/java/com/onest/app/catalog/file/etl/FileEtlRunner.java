@@ -5,8 +5,10 @@ import com.onest.app.catalog.file.storage.StorageProvider;
 import com.onest.app.catalog.file.storage.StoredBinary;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,10 +62,13 @@ public class FileEtlRunner implements CommandLineRunner {
     private void runSample() {
         List<Long> ids = reader.sampleIds();
         log.info("[etl-files] modo=sample, {} ids seleccionados: {}", ids.size(), ids);
+        Set<String> yaMigradas = repository.businessKeysMigradas();
         Stats stats = new Stats();
+        List<FsFileRepository.FilaEtl> buffer = new ArrayList<>();
         for (LegacyFileRow row : reader.findByIds(ids)) {
-            procesar(row, stats);
+            procesar(row, yaMigradas, buffer, stats);
         }
+        vaciar(buffer, stats);
         stats.log("sample");
     }
 
@@ -71,21 +76,48 @@ public class FileEtlRunner implements CommandLineRunner {
         long minId = reader.minId();
         long maxId = reader.maxId();
         log.info("[etl-files] modo=full, rango de ids [{}, {}], lote={}", minId, maxId, batchSize);
+
+        // UNA consulta en vez de 22 mil. Ver la nota de latencia en MedTagWriter: a 99 ms por
+        // viaje, preguntar fila por fila cuesta 37 minutos solo en confirmar lo que ya sabemos.
+        Set<String> yaMigradas = repository.businessKeysMigradas();
+        log.info("[etl-files] ya migrados en el destino: {}", yaMigradas.size());
+
         Stats stats = new Stats();
+        List<FsFileRepository.FilaEtl> buffer = new ArrayList<>(LOTE_INSERT);
         for (long from = minId; from <= maxId; from += batchSize) {
             long to = Math.min(from + batchSize - 1, maxId);
             List<LegacyFileRow> batch = reader.findByIdRange(from, to);
             for (LegacyFileRow row : batch) {
-                procesar(row, stats);
+                procesar(row, yaMigradas, buffer, stats);
             }
             log.info("[etl-files] lote [{}, {}] listo - acumulado: {}", from, to, stats);
         }
+        vaciar(buffer, stats);
         stats.log("full");
     }
 
-    private void procesar(LegacyFileRow row, Stats stats) {
+    /**
+     * Cuantos metadatos se mandan por viaje.
+     *
+     * <p>Mas chico que el de tags a proposito. El binario se escribe a disco ANTES de que su
+     * fila entre a la base, asi que un corte deja huerfanos en disco: hasta {@code LOTE_INSERT}
+     * de ellos. Con 100 el desperdicio maximo de un corte es despreciable y los roundtrips
+     * bajan igual de 22,196 a 222.
+     */
+    private static final int LOTE_INSERT = 100;
+
+    private void vaciar(List<FsFileRepository.FilaEtl> buffer, Stats stats) {
+        if (buffer.isEmpty()) {
+            return;
+        }
+        stats.migrado.addAndGet(repository.insertBatchEtl(buffer));
+        buffer.clear();
+    }
+
+    private void procesar(LegacyFileRow row, Set<String> yaMigradas,
+                          List<FsFileRepository.FilaEtl> buffer, Stats stats) {
         String businessKey = "legacy-" + row.id();
-        if (repository.existsByBusinessKey(businessKey)) {
+        if (yaMigradas.contains(businessKey)) {
             stats.yaExistia.incrementAndGet();
             return;
         }
@@ -112,11 +144,16 @@ public class FileEtlRunner implements CommandLineRunner {
         LocalDateTime fechaAlta = row.dateUpload() != null ? row.dateUpload() : LocalDateTime.now();
         LocalDate fecha = fechaAlta.toLocalDate();
 
+        // El binario PRIMERO, su fila despues. Si el proceso se corta, lo que queda son
+        // binarios huerfanos en disco -inofensivo- y nunca una fila apuntando a un archivo
+        // que no existe. Al insertar en lote ese margen crece a LOTE_INSERT archivos.
         StoredBinary stored = storage.store(content, extension, fecha);
-        repository.insert(row.nss(), businessKey, sanitizeName(row.name()), extension, mime,
+        buffer.add(new FsFileRepository.FilaEtl(row.nss(), businessKey, sanitizeName(row.name()), extension, mime,
                 stored.sizeBytes(), stored.checksumSha256(), stored.storagePath(), stored.storageProvider(),
-                row.type(), CREATED_BY, fechaAlta);
-        stats.migrado.incrementAndGet();
+                row.type(), CREATED_BY, fechaAlta));
+        if (buffer.size() >= LOTE_INSERT) {
+            vaciar(buffer, stats);
+        }
     }
 
     /** Solo recorta longitud; el encoding se pasa tal cual (decision 2026-08-13, ver memoria u09-etl). */

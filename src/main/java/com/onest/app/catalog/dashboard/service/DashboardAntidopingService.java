@@ -6,6 +6,7 @@ import com.onest.app.catalog.dashboard.dto.ConteoCruzadoDto;
 import com.onest.app.catalog.dashboard.dto.ConteoSimpleDto;
 import com.onest.app.catalog.dashboard.dto.DashboardAntidopingDto;
 import com.onest.app.catalog.dashboard.dto.PuntoMensualDto;
+import com.onest.app.catalog.dashboard.repository.BitacoraHistoricoRepository;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -23,6 +24,12 @@ import org.springframework.stereotype.Service;
  * Dashboard ligero de KPIs de Antidoping/Alcoholimetria. Reutiliza
  * AntidopingService.reportePorFecha() (Servcio/consulta_antidoping_fecha, aplicado y
  * verificado 2026-08-17) - mismo criterio que los otros 3 dashboards.
+ *
+ * <p><b>Desde el 30-sep-2026 suma el historico de los Excel</b>, primera familia de la fase 2:
+ * 826 pruebas de 2026 en 16 hojas. El DTO no cambio ni una linea, y eso dice algo: cuando se
+ * diseno contra el WS de ORDS ya pedia {@code porResultado}, {@code porSustancia},
+ * {@code porTipoPrueba} y {@code porStatusConclusion}, que es exactamente como el cargador separa
+ * el bloque {@code RESULTADO} del Excel. Los dos origenes describen el mismo proceso.
  */
 @Service
 public class DashboardAntidopingService {
@@ -30,12 +37,19 @@ public class DashboardAntidopingService {
     private static final int ANIO_MINIMO = 2000;
     private static final int ANIO_MAXIMO = LocalDate.now().getYear() + 1;
 
+    /** El valor con el que el Excel marca una prueba positiva. */
+    private static final String POSITIVO = "POSITIVO";
+
     private final AntidopingService antidopingService;
     private final DashboardPredioFiltro predioFiltro;
+    private final BitacoraHistoricoRepository historico;
 
-    public DashboardAntidopingService(AntidopingService antidopingService, DashboardPredioFiltro predioFiltro) {
+    public DashboardAntidopingService(AntidopingService antidopingService,
+                                      DashboardPredioFiltro predioFiltro,
+                                      BitacoraHistoricoRepository historico) {
         this.antidopingService = antidopingService;
         this.predioFiltro = predioFiltro;
+        this.historico = historico;
     }
 
     /** Sin corte por predio/cuenta - el que usa /home. */
@@ -84,6 +98,36 @@ public class DashboardAntidopingService {
             }
         }
 
+        // --- Historico cargado de los Excel del servicio medico -------------------------------
+        long totalHistorico = 0;
+        if (historico.hayAntidoping()) {
+            LocalDate desde = FechaFiltro.aFecha(fechaInicial).orElse(null);
+            LocalDate hasta = FechaFiltro.aFecha(fechaFinal).orElse(null);
+
+            totalHistorico = historico.totalAntidoping(desde, hasta, predio, cuenta);
+
+            sumar(porTipoPrueba, historico.antidopingPorAtributo("TIPO_PRUEBA", desde, hasta, predio, cuenta));
+            sumar(porSustancia, historico.antidopingPorAtributo("SUSTANCIA", desde, hasta, predio, cuenta));
+            sumar(porStatus, historico.antidopingPorAtributo("CONCLUSION", desde, hasta, predio, cuenta));
+            sumar(porPredio, historico.antidopingPorPredio(desde, hasta, predio, cuenta));
+
+            // El veredicto alimenta dos cosas -la grafica por resultado y el KPI de positivos-
+            // y se consulta una vez.
+            var resultados = historico.antidopingPorAtributo("RESULTADO", desde, hasta, predio, cuenta);
+            sumar(porResultado, resultados);
+            for (ConteoSimpleDto r : resultados) {
+                if (POSITIVO.equalsIgnoreCase(r.clave())) {
+                    totalPositivos += r.cantidad();
+                }
+            }
+
+            historico.antidopingPorPredioYTipo(desde, hasta, predio, cuenta).forEach(x ->
+                    predioTipo.computeIfAbsent(x.clave(), k -> new LinkedHashMap<>())
+                            .merge(x.valor(), x.cantidad(), Long::sum));
+            historico.antidopingTendencia(desde, hasta, predio, cuenta)
+                    .forEach(p -> porMes.merge(p.mes(), p.cantidad(), Long::sum));
+        }
+
         List<PuntoMensualDto> tendencia = new ArrayList<>();
         porMes.forEach((mes, cantidad) -> tendencia.add(new PuntoMensualDto(mes, cantidad)));
         if (sinFecha > 0) {
@@ -92,7 +136,7 @@ public class DashboardAntidopingService {
 
         return new DashboardAntidopingDto(
                 fechaInicial, fechaFinal,
-                filas.size(), totalPositivos,
+                filas.size() + (int) totalHistorico, totalPositivos,
                 aConteo(porTipoPrueba), aConteo(porSustancia), aConteo(porResultado), aConteo(porStatus),
                 aConteo(porPredio),
                 predioTipo.entrySet().stream()
@@ -104,6 +148,17 @@ public class DashboardAntidopingService {
 
     private static void incrementar(Map<String, Long> mapa, String clave) {
         mapa.merge(clave, 1L, Long::sum);
+    }
+
+    /**
+     * Suma los conteos del historico al acumulador que ya trae lo del WS.
+     *
+     * <p>Se suma por clave y no se concatenan listas: cuando el mismo valor existe en los dos
+     * origenes &mdash;{@code NEGATIVO} lo hay en ORDS y en el Excel&mdash; tiene que salir una
+     * barra con el total, no dos barras iguales.
+     */
+    private static void sumar(Map<String, Long> destino, List<ConteoSimpleDto> conteos) {
+        conteos.forEach(c -> destino.merge(etiqueta(c.clave()), c.cantidad(), Long::sum));
     }
 
     private static List<ConteoSimpleDto> aConteo(Map<String, Long> mapa) {

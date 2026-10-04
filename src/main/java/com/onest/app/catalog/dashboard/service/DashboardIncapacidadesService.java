@@ -13,6 +13,7 @@ import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import com.onest.app.catalog.dashboard.repository.BitacoraHistoricoRepository;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,11 +36,16 @@ public class DashboardIncapacidadesService {
 
     private final IncapacidadService incapacidadService;
     private final DashboardPredioFiltro predioFiltro;
+    private final BitacoraHistoricoRepository historico;
 
-    public DashboardIncapacidadesService(IncapacidadService incapacidadService, DashboardPredioFiltro predioFiltro) {
+    public DashboardIncapacidadesService(IncapacidadService incapacidadService,
+                                         DashboardPredioFiltro predioFiltro,
+                                         BitacoraHistoricoRepository historico) {
         this.incapacidadService = incapacidadService;
         this.predioFiltro = predioFiltro;
+        this.historico = historico;
     }
+
 
     /** Sin corte por predio/cuenta - el que usa /home. */
     public DashboardIncapacidadesDto resumen(String fechaInicial, String fechaFinal) {
@@ -108,6 +114,58 @@ public class DashboardIncapacidadesService {
             }
         }
 
+        // Personas != registros: una misma persona puede tener varias incapacidades en el rango.
+        // La tarjeta del dashboard dice "Personas incapacitadas" y venia mostrando filas.size().
+        long totalPersonas = filas.stream()
+                .map(IncapacidadReporteDto::nss)
+                .filter(nss -> nss != null && !nss.isBlank())
+                .distinct()
+                .count();
+
+        // --- Historico cargado de los Excel del servicio medico -------------------------------
+        // La familia con mas volumen del proyecto: ~1,929 episodios de 2026, de las hojas del IMSS
+        // y de las internas que paga la empresa. Servicio medico confirmo el 29-sep-2026 que las
+        // internas SI cuentan y su costo SI entra.
+        long episodiosHistorico = 0;
+        long personasHistorico = 0;
+        if (historico.hayIncapacidades()) {
+            LocalDate desde = FechaFiltro.aFecha(fechaInicial).orElse(null);
+            LocalDate hasta = FechaFiltro.aFecha(fechaFinal).orElse(null);
+
+            var totales = historico.totalesIncapacidad(desde, hasta, predio, cuenta);
+            episodiosHistorico = totales.episodios();
+            personasHistorico = totales.personas();
+            totalDias += (long) historico.diasIncapacidades(desde, hasta, predio, cuenta);
+            totalCosto += historico.costoIncapacidades(desde, hasta, predio, cuenta);
+
+            acumularHistorico(porRamo, historico.incapacidadPorRamo(desde, hasta, predio, cuenta));
+            acumularHistorico(porRubro,
+                    historico.incapacidadPorDimension("RUBRO", desde, hasta, predio, cuenta));
+            acumularHistorico(porPredio,
+                    historico.incapacidadPorDimension("PREDIO", desde, hasta, predio, cuenta));
+
+            var mensualHistorico = historico.incapacidadTendencia(desde, hasta, predio, cuenta);
+            mensualHistorico.forEach(p -> porMes.merge(p.mes(), p.cantidad(), Long::sum));
+
+            // Los episodios sin mes quedan fuera de la tendencia pero si cuentan en el total.
+            sinFecha += Math.max(0, episodiosHistorico
+                    - mensualHistorico.stream().mapToLong(PuntoMensualDto::cantidad).sum());
+
+            historico.incapacidadDiasPorMes(desde, hasta, predio, cuenta)
+                    .forEach(p -> porMesDias.merge(p.mes(), p.cantidad(), Long::sum));
+            historico.incapacidadDiasPorMesYRamo(desde, hasta, predio, cuenta).forEach(x ->
+                    diasRamoMes.computeIfAbsent(etiqueta(x.valor()), k -> new TreeMap<>())
+                            .merge(x.clave(), x.cantidad(), Long::sum));
+
+            // porEstado NO se alimenta del historico a proposito: el Excel no trae estado de
+            // dictamen. Lo mas parecido es TIPO DE INCAP (I - S - MAT), que es otra cosa -si la
+            // incapacidad es inicial, subsecuente o de maternidad- y meterla ahi haria que la
+            // grafica de dictamenes mezclara dos preguntas distintas. Se queda con lo del portal.
+        }
+
+        // Las dos series se arman DESPUES del bloque del historico, no antes. Ver la nota larga
+        // en DashboardConsultaService: son copias de porMes y porMesDias, asi que armarlas arriba
+        // dejaba fuera todo lo del Excel y las graficas salian vacias junto a KPIs con datos.
         List<PuntoMensualDto> tendencia = new ArrayList<>();
         porMes.forEach((mes, cantidad) -> tendencia.add(new PuntoMensualDto(mes, cantidad)));
         if (sinFecha > 0) {
@@ -120,17 +178,13 @@ public class DashboardIncapacidadesService {
         List<PuntoMensualDiasDto> tendenciaDias = new ArrayList<>();
         porMesDias.forEach((mes, dias) -> tendenciaDias.add(new PuntoMensualDiasDto(mes, dias)));
 
-        // Personas != registros: una misma persona puede tener varias incapacidades en el rango.
-        // La tarjeta del dashboard dice "Personas incapacitadas" y venia mostrando filas.size().
-        long totalPersonas = filas.stream()
-                .map(IncapacidadReporteDto::nss)
-                .filter(nss -> nss != null && !nss.isBlank())
-                .distinct()
-                .count();
-
         return new DashboardIncapacidadesDto(
                 fechaInicial, fechaFinal,
-                filas.size(), totalPersonas, totalDias, totalCosto,
+                filas.size() + episodiosHistorico,
+                // Se suman sin deduplicar: el portal identifica por NSS y el Excel por nombre, y
+                // no hay forma de cruzarlos. Misma limitacion conocida que en consultas.
+                totalPersonas + personasHistorico,
+                totalDias, totalCosto,
                 aConteo(porRamo), aConteo(porRubro), aConteo(porEstado), aConteo(porPredio),
                 tendencia, tendenciaDias,
                 aSeries(diasRamoMes),
@@ -167,10 +221,34 @@ public class DashboardIncapacidadesService {
             this.dias += dias;
             this.costo += costo;
         }
+
+        /** Para el historico, que llega ya agrupado por la base. */
+        void sumarVarios(long episodios, long dias, double costo) {
+            this.cantidad += episodios;
+            this.dias += dias;
+            this.costo += costo;
+        }
     }
 
     private static void acumular(Map<String, Acumulador> mapa, String clave, long dias, double costo) {
         mapa.computeIfAbsent(clave, k -> new Acumulador()).sumar(dias, costo);
+    }
+
+    /**
+     * Mete los grupos del historico en los mismos acumuladores que llena el WS.
+     *
+     * <p>El historico llega <b>ya agrupado</b> por la base, con episodios, dias y costo por clave,
+     * asi que se suma de golpe en lugar de renglon por renglon. Se suma por clave y no se
+     * concatenan listas: {@code EG} existe en los dos origenes y tiene que salir <b>una</b> barra
+     * con el total, no dos barras.
+     */
+    private static void acumularHistorico(
+            Map<String, Acumulador> mapa,
+            List<BitacoraHistoricoRepository.AgrupadoIncapacidad> grupos) {
+        for (var g : grupos) {
+            mapa.computeIfAbsent(etiqueta(g.clave()), k -> new Acumulador())
+                    .sumarVarios(g.episodios(), g.dias(), g.costo());
+        }
     }
 
     private static List<ConteoDto> aConteo(Map<String, Acumulador> mapa) {
