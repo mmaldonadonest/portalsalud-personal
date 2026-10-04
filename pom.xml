@@ -30,6 +30,7 @@
         <prod.datasource.url></prod.datasource.url>
         <prod.datasource.username></prod.datasource.username>
         <prod.datasource.password></prod.datasource.password>
+        <prod.tns.admin></prod.tns.admin>
     </properties>
 
     <dependencies>
