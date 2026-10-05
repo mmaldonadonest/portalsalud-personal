@@ -274,6 +274,8 @@ Cálculo: `HMAC_SHA256( secreto, X-Firma-Tiempo + "." + cuerpoJsonTalCual )`, en
 
 OCR debe: (1) recalcular la firma con el mismo secreto y compararla en tiempo constante; (2) rechazar si `X-Firma-Tiempo` difiere más de 5 minutos del reloj de OCR (evita reenvíos); (3) responder `2xx` solo si lo procesó. Cualquier otra respuesta hace que el portal reintente (1, 5, 15, 60 min, 6 h) con el mismo `solicitudId`, así que el receptor debe ser **idempotente** por `solicitudId`.
 
+La **URL del webhook de OCR** por defecto se configura en el servidor del portal con la variable de entorno `OCR_CALLBACK_URL` (en `setenv.sh`/servicio de Tomcat), para poder cambiarla sin rearmar el WAR; cada solicitud puede traer además su propio `callbackUrl`, que tiene prioridad.
+
 El **secreto HMAC** lo genera el portal junto con la API key (uno por ambiente) y se entrega por el mismo medio seguro. Ninguna de las dos llaves vive en el repositorio ni tiene valor por defecto; en el portal van dentro del WAR de cada ambiente, en OCR donde ellos guarden sus secretos.
 
 ### Bitácora
