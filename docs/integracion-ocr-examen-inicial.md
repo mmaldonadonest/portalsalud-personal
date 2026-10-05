@@ -183,8 +183,11 @@ Si ya estaba `FINALIZADO` → `409` `{ "error": "YA_FINALIZADO" }` (el examen ya
   "solicitudId": 418,
   "referenciaOcr": "OCR-2026-000123",
   "nss": "30048315698",
-  "fechaExamen": "2026-10-06T11:20:00-06:00",
+  "curp": "MACM830923HMCLLG01",
+  "estatus": "DICTAMINADO",
   "dictamen": "APTO_CONDICIONADO",
+  "fechaDictamen": "2026-10-06",
+  "fechaExamen": "2026-10-06T11:20:00-06:00",
   "diagnosticos": [ { "clave": "E11.9", "descripcion": "Diabetes mellitus tipo 2 sin complicaciones" } ],
   "restricciones": [ "RES-03" ],
   "medico": "Dr. Mauricio Cerón Solana",
@@ -263,16 +266,15 @@ curl -X POST https://health.onestcloud.mx/api/integracion/ocr/examen-inicial/sol
 
 ### Portal → OCR: firma HMAC del webhook
 
-El webhook que el portal manda a OCR lleva dos encabezados para que OCR verifique que viene del portal y que no es un reenvío viejo:
+El webhook que el portal manda a OCR lleva la firma como la definió OCR (`webhook-portal-a-ocr-dictamen.md`, 5-oct-2026), más dos encabezados opcionales con marca de tiempo:
 
 ```
-X-Firma-Tiempo: 1759680012                 (epoch en segundos, UTC)
-X-Firma: sha256=3a9f…                      (HMAC-SHA256 en hexadecimal)
+X-Firma: 3a9f…                 HMAC-SHA256( secreto, cuerpoJsonTalCual ), hex minúsculas  ← la que OCR valida
+X-Firma-Tiempo: 1759680012     epoch en segundos, UTC                                        (opcional)
+X-Firma-V2: sha256=7c1e…       HMAC-SHA256( secreto, X-Firma-Tiempo + "." + cuerpo )          (opcional)
 ```
 
-Cálculo: `HMAC_SHA256( secreto, X-Firma-Tiempo + "." + cuerpoJsonTalCual )`, en minúsculas hexadecimales. El cuerpo se firma **byte a byte como se envía** (UTF-8, sin reformatear).
-
-OCR debe: (1) recalcular la firma con el mismo secreto y compararla en tiempo constante; (2) rechazar si `X-Firma-Tiempo` difiere más de 5 minutos del reloj de OCR (evita reenvíos); (3) responder `2xx` solo si lo procesó. Cualquier otra respuesta hace que el portal reintente (1, 5, 15, 60 min, 6 h) con el mismo `solicitudId`, así que el receptor debe ser **idempotente** por `solicitudId`.
+El cuerpo se firma **byte a byte como se envía** (UTF-8, sin reformatear). OCR recalcula `X-Firma` con el mismo secreto y la compara en tiempo constante; si además quiere rechazar reenvíos viejos, verifica `X-Firma-V2` y que `X-Firma-Tiempo` no difiera más de 5 minutos de su reloj. Responde `2xx` solo si lo procesó. Cualquier otra respuesta hace que el portal reintente (1, 5, 15, 60 min, 6 h) con el mismo `solicitudId`, así que el receptor debe ser **idempotente** por `solicitudId`.
 
 La **URL del webhook de OCR** por defecto se configura en el servidor del portal con la variable de entorno `OCR_CALLBACK_URL` (en `setenv.sh`/servicio de Tomcat), para poder cambiarla sin rearmar el WAR; cada solicitud puede traer además su propio `callbackUrl`, que tiene prioridad.
 

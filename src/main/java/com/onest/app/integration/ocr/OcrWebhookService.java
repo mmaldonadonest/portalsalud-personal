@@ -101,13 +101,18 @@ public class OcrWebhookService {
             envios.resultado(e.id(), "FALLO", null, "sin cuerpo");
             return;
         }
+        // Firma segun el contrato de OCR (webhook-portal-a-ocr-dictamen.md, 5-oct-2026): X-Firma =
+        // HMAC-SHA256 del cuerpo crudo, hex minusculas. Ademas X-Firma-Tiempo + X-Firma-V2
+        // (HMAC de tiempo + "." + cuerpo) por si OCR quiere rechazar reenvios viejos; son opcionales.
         String tiempo = String.valueOf(Instant.now().getEpochSecond());
-        String firma = "sha256=" + hmac(tiempo + "." + cuerpo);
+        String firma = hmac(cuerpo);
+        String firmaV2 = "sha256=" + hmac(tiempo + "." + cuerpo);
         try {
             var resp = http.post().uri(URI.create(e.url()))
                     .contentType(MediaType.APPLICATION_JSON)
-                    .header("X-Firma-Tiempo", tiempo)
                     .header("X-Firma", firma)
+                    .header("X-Firma-Tiempo", tiempo)
+                    .header("X-Firma-V2", firmaV2)
                     .header("X-Evento", e.evento())
                     .body(cuerpo)
                     .retrieve()
@@ -140,9 +145,12 @@ public class OcrWebhookService {
         m.put("referenciaOcr", s.referencia());
         m.put("nss", s.nss());
         m.put("curp", s.curp());
+        // estatus/fechaDictamen: nombres que pide el receptor de OCR; fechaExamen se conserva (con hora)
+        m.put("estatus", "DICTAMINADO");
+        m.put("dictamen", codigo(s.dictamen()));
+        m.put("fechaDictamen", s.fechaExamen() == null ? null : s.fechaExamen().toLocalDate().toString());
         m.put("fechaExamen", s.fechaExamen() == null ? null
                 : s.fechaExamen().atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-        m.put("dictamen", codigo(s.dictamen()));
         m.put("restricciones", restriccionesDe(s));
         m.put("documentoUrl", props.publicBaseUrl() == null || props.publicBaseUrl().isBlank() ? null
                 : props.publicBaseUrl().replaceAll("/$", "") + "/api/integracion/ocr/examen-inicial/solicitudes/" + s.id() + "/documento");
