@@ -79,14 +79,79 @@ Los teléfonos de emergencia **no** se piden: los captura el médico en la hoja 
 
 La respuesta es inmediata (síncrona). OCR debe guardar `solicitudId` y tratar cada código así:
 
-| HTTP | Cuándo | Cuerpo | Qué hace OCR |
-|---|---|---|---|
-| **201 Created** | Solicitud nueva aceptada | `{ "solicitudId": 418, "referenciaOcr": "OCR-2026-000123", "nss": "30048315698", "estatus": "PENDIENTE", "recibido": "2026-10-05T10:40:12-06:00", "caduca": "2026-11-04", "consulta": "{base}/solicitudes/418" }` | Guarda `solicitudId`; espera el webhook |
-| **200 OK** | La misma `referenciaOcr` ya existía (reintento de OCR) | Mismo cuerpo que el 201, con el `estatus` actual (`PENDIENTE`, `EN_CAPTURA`, `FINALIZADO` o `CANCELADO`). **No se crea otra** | Trata como éxito; si ya está `FINALIZADO`, el cuerpo trae también `dictamen` |
-| **400 Bad Request** | Falta un dato obligatorio o viene mal (NSS no numérico, fecha inválida, sexo distinto de M/F…) | `{ "error": "SOLICITUD_INVALIDA", "detalles": [ "nss: obligatorio", "fechaNacimiento: formato esperado yyyy-MM-dd" ] }` | Corrige y reenvía; no reintentar igual |
-| **401 Unauthorized** | `X-Api-Key` ausente o incorrecta | `{ "error": "NO_AUTORIZADO" }` | Revisar la llave del ambiente |
-| **409 Conflict** | El NSS ya tiene un examen médico vigente capturado como empleado (el inicial es solo de nuevo ingreso: candado del portal) | `{ "error": "EXAMEN_VIGENTE", "mensaje": "El NSS 30048315698 ya tiene examen médico con dictamen Apto del 12/08/2026; el inicial solo aplica a nuevo ingreso", "dictamenVigente": "APTO", "fechaExamen": "2026-08-12" }` | No es un candidato nuevo: OCR decide (usar el dictamen vigente o escalar a Servicio Médico). No reintentar |
-| **503 Service Unavailable** | El portal no puede atender (base del portal caída) | `{ "error": "NO_DISPONIBLE" }` | Reintentar más tarde (sugerido: 5, 15, 60 min) |
+| HTTP | Cuándo | Qué hace OCR |
+|---|---|---|
+| **201 Created** | Solicitud nueva aceptada | Guarda `solicitudId`; espera el webhook |
+| **200 OK** | La misma `referenciaOcr` ya existía (reintento de OCR). **No se crea otra** | Trata como éxito; lee el `estatus` actual |
+| **400 Bad Request** | Falta un dato obligatorio o viene mal | Corrige y reenvía; no reintentar igual |
+| **401 Unauthorized** | `X-Api-Key` ausente o incorrecta | Revisar la llave del ambiente |
+| **409 Conflict** | El NSS ya tiene examen médico vigente como empleado (candado: el inicial es solo de nuevo ingreso) | No es candidato nuevo: usar el dictamen vigente o escalar a Servicio Médico. No reintentar |
+| **503 Service Unavailable** | El portal no puede atender (base caída) | Reintentar más tarde (5, 15, 60 min) |
+
+**201 Created** — solicitud nueva:
+
+```json
+{
+  "solicitudId": 418,
+  "referenciaOcr": "OCR-2026-000123",
+  "nss": "30048315698",
+  "estatus": "PENDIENTE",
+  "recibido": "2026-10-05T10:40:12-06:00",
+  "caduca": "2026-11-04",
+  "consulta": "https://health.onestcloud.mx/api/integracion/ocr/examen-inicial/solicitudes/418"
+}
+```
+
+**200 OK** — la referencia ya existía; mismo cuerpo con el estatus actual (y el dictamen si ya terminó):
+
+```json
+{
+  "solicitudId": 418,
+  "referenciaOcr": "OCR-2026-000123",
+  "nss": "30048315698",
+  "estatus": "FINALIZADO",
+  "recibido": "2026-10-05T10:40:12-06:00",
+  "fechaExamen": "2026-10-06T11:20:00-06:00",
+  "dictamen": "APTO",
+  "consulta": "https://health.onestcloud.mx/api/integracion/ocr/examen-inicial/solicitudes/418"
+}
+```
+
+**400 Bad Request** — datos inválidos (lista todos los problemas, no solo el primero):
+
+```json
+{
+  "error": "SOLICITUD_INVALIDA",
+  "detalles": [
+    "nss: obligatorio",
+    "fechaNacimiento: formato esperado yyyy-MM-dd",
+    "sexo: valores permitidos M o F"
+  ]
+}
+```
+
+**401 Unauthorized** — llave incorrecta:
+
+```json
+{ "error": "NO_AUTORIZADO" }
+```
+
+**409 Conflict** — el NSS ya es empleado con examen vigente:
+
+```json
+{
+  "error": "EXAMEN_VIGENTE",
+  "mensaje": "El NSS 30048315698 ya tiene examen médico con dictamen Apto del 12/08/2026; el examen inicial solo aplica a nuevo ingreso",
+  "dictamenVigente": "APTO",
+  "fechaExamen": "2026-08-12"
+}
+```
+
+**503 Service Unavailable** — el portal no puede atender ahora:
+
+```json
+{ "error": "NO_DISPONIBLE", "reintentarEn": 300 }
+```
 
 Reglas: `referenciaOcr` es única por sistema (repetirla devuelve la misma solicitud con `200`, nunca duplica); `nss` siempre obligatorio (OCR lo confirmó); `callbackUrl` opcional (si no viene se usa la configurada por sistema); todas las fechas en ISO (`yyyy-MM-dd` o con hora y zona).
 
@@ -94,7 +159,19 @@ Al aceptar la solicitud el portal, además: crea la notificación en la campanit
 
 #### Cancelación (OCR → Portal)
 
-`POST {base}/solicitudes/{id}/cancelar` con `{ "motivo": "No se presentó" }` → `200` `{ "solicitudId": 418, "estatus": "CANCELADO" }`. Si ya estaba `FINALIZADO` → `409` `{ "error": "YA_FINALIZADO" }` (el examen ya ocurrió; el dictamen ya fue notificado). Sin llamada de OCR, la solicitud caduca sola a los 30 días de `fechaCita` (o del alta, si no hubo cita) y pasa a `CANCELADO` con motivo `CADUCIDAD`.
+`POST {base}/solicitudes/{id}/cancelar`
+
+```json
+{ "motivo": "No se presentó a la cita" }
+```
+
+Respuesta `200`:
+
+```json
+{ "solicitudId": 418, "estatus": "CANCELADO", "motivo": "No se presentó a la cita", "cancelado": "2026-10-08T09:02:00-06:00" }
+```
+
+Si ya estaba `FINALIZADO` → `409` `{ "error": "YA_FINALIZADO" }` (el examen ya ocurrió y el dictamen ya se notificó). Sin llamada de OCR, la solicitud caduca sola a los 30 días de `fechaCita` (o del alta, si no hubo cita) y pasa a `CANCELADO` con motivo `CADUCIDAD`.
 
 ### 2. Portal notifica el resultado (webhook)
 
