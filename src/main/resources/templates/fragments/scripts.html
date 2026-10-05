@@ -76,12 +76,15 @@
                     var li = document.createElement('li');
                     li.className = 'list-group-item';
                     li.style.cursor = 'pointer';
-                    li.innerHTML = '<div class="avatar"><span class="avatar-initial bg-primary"></span></div>'
+                    li.innerHTML = '<div class="avatar"><span class="avatar-initial bg-primary" style="font-size:.8rem;letter-spacing:.02em;"></span></div>'
                         + '<div class="list-group-body"><p class="mb-0 fw-semibold"></p><p class="mb-0 fs-sm"></p><span></span></div>';
+                    // dos iniciales de la persona (las calcula el servidor a partir del mensaje)
                     li.querySelector('.avatar-initial').textContent = it.inicial || 'N';
                     li.querySelectorAll('p')[0].textContent = it.titulo;
                     li.querySelectorAll('p')[1].textContent = it.mensaje || '';
-                    li.querySelector('span:last-child').textContent = it.fecha + ' · ' + it.hace;
+                    // OJO: 'span:last-child' a secas atrapaba primero el circulo (.avatar-initial es el
+                    // ultimo hijo de .avatar) y la fecha se pintaba encima de las iniciales
+                    li.querySelector('.list-group-body span').textContent = it.fecha + ' · ' + it.hace;
                     li.onclick = function () { notifAbrir(it.id, it.enlace); };
                     lista.appendChild(li);
                 });

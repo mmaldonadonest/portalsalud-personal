@@ -162,7 +162,13 @@ public class ExamenDocumentoService {
         }
 
         // --- lo que el PHP hace con codigo, no con asignaciones
-        v.put("edad", edadDesdeRfc(v.get("rfc"), emp));
+        // Edad: el PHP la sacaba del RFC. Un candidato de OCR puede no traer RFC pero si fecha de
+        // nacimiento (EmpleadoDto.edad ya viene calculada desde la solicitud).
+        String edad = edadDesdeRfc(v.get("rfc"), emp);
+        if (edad.isEmpty() && emp != null && emp.edad() != null) {
+            edad = String.valueOf(emp.edad());
+        }
+        v.put("edad", edad);
         v.put("tipoExamenInputO", TIPO_EXAMEN.getOrDefault(limpio(v.get("tipoExamenInputO")), limpio(v.get("tipoExamenInputO"))));
         // Dictamen: el PHP lo guardaba como codigo 1-4 en OBSERVACIONES; el portal (ambos modulos)
         // lo guarda en las 4 banderas APTO/NO_APTO/APTO_CONDICIONADO/APTO_RESTRINGIDO y usa

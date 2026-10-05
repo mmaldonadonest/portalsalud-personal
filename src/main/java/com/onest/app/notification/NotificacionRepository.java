@@ -47,6 +47,11 @@ public class NotificacionRepository {
         return n;
     }
 
+    public int marcarLeidasPorReferencia(String origen, String referencia, String usuario) {
+        return jdbc.update("UPDATE SERV_MED_NOTIFICACION SET LEIDA_AT = SYSTIMESTAMP, LEIDA_POR = ?"
+                + " WHERE ORIGEN = ? AND REFERENCIA = ? AND LEIDA_AT IS NULL", usuario, origen, referencia);
+    }
+
     /** Crea una notificacion y devuelve su ID. */
     public long crear(String tipo, String titulo, String mensaje, String nss, String enlace, String destinoMenuCode,
                       String destinoUsuario, String origen, String referencia, String creadoPor) {

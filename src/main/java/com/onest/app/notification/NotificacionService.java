@@ -58,7 +58,7 @@ public class NotificacionService {
                 continue;
             }
             out.add(new Item(n.id(), n.tipo(), n.titulo(), n.mensaje() == null ? "" : n.mensaje(), n.nss(),
-                    n.enlace() == null ? "" : n.enlace(), n.createdAt().format(FECHA), hace(n.createdAt()), inicial(n.tipo())));
+                    n.enlace() == null ? "" : n.enlace(), n.createdAt().format(FECHA), hace(n.createdAt()), inicial(n.tipo(), n.titulo(), n.mensaje())));
         }
         return out;
     }
@@ -113,13 +113,29 @@ public class NotificacionService {
         return "hace " + d.toDays() + " d";
     }
 
-    private static final Map<String, String> INICIALES = Map.of("EXAMEN_INICIAL_SOLICITUD", "EX");
+    /** "NOMBRE APELLIDO" que aparece tras "de " en el mensaje (p.ej. "...examen inicial de JUAN PEREZ PRUEBA (cita...)"). */
+    private static final java.util.regex.Pattern NOMBRE_EN_MENSAJE =
+            java.util.regex.Pattern.compile("\bde ([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ]+)\s+([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ]+)");
 
-    private static String inicial(String tipo) {
-        if (tipo == null || tipo.isBlank()) {
-            return "N";
+    /** Dos iniciales de la persona (nombre y primer apellido) para el circulo de la campanita; si no hay nombre, la del titulo. */
+    private static String inicial(String tipo, String titulo, String mensaje) {
+        if (mensaje != null) {
+            java.util.regex.Matcher m = NOMBRE_EN_MENSAJE.matcher(mensaje);
+            if (m.find()) {
+                return ("" + m.group(1).charAt(0) + m.group(2).charAt(0)).toUpperCase();
+            }
         }
-        return INICIALES.getOrDefault(tipo, tipo.substring(0, 1).toUpperCase());
+        String base = titulo != null && !titulo.isBlank() ? titulo : (tipo == null ? "N" : tipo);
+        return base.substring(0, 1).toUpperCase();
+    }
+
+    /** Marca leidas las notificaciones de una referencia externa (p.ej. OCR cancelo la solicitud). */
+    public void marcarLeidasPorReferencia(String origen, String referencia) {
+        try {
+            repository.marcarLeidasPorReferencia(origen, referencia, usuarioActual());
+        } catch (DataAccessException ex) {
+            log.warn("[notificaciones] no se pudo marcar por referencia {}: {}", referencia, ex.getMessage());
+        }
     }
 
     private static String usuarioActual() {

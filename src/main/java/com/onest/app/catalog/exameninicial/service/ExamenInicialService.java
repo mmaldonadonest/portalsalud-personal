@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -66,7 +67,7 @@ public class ExamenInicialService {
                         List<ContactoEmergenciaDto> contactos, List<Trabajo> trabajos,
                         DatosGeneralesExamenDto datosGenerales, String firmaGuardada,
                         Borrador borrador, Finalizado ultimoFinalizado, int avance, int capturados, int total,
-                        boolean tablaBorrador, Candado candado) {
+                        boolean tablaBorrador, Candado candado, boolean candidatoOcr) {
     }
 
     /**
@@ -77,6 +78,14 @@ public class ExamenInicialService {
      */
     public record Candado(boolean bloqueado, String motivo) {
         static final Candado ABIERTO = new Candado(false, "");
+    }
+
+    /**
+     * Evento: un examen inicial quedo finalizado (ya en el WS y en el historico). Lo escucha la
+     * integracion OCR para cerrar la solicitud y avisar; va por evento para no crear un ciclo
+     * (SolicitudExamenService usa candado() de este servicio).
+     */
+    public record ExamenInicialFinalizado(String nss, String dictamen) {
     }
 
     /** Orden y agrupacion del FT-SO-04 rev. 04 (hoja 1 de 3 .. 3 de 3 del Excel, partidas en 10 pasos). */
@@ -119,10 +128,13 @@ public class ExamenInicialService {
     private final MedTagRepository tags;
     private final ExamenBorradorRepository borradores;
     private final ExamenHistoricoRepository historico;
+    private final com.onest.app.integration.ocr.SolicitudExamenRepository solicitudes;
+    private final ApplicationEventPublisher eventos;
 
     public ExamenInicialService(ExamenService examenService, ContactoEmergenciaService contactoEmergenciaService,
                                 DatosGeneralesExamenService datosGeneralesExamenService, NssSearchService nssSearchService,
-                                MedTagRepository tags, ExamenBorradorRepository borradores, ExamenHistoricoRepository historico) {
+                                MedTagRepository tags, ExamenBorradorRepository borradores, ExamenHistoricoRepository historico,
+                                com.onest.app.integration.ocr.SolicitudExamenRepository solicitudes, ApplicationEventPublisher eventos) {
         this.examenService = examenService;
         this.contactoEmergenciaService = contactoEmergenciaService;
         this.datosGeneralesExamenService = datosGeneralesExamenService;
@@ -130,6 +142,22 @@ public class ExamenInicialService {
         this.tags = tags;
         this.borradores = borradores;
         this.historico = historico;
+        this.solicitudes = solicitudes;
+        this.eventos = eventos;
+    }
+
+    /** Dictamen vigente en el WS como codigo del contrato OCR (APTO, NO_APTO...), o vacio. */
+    public String dictamenVigenteCodigo(String nss) {
+        return examenService.dictamenVigente(nss);
+    }
+
+    /** Fecha del ultimo examen conocido (historico) en yyyy-MM-dd, o null si solo esta en el WS sin fecha util. */
+    public String fechaExamenVigente(String nss) {
+        try {
+            return historico.ultimo(nss).map(r -> r.fechaExamen().toLocalDate().toString()).orElse(null);
+        } catch (org.springframework.dao.DataAccessException ex) {
+            return null;
+        }
     }
 
     /**
@@ -137,29 +165,59 @@ public class ExamenInicialService {
      * del borrador); bloqueado si no lo hubo y la persona ya tiene examen con dictamen, sea
      * por el historico (origen GENERAL) o por el WS (capturado antes de existir el historico).
      */
+    /**
+     * Regla del candado (afinada 5-oct-2026). Se PERMITE finalizar un inicial cuando:
+     * (a) el ultimo examen de la persona fue un inicial NO APTO (se vuelve a examinar), o
+     * (b) la persona no es empleado: candidato con solicitud de OCR, o sin registro en el biometrico.
+     * Se BLOQUEA cuando ya es empleado y tiene cualquier examen (inicial apto, periodico, o dictamen
+     * en el WS): finalizar aqui pisaria su examen vigente; eso se captura en Examen medico.
+     * {@code esEmpleado} = null -> se consulta el biometrico.
+     */
     public Candado candado(String nss, boolean huboInicialSegunBorrador) {
-        boolean huboInicial = huboInicialSegunBorrador;
+        return candado(nss, huboInicialSegunBorrador, null);
+    }
+
+    public Candado candado(String nss, boolean huboInicialSegunBorrador, Boolean esEmpleado) {
         ExamenHistoricoRepository.Registro ultimo = null;
         try {
-            huboInicial = huboInicial || historico.existeInicial(nss);
             ultimo = historico.ultimo(nss).orElse(null);
         } catch (org.springframework.dao.DataAccessException ex) {
             log.warn("[examen-inicial] SERV_MED_EXAMEN_HISTORICO no disponible: {}", ex.getMostSpecificCause().getMessage());
         }
-        if (huboInicial) {
+        // (a) re-examen tras un inicial no apto
+        if (ultimo != null && ExamenHistoricoRepository.ORIGEN_INICIAL.equals(ultimo.origen()) && "no_apto".equals(ultimo.dictamen())) {
             return Candado.ABIERTO;
         }
-        if (ultimo != null && ExamenHistoricoRepository.ORIGEN_GENERAL.equals(ultimo.origen())) {
-            return new Candado(true, "Este trabajador ya tiene un examen médico capturado en el módulo Examen médico el "
-                    + ultimo.fechaExamen().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + " ("
-                    + etiquetaDictamen(ultimo.dictamen()) + "). El examen inicial es solo de nuevo ingreso.");
+        // (b) no es empleado todavia: candidato OCR o sin registro en biometrico
+        boolean empleado = esEmpleado != null ? esEmpleado : esEmpleadoEnBiometrico(nss);
+        if (!empleado) {
+            return Candado.ABIERTO;
+        }
+        java.time.format.DateTimeFormatter f = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        if (ultimo != null) {
+            String origen = ExamenHistoricoRepository.ORIGEN_INICIAL.equals(ultimo.origen()) ? "examen inicial" : "examen médico";
+            return new Candado(true, "Este trabajador ya es empleado y tiene un " + origen + " finalizado el "
+                    + ultimo.fechaExamen().format(f) + " (" + etiquetaDictamen(ultimo.dictamen())
+                    + "). El examen inicial es solo de nuevo ingreso; sus siguientes exámenes van en Examen médico.");
         }
         String dictamenWs = examenService.dictamenVigente(nss);
         if (!dictamenWs.isBlank()) {
-            return new Candado(true, "Este trabajador ya tiene un examen médico vigente con dictamen "
+            return new Candado(true, "Este trabajador ya es empleado y tiene un examen médico vigente con dictamen "
                     + etiquetaDictamen(dictamenWs) + ". El examen inicial es solo de nuevo ingreso; captura en Examen médico.");
         }
         return Candado.ABIERTO;
+    }
+
+    /** true si el biometrico lo tiene como empleado con registro (no candidato OCR ni "Sin Registro de Usuario"). */
+    private boolean esEmpleadoEnBiometrico(String nss) {
+        try {
+            return nssSearchService.findByNss(nss)
+                    .map(r -> "EMPLEADO".equals(r.tipo()) && !r.candidatoOcr())
+                    .orElse(false);
+        } catch (RuntimeException ex) {
+            log.warn("[examen-inicial] no se pudo consultar el biometrico para {}: {}", nss, ex.getMessage());
+            return true; // ante la duda, se bloquea: es la opcion que no pisa datos
+        }
     }
 
     private static String etiquetaDictamen(String d) {
@@ -226,8 +284,13 @@ public class ExamenInicialService {
         }
 
         EmpleadoDto empleado = null;
+        Boolean esEmpleado = null;
+        boolean candidatoOcr = false;
         try {
-            empleado = nssSearchService.findByNss(limpio).map(r -> r.empleado()).orElse(null);
+            var resp = nssSearchService.findByNss(limpio);
+            empleado = resp.map(r -> r.empleado()).orElse(null);
+            esEmpleado = resp.map(r -> "EMPLEADO".equals(r.tipo()) && !r.candidatoOcr()).orElse(false);
+            candidatoOcr = resp.map(r -> r.candidatoOcr()).orElse(false);
         } catch (RuntimeException ex) {
             log.warn("[examen-inicial] sin ficha del empleado {}: {}", limpio, ex.getMessage());
         }
@@ -270,10 +333,16 @@ public class ExamenInicialService {
 
         int hojaActual = borrador.map(Borrador::hojaActual).filter(x -> x >= 1 && x <= HOJAS.size()).orElse(1);
         int avance = total == 0 ? 0 : (int) Math.round(100.0 * capturadosTotal / total);
-        Candado candado = candado(limpio, ultimo.isPresent());
+        Candado candado = candado(limpio, ultimo.isPresent(), esEmpleado);
+        // Integracion OCR: si hay solicitud pendiente para este NSS, el medico ya la esta atendiendo
+        try {
+            solicitudes.activaPorNss(limpio).ifPresent(sol -> solicitudes.marcarEnCaptura(sol.id()));
+        } catch (org.springframework.dao.DataAccessException ex) {
+            log.debug("[examen-inicial] sin tabla de solicitudes OCR: {}", ex.getMostSpecificCause().getMessage());
+        }
         return new Vista(limpio, empleado, hojas, hojaActual, contactos, trabajos, datosGenerales,
                 examenService.firmaGuardada(limpio), borrador.orElse(null),
-                ultimo.orElse(null), avance, capturadosTotal, total, tablaBorrador, candado);
+                ultimo.orElse(null), avance, capturadosTotal, total, tablaBorrador, candado, candidatoOcr);
     }
 
     /** Autoguardado: funde los campos recibidos con el borrador existente y recuerda la hoja. */
@@ -375,6 +444,7 @@ public class ExamenInicialService {
         tagsTrabajo.forEach((type, v) -> tags.upsert(limpio, type, v, "HISTORIA_LABORAL", usuario));
 
         borradores.finalizar(limpio, usuario);
+        eventos.publishEvent(new ExamenInicialFinalizado(limpio, dictamen.trim()));
         return proceso;
     }
 

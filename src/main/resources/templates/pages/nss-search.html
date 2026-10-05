@@ -789,10 +789,26 @@
                 el.classList.toggle('err', !!esError);
             }
 
-            // PROVISIONAL: boton "Examen inicial (prueba)" de la ficha (fragments/nss-result.html).
-            // loadModuleView es local a este closure, por eso el puente. Quitar junto con el boton.
+            // Boton "Abrir examen inicial" del aviso de solicitud OCR pendiente (fragments/nss-result.html).
+            // loadModuleView es local a este closure, por eso el puente.
             window.abrirExamenInicialPrueba = function (nss) {
                 loadModuleView('api/nss/examen-inicial', nss);
+            };
+
+            // Mascara de telefono a 10 digitos: en pantalla "55 1234 5678"; lo que se guarda es
+            // el hidden hermano (name=contactoEmertelefonoN) con los digitos de corrido.
+            window.exIniMascaraTel = function (inp) {
+                var d = inp.value.replace(/[^0-9]/g, '').slice(0, 10);
+                var out = d;
+                if (d.length > 6) { out = d.slice(0, 2) + ' ' + d.slice(2, 6) + ' ' + d.slice(6); }
+                else if (d.length > 2) { out = d.slice(0, 2) + ' ' + d.slice(2); }
+                inp.value = out;
+                var hidden = inp.previousElementSibling;
+                while (hidden && hidden.type !== 'hidden') { hidden = hidden.previousElementSibling; }
+                if (hidden && hidden.value !== d) {
+                    hidden.value = d;
+                    hidden.dispatchEvent(new Event('change', { bubbles: true }));
+                }
             };
 
             window.exIniInit = function () {

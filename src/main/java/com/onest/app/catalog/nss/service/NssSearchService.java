@@ -25,9 +25,11 @@ public class NssSearchService {
     private static final String TIPO_EMPLEADO = "EMPLEADO";
 
     private final NssSearchClient client;
+    private final com.onest.app.integration.ocr.SolicitudExamenRepository solicitudesOcr;
 
-    public NssSearchService(NssSearchClient client) {
+    public NssSearchService(NssSearchClient client, com.onest.app.integration.ocr.SolicitudExamenRepository solicitudesOcr) {
         this.client = client;
+        this.solicitudesOcr = solicitudesOcr;
     }
 
     public Optional<NssSearchResponse> findByNss(String nss) {
@@ -38,7 +40,10 @@ public class NssSearchService {
         // multipredio trae mas de una fila (ver docs/entregable-liberacion-stoppers-salud.html §4).
         List<EmpleadoDto> asociaciones = client.findAsociaciones(normalizedNss, usuarioConsulta);
         if (asociaciones.isEmpty()) {
-            return Optional.empty();
+            // Integracion OCR (docs/integracion-ocr-examen-inicial.md): un candidato que aun no esta
+            // en el biometrico pero tiene solicitud de examen inicial se presenta con la ficha de
+            // la solicitud, para que abran los modulos y el examen se guarde por su NSS.
+            return solicitudOcr(normalizedNss).map(sol -> NssSearchResponse.candidatoOcr(fichaDesdeSolicitud(sol), sol));
         }
 
         EmpleadoDto empleado = asociaciones.get(0);
@@ -49,12 +54,44 @@ public class NssSearchService {
         client.checkEmploye(normalizedNss, tipoUsuario, usuarioConsulta);
 
         if (sinRegistro) {
+            // Candidato con solicitud de examen inicial de OCR: la ficha sale de la solicitud
+            // (el WS contesta "Sin Registro de Usuario" para un NSS que aun no es empleado).
+            Optional<com.onest.app.integration.ocr.SolicitudExamen> sol = solicitudOcr(normalizedNss);
+            if (sol.isPresent()) {
+                return Optional.of(NssSearchResponse.candidatoOcr(fichaDesdeSolicitud(sol.get()), sol.get()));
+            }
             // php pasa el mismo termino de busqueda ($datas) como 'curp' a searchProspecto.
             CandidatoDto candidato = client.findProspecto(normalizedNss).orElse(null);
             return Optional.of(NssSearchResponse.candidato(candidato));
         }
 
-        return Optional.of(NssSearchResponse.empleado(empleado, asociaciones));
+        // Empleado ya en biometrico que ademas tiene solicitud de OCR (p.ej. recontratacion): se
+        // adjunta para mostrar el aviso de "examen inicial pendiente".
+        NssSearchResponse resp = NssSearchResponse.empleado(empleado, asociaciones);
+        return Optional.of(solicitudOcr(normalizedNss).map(resp::conSolicitud).orElse(resp));
+    }
+
+    /** Solicitud viva del NSS o, si no hay, la ultima (para seguir viendo la ficha del candidato ya examinado). Nunca lanza. */
+    private Optional<com.onest.app.integration.ocr.SolicitudExamen> solicitudOcr(String nss) {
+        try {
+            Optional<com.onest.app.integration.ocr.SolicitudExamen> viva = solicitudesOcr.activaPorNss(nss);
+            return viva.isPresent() ? viva : solicitudesOcr.ultimaPorNss(nss);
+        } catch (RuntimeException ex) {
+            return Optional.empty();
+        }
+    }
+
+    /** Ficha del candidato con los datos de la solicitud (mismo DTO que el biometrico, para que todo lo demas funcione igual). */
+    static EmpleadoDto fichaDesdeSolicitud(com.onest.app.integration.ocr.SolicitudExamen s) {
+        String nacimiento = s.fechaNacimiento() == null ? null
+                : s.fechaNacimiento().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        Integer edad = s.fechaNacimiento() == null ? null
+                : java.time.Period.between(s.fechaNacimiento(), java.time.LocalDate.now()).getYears();
+        // EmpleadoDto.sexo usa la convencion del biometrico: 1 = hombre, 2 = mujer
+        String sexo = "M".equals(s.sexo()) ? "1" : ("F".equals(s.sexo()) ? "2" : null);
+        return new EmpleadoDto(s.nss(), s.nombre(), s.apellidoPaterno(), s.apellidoMaterno(), s.rfc(), s.cuenta(),
+                nacimiento, s.estadoCivil(), sexo, s.domicilio(), s.telefono(), null, null,
+                s.nombreCompleto(), s.puestoSolicitado(), s.empresa(), edad, null);
     }
 
     private String normalizeNss(String nss) {

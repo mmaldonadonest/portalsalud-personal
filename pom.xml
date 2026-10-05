@@ -31,6 +31,11 @@
         <prod.datasource.username></prod.datasource.username>
         <prod.datasource.password></prod.datasource.password>
         <prod.tns.admin></prod.tns.admin>
+        <!-- Integracion OCR: llaves por ambiente (config/produccion/*.local.properties, fuera de git).
+             Vacias = la API /api/integracion/** rechaza todo con 401. -->
+        <ocr.apikey></ocr.apikey>
+        <ocr.hmac.secret></ocr.hmac.secret>
+        <ocr.callback.url></ocr.callback.url>
     </properties>
 
     <dependencies>
@@ -176,6 +181,36 @@
                                 <configuration>
                                     <files>
                                         <file>${project.basedir}/config/produccion/portal-salud.local.properties</file>
+                                    </files>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <!-- WAR de QA: `mvn -Pqa -DskipTests clean package`. Perfil test (QA) + llaves de la
+             integracion OCR de QA desde config/produccion/portal-salud-qa.local.properties. -->
+        <profile>
+            <id>qa</id>
+            <properties>
+                <portal.perfil>test</portal.perfil>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>properties-maven-plugin</artifactId>
+                        <version>1.2.1</version>
+                        <executions>
+                            <execution>
+                                <phase>initialize</phase>
+                                <goals>
+                                    <goal>read-project-properties</goal>
+                                </goals>
+                                <configuration>
+                                    <files>
+                                        <file>${project.basedir}/config/produccion/portal-salud-qa.local.properties</file>
                                     </files>
                                 </configuration>
                             </execution>
