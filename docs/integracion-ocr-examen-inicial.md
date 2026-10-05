@@ -2,7 +2,7 @@
 
 **Estado:** contrato acordado el 5-oct-2026 con las respuestas de OCR; el portal arranca su construcción. Versión 2 (la del 3-oct era la propuesta inicial).
 **Para:** equipo del sistema OCR y Portal Salud.
-**Qué cambió respecto a la v1:** la solicitud lleva la ficha completa del candidato (sección 1), catálogos de dictamen y restricciones (nueva sección), `APTO_RESTRINGIDO` = Apto inclusión, y la lista de lo que falta de OCR para probar en QA.
+**Qué cambió respecto a la v1:** la solicitud admite la ficha del candidato con solo 7 campos obligatorios (sección 1), catálogos de dictamen y restricciones (nueva sección), `APTO_RESTRINGIDO` = Apto inclusión, y la lista de lo que falta de OCR para probar en QA.
 
 ## Qué se necesita
 
@@ -62,18 +62,18 @@ Con la solicitud como ficha del candidato (no está en el biométrico), estos da
 
 | Campo | Obligatorio | Para qué |
 |---|---|---|
-| `referenciaOcr`, `nss` | Sí | Llave de la solicitud y del examen |
-| `nombre`, `apellidoPaterno`, `apellidoMaterno` | Sí | Ficha, impreso, notificación |
-| `fechaNacimiento`, `sexo` (`M`/`F`) | Sí | Edad y sexo en el formato; el examen tiene secciones por sexo (gineco-obstétricos) |
-| `puestoSolicitado`, `cuenta` | Sí | Encabezado del formato y del dictamen |
-| `curp`, `rfc` | Si los tienen | Ficha e impreso |
-| `estadoCivil`, `escolaridad`, `profesionOficio` | Si los tienen | Ficha de identificación del FT-SO-04 |
-| `domicilio`, `telefono` | Si los tienen | Ficha de identificación |
-| `empresa`, `agencia` | Si los tienen | Razón social y sitio/predio en el encabezado |
-| `fechaCita` | Recomendado | Aviso "examen inicial pendiente (cita …)" y caducidad |
+| `nss` | **Sí** | Llave del examen y de todo el expediente |
+| `nombre`, `apellidoPaterno`, `apellidoMaterno` | **Sí** | Ficha, impreso, notificación |
+| `curp` | **Sí** | Identificación del candidato |
+| `puestoSolicitado`, `cuenta` | **Sí** | Encabezado del formato y del dictamen |
+| `referenciaOcr` | Sí (llave de OCR) | Idempotencia y para devolverla en el webhook; si OCR no la manda, el portal usa el NSS como referencia y no puede distinguir reenvíos |
+| `fechaNacimiento`, `sexo` (`M`/`F`) | Opcional | Edad y sexo del formato; si no vienen, el médico los captura en la hoja 1 (la CURP ya trae ambos y el portal los deriva de ahí) |
+| `rfc`, `estadoCivil`, `escolaridad`, `profesionOficio`, `domicilio`, `telefono` | Opcional | Ficha de identificación del FT-SO-04; lo que falte lo captura el médico |
+| `empresa`, `agencia` | Opcional | Razón social y sitio/predio en el encabezado |
+| `fechaCita` | Opcional (recomendado) | Aviso "examen inicial pendiente (cita …)" y caducidad; sin ella, caduca a 30 días del alta |
 | `callbackUrl` | Opcional | Si no viene, se usa la configurada por sistema |
 
-Los teléfonos de emergencia **no** se piden: los captura el médico en la hoja 1 del examen.
+Acordado el 5-oct-2026: **obligatorios solo NSS, nombre y dos apellidos, CURP, puesto y cuenta**; todo lo demás puede no venir. Los teléfonos de emergencia **no** se piden: los captura el médico en la hoja 1 del examen.
 
 #### Cómo responde el portal a esa petición
 
@@ -123,9 +123,9 @@ La respuesta es inmediata (síncrona). OCR debe guardar `solicitudId` y tratar c
 {
   "error": "SOLICITUD_INVALIDA",
   "detalles": [
-    "nss: obligatorio",
-    "fechaNacimiento: formato esperado yyyy-MM-dd",
-    "sexo: valores permitidos M o F"
+    "curp: obligatorio",
+    "apellidoMaterno: obligatorio",
+    "fechaNacimiento: formato esperado yyyy-MM-dd"
   ]
 }
 ```
@@ -292,7 +292,7 @@ Recibido su documento (`integracion-ocr-portal-salud-responsabilidades.md`). Res
 
 **¿Se puede aplicar el examen a un NSS que aún no es empleado? Sí.** El portal guarda el examen por NSS y no exige que la persona exista en el biométrico; lo único que hoy requiere "ser empleado" es la ficha en pantalla, y para los candidatos esa ficha sale de la solicitud de OCR. Al contratarse, el mismo NSS liga el examen con el biométrico sin recapturar. Condición única: el candidato debe tener **NSS real** (número del IMSS), que es la llave de todo el expediente.
 
-**Decisión del portal ante el biométrico:** la solicitud de OCR hace de ficha del candidato. Por eso el contrato de la solicitud (sección 1) creció a los datos de la ficha de identificación del FT-SO-04: fecha de nacimiento y sexo obligatorios; CURP, RFC, estado civil, escolaridad, profesión u oficio, domicilio, teléfono, empresa y agencia si los tienen. Cuando RH lo contrata, el biométrico tiene el mismo NSS y queda enlazado solo.
+**Decisión del portal ante el biométrico:** la solicitud de OCR hace de ficha del candidato. Por eso el contrato de la solicitud (sección 1) admite los datos de la ficha de identificación del FT-SO-04. Obligatorios: NSS, nombre y apellidos, CURP, puesto y cuenta; el resto (fecha de nacimiento, sexo, RFC, estado civil, escolaridad, profesión, domicilio, teléfono, empresa, agencia) es opcional y lo que falte lo captura el médico. Cuando RH lo contrata, el biométrico tiene el mismo NSS y queda enlazado solo.
 
 **Lo que el portal sigue esperando de OCR para probar en QA:**
 1. URL del webhook en QA (y después en producción).
