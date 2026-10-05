@@ -204,10 +204,12 @@ OCR responde `2xx` para confirmar. Si no, el portal reintenta (1, 5, 15, 60 min,
 
 | Valor en el webhook | Significado | Equivalente en OCR |
 |---|---|---|
-| `APTO` | Apto para el puesto | Apto |
-| `APTO_CONDICIONADO` | Apto con una condición a cumplir (carta compromiso) | Apto condicionado |
-| `APTO_RESTRINGIDO` | Apto con restricciones médicas (ver lista) | **Apto inclusión** |
-| `NO_APTO` | No apto | No apto |
+| `APTO` | Apto para el puesto, sin hallazgos que atender | Apto |
+| `APTO_CONDICIONADO` | Puede trabajar, pero tiene una enfermedad **controlable** que debe mantener bajo control (obesidad, hipertensión, diabetes, etc.). Firma carta compromiso (FT-SO-25) y se le da seguimiento | Apto condicionado |
+| `APTO_RESTRINGIDO` | Puede trabajar con **restricciones permanentes**: padecimiento incurable o limitación física (p.ej. problemas para caminar). Es el caso de **inclusión**; viaja con la lista de restricciones (RES-xx) | **Apto inclusión** |
+| `NO_APTO` | No apto para el puesto | No apto |
+
+Definiciones del Servicio Médico (5-oct-2026): *condicionado* = algo que se controla y se vigila; *restringido / inclusión* = algo que no se cura y limita qué puede hacer, por eso lleva restricciones explícitas.
 
 El portal manda siempre el valor literal de la primera columna; OCR lo traduce con esta tabla.
 
