@@ -21,9 +21,19 @@ No se recomienda que OCR solo haga *polling* (preguntar cada N minutos): genera 
 
 ## Contrato propuesto
 
+### 0. Dónde
+
+| Ambiente | Base de la API del portal | Estado |
+|---|---|---|
+| Producción | `https://health.onestcloud.mx/api/integracion/ocr/examen-inicial/` | Publicada por nginx en la raíz (sin `/portal-salud`), solo HTTPS |
+| QA | por definir; se entrega junto con la API key de QA | |
+
+Todas las rutas de abajo se leen relativas a esa base. Ninguna existe todavía: se construyen en el portal a partir de este contrato.
+
+
 ### 1. OCR crea la solicitud
 
-`POST /portal-salud/api/integracion/ocr/examen-inicial/solicitudes`
+`POST {base}/solicitudes`
 
 ```json
 {
@@ -88,7 +98,7 @@ Reglas: `referenciaOcr` es única (repetirla devuelve la misma solicitud, no cre
   "diagnosticos": [ { "clave": "E11.9", "descripcion": "Diabetes mellitus tipo 2 sin complicaciones" } ],
   "restricciones": [ "RES-03" ],
   "medico": "Dr. Mauricio Cerón Solana",
-  "documentoUrl": "https://portal/portal-salud/api/integracion/ocr/examen-inicial/solicitudes/418/documento"
+  "documentoUrl": "https://health.onestcloud.mx/api/integracion/ocr/examen-inicial/solicitudes/418/documento"
 }
 ```
 
@@ -96,7 +106,7 @@ OCR responde `2xx` para confirmar. Si no, el portal reintenta (1, 5, 15, 60 min,
 
 ### 3. Consulta de respaldo
 
-`GET /portal-salud/api/integracion/ocr/examen-inicial/solicitudes/{id}` (o `?referenciaOcr=`) → mismo cuerpo del webhook más `estatus` (`PENDIENTE` | `EN_CAPTURA` | `FINALIZADO` | `CANCELADO`).
+`GET {base}/solicitudes/{id}` (o `GET {base}/solicitudes?referenciaOcr=`) → mismo cuerpo del webhook más `estatus` (`PENDIENTE` | `EN_CAPTURA` | `FINALIZADO` | `CANCELADO`).
 
 ## Catálogos que manda el portal (acordados 5-oct-2026)
 
