@@ -343,6 +343,8 @@ Cuando OCR pide el examen, ¿el candidato ya está dado de alta en el biométric
 
 URL del webhook en QA: ________________  en producción: ________________
 
+> **Entregada por OCR el 5-oct-2026:** `https://ai-docs.onestcloud.mx/api/v1/integracion/portal/examen-inicial/dictamen` (falta confirmar si es QA, producción o ambos). Desde fuera de la red no responde; hay que verificar que el servidor del portal la alcance (firewall de salida).
+
 ### 4 · Ambientes y red
 
 ¿El portal productivo puede salir hacia OCR? (hoy solo habla con ORDS)
