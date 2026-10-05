@@ -254,6 +254,8 @@ En pantalla: al buscar el NSS, la ficha muestra "**Examen inicial pendiente** (s
 
 Recibido su documento (`integracion-ocr-portal-salud-responsabilidades.md`). Resumen: NSS siempre (+ CURP cuando la tengan); el candidato **no** está en el biométrico al pedir el examen; de vuelta dictamen + restricciones (ICD pendiente de Jurídico); webhook + consulta; cancelación desde OCR y caducidad a 30 días; `APTO_RESTRINGIDO` = Apto inclusión.
 
+**¿Se puede aplicar el examen a un NSS que aún no es empleado? Sí.** El portal guarda el examen por NSS y no exige que la persona exista en el biométrico; lo único que hoy requiere "ser empleado" es la ficha en pantalla, y para los candidatos esa ficha sale de la solicitud de OCR. Al contratarse, el mismo NSS liga el examen con el biométrico sin recapturar. Condición única: el candidato debe tener **NSS real** (número del IMSS), que es la llave de todo el expediente.
+
 **Decisión del portal ante el biométrico:** la solicitud de OCR hace de ficha del candidato. Por eso el contrato de la solicitud (sección 1) creció a los datos de la ficha de identificación del FT-SO-04: fecha de nacimiento y sexo obligatorios; CURP, RFC, estado civil, escolaridad, profesión u oficio, domicilio, teléfono, empresa y agencia si los tienen. Cuando RH lo contrata, el biométrico tiene el mismo NSS y queda enlazado solo.
 
 **Lo que el portal sigue esperando de OCR para probar en QA:**
