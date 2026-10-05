@@ -240,11 +240,45 @@ Cada restricción viaja como `{ "codigo": "RES-02", "descripcion": "Límite de c
 
 `PENDIENTE` → `EN_CAPTURA` (el médico abrió el examen) → `FINALIZADO` | `CANCELADO` (por OCR o por caducidad a 30 días).
 
-## Seguridad
+## Seguridad (autenticación en los dos sentidos)
 
-- **Llave por sistema** en encabezado (`X-Api-Key`) para las llamadas de OCR al portal, y **firma HMAC** del cuerpo (`X-Firma`) en el webhook del portal a OCR, para que cada lado verifique al otro. Las llaves se escriben a mano en el servidor (igual que el resto de la configuración de producción), nunca en el repositorio ni con valores por defecto.
-- Solo HTTPS; en nginx, lista de IPs permitidas para `/api/integracion/`.
-- Toda llamada queda en la bitácora del portal (`SERV_MED_AUD_EVENT`) con el cuerpo recibido o enviado.
+### OCR → Portal: API key
+
+Toda llamada de OCR al portal (`POST solicitudes`, `GET`, `cancelar`) lleva el encabezado:
+
+```
+X-Api-Key: <llave emitida por el portal para OCR>
+```
+
+- La llave la **emite el portal**, una por ambiente (QA y producción), y se entrega a OCR por medio seguro (no por correo abierto ni chat).
+- Sin encabezado o con llave incorrecta → `401` `{ "error": "NO_AUTORIZADO" }`. Tres fallos seguidos desde la misma IP quedan en bitácora.
+- Solo HTTPS. En nginx, `/api/integracion/` acepta únicamente las IPs de OCR (lista que OCR entrega).
+- La llave se puede rotar: el portal acepta la nueva y la anterior durante 7 días para cambiarla sin corte.
+
+Ejemplo:
+
+```bash
+curl -X POST https://health.onestcloud.mx/api/integracion/ocr/examen-inicial/solicitudes   -H "Content-Type: application/json"   -H "X-Api-Key: 9f3c…(llave de producción)"   -d @solicitud.json
+```
+
+### Portal → OCR: firma HMAC del webhook
+
+El webhook que el portal manda a OCR lleva dos encabezados para que OCR verifique que viene del portal y que no es un reenvío viejo:
+
+```
+X-Firma-Tiempo: 1759680012                 (epoch en segundos, UTC)
+X-Firma: sha256=3a9f…                      (HMAC-SHA256 en hexadecimal)
+```
+
+Cálculo: `HMAC_SHA256( secreto, X-Firma-Tiempo + "." + cuerpoJsonTalCual )`, en minúsculas hexadecimales. El cuerpo se firma **byte a byte como se envía** (UTF-8, sin reformatear).
+
+OCR debe: (1) recalcular la firma con el mismo secreto y compararla en tiempo constante; (2) rechazar si `X-Firma-Tiempo` difiere más de 5 minutos del reloj de OCR (evita reenvíos); (3) responder `2xx` solo si lo procesó. Cualquier otra respuesta hace que el portal reintente (1, 5, 15, 60 min, 6 h) con el mismo `solicitudId`, así que el receptor debe ser **idempotente** por `solicitudId`.
+
+El **secreto HMAC** lo genera el portal junto con la API key (uno por ambiente) y se entrega por el mismo medio seguro. Ninguna de las dos llaves vive en el repositorio ni tiene valor por defecto; en el portal van dentro del WAR de cada ambiente, en OCR donde ellos guarden sus secretos.
+
+### Bitácora
+
+Toda llamada en ambos sentidos queda en `SERV_MED_AUD_EVENT` del portal: fecha, IP, referencia, código de respuesta y cuerpo (sin la llave).
 
 ## Qué guarda el portal
 
