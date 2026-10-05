@@ -71,7 +71,7 @@ Respuesta `201`:
 { "solicitudId": 418, "estatus": "PENDIENTE", "recibido": "2026-10-03T19:40:12-06:00" }
 ```
 
-Reglas: `referenciaOcr` es única (repetirla devuelve la misma solicitud, no crea otra); `nss` o `curp` obligatorio; `callbackUrl` opcional (si no viene se usa la configurada por sistema).
+Reglas: `referenciaOcr` es única (repetirla devuelve la misma solicitud, no crea otra); `nss` siempre obligatorio (OCR lo confirmó); `callbackUrl` opcional (si no viene se usa la configurada por sistema).
 
 ### 2. Portal notifica el resultado (webhook)
 
