@@ -36,6 +36,7 @@
         <ocr.apikey></ocr.apikey>
         <ocr.hmac.secret></ocr.hmac.secret>
         <ocr.callback.url></ocr.callback.url>
+        <meili.key></meili.key>
     </properties>
 
     <dependencies>
@@ -140,6 +141,17 @@
                     <!-- <skip>true</skip> -->
                 </configuration>
             </plugin>
+            <!-- SIEMPRE re-filtrar application*.properties: sin overwrite, Maven solo copia si el
+                 fuente cambio, y un build con otro perfil (o sin perfil) dejaba en target/ las
+                 llaves/URL del build anterior: un WAR -Pqa con credenciales de prod, o vacias.
+                 Detectado 6-oct-2026 por la suite E2E (503: API key de OCR vacia en el WAR). -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <configuration>
+                    <overwrite>true</overwrite>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -147,9 +159,27 @@
                     <release>${maven.compiler.release}</release>
                 </configuration>
             </plugin>
+            <!-- Tests en JDK 22: Mockito ya no puede auto-adjuntar el agente de Byte Buddy
+                 (la JVM lo bloquea), asi que se carga como -javaagent, que es lo que pide la
+                 propia documentacion de Mockito. maven-dependency-plugin:properties expone la
+                 ruta del jar como ${org.mockito:mockito-core:jar}. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-javaagent:${org.mockito:mockito-core:jar} -Xshare:off</argLine>
+                </configuration>
             </plugin>
         </plugins>
     </build>

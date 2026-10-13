@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guía de procesos · Examen inicial e integración OCR</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root{
+    --blanco:#ffffff;
+    --azul:#0057A8; --azul-700:#00549E; --azul-900:#003E75; --azul-300:#4FA8E0; --azul-100:#EAF3FA;
+    --verde:#2B9138; --verde-100:#EAF7EC;
+    --gris-50:#F8FAFC; --gris-100:#F2F4F7; --gris-200:#E1E6EB; --gris-300:#D0D5DD;
+    --gris-500:#667085; --gris-700:#475467; --gris-950:#20252B;
+    --ambar:#8a5300; --ambar-bg:#FFF7E6; --rojo:#B42318; --rojo-bg:#FEF3F2;
+    --fg:var(--gris-950); --muted:var(--gris-500); --line:var(--gris-200);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--blanco);color:var(--fg);
+       font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 16px 80px}
+  .hero{background:var(--azul);color:#fff;margin:0 -16px 28px;padding:30px 16px 26px;}
+  .hero-in{max-width:1148px;margin:0 auto}
+  .hero h1{font-size:1.8rem;margin:0 0 4px;letter-spacing:-.015em;font-weight:700}
+  .hero .sub{opacity:.85;font-size:.94rem;margin:0}
+  .marca{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;opacity:.75;margin-bottom:10px}
+  nav.idx{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 26px}
+  nav.idx a{font-size:.82rem;color:var(--azul-900);background:var(--azul-100);border:1px solid #cfe3f5;border-radius:999px;padding:4px 12px;text-decoration:none}
+  nav.idx a:hover{background:#d9ebfa}
+  h2{font-size:1.25rem;color:var(--azul-900);margin:38px 0 6px;padding-bottom:6px;border-bottom:2px solid var(--azul-100)}
+  h3{font-size:1.02rem;color:var(--azul-900);margin:22px 0 6px}
+  p.lead{color:var(--gris-700);margin:0 0 14px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:0 0 18px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .mermaid{background:var(--gris-50);border:1px solid var(--line);border-radius:10px;padding:14px;margin:10px 0 14px;overflow-x:auto}
+  .mermaid svg{max-width:100%;height:auto}
+  table{width:100%;border-collapse:collapse;font-size:.88rem;margin:8px 0 14px}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--gris-100);color:var(--gris-700);font-weight:600;font-size:.8rem;text-transform:uppercase;letter-spacing:.04em}
+  code{font-family:Consolas,"Cascadia Mono",monospace;font-size:.84em;background:var(--gris-100);padding:1px 5px;border-radius:4px}
+  .nota{background:var(--ambar-bg);border-left:4px solid var(--ambar);padding:10px 14px;border-radius:6px;margin:10px 0;font-size:.9rem}
+  .ok{background:var(--verde-100);border-left:4px solid var(--verde);padding:10px 14px;border-radius:6px;margin:10px 0;font-size:.9rem}
+  .malo{background:var(--rojo-bg);border-left:4px solid var(--rojo);padding:10px 14px;border-radius:6px;margin:10px 0;font-size:.9rem}
+  .tag{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;margin-right:4px}
+  .tag.prod{background:var(--rojo-bg);color:var(--rojo)}
+  .tag.qa{background:var(--azul-100);color:var(--azul-900)}
+  .tag.ocr{background:#EBE9FE;color:#5925DC}
+  .tag.med{background:var(--verde-100);color:var(--verde)}
+  .tag.sys{background:var(--gris-100);color:var(--gris-700)}
+  /* plan de pruebas */
+  .prog{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+  .prog b{color:var(--azul-900)}
+  .prog-pct{font-size:1.4rem;font-weight:700;color:var(--azul);font-variant-numeric:tabular-nums}
+  .barra{height:14px;border-radius:7px;background:var(--gris-100);overflow:hidden;border:1px solid var(--gris-200);margin-bottom:14px}
+  .barra i{display:block;height:100%;background:var(--verde);width:0;transition:width .3s}
+  tr.caso td:first-child{white-space:nowrap}
+  tr.caso input[type=checkbox]{width:18px;height:18px;vertical-align:middle;cursor:pointer}
+  tr.caso.hecho td{background:var(--verde-100)}
+  tr.caso textarea{width:100%;min-height:34px;border:1px solid var(--gris-300);border-radius:6px;padding:4px 6px;font:inherit;font-size:.84rem;resize:vertical}
+  .acciones{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 14px}
+  .acciones button{font:inherit;font-size:.82rem;padding:5px 12px;border-radius:6px;border:1px solid var(--gris-300);background:#fff;cursor:pointer}
+  .acciones button:hover{background:var(--gris-100)}
+  @media print{.acciones{display:none} .mermaid{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero"><div class="hero-in">
+    <div class="marca">Portal Salud · Servicio médico</div>
+    <h1>Guía de procesos: examen médico inicial e integración OCR</h1>
+    <p class="sub">Qué está programado, cómo fluye, dónde se ve y cómo probarlo · corte 6-oct-2026</p>
+  </div></div>
+
+  <nav class="idx">
+    <a href="#mapa">1 · Mapa general</a>
+    <a href="#solicitud">2 · Solicitud desde OCR</a>
+    <a href="#captura">3 · Captura del examen</a>
+    <a href="#asignacion">4 · Dos usuarios / Tomar</a>
+    <a href="#finalizar">5 · Finalizar y webhook</a>
+    <a href="#estados">6 · Estados</a>
+    <a href="#jobs">7 · Procesos automáticos</a>
+    <a href="#candado">8 · Candado</a>
+    <a href="#pantallas">9 · Pantallas, tablas, logs</a>
+    <a href="#pruebas">10 · Plan de pruebas</a>
+  </nav>
+
+  <!-- ===================================================================== -->
+  <h2 id="mapa">1 · Mapa general</h2>
+  <p class="lead">Cuatro actores: <span class="tag ocr">OCR</span> manda candidatos y recibe el dictamen; <span class="tag med">médico</span> captura en el portal; <span class="tag sys">portal</span> guarda, avisa y reintenta; y el almacén es el biométrico (WS ORDS <code>Servcio/Medico</code> para el examen, tablas <code>SERV_MED_*</code> dentro de <code>BIOMETRICO</code> para todo lo demás).</p>
+  <div class="card">
+    <pre class="mermaid">
+flowchart LR
+  OCR[("OCR<br/>ai-docs.onestcloud.mx")]
+  subgraph PORTAL["Portal Salud (health.onestcloud.mx)"]
+    API["API /api/integracion/ocr/<br/>examen-inicial/solicitudes"]
+    NOTIF["Campanita +<br/>aviso de escritorio"]
+    BANDEJA["Bandeja<br/>Exámenes iniciales"]
+    EXAMEN["Examen médico inicial<br/>(borrador que se guarda solo)"]
+    WEBHOOK["Webhook firmado<br/>(reintentos)"]
+    ADMIN["Admin › Integración OCR<br/>(intentos / reenviar)"]
+  end
+  subgraph BD["BIOMETRICO (base del portal)"]
+    SOL[("SERV_MED_EXAMEN_SOLICITUD")]
+    ENV[("SERV_MED_INTEGRACION_ENVIO")]
+    BOR[("SERV_MED_EXAMEN_BORRADOR")]
+    HIS[("SERV_MED_EXAMEN_HISTORICO")]
+    NOT[("SERV_MED_NOTIFICACION")]
+    TAG[("SERV_MED_TAG")]
+  end
+  WS["WS ORDS Servcio/Medico<br/>(examen completo, tipo Admisión)"]
+  OCR -- "POST solicitud<br/>X-Api-Key" --> API
+  API --> SOL
+  API --> NOT
+  NOT --> NOTIF
+  NOTIF -- "abre NSS" --> EXAMEN
+  BANDEJA -- "Abrir examen" --> EXAMEN
+  SOL --> BANDEJA
+  EXAMEN --> BOR
+  EXAMEN -- "Finalizar" --> WS
+  EXAMEN -- "Finalizar" --> TAG
+  EXAMEN -- "Finalizar" --> HIS
+  EXAMEN -- "evento" --> WEBHOOK
+  WEBHOOK --> ENV
+  WEBHOOK -- "POST dictamen<br/>X-Firma" --> OCR
+  OCR -. "GET consulta de respaldo" .-> API
+  ADMIN --> ENV
+    </pre>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 id="solicitud">2 · Solicitud desde OCR</h2>
+  <p class="lead">OCR crea la solicitud; el portal valida, guarda y avisa al servicio médico. El candidato normalmente <b>no existe en el biométrico</b>: la solicitud hace de ficha.</p>
+  <div class="card">
+    <pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant OCR
+  participant F as OcrTrazaFilter → OcrApiKeyFilter
+  participant C as OcrSolicitudController
+  participant S as SolicitudExamenService
+  participant BD as SERV_MED_EXAMEN_SOLICITUD
+  participant N as Notificaciones
+  OCR->>F: POST /solicitudes (JSON + X-Api-Key)
+  Note over F: traza completa en logs/portal-salud-ocr.log
+  alt sin llave en el WAR
+    F-->>OCR: 503 NO_DISPONIBLE
+  else llave mala o ausente
+    F-->>OCR: 401 NO_AUTORIZADO
+  end
+  F->>C: pasa
+  C->>S: crear(body)
+  S->>S: 7 obligatorios: nss, nombre, apellidos, curp, puestoSolicitado, cuenta
+  alt faltan o mal formados
+    S-->>OCR: 400 SOLICITUD_INVALIDA + detalles[]
+  end
+  S->>BD: ¿existe referenciaOcr?
+  alt ya existía
+    S-->>OCR: 200 (misma solicitud, idempotente)
+  end
+  S->>S: candado(nss): ¿empleado con examen vigente?
+  alt bloqueado
+    S-->>OCR: 409 EXAMEN_VIGENTE + dictamenVigente
+  end
+  S->>BD: INSERT PENDIENTE, caduca = cita (o hoy) + 30 días<br/>nacimiento y sexo derivados de la CURP
+  S->>N: crear "Examen médico inicial pendiente" (idempotente por origen+referencia)
+  S-->>OCR: 201 {solicitudId, estatus, recibido, caduca, consulta}
+    </pre>
+    <table>
+      <tr><th>Respuesta</th><th>Cuándo</th><th>Qué hace OCR</th></tr>
+      <tr><td><code>201</code></td><td>Solicitud nueva</td><td>Guarda <code>solicitudId</code>; espera el webhook</td></tr>
+      <tr><td><code>200</code></td><td>Misma <code>referenciaOcr</code> repetida</td><td>Nada; es la misma solicitud (por eso la referencia <b>no</b> debe ser el NSS)</td></tr>
+      <tr><td><code>400</code></td><td>Obligatorios ausentes / formato</td><td>Corrige y reenvía</td></tr>
+      <tr><td><code>401</code> / <code>503</code></td><td>Llave mala / API sin llave</td><td>Revisa la llave / reintenta en 5 min</td></tr>
+      <tr><td><code>409</code></td><td>El NSS ya es empleado con examen vigente</td><td>No procede examen inicial; trae el dictamen vigente</td></tr>
+    </table>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 id="captura">3 · Captura del examen (médico)</h2>
+  <p class="lead">Del aviso al borrador. Todo lo que captura se guarda solo (hoja por hoja); nada sale al biométrico hasta <b>Finalizar</b>.</p>
+  <div class="card">
+    <pre class="mermaid">
+flowchart TD
+  A["Campanita (sondeo cada 45 s)<br/>+ aviso de escritorio"] -->|clic| B["/nss?nss=…&abrir=examen-inicial"]
+  A2["Bandeja › Abrir examen"] --> B
+  A3["Buscar NSS a mano › módulo Examen inicial"] --> B
+  B --> C{"¿Está en el biométrico?"}
+  C -->|sí| D["Ficha del empleado (WS)"]
+  C -->|no, pero hay solicitud| E["Ficha desde la solicitud OCR<br/>badge 'Candidato (solicitud OCR)'"]
+  D --> F["Shell del examen inicial<br/>10 hojas, stepper 5×2"]
+  E --> F
+  F --> G["Solicitud → EN_CAPTURA<br/>y se asigna al que abre (si estaba libre)"]
+  F --> H["Autoguardado de cada hoja<br/>SERV_MED_EXAMEN_BORRADOR"]
+  H --> I["Sí/No con botones · 'Todo normal'<br/>exploración con vitales e IMC<br/>odontograma con pincel · dictamen 4 botones · firma"]
+  I --> J["Finalizar (ver §5)"]
+    </pre>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 id="asignacion">4 · Dos usuarios sobre el mismo examen</h2>
+  <p class="lead">El primero que abre el examen de una solicitud queda como <b>atendiendo</b> (<code>ATENDIDO_POR / ATENDIDO_AT</code>). Otro usuario puede verlo, pero no finalizarlo hasta que lo <b>tome</b>.</p>
+  <div class="card">
+    <pre class="mermaid">
+sequenceDiagram
+  participant A as Médico A
+  participant B as Médico B
+  participant P as Portal
+  A->>P: abre examen inicial del NSS
+  P->>P: asignarSiLibre → ATENDIDO_POR = A
+  B->>P: abre el mismo examen
+  P-->>B: banner ámbar "Lo está atendiendo A desde las 10:32" + botón Tomar examen
+  B->>P: Finalizar
+  P-->>B: 400 "Este examen lo está atendiendo A…"
+  B->>P: Tomar examen (confirmación)
+  P->>P: reasignar → ATENDIDO_POR = B (auditado)
+  P-->>B: shell recargado sin banner
+  A->>P: Finalizar
+  P-->>A: 400 "Este examen lo está atendiendo B…"
+    </pre>
+    <div class="nota">También se puede <b>Tomar</b> desde la bandeja sin abrir el examen. El borrador es uno solo por NSS: lo que A capturó lo ve B. No hay bloqueo de edición, solo de finalización.</div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 id="finalizar">5 · Finalizar y aviso a OCR (webhook)</h2>
+  <p class="lead">Finalizar es la única acción que escribe en el biométrico. El webhook no se manda en línea: se <b>programa</b> y un proceso lo envía y reintenta.</p>
+  <div class="card">
+    <pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant M as Médico
+  participant E as ExamenInicialService
+  participant WS as WS Servcio/Medico + SERV_MED_TAG
+  participant H as SERV_MED_EXAMEN_HISTORICO
+  participant S as SolicitudExamenService
+  participant W as OcrWebhookService (cada 60 s)
+  participant OCR
+  M->>E: Finalizar (dictamen + diagnóstico ICD + firma)
+  E->>E: candado + "¿me lo asignaron a mí?"
+  E->>WS: examen completo tipo Admisión
+  E->>H: registrar(origen INICIAL, dictamen)
+  E->>E: cerrar borrador (queda FINALIZADO)
+  E-->>M: abre el expediente impreso en pestaña nueva
+  E-)S: evento ExamenInicialFinalizado(nss, dictamen)
+  S->>S: solicitud → FINALIZADO (dictamen, fechaExamen, historicoId)
+  S->>W: programar envío intento 1 (SERV_MED_INTEGRACION_ENVIO)
+  loop cada 60 s
+    W->>OCR: POST callback · X-Firma = HMAC-SHA256(cuerpo)<br/>+ X-Firma-Tiempo, X-Firma-V2, X-Evento
+    alt 2xx
+      OCR-->>W: {"recibido": true}
+      W->>S: NOTIFICADO_AT
+    else error / sin respuesta
+      W->>W: FALLO → reprograma +1, +5, +15, +60, +360 min
+      Note over W: tras 6 intentos → AGOTADO (Admin › Reenviar)
+    end
+  end
+    </pre>
+    <h3>Cuerpo que recibe OCR</h3>
+    <pre style="background:var(--gris-50);border:1px solid var(--line);border-radius:8px;padding:12px;font-size:.82rem;overflow:auto">{
+  "evento": "EXAMEN_INICIAL_FINALIZADO",
+  "solicitudId": 418,
+  "referenciaOcr": "OCR-2026-000123",
+  "nss": "30048315698",
+  "curp": "…",
+  "estatus": "DICTAMINADO",
+  "dictamen": "APTO | APTO_CONDICIONADO | APTO_RESTRINGIDO | NO_APTO",
+  "fechaDictamen": "2026-10-06",
+  "fechaExamen": "2026-10-06T11:20:00-06:00",
+  "restricciones": [ { "codigo": "RES-03", "descripcion": "…" } ],
+  "documentoUrl": "https://health.onestcloud.mx/api/integracion/ocr/examen-inicial/solicitudes/418/documento"
+}</pre>
+    <table>
+      <tr><th>Dictamen</th><th>Significado</th><th>En OCR</th></tr>
+      <tr><td><code>APTO</code></td><td>Sin hallazgos</td><td>Apto</td></tr>
+      <tr><td><code>APTO_CONDICIONADO</code></td><td>Enfermedad controlable, con seguimiento (carta compromiso)</td><td>Apto condicionado</td></tr>
+      <tr><td><code>APTO_RESTRINGIDO</code></td><td>Padecimiento permanente; viaja con <code>restricciones[]</code></td><td>Apto inclusión</td></tr>
+      <tr><td><code>NO_APTO</code></td><td>No apto para ingreso; un nuevo examen inicial lo puede cambiar</td><td>No apto</td></tr>
+    </table>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 id="estados">6 · Estados</h2>
+  <div class="card">
+    <h3>Solicitud (<code>SERV_MED_EXAMEN_SOLICITUD.ESTATUS</code>)</h3>
+    <pre class="mermaid">
+stateDiagram-v2
+  [*] --> PENDIENTE: OCR crea (201)
+  PENDIENTE --> EN_CAPTURA: médico abre el examen
+  PENDIENTE --> CANCELADO: OCR cancela / caducidad (01:15, caduca < hoy)
+  EN_CAPTURA --> CANCELADO: OCR cancela / caducidad
+  EN_CAPTURA --> FINALIZADO: Finalizar
+  PENDIENTE --> FINALIZADO: Finalizar (sin pasar por EN_CAPTURA)
+  FINALIZADO --> [*]
+  CANCELADO --> [*]
+    </pre>
+    <h3>Envío del webhook (<code>SERV_MED_INTEGRACION_ENVIO.ESTATUS</code>)</h3>
+    <pre class="mermaid">
+stateDiagram-v2
+  [*] --> PENDIENTE: programado (intento n)
+  PENDIENTE --> OK: OCR respondió 2xx
+  PENDIENTE --> FALLO: error HTTP / red → se programa intento n+1
+  PENDIENTE --> AGOTADO: falló el 6º intento
+  AGOTADO --> PENDIENTE: Admin › Reenviar
+  OK --> PENDIENTE: Admin › Reenviar (manual)
+    </pre>
+    <h3>Borrador del examen (<code>SERV_MED_EXAMEN_BORRADOR</code>)</h3>
+    <p>Uno por NSS: <b>abierto</b> mientras se captura → <b>FINALIZADO</b> al terminar (se conserva como histórico de la captura). Un nuevo examen inicial del mismo NSS abre otro borrador.</p>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 id="jobs">7 · Procesos automáticos</h2>
+  <div class="card">
+    <table>
+      <tr><th>Proceso</th><th>Cuándo</th><th>Qué hace</th><th>Dónde se ve</th></tr>
+      <tr><td>Envío de webhooks</td><td>Cada 60 s (30 s tras arrancar)</td><td>Toma hasta 20 envíos PENDIENTES cuya hora programada ya pasó (reloj del portal), los manda firmados y registra resultado</td><td><code>[ocr-webhook]</code> en <code>logs/portal-salud-ocr.log</code>; Admin › Integración OCR › Intentos</td></tr>
+      <tr><td>Caducidad de solicitudes</td><td>Diario 01:15</td><td>PENDIENTE/EN_CAPTURA con <code>CADUCA</code> vencida → CANCELADO motivo "caducó"</td><td>Bandeja (estatus Cancelados); <code>[ocr] n solicitudes caducadas</code></td></tr>
+      <tr><td>Sondeo de la campanita</td><td>Cada 45 s en el navegador</td><td>Trae notificaciones no leídas; la primera vez pide permiso de aviso de escritorio</td><td>Ícono campana (contador rojo)</td></tr>
+      <tr><td>Autoguardado del borrador</td><td>Al cambiar de hoja y con cada cambio (debounce)</td><td>Funde la hoja al borrador del NSS</td><td>Hora "guardado HH:mm:ss" en el shell</td></tr>
+    </table>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 id="candado">8 · Candado: ¿se puede aplicar examen inicial a este NSS?</h2>
+  <div class="card">
+    <pre class="mermaid">
+flowchart TD
+  A["NSS"] --> B{"¿Último histórico es INICIAL<br/>con NO_APTO?"}
+  B -->|sí| OK1["Abierto: se repite el examen inicial"]
+  B -->|no| C{"¿Es empleado en el biométrico?"}
+  C -->|no| OK2["Abierto: candidato"]
+  C -->|sí| D{"¿Tiene histórico<br/>(inicial o periódico) finalizado?"}
+  D -->|sí| X1["Bloqueado: ya es empleado con examen"]
+  D -->|no| E{"¿El WS trae dictamen vigente?"}
+  E -->|sí| X2["Bloqueado: examen médico vigente"]
+  E -->|no| OK3["Abierto"]
+    </pre>
+    <div class="nota">El candado se evalúa al crear la solicitud (409 a OCR), al abrir el shell (banner rojo, Finalizar deshabilitado) y otra vez al finalizar (por si cambió en medio).</div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 id="pantallas">9 · Pantallas, tablas y logs</h2>
+  <div class="card">
+    <table>
+      <tr><th>Pantalla</th><th>Ruta</th><th>Quién</th><th>Permiso (CODE de menú)</th></tr>
+      <tr><td>Examen médico inicial (en el NSS)</td><td><code>/nss?nss=…&abrir=examen-inicial</code></td><td>Médico</td><td><code>EXAMEN_INICIAL</code></td></tr>
+      <tr><td>Bandeja de exámenes iniciales</td><td><code>/examen-inicial/bandeja</code></td><td>Médico / coordinación</td><td><code>EXAMEN_INICIAL_BANDEJA</code> (Administración › Roles › Menús)</td></tr>
+      <tr><td>Integración OCR (intentos, reenviar)</td><td><code>/admin/integracion-ocr</code></td><td>Admin</td><td>Rol ADMIN</td></tr>
+      <tr><td>Expediente impreso</td><td><code>/api/nss/examen/imprimir?nss=…</code></td><td>Médico</td><td>Examen</td></tr>
+      <tr><td>Documento para OCR</td><td><code>/api/integracion/ocr/examen-inicial/solicitudes/{id}/documento</code></td><td>OCR (con llave)</td><td>X-Api-Key</td></tr>
+    </table>
+    <table>
+      <tr><th>Tabla (BIOMETRICO)</th><th>Guarda</th><th>Script</th></tr>
+      <tr><td><code>SERV_MED_EXAMEN_SOLICITUD</code></td><td>Solicitud OCR: datos del candidato, estatus, caduca, dictamen, atendido por</td><td><code>integracion-ocr.sql</code> + <code>examen-inicial-bandeja.sql</code></td></tr>
+      <tr><td><code>SERV_MED_INTEGRACION_ENVIO</code></td><td>Cada intento de webhook: cuerpo, hora programada, HTTP, respuesta</td><td><code>integracion-ocr.sql</code></td></tr>
+      <tr><td><code>SERV_MED_EXAMEN_BORRADOR</code></td><td>Captura en curso por NSS (JSON por hoja)</td><td><code>examen-inicial.sql</code></td></tr>
+      <tr><td><code>SERV_MED_EXAMEN_HISTORICO</code></td><td>Cada examen finalizado: origen INICIAL/PERIODICO, dictamen, usuario</td><td><code>examen-historico.sql</code></td></tr>
+      <tr><td><code>SERV_MED_NOTIFICACION</code></td><td>Campanita (origen + referencia para no duplicar)</td><td><code>notificaciones.sql</code></td></tr>
+      <tr><td><code>SERV_MED_TAG</code></td><td>El examen completo (EAV, tipo Admisión) — mismo almacén que el examen periódico</td><td>existente</td></tr>
+      <tr><td><code>SERV_MED_MENU / _ROLE</code></td><td>Menús <code>EXAMEN_INICIAL</code>, <code>EXAMEN_INICIAL_BANDEJA</code> por rol</td><td>idem</td></tr>
+    </table>
+    <table>
+      <tr><th>Log</th><th>Dónde</th><th>Contiene</th></tr>
+      <tr><td><code>[ocr-http]</code></td><td><code>&lt;tomcat&gt;/logs/portal-salud-ocr.log</code> (y catalina.out)</td><td>Cada petición de OCR: origen, cabeceras (incl. X-Api-Key), JSON recibido, respuesta, ms. También los 401.</td></tr>
+      <tr><td><code>[ocr-webhook]</code></td><td>idem</td><td>Cada envío a OCR: URL, X-Firma/Tiempo/V2, JSON enviado, HTTP y cuerpo de respuesta (o error de red).</td></tr>
+      <tr><td><code>[ocr]</code></td><td>catalina.out</td><td>Eventos resumidos: solicitud creada, caducadas, fallos.</td></tr>
+      <tr><td>Auditoría</td><td>Administración › Auditoría</td><td>create/update de solicitudes, cancelaciones, Tomar examen, Finalizar.</td></tr>
+    </table>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 id="pruebas">10 · Plan de pruebas</h2>
+  <p class="lead">Marca cada caso al pasarlo; el avance se guarda en este navegador. <span class="tag prod">PROD</span> = se prueba con OCR real en producción (decisión del 6-oct); <span class="tag qa">QA</span> = se puede probar antes en QA con el receptor simulado.</p>
+  <div class="card">
+    <div class="prog"><b>Avance de pruebas</b><span class="prog-pct"><span id="pct">0%</span> · <span id="cnt">0/0</span></span></div>
+    <div class="barra"><i id="bar"></i></div>
+    <div class="acciones">
+      <button onclick="marcarTodo(false)">Desmarcar todo</button>
+      <button onclick="exportar()">Copiar resultado (texto)</button>
+    </div>
+
+    <h3>A · API de solicitudes (OCR → portal)</h3>
+    <table id="tA">
+      <tr><th style="width:36px"></th><th>Caso</th><th>Pasos</th><th>Resultado esperado</th><th>Dónde verificar</th><th style="width:18%">Resultado / notas</th></tr>
+      <tr class="caso" data-id="A1"><td><input type="checkbox"></td><td>Alta válida <span class="tag prod">PROD</span></td><td>OCR manda POST con los 7 obligatorios y <code>referenciaOcr</code> única</td><td><code>201</code> con <code>solicitudId</code>, <code>estatus PENDIENTE</code>, <code>caduca</code> = cita+30 d</td><td>Bandeja (pendiente), campanita, <code>[ocr-http]</code></td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="A2"><td><input type="checkbox"></td><td>Idempotencia</td><td>Repetir el mismo POST (misma referencia)</td><td><code>200</code> con el mismo <code>solicitudId</code>; no se duplica en bandeja ni en la campanita</td><td>Bandeja, <code>[ocr-http]</code></td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="A3"><td><input type="checkbox"></td><td>Llave mala</td><td>POST con <code>X-Api-Key</code> incorrecta</td><td><code>401 NO_AUTORIZADO</code>; en el log se ve el JSON que mandaron</td><td><code>[ocr-http]</code> → 401</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="A4"><td><input type="checkbox"></td><td>Obligatorios</td><td>POST sin <code>curp</code> y con NSS de 5 dígitos</td><td><code>400 SOLICITUD_INVALIDA</code> con <code>detalles[]</code> por campo</td><td><code>[ocr-http]</code></td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="A5"><td><input type="checkbox"></td><td>NSS ya empleado</td><td>POST con el NSS de un empleado con examen vigente</td><td><code>409 EXAMEN_VIGENTE</code> + <code>dictamenVigente</code></td><td><code>[ocr-http]</code></td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="A6"><td><input type="checkbox"></td><td>Consulta de respaldo</td><td><code>GET /solicitudes/{id}</code> y <code>GET /solicitudes?referenciaOcr=…</code></td><td><code>200</code> con el estatus actual; <code>404 NO_EXISTE</code> si no existe</td><td><code>[ocr-http]</code></td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="A7"><td><input type="checkbox"></td><td>Cancelar</td><td><code>POST /solicitudes/{id}/cancelar {"motivo":…}</code> sobre una pendiente; repetir sobre una finalizada</td><td><code>200 CANCELADO</code>; la segunda <code>409 YA_FINALIZADO</code>. En el NSS ya no sale el banner de pendiente</td><td>Bandeja (Cancelados), ficha del NSS</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="A8"><td><input type="checkbox"></td><td>Datos opcionales</td><td>POST solo con los 7 obligatorios (sin domicilio, teléfono, cita…)</td><td><code>201</code>; ficha del candidato con guiones donde no hay dato; <code>caduca</code> = hoy+30</td><td>Ficha del NSS</td><td><textarea></textarea></td></tr>
+    </table>
+
+    <h3>B · Aviso y ficha del candidato</h3>
+    <table id="tB">
+      <tr><th style="width:36px"></th><th>Caso</th><th>Pasos</th><th>Resultado esperado</th><th>Dónde verificar</th><th style="width:18%">Resultado / notas</th></tr>
+      <tr class="caso" data-id="B1"><td><input type="checkbox"></td><td>Campanita</td><td>Tras A1, esperar ≤45 s con el portal abierto</td><td>Contador +1; en la lista "Examen médico inicial pendiente · nombre (cita dd/mm) · puesto" con iniciales en el círculo</td><td>Header</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="B2"><td><input type="checkbox"></td><td>Aviso de escritorio</td><td>Aceptar el permiso; recibir una solicitud nueva</td><td>Notificación del sistema operativo con el mismo texto</td><td>Escritorio</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="B3"><td><input type="checkbox"></td><td>Clic en la notificación</td><td>Clic en el renglón</td><td>Abre <code>/nss?nss=…&abrir=examen-inicial</code> directo en el examen; la notificación queda leída</td><td>Navegador</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="B4"><td><input type="checkbox"></td><td>Candidato no empleado</td><td>Buscar el NSS del candidato</td><td>Ficha con nombre, CURP, sexo/edad (de la CURP), puesto, cuenta; badge "Candidato (solicitud OCR)"; banner "Examen médico inicial pendiente" con botón</td><td>Resultado NSS</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="B5"><td><input type="checkbox"></td><td>Candidato que sí existe</td><td>POST A1 con un NSS que está en el biométrico sin examen</td><td>Ficha del biométrico (no de la solicitud) + banner de pendiente</td><td>Resultado NSS</td><td><textarea></textarea></td></tr>
+    </table>
+
+    <h3>C · Captura del examen inicial</h3>
+    <table id="tC">
+      <tr><th style="width:36px"></th><th>Caso</th><th>Pasos</th><th>Resultado esperado</th><th>Dónde verificar</th><th style="width:18%">Resultado / notas</th></tr>
+      <tr class="caso" data-id="C1"><td><input type="checkbox"></td><td>Pasa a EN_CAPTURA</td><td>Abrir el examen desde el banner</td><td>En bandeja: EN CAPTURA, columna Atiende = tu usuario con hora</td><td>Bandeja</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="C2"><td><input type="checkbox"></td><td>Autoguardado</td><td>Capturar hoja 2, cambiar a hoja 3, cerrar el navegador, volver a abrir</td><td>Lo capturado sigue ahí; sello "guardado HH:mm:ss"</td><td>Shell</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="C3"><td><input type="checkbox"></td><td>Todo normal</td><td>En antecedentes marcar algunos Sí con observación; pulsar el switch "Todo normal"</td><td>Todos quedan No, observaciones vacías, texto "Listo (n)"; volver a pulsar no cambia nada ("Ya estaba normal")</td><td>Shell</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="C4"><td><input type="checkbox"></td><td>Exploración</td><td>Peso 80, talla 1.75</td><td>IMC calculado (26.1) y clasificado; campos numéricos no aceptan letras; teléfono con máscara y guardado sin formato</td><td>Shell</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="C5"><td><input type="checkbox"></td><td>Odontograma</td><td>Elegir Caries, clic en 16 y 36; clic de nuevo en 16</td><td>36 rojo con C; 16 vuelve a sano; se conserva tras recargar</td><td>Shell / expediente impreso</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="C6"><td><input type="checkbox"></td><td>Finalizar sin dictamen</td><td>Pulsar Finalizar con el dictamen vacío</td><td>Mensaje "Selecciona el resultado…" y la vista baja al dictamen; no se envía nada</td><td>Shell</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="C7"><td><input type="checkbox"></td><td>Finalizar sin ICD</td><td>Dictamen puesto, diagnóstico vacío</td><td>Mensaje "Captura el diagnóstico…"; foco en el buscador ICD</td><td>Shell</td><td><textarea></textarea></td></tr>
+    </table>
+
+    <h3>D · Dos usuarios</h3>
+    <table id="tD">
+      <tr><th style="width:36px"></th><th>Caso</th><th>Pasos</th><th>Resultado esperado</th><th>Dónde verificar</th><th style="width:18%">Resultado / notas</th></tr>
+      <tr class="caso" data-id="D1"><td><input type="checkbox"></td><td>Segundo usuario ve el aviso</td><td>Usuario B abre el examen que A tiene asignado</td><td>Banner ámbar "Lo está atendiendo A desde las HH:mm" + botón Tomar examen</td><td>Shell (B)</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="D2"><td><input type="checkbox"></td><td>B no puede finalizar</td><td>B pulsa Finalizar</td><td>Error "Este examen lo está atendiendo A…"; nada se guarda en el biométrico</td><td>Shell (B), bandeja sigue EN CAPTURA</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="D3"><td><input type="checkbox"></td><td>Tomar</td><td>B pulsa Tomar examen → confirmar</td><td>Shell recarga sin banner; bandeja: Atiende = B; auditoría "tomar examen"</td><td>Bandeja, Auditoría</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="D4"><td><input type="checkbox"></td><td>A ya no puede finalizar</td><td>A pulsa Finalizar</td><td>Error "lo está atendiendo B"</td><td>Shell (A)</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="D5"><td><input type="checkbox"></td><td>Tomar desde la bandeja</td><td>A pulsa Tomar en el renglón de la bandeja</td><td>Confirmación, recarga, Atiende = A</td><td>Bandeja</td><td><textarea></textarea></td></tr>
+    </table>
+
+    <h3>E · Finalizar y webhook (portal → OCR)</h3>
+    <table id="tE">
+      <tr><th style="width:36px"></th><th>Caso</th><th>Pasos</th><th>Resultado esperado</th><th>Dónde verificar</th><th style="width:18%">Resultado / notas</th></tr>
+      <tr class="caso" data-id="E1"><td><input type="checkbox"></td><td>Finalizar APTO <span class="tag prod">PROD</span></td><td>Dictamen Apto, ICD, firma, Finalizar → confirmar</td><td>Botón en "Finalizando…", se abre el expediente impreso con el dictamen; bandeja FINALIZADO con dictamen</td><td>Pestaña nueva, bandeja</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="E2"><td><input type="checkbox"></td><td>Webhook recibido <span class="tag prod">PROD</span></td><td>Esperar ≤60 s tras E1</td><td>OCR recibe el POST con <code>X-Firma</code> válida y responde 2xx; "Avisado a OCR" con hora en Admin; <code>NOTIFICADO_AT</code></td><td><code>[ocr-webhook]</code>, Admin › Intentos (OK, HTTP 200)</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="E3"><td><input type="checkbox"></td><td>Firma coincide <span class="tag prod">PROD</span></td><td>OCR recalcula HMAC-SHA256(secreto, cuerpo crudo) y lo compara con el <code>X-Firma</code> del log</td><td>Idéntico hex</td><td><code>[ocr-webhook]</code> vs. log de OCR</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="E4"><td><input type="checkbox"></td><td>Dictamen con restricciones</td><td>Finalizar con APTO_RESTRINGIDO y una restricción RES-xx activa en el NSS</td><td>El JSON lleva <code>restricciones[]</code> con código y descripción</td><td><code>[ocr-webhook]</code></td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="E5"><td><input type="checkbox"></td><td>NO_APTO y repetir</td><td>Finalizar NO_APTO; OCR crea nueva solicitud con otra referencia para el mismo NSS</td><td>Webhook NO_APTO; la nueva solicitud entra <code>201</code> (candado abierto por no apto) y el examen se puede repetir</td><td>Bandeja: dos renglones del NSS</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="E6"><td><input type="checkbox"></td><td>Reintentos</td><td>OCR apaga su receptor (o responde 500); finalizar un examen</td><td>Intento 1 FALLO; intentos 2, 3… a +1, +5, +15 min; al volver OCR, OK y se detiene</td><td>Admin › Intentos; <code>[ocr-webhook]</code></td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="E7"><td><input type="checkbox"></td><td>Reenviar manual</td><td>Admin › Integración OCR › Reenviar sobre una finalizada</td><td>Nuevo intento programado y enviado en ≤60 s; OCR lo recibe de nuevo (debe ser idempotente por <code>solicitudId</code>)</td><td>Admin › Intentos</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="E8"><td><input type="checkbox"></td><td>Documento</td><td>OCR abre <code>documentoUrl</code> con su llave</td><td>HTML del expediente impreso; sin llave 401; si no está finalizada, error</td><td>Navegador / <code>[ocr-http]</code></td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="E9"><td><input type="checkbox"></td><td>Candado tras finalizar</td><td>Volver a abrir el examen inicial del NSS ya finalizado como apto (si ya es empleado)</td><td>Banner "Examen inicial bloqueado", Finalizar deshabilitado; si no es empleado, aviso ámbar de que ya tiene examen y se puede reemplazar</td><td>Shell</td><td><textarea></textarea></td></tr>
+    </table>
+
+    <h3>F · Bandeja, permisos y caducidad</h3>
+    <table id="tF">
+      <tr><th style="width:36px"></th><th>Caso</th><th>Pasos</th><th>Resultado esperado</th><th>Dónde verificar</th><th style="width:18%">Resultado / notas</th></tr>
+      <tr class="caso" data-id="F1"><td><input type="checkbox"></td><td>Filtros</td><td>Filtrar por estatus, por NSS (prefijo), por nombre (parte), por rango de fechas; limpiar</td><td>La lista respeta cada filtro; conteos de pendientes/en captura cambian; orden: pendientes, en captura, finalizados</td><td>Bandeja</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="F2"><td><input type="checkbox"></td><td>Menú por rol</td><td>Quitar <code>EXAMEN_INICIAL_BANDEJA</code> a un rol en Administración › Roles › Menús; entrar con ese rol</td><td>No aparece en el menú y <code>/examen-inicial/bandeja</code> responde 403</td><td>Sidebar, navegador</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="F3"><td><input type="checkbox"></td><td>Caducidad</td><td>Solicitud con cita hace >30 días (OCR la manda con <code>fechaCita</code> vieja); esperar al job 01:15 (o pedir una corrida)</td><td>Pasa a CANCELADO "caducó"; desaparece el banner en el NSS</td><td>Bandeja (Cancelados)</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="F4"><td><input type="checkbox"></td><td>Base caída</td><td>(Solo QA) Portal sin acceso a la base del portal; OCR manda POST</td><td><code>503 NO_DISPONIBLE, reintentarEn 300</code>; la bandeja muestra el aviso en vez de caerse</td><td><code>[ocr-http]</code>, bandeja</td><td><textarea></textarea></td></tr>
+    </table>
+
+    <div class="nota"><b>Antes de probar en producción:</b> OCR debe tener la API key y el secreto HMAC de producción (distintos a los de QA), su receptor debe aceptar <code>APTO_CONDICIONADO</code> y <code>solicitudId</code> numérico, y no usar el NSS como <code>referenciaOcr</code>. Las pruebas con NSS reales dejan examen en el biométrico: usar el NSS de pruebas <code>30048315698</code> y limpiar con <code>docs/script-prod/limpiar-nss-pruebas.local.sql</code> al terminar.</div>
+  </div>
+</div>
+
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: 'base', themeVariables: {
+    primaryColor: '#EAF3FA', primaryBorderColor: '#0057A8', primaryTextColor: '#20252B',
+    lineColor: '#475467', secondaryColor: '#F2F4F7', tertiaryColor: '#FFF7E6', fontSize: '13px'
+  }});
+
+  // Avance de pruebas: se guarda en localStorage de este navegador (sin servidor)
+  var CLAVE = 'guia-pruebas-examen-inicial-ocr';
+  var filas = Array.prototype.slice.call(document.querySelectorAll('tr.caso'));
+  function leer() { try { return JSON.parse(localStorage.getItem(CLAVE) || '{}'); } catch (e) { return {}; } }
+  function guardar(d) { try { localStorage.setItem(CLAVE, JSON.stringify(d)); } catch (e) {} }
+  function pintar() {
+    var hechos = 0;
+    filas.forEach(function (tr) {
+      var ok = tr.querySelector('input[type=checkbox]').checked;
+      tr.classList.toggle('hecho', ok);
+      if (ok) { hechos++; }
+    });
+    var pct = filas.length ? Math.round(hechos * 100 / filas.length) : 0;
+    document.getElementById('pct').textContent = pct + '%';
+    document.getElementById('cnt').textContent = hechos + '/' + filas.length;
+    document.getElementById('bar').style.width = pct + '%';
+  }
+  function persistir() {
+    var d = {};
+    filas.forEach(function (tr) {
+      d[tr.dataset.id] = { ok: tr.querySelector('input[type=checkbox]').checked, nota: tr.querySelector('textarea').value };
+    });
+    guardar(d);
+    pintar();
+  }
+  (function init() {
+    var d = leer();
+    filas.forEach(function (tr) {
+      var e = d[tr.dataset.id];
+      if (e) {
+        tr.querySelector('input[type=checkbox]').checked = !!e.ok;
+        tr.querySelector('textarea').value = e.nota || '';
+      }
+      tr.querySelector('input[type=checkbox]').addEventListener('change', persistir);
+      tr.querySelector('textarea').addEventListener('input', persistir);
+    });
+    pintar();
+  })();
+  function marcarTodo(v) {
+    filas.forEach(function (tr) { tr.querySelector('input[type=checkbox]').checked = v; });
+    persistir();
+  }
+  function exportar() {
+    var lineas = [];
+    filas.forEach(function (tr) {
+      var tds = tr.querySelectorAll('td');
+      var ok = tr.querySelector('input[type=checkbox]').checked ? '[x]' : '[ ]';
+      var nota = tr.querySelector('textarea').value.trim();
+      lineas.push(ok + ' ' + tr.dataset.id + ' ' + tds[1].textContent.trim() + (nota ? ' — ' + nota : ''));
+    });
+    var txt = 'Pruebas examen inicial / OCR · ' + document.getElementById('cnt').textContent + '\n' + lineas.join('\n');
+    if (navigator.clipboard) { navigator.clipboard.writeText(txt); alert('Copiado al portapapeles.'); } else { prompt('Copia:', txt); }
+  }
+</script>
+</body>
+</html>

@@ -11,7 +11,8 @@ public record SolicitudExamen(
         String domicilio, String telefono, String empresa, String cuenta, String agencia, String puestoSolicitado,
         LocalDate fechaCita, String callbackUrl, String estatus, LocalDate caduca, String motivoCancel,
         LocalDateTime canceladoAt, String dictamen, LocalDateTime fechaExamen, Long historicoId,
-        LocalDateTime notificadoAt, LocalDateTime createdAt, LocalDateTime updatedAt) {
+        LocalDateTime notificadoAt, LocalDateTime createdAt, LocalDateTime updatedAt,
+        String atendidoPor, LocalDateTime atendidoAt) {
 
     public static final String PENDIENTE = "PENDIENTE";
     public static final String EN_CAPTURA = "EN_CAPTURA";

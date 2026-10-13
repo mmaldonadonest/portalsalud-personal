@@ -41,8 +41,13 @@
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <div class="col-md-8">
                     <label class="form-label" for="nssInput">NSS</label>
-                    <input id="nssInput" name="nss" type="text" class="form-control"
-                           placeholder="Ej. 30048315698" th:value="${nssQuery}" required>
+                    <div class="position-relative">
+                        <input id="nssInput" name="nss" type="text" class="form-control pe-5"
+                               placeholder="Ej. 30048315698" th:value="${nssQuery}" required>
+                        <!-- Limpiar: solo se ve con texto; deja la pantalla lista para otra busqueda -->
+                        <button id="nssClear" type="button" class="btn-close position-absolute top-50 end-0 translate-middle-y me-3"
+                                style="font-size: .7rem; display: none;" aria-label="Limpiar" title="Limpiar"></button>
+                    </div>
                 </div>
                 <div class="col-md-4">
                     <button class="btn btn-primary" type="submit">Buscar</button>
@@ -82,6 +87,29 @@
 
             if (!form || !status || !result || !input) {
                 return;
+            }
+
+            // Boton "x" del campo NSS: vacia el campo y lo que dejo la busqueda anterior (ficha,
+            // modulos del menu lateral y el modulo abierto), para no confundir a quien busca a otra
+            // persona con los datos de la anterior todavia en pantalla.
+            var limpiar = document.getElementById('nssClear');
+            function mostrarLimpiar() {
+                if (limpiar) { limpiar.style.display = input.value ? '' : 'none'; }
+            }
+            if (limpiar) {
+                input.addEventListener('input', mostrarLimpiar);
+                limpiar.addEventListener('click', function () {
+                    input.value = '';
+                    mostrarLimpiar();
+                    status.textContent = 'Ingresa un NSS para consultar.';
+                    result.innerHTML = '';
+                    result.style.display = 'none';
+                    resetSidebarModules();
+                    var mc = document.getElementById('moduleContent');
+                    if (mc) { mc.innerHTML = ''; }
+                    input.focus();
+                });
+                mostrarLimpiar();   // si la pagina llego con ?nss=..., ya hay texto
             }
 
             // Sesion/CSRF expirada: cualquier POST AJAX que devuelva 401/403 (tipico
@@ -855,10 +883,14 @@
                 exIniTimer = setTimeout(function () { exIniAutosave(); }, 1200);
             }
 
-            window.exIniAutosave = async function (hojaForzada) {
+            // Los autoguardados van en fila (exIniCola): el que sale al dejar una hoja y el que
+            // programa la hoja nueva no deben viajar en paralelo, o el servidor fusiona sobre un
+            // borrador viejo. Los datos se toman al momento de encolar (no al enviar).
+            var exIniCola = Promise.resolve();
+            window.exIniAutosave = function (hojaForzada) {
                 var root = exIniRoot();
                 if (!root) {
-                    return;
+                    return exIniCola;
                 }
                 if (exIniTimer) {
                     clearTimeout(exIniTimer);
@@ -867,8 +899,14 @@
                 var hoja = hojaForzada || exIniHojaActiva();
                 var section = root.querySelector('section.exini-hoja[data-hoja="' + hoja + '"]');
                 if (!section) {
-                    return;
+                    return exIniCola;
                 }
+                var cuerpo = JSON.stringify({ nss: root.getAttribute('data-nss'), hoja: hoja, datos: exIniCamposDe(section) });
+                exIniCola = exIniCola.then(function () { return exIniEnviarBorrador(cuerpo); });
+                return exIniCola;
+            };
+
+            async function exIniEnviarBorrador(cuerpo) {
                 var t = document.querySelector('meta[name="_csrf"]');
                 var h = document.querySelector('meta[name="_csrf_header"]');
                 var headers = { 'Content-Type': 'application/json', 'Accept': 'text/plain' };
@@ -876,7 +914,7 @@
                 try {
                     var response = await fetch(contextPath + 'api/nss/examen-inicial/borrador', {
                         method: 'POST', headers: headers,
-                        body: JSON.stringify({ nss: root.getAttribute('data-nss'), hoja: exIniHojaActiva(), datos: exIniCamposDe(section) })
+                        body: cuerpo
                     });
                     var txt = await response.text();
                     if (response.ok) {
@@ -889,7 +927,7 @@
                 } catch (error) {
                     exIniMarcarGuardado('Sin conexión: el borrador no se guardó', true);
                 }
-            };
+            }
 
             // n = numero de hoja, o delta (+1/-1) si relativo=true.
             window.exIniIr = function (n, relativo) {
@@ -1182,6 +1220,28 @@
                 exIniRefrescarSwitches();
             };
 
+            // "Tomar examen": la solicitud OCR estaba asignada a otro usuario; se reasigna al de
+            // la sesion y se recarga el shell para que desaparezca el aviso y Finalizar funcione.
+            window.exIniTomar = async function (btn) {
+                var id = btn.getAttribute('data-id');
+                if (!window.confirm('¿Tomar este examen? Quien lo tenía asignado dejará de poder finalizarlo.')) {
+                    return;
+                }
+                btn.disabled = true;
+                try {
+                    var h = {};
+                    var t = document.querySelector('meta[name="_csrf"]');
+                    var n = document.querySelector('meta[name="_csrf_header"]');
+                    if (t && n) { h[n.content] = t.content; }
+                    var r = await fetch(contextPath + 'api/examen-inicial/bandeja/' + id + '/tomar', { method: 'POST', headers: h });
+                    if (!r.ok) { throw new Error(await r.text()); }
+                    loadModuleView('api/nss/examen-inicial', exIniRoot().getAttribute('data-nss'));
+                } catch (err) {
+                    btn.disabled = false;
+                    window.alert('No se pudo tomar el examen: ' + (err && err.message ? err.message : err));
+                }
+            };
+
             // Finalizar: manda el formulario COMPLETO (las 10 hojas, no solo la activa) para que
             // nada quede fuera del borrador, y el servidor reparte al WS + tags. Con firma, se
             // abre el expediente impreso (mismo mecanismo que guardarExamen, via guardarRegistro).
@@ -1444,6 +1504,51 @@
                 }
             }
 
+            // Limites del servidor: FileStoreService.MAX_BYTES (por archivo) y
+            // spring.servlet.multipart.max-request-size (por subida). Se revisan al elegir para no
+            // esperar a que una subida grande falle al final.
+            var MAX_ARCHIVO = 25 * 1024 * 1024;
+            var MAX_SUBIDA = 50 * 1024 * 1024;
+
+            function problemaDeTamano(files) {
+                var total = 0;
+                for (var i = 0; i < files.length; i++) {
+                    if (files[i].size > MAX_ARCHIVO) {
+                        return '"' + files[i].name + '" pesa ' + (files[i].size / 1048576).toFixed(1)
+                            + ' MB; el máximo es 25 MB por archivo.';
+                    }
+                    total += files[i].size;
+                }
+                return total > MAX_SUBIDA
+                    ? 'Los archivos elegidos suman ' + (total / 1048576).toFixed(1) + ' MB; súbelos en partes (máximo 50 MB por subida).'
+                    : null;
+            }
+
+            // El selector de archivos del navegador no permite quitar lo elegido por error: el boton
+            // "Quitar" aparece solo cuando hay algo elegido.
+            window.alElegirArchivos = function (fileInput) {
+                var quitar = document.getElementById('archivoQuitar');
+                var hay = fileInput.files && fileInput.files.length > 0;
+                if (quitar) {
+                    quitar.classList.toggle('d-none', !hay);
+                }
+                var resultEl = document.getElementById('archivoSubirResult');
+                var problema = hay ? problemaDeTamano(fileInput.files) : null;
+                if (problema) {
+                    pintarResultadoInline(resultEl, problema, true);
+                } else if (resultEl) {
+                    resultEl.innerHTML = '';   // sin mensaje viejo de una eleccion anterior
+                }
+            };
+
+            window.quitarSeleccionArchivos = function () {
+                var fileInput = document.getElementById('archivoFiles');
+                if (fileInput) {
+                    fileInput.value = '';
+                    window.alElegirArchivos(fileInput);
+                }
+            };
+
             window.subirArchivo = async function (btn) {
                 var nss = btn.getAttribute('data-nss') || (input.value || '').trim();
                 var tipo = btn.getAttribute('data-tipo');
@@ -1451,6 +1556,11 @@
                 var fileInput = document.getElementById('archivoFiles');
                 if (!fileInput || !fileInput.files || !fileInput.files.length) {
                     pintarResultadoInline(resultEl, 'Selecciona al menos un PDF.', true);
+                    return;
+                }
+                var problema = problemaDeTamano(fileInput.files);
+                if (problema) {
+                    pintarResultadoInline(resultEl, problema, true);
                     return;
                 }
                 var fd = new FormData();

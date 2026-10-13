@@ -36,6 +36,8 @@ import org.springframework.web.client.RestClientResponseException;
 public class OcrWebhookService {
 
     private static final Logger log = LoggerFactory.getLogger(OcrWebhookService.class);
+    /** Traza completa del webhook (URL, firma, cuerpo, respuesta) en el mismo logger que OcrTrazaFilter. */
+    private static final Logger traza = LoggerFactory.getLogger(OcrTrazaFilter.LOGGER);
     static final String EVENTO = "EXAMEN_INICIAL_FINALIZADO";
     /** Minutos de espera antes del intento n+1 (indice = intento fallido - 1). */
     private static final int[] ESPERA_MIN = {1, 5, 15, 60, 360};
@@ -81,9 +83,20 @@ public class OcrWebhookService {
         envios.programar(solicitudId, EVENTO, url, cuerpo(s), intento, LocalDateTime.now(), usuario);
     }
 
+    /**
+     * Apaga las tareas programadas en una copia que apunta a la base de produccion (prueba local):
+     * si no, esa copia procesaria la misma cola que el servidor y OCR recibiria avisos duplicados.
+     * Por omision va encendido, asi el servidor de produccion no necesita configurar nada.
+     */
+    @org.springframework.beans.factory.annotation.Value("${portal.tareas-programadas.activas:true}")
+    private boolean tareasActivas;
+
     /** Cada minuto: manda los envios cuya hora llego. */
     @Scheduled(fixedDelay = 60_000, initialDelay = 30_000)
     public void procesarPendientes() {
+        if (!tareasActivas) {
+            return;
+        }
         List<EnvioWebhookRepository.Envio> lote;
         try {
             lote = envios.pendientesVencidos(20);
@@ -107,6 +120,8 @@ public class OcrWebhookService {
         String tiempo = String.valueOf(Instant.now().getEpochSecond());
         String firma = hmac(cuerpo);
         String firmaV2 = "sha256=" + hmac(tiempo + "." + cuerpo);
+        traza.info("[ocr-webhook] solicitud {} intento {} POST {}\n  cabeceras: X-Evento={} | X-Firma={} | X-Firma-Tiempo={} | X-Firma-V2={}\n  enviado:   {}",
+                e.solicitudId(), e.intento(), e.url(), e.evento(), firma, tiempo, firmaV2, cuerpo);
         try {
             var resp = http.post().uri(URI.create(e.url()))
                     .contentType(MediaType.APPLICATION_JSON)
@@ -120,9 +135,15 @@ public class OcrWebhookService {
             envios.resultado(e.id(), "OK", resp.getStatusCode().value(), resp.getBody());
             solicitudes.marcarNotificada(e.solicitudId());
             log.info("[ocr] webhook solicitud {} intento {} -> {}", e.solicitudId(), e.intento(), resp.getStatusCode().value());
+            traza.info("[ocr-webhook] solicitud {} intento {} -> HTTP {}\n  respondido: {}", e.solicitudId(), e.intento(),
+                    resp.getStatusCode().value(), resp.getBody() == null || resp.getBody().isBlank() ? "(vacio)" : resp.getBody());
         } catch (RestClientResponseException ex) {
+            traza.warn("[ocr-webhook] solicitud {} intento {} -> HTTP {}\n  respondido: {}", e.solicitudId(), e.intento(),
+                    ex.getStatusCode().value(), ex.getResponseBodyAsString());
             fallo(e, cuerpo, ex.getStatusCode().value(), ex.getResponseBodyAsString());
         } catch (RuntimeException ex) {
+            traza.warn("[ocr-webhook] solicitud {} intento {} -> sin respuesta: {}: {}", e.solicitudId(), e.intento(),
+                    ex.getClass().getSimpleName(), ex.getMessage());
             fallo(e, cuerpo, null, ex.getClass().getSimpleName() + ": " + ex.getMessage());
         }
     }

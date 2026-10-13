@@ -43,10 +43,16 @@
                    labels=${ {'EXPEDIENTE_GENERAL':'Expediente General','LABORATORIO':'E. Laboratorio','HISTORICO_EM':'Historico E.M','NOTA_MEDICA':'Nota Medica','NOTA_INCAPACIDAD':'Nota Incapacidad','ARCHIVO_CONSULTAS':'Archivo de Consultas','CONSULTA_MEDICA':'Consulta Medica','INCAPACIDADES':'Incapacidades','ARCHIVO_INCAPACIDADES':'Archivo Incapacidades','EXAMEN_MEDICO':'Examen Medico','EXAMEN_INICIAL':'Examen Medico Inicial','PRETEST':'Pre-Test','ANTIDOPING':'Antidoping','ACCIDENTES':'Accidentes','MATERNIDAD':'Maternidad'} },
                    actions=${ {'LABORATORIO':'archivos','HISTORICO_EM':'archivos','NOTA_MEDICA':'archivos','NOTA_INCAPACIDAD':'archivos','ARCHIVO_CONSULTAS':'expediente','CONSULTA_MEDICA':'consulta-form','INCAPACIDADES':'incapacidad-form','ARCHIVO_INCAPACIDADES':'incapacidades','EXAMEN_MEDICO':'examen','EXAMEN_INICIAL':'examen-inicial','PRETEST':'pretest','ANTIDOPING':'antidoping','ACCIDENTES':'accidentes','MATERNIDAD':'maternidad'} },
                    tipos=${ {'LABORATORIO':'laboratorio','HISTORICO_EM':'examen_medico','NOTA_MEDICA':'nota_medica','NOTA_INCAPACIDAD':'nota_incapacidad'} }">
-    <!-- Los menus del grupo "Examenes" del sidebar (03_menu_examenes.sql) se asignan por rol
-         aqui mismo pero NO son modulos del expediente: se saltan en este submenu. -->
+    <!-- Solo se dibujan los modulos del expediente, es decir los que tienen pantalla en 'actions'.
+         Los demas menus asignados al rol (grupo Examenes: ANTIDOPING_SELECCION, CONSUMIBLES,
+         CAUSAS_CONSULTA, EXAMEN_INICIAL_BANDEJA; y los genericos MNU_ROOT, MNU_SECURITY, MNU_FILES)
+         no son modulos del NSS: antes se excluian por lista y cualquier menu nuevo caia aqui con el
+         aviso "disponible en una proxima entrega" (paso en prod con MNU_FILES "Archivos", 9-oct). -->
+    <!-- OJO precedencia de Thymeleaf: th:if se evalua ANTES que th:with en el mismo elemento, asi
+         que el th:if no puede usar 'k' (llegaba null y se ocultaban TODOS los modulos, 10-oct).
+         Por eso la condicion repite la expresion del codigo en vez de usar la variable. -->
     <th:block th:each="m : ${modulos}" th:with="k=${m.code} ?: ${idToCode.get(m.idMenu)}"
-              th:unless="${k == 'ANTIDOPING_SELECCION' or k == 'CONSUMIBLES' or k == 'CAUSAS_CONSULTA'}">
+              th:if="${actions.get(m.code != null ? m.code : idToCode.get(m.idMenu)) != null}">
     <a href="javascript:void(0)"
        class="nav-sub-link module"
        th:classappend="'modulo-' + ${m.idMenu}"

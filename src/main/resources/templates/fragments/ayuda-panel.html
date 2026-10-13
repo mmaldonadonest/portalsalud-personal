@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Chat de ayuda (sin IA). Se incluye en layouts/app.html en todas las paginas; lo abre el boton
+  "?" del header (fragments/header.html). Busca en los articulos de ayuda (AyudaController ->
+  AyudaService: Meilisearch si esta, LIKE en Oracle si no) y registra cada pregunta y si sirvio.
+  Antes de mandar la pregunta se tachan NSS/CURP: esta ayuda es sobre COMO usar el portal.
+-->
+<th:block th:fragment="panel">
+<style>
+  .ayuda-off { width: 420px; max-width: 95vw; }
+  .ayuda-chat { display: flex; flex-direction: column; gap: 10px; }
+  .ayuda-msg { max-width: 92%; padding: 8px 12px; border-radius: 12px; font-size: .9rem; line-height: 1.45; }
+  .ayuda-msg.yo { align-self: flex-end; background: #0057A8; color: #fff; border-bottom-right-radius: 3px; }
+  .ayuda-msg.bot { align-self: flex-start; background: #F2F4F7; color: #20252B; border-bottom-left-radius: 3px; }
+  .ayuda-msg.bot mark { background: #FFF1B8; padding: 0 2px; border-radius: 2px; }
+  .ayuda-res { border: 1px solid #E1E6EB; border-radius: 10px; padding: 8px 10px; margin-top: 6px; background: #fff; }
+  .ayuda-res .t { font-weight: 600; color: #003E75; }
+  .ayuda-res .f { font-size: .82rem; color: #475467; margin: 2px 0 6px; }
+  .ayuda-res .btn { font-size: .78rem; padding: 2px 8px; }
+  .ayuda-cuerpo { font-size: .88rem; margin-top: 8px; border-top: 1px dashed #E1E6EB; padding-top: 8px; }
+  .ayuda-cuerpo h3, .ayuda-cuerpo h4 { font-size: .95rem; margin: 10px 0 4px; color: #003E75; }
+  .ayuda-cuerpo ul, .ayuda-cuerpo ol { padding-left: 18px; margin-bottom: 6px; }
+  .ayuda-cuerpo table td { font-size: .82rem; }
+  .ayuda-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ayuda-chips button { font-size: .78rem; border: 1px solid #cfe3f5; background: #EAF3FA; color: #003E75; border-radius: 999px; padding: 3px 10px; }
+  .ayuda-util { font-size: .78rem; color: #667085; margin-top: 6px; }
+  .ayuda-util button { font-size: .78rem; padding: 0 6px; border: 0; background: none; color: #0057A8; }
+</style>
+
+<div class="offcanvas offcanvas-end ayuda-off" tabindex="-1" id="ayudaPanel" aria-labelledby="ayudaPanelTitulo">
+    <div class="offcanvas-header border-bottom py-2">
+        <h6 class="offcanvas-title mb-0" id="ayudaPanelTitulo"><i class="ri-question-answer-line me-1"></i> Ayuda del portal</h6>
+        <div class="d-flex align-items-center gap-2">
+            <a th:href="@{/ayuda}" href="/ayuda" class="fs-xs">Ver todo</a>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+        </div>
+    </div>
+    <div class="offcanvas-body d-flex flex-column p-3">
+        <div class="ayuda-chat flex-grow-1" id="ayudaChat" style="overflow-y: auto;">
+            <div class="ayuda-msg bot">Hola. Pregúntame cómo se hace algo en el portal, por ejemplo:</div>
+            <div class="ayuda-chips" id="ayudaChips">
+                <button type="button" onclick="ayudaPreguntar(this.textContent);">¿Cómo busco a una persona?</button>
+                <button type="button" onclick="ayudaPreguntar(this.textContent);">¿Cómo doy de alta una incapacidad?</button>
+                <button type="button" onclick="ayudaPreguntar(this.textContent);">¿Qué es apto condicionado?</button>
+                <button type="button" onclick="ayudaPreguntar(this.textContent);">¿Dónde veo los exámenes iniciales pendientes?</button>
+                <button type="button" onclick="ayudaPreguntar(this.textContent);">¿Por qué no me deja finalizar el examen?</button>
+            </div>
+        </div>
+        <form class="mt-2 d-flex gap-2" onsubmit="ayudaPreguntar(document.getElementById('ayudaInput').value); return false;">
+            <input type="text" class="form-control" id="ayudaInput" placeholder="Escribe tu duda…" autocomplete="off" maxlength="300">
+            <button type="submit" class="btn btn-primary" id="ayudaEnviar"><i class="ri-send-plane-2-line"></i></button>
+        </form>
+        <div class="fs-xs text-muted mt-1">No escribas datos de pacientes (NSS, CURP). Es ayuda sobre cómo usar el portal.</div>
+    </div>
+</div>
+
+<script>
+(function () {
+    function csrf() {
+        var h = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+        var t = document.querySelector('meta[name="_csrf"]');
+        var n = document.querySelector('meta[name="_csrf_header"]');
+        if (t && n) { h[n.content] = t.content; }
+        return h;
+    }
+    function chat() { return document.getElementById('ayudaChat'); }
+    function burbuja(clase, html) {
+        var d = document.createElement('div');
+        d.className = 'ayuda-msg ' + clase;
+        d.innerHTML = html;
+        chat().appendChild(d);
+        chat().scrollTop = chat().scrollHeight;
+        return d;
+    }
+    function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    // Solo se admite el resaltado <mark> que manda el buscador; todo lo demas se escapa
+    function conMarcas(s) { return esc(s).replace(/&lt;mark&gt;/g, '<mark>').replace(/&lt;\/mark&gt;/g, '</mark>'); }
+    function ruta(r) { return (window.contextPath || '/') + String(r || '').replace(/^\//, ''); }
+
+    window.ayudaAbrir = function () {
+        var el = document.getElementById('ayudaPanel');
+        if (!el || !window.bootstrap) { return; }
+        bootstrap.Offcanvas.getOrCreateInstance(el).show();
+        setTimeout(function () { var i = document.getElementById('ayudaInput'); if (i) { i.focus(); } }, 300);
+    };
+
+    window.ayudaPreguntar = async function (q) {
+        q = (q || '').trim();
+        if (!q) { return; }
+        var chips = document.getElementById('ayudaChips');
+        if (chips) { chips.remove(); }
+        document.getElementById('ayudaInput').value = '';
+        burbuja('yo', esc(q));
+        var pensando = burbuja('bot', 'Buscando…');
+        try {
+            var r = await fetch(ruta('api/ayuda/buscar'), { method: 'POST', headers: csrf(), body: JSON.stringify({ q: q }) });
+            if (!r.ok) { throw new Error('HTTP ' + r.status); }
+            var data = await r.json();
+            pensando.remove();
+            if (!data.resultados || !data.resultados.length) {
+                burbuja('bot', 'No encontré nada sobre eso. <b>Lo anoté</b> para que el servicio médico lo documente. '
+                    + 'Prueba con otras palabras (por ejemplo el nombre del módulo) o abre <a href="' + ruta('ayuda') + '">toda la ayuda</a>.');
+                return;
+            }
+            var html = 'Esto es lo que encontré:';
+            data.resultados.forEach(function (res) {
+                html += '<div class="ayuda-res" data-id="' + res.id + '">'
+                    + '<div class="t">' + conMarcas(res.tituloResaltado || res.titulo) + '</div>'
+                    + (res.fragmento ? '<div class="f">' + conMarcas(res.fragmento) + '</div>' : '')
+                    + '<button type="button" class="btn btn-outline-primary btn-sm me-1" onclick="ayudaLeer(this, ' + res.id + ', ' + data.preguntaId + ');">Leer</button>'
+                    + (res.enlace ? '<a class="btn btn-primary btn-sm" href="' + ruta(res.enlace) + '">Abrir</a>' : '')
+                    + '</div>';
+            });
+            html += '<div class="ayuda-util">¿Te sirvió? '
+                + '<button type="button" onclick="ayudaCalificar(this, ' + data.preguntaId + ', true);"><i class="ri-thumb-up-line"></i> Sí</button>'
+                + '<button type="button" onclick="ayudaCalificar(this, ' + data.preguntaId + ', false);"><i class="ri-thumb-down-line"></i> No</button></div>';
+            burbuja('bot', html);
+        } catch (e) {
+            pensando.innerHTML = 'No pude buscar ahora (' + esc(e.message) + '). Abre <a href="' + ruta('ayuda') + '">toda la ayuda</a>.';
+        }
+    };
+
+    window.ayudaLeer = async function (btn, id, preguntaId) {
+        var caja = btn.closest('.ayuda-res');
+        var ya = caja.querySelector('.ayuda-cuerpo');
+        if (ya) { ya.remove(); btn.textContent = 'Leer'; return; }
+        btn.disabled = true;
+        try {
+            var r = await fetch(ruta('api/ayuda/articulos/' + id), { headers: { 'Accept': 'application/json' } });
+            if (!r.ok) { throw new Error('HTTP ' + r.status); }
+            var a = await r.json();
+            var d = document.createElement('div');
+            d.className = 'ayuda-cuerpo';
+            d.innerHTML = a.html;   // HTML generado en el servidor desde Markdown (escapado ahi)
+            d.querySelectorAll('a.ayuda-enlace').forEach(function (l) { l.href = ruta(l.dataset.ruta); });
+            caja.appendChild(d);
+            btn.textContent = 'Cerrar';
+            if (preguntaId) { ayudaCalificarSilencioso(preguntaId, id); }
+            chat().scrollTop = caja.offsetTop - 10;
+        } catch (e) {
+            burbuja('bot', 'No pude abrir el artículo (' + esc(e.message) + ').');
+        } finally {
+            btn.disabled = false;
+        }
+    };
+
+    function ayudaCalificarSilencioso(preguntaId, articuloId) {
+        // Registrar que articulo abrio (sin calificar aun): util queda como lo marque despues
+        fetch(ruta('api/ayuda/preguntas/' + preguntaId + '/calificar'), { method: 'POST', headers: csrf(),
+            body: JSON.stringify({ articuloId: articuloId, util: true }) }).catch(function () {});
+    }
+
+    window.ayudaCalificar = async function (btn, preguntaId, util) {
+        var cont = btn.parentElement;
+        try {
+            var r = await fetch(ruta('api/ayuda/preguntas/' + preguntaId + '/calificar'), { method: 'POST', headers: csrf(),
+                body: JSON.stringify({ util: util }) });
+            cont.textContent = await r.text();
+        } catch (e) {
+            cont.textContent = 'Gracias.';
+        }
+    };
+})();
+</script>
+</th:block>
+</body>
+</html>

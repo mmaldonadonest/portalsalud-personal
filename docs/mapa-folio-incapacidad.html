@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mapa del folio de incapacidad</title>
+<style>
+  :root{
+    --bg:#ffffff; --fg:#20252B; --muted:#667085; --line:#D0D5DD; --card:#ffffff; --soft:#F8FAFC;
+    --azul:#0057A8; --azul-900:#003E75; --azul-100:#EAF3FA;
+    --ok:#2B9138; --ok-bg:#EAF7EC; --warn:#8a5300; --warn-bg:#FFF7E6; --bad:#B42318; --bad-bg:#FEF3F2;
+  }
+  /* Siempre fondo blanco: el usuario no quiere modo oscuro en los reportes */
+  html{color-scheme:light}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 16px 60px}
+  h1{font-size:1.6rem;margin:0 0 4px;color:var(--azul-900)}
+  .sub{color:var(--muted);margin:0 0 26px}
+  .raiz{display:flex;justify-content:center;margin-bottom:8px}
+  .nodo-raiz{background:var(--azul);color:#fff;border-radius:14px;padding:14px 22px;text-align:center;font-weight:700;font-size:1.15rem;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+  .nodo-raiz small{display:block;font-weight:400;font-size:.85rem;opacity:.9}
+  .conector{height:22px;border-left:2px solid var(--line);width:0;margin:0 auto}
+  .ramas{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;position:relative;padding-top:18px;border-top:2px solid var(--line)}
+  .rama{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;position:relative}
+  .rama::before{content:"";position:absolute;top:-20px;left:50%;height:18px;border-left:2px solid var(--line)}
+  .rama h2{font-size:1.02rem;margin:0 0 2px;color:var(--azul-900)}
+  .rama .rol{font-size:.82rem;color:var(--muted);margin:0 0 10px}
+  ul{list-style:none;margin:0;padding:0}
+  li{position:relative;padding:5px 0 5px 18px;font-size:.9rem;border-left:2px solid var(--line);margin-left:6px}
+  li::before{content:"";position:absolute;left:0;top:15px;width:12px;border-top:2px solid var(--line)}
+  li ul{margin-top:4px}
+  .num{font-weight:700;font-variant-numeric:tabular-nums}
+  .tag{display:inline-block;font-size:.72rem;font-weight:700;border-radius:999px;padding:1px 8px;margin-left:4px;vertical-align:1px}
+  .ok{background:var(--ok-bg);color:var(--ok)} .warn{background:var(--warn-bg);color:var(--warn)} .bad{background:var(--bad-bg);color:var(--bad)}
+  code{font-family:Consolas,"Cascadia Mono",monospace;font-size:.85em;background:var(--soft);padding:0 4px;border-radius:4px}
+  .fondo{margin:30px auto 0;max-width:760px;background:var(--warn-bg);border:1px solid var(--warn);border-radius:12px;padding:16px 20px;text-align:center}
+  .fondo h3{margin:0 0 6px;color:var(--warn)}
+  .fondo p{margin:0}
+  .salidas{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px;padding-top:18px;border-top:2px solid var(--line)}
+  .salida{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .salida h3{margin:0 0 8px;font-size:1rem;color:var(--azul-900)}
+  .opciones{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+  .opcion{border-radius:10px;padding:10px 12px;font-size:.88rem;border:1px solid var(--line);background:var(--soft)}
+  .opcion.reco{border-color:var(--ok);background:var(--ok-bg)}
+  .opcion b{display:block;margin-bottom:4px}
+  .pie{color:var(--muted);font-size:.8rem;margin-top:24px;text-align:center}
+  @media (max-width:860px){ .ramas,.salidas,.opciones{grid-template-columns:1fr} .rama::before{display:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>El problema del folio de incapacidad</h1>
+  <p class="sub">Revisión de los Excel de morbilidad 2026, todos los predios. Solo lectura.</p>
+
+  <div class="raiz"><div class="nodo-raiz">FOLIO<small>llave que liga una incapacidad con sus exámenes y su maternidad</small></div></div>
+  <div class="conector"></div>
+
+  <div class="ramas">
+    <div class="rama">
+      <h2>Incapacidades</h2>
+      <p class="rol">Donde nace el folio</p>
+      <ul>
+        <li>IMSS: <span class="num">1,785</span> renglones
+          <ul>
+            <li>100 % con folio <span class="tag ok">bien</span></li>
+            <li>99 % formato <code>AA999999</code> <span class="tag ok">bien</span></li>
+            <li>2 repetidos en Toluca <span class="tag warn">revisar</span>
+              <ul>
+                <li><code>UW713238</code>: dos personas distintas</li>
+                <li><code>PG629693</code>: renglón duplicado</li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+        <li>Internas: <span class="num">132</span> renglones
+          <ul>
+            <li>No tienen folio <span class="tag bad">sin llave</span></li>
+            <li>Se ligan por INICIA INCAPACIDAD</li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+
+    <div class="rama">
+      <h2>Pos incapacidad</h2>
+      <p class="rol">Examen al regresar</p>
+      <ul>
+        <li><span class="num">277</span> exámenes; hoy sin folio (se ligan por nombre)</li>
+        <li><span class="num">208</span> (75 %) nombre + fecha de inicio <span class="tag ok">liga</span></li>
+        <li><span class="num">25</span> solo por nombre <span class="tag warn">dudoso</span></li>
+        <li><span class="num">44</span> (16 %) sin incapacidad en 2026 <span class="tag bad">sin datos</span>
+          <ul>
+            <li>¿empezó en 2025?</li>
+            <li>¿es de otro predio?</li>
+            <li>¿no se capturó?</li>
+          </ul>
+        </li>
+        <li>Internas: INICIA INCAPACIDAD en vez de folio</li>
+      </ul>
+    </div>
+
+    <div class="rama">
+      <h2>Maternidad</h2>
+      <p class="rol">Incapacidad de maternidad</p>
+      <ul>
+        <li><span class="num">70</span> renglones</li>
+        <li><span class="num">28</span> con folio
+          <ul>
+            <li><span class="num">17</span> están en incapacidades 2026 <span class="tag ok">liga</span></li>
+            <li><span class="num">11</span> no están <span class="tag bad">sin datos</span>
+              <ul>
+                <li><span class="num">6</span> iniciaron en 2025</li>
+                <li><span class="num">5</span> iniciaron en 2026 y faltan en incapacidades</li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+        <li><span class="num">42</span> sin folio: aún sin incapacidad</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="fondo">
+    <h3>El problema de fondo</h3>
+    <p>El folio <b>identifica</b> bien la incapacidad, pero los <b>datos</b> (días, inicio, término) solo existen si esa incapacidad está cargada.</p>
+  </div>
+
+  <div class="salidas">
+    <div class="salida">
+      <h3>Hacia adelante (layout nuevo)</h3>
+      <p>Toda incapacidad nueva se captura en la hoja INCAPACIDADES con su folio, así que exámenes y maternidad siempre la encuentran. <span class="tag ok">suficiente</span></p>
+    </div>
+    <div class="salida">
+      <h3>Carga de solo 2026</h3>
+      <p>Si el folio apunta a una incapacidad de otro año, se pierden sus datos.</p>
+      <div class="opciones">
+        <div class="opcion reco"><b>a) Respaldo mínimo (recomendada)</b>DIAS en pos incapacidad e INICIO / TÉRMINO en maternidad, que solo se llenan si la incapacidad no está en el archivo.</div>
+        <div class="opcion"><b>b) Pedir 2025</b>Las incapacidades de 2025 que siguen abiertas. Depende de que el servicio médico las entregue.</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="pie">Fuente: Excel de MORBILIDAD 2026 (5 REPORTE INCAPACIDADES, 4 REPORTE EXAMEN POS INCAPACIDAD, 8 REPORTE MATERNIDAD), todos los predios.</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Logging del portal. Conserva EXACTAMENTE la configuracion por defecto de Spring Boot (consola,
+  mismo patron, logging.level.* y logging.pattern.level de application.properties siguen
+  mandando) y agrega UN solo archivo aparte para la traza de la integracion OCR
+  (logger "ocr.integracion": OcrTrazaFilter + OcrWebhookService), para que las pruebas con OCR
+  se puedan revisar sin bucear en catalina.out. Esa traza tambien sigue saliendo en consola.
+
+  Archivo: <catalina.base>/logs/portal-salud-ocr.log (junto a catalina.out), rotado por dia,
+  30 dias / 200 MB como tope. Si no corre bajo Tomcat (catalina.base ausente) cae en ./logs.
+-->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+    <property name="OCR_LOG" value="${catalina.base:-.}/logs/portal-salud-ocr.log"/>
+
+    <appender name="OCR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${OCR_LOG}</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [trace=%X{traceId:-}] %m%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${OCR_LOG}.%d{yyyy-MM-dd}.gz</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>200MB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- additivity=true: ademas del archivo, sigue en consola/catalina.out como hasta hoy -->
+    <logger name="ocr.integracion" level="INFO" additivity="true">
+        <appender-ref ref="OCR_FILE"/>
+    </logger>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

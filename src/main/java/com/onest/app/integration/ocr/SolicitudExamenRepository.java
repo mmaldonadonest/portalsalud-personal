@@ -22,7 +22,7 @@ public class SolicitudExamenRepository {
     private static final String COLS = "ID, ORIGEN, REFERENCIA, NSS, CURP, RFC, NOMBRE, APELLIDO_PATERNO, APELLIDO_MATERNO,"
             + " FECHA_NACIMIENTO, SEXO, ESTADO_CIVIL, ESCOLARIDAD, PROFESION_OFICIO, DOMICILIO, TELEFONO, EMPRESA, CUENTA, AGENCIA,"
             + " PUESTO_SOLICITADO, FECHA_CITA, CALLBACK_URL, ESTATUS, CADUCA, MOTIVO_CANCEL, CANCELADO_AT, DICTAMEN, FECHA_EXAMEN,"
-            + " HISTORICO_ID, NOTIFICADO_AT, CREATED_AT, UPDATED_AT";
+            + " HISTORICO_ID, NOTIFICADO_AT, CREATED_AT, UPDATED_AT, ATENDIDO_POR, ATENDIDO_AT";
 
     private static final RowMapper<SolicitudExamen> MAPPER = (rs, i) -> new SolicitudExamen(
             rs.getLong("ID"), rs.getString("ORIGEN"), rs.getString("REFERENCIA"), rs.getString("NSS"), rs.getString("CURP"),
@@ -33,7 +33,7 @@ public class SolicitudExamenRepository {
             rs.getString("CALLBACK_URL"), rs.getString("ESTATUS"), fecha(rs, "CADUCA"), rs.getString("MOTIVO_CANCEL"),
             ts(rs, "CANCELADO_AT"), rs.getString("DICTAMEN"), ts(rs, "FECHA_EXAMEN"),
             rs.getObject("HISTORICO_ID") == null ? null : rs.getLong("HISTORICO_ID"),
-            ts(rs, "NOTIFICADO_AT"), ts(rs, "CREATED_AT"), ts(rs, "UPDATED_AT"));
+            ts(rs, "NOTIFICADO_AT"), ts(rs, "CREATED_AT"), ts(rs, "UPDATED_AT"), rs.getString("ATENDIDO_POR"), ts(rs, "ATENDIDO_AT"));
 
     private static LocalDate fecha(ResultSet rs, String col) throws SQLException {
         Date d = rs.getDate(col);
@@ -117,6 +117,48 @@ public class SolicitudExamenRepository {
         }, keys);
         Number k = keys.getKey();
         return k == null ? -1 : k.longValue();
+    }
+
+    /** Asigna al primero que abre (solo si no tiene a nadie). Devuelve filas tocadas. */
+    public int asignarSiLibre(long id, String usuario) {
+        return jdbc.update("UPDATE SERV_MED_EXAMEN_SOLICITUD SET ATENDIDO_POR = ?, ATENDIDO_AT = SYSTIMESTAMP, UPDATED_AT = SYSTIMESTAMP"
+                + " WHERE ID = ? AND ATENDIDO_POR IS NULL AND ESTATUS IN ('PENDIENTE','EN_CAPTURA')", usuario, id);
+    }
+
+    /** "Tomar": reasigna explicitamente a otro usuario. */
+    public int reasignar(long id, String usuario) {
+        return jdbc.update("UPDATE SERV_MED_EXAMEN_SOLICITUD SET ATENDIDO_POR = ?, ATENDIDO_AT = SYSTIMESTAMP, UPDATED_AT = SYSTIMESTAMP"
+                + " WHERE ID = ? AND ESTATUS IN ('PENDIENTE','EN_CAPTURA')", usuario, id);
+    }
+
+    /** Bandeja: filtros opcionales (null/vacio = sin filtro). Fechas sobre FECHA_CITA si hay, si no CREATED_AT. */
+    public List<SolicitudExamen> bandeja(String estatus, String nss, String nombre, LocalDate desde, LocalDate hasta, int limite) {
+        StringBuilder sql = new StringBuilder("SELECT " + COLS + " FROM SERV_MED_EXAMEN_SOLICITUD WHERE 1 = 1");
+        List<Object> args = new java.util.ArrayList<>();
+        if (estatus != null && !estatus.isBlank()) {
+            sql.append(" AND ESTATUS = ?");
+            args.add(estatus.trim());
+        }
+        if (nss != null && !nss.isBlank()) {
+            sql.append(" AND NSS LIKE ?");
+            args.add(nss.trim() + "%");
+        }
+        if (nombre != null && !nombre.isBlank()) {
+            sql.append(" AND UPPER(NOMBRE || ' ' || APELLIDO_PATERNO || ' ' || APELLIDO_MATERNO) LIKE ?");
+            args.add("%" + nombre.trim().toUpperCase() + "%");
+        }
+        if (desde != null) {
+            sql.append(" AND COALESCE(FECHA_CITA, TRUNC(CREATED_AT)) >= ?");
+            args.add(Date.valueOf(desde));
+        }
+        if (hasta != null) {
+            sql.append(" AND COALESCE(FECHA_CITA, TRUNC(CREATED_AT)) <= ?");
+            args.add(Date.valueOf(hasta));
+        }
+        sql.append(" ORDER BY CASE ESTATUS WHEN 'PENDIENTE' THEN 0 WHEN 'EN_CAPTURA' THEN 1 WHEN 'FINALIZADO' THEN 2 ELSE 3 END,")
+           .append(" COALESCE(FECHA_CITA, TRUNC(CREATED_AT)), ID DESC FETCH FIRST ? ROWS ONLY");
+        args.add(limite);
+        return jdbc.query(sql.toString(), MAPPER, args.toArray());
     }
 
     public int marcarEnCaptura(long id) {

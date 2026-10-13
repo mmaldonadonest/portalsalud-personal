@@ -92,19 +92,19 @@
         .exini-dictamen .r-rest.activo { background: #0057A8; border-color: #0057A8; color: #fff; }
         .exini-dictamen .r-noapto.activo { background: #B42318; border-color: #B42318; color: #fff; }
         /* Odontograma: pincel + 32 dientes como botones de color */
-        .exini-pincel { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 10px; }
+        .exini-pincel { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin-bottom: 10px; }
         .exini-pincel .lbl { font-size: .95rem; color: #111; margin-right: 4px; }
         .exini-pincel .btn { border: 2px solid #D0D5DD; background: #fff; color: #111; font-size: .88rem; }
         .exini-pincel .btn.activo { border-color: #111; box-shadow: 0 0 0 2px #111 inset; font-weight: 700; }
-        .exini-pincel .ayuda { flex-basis: 100%; font-size: .85rem; color: #111; }
+        .exini-pincel .ayuda { flex-basis: 100%; font-size: .85rem; color: #111; text-align: center; }
         /* Odontograma: 16 columnas fijas por arcada (+ linea media), se encoge al ancho
            disponible; cada diente es una silueta SVG coloreada por hallazgo */
-        .exini-odonto { display: flex; flex-direction: column; gap: 6px; max-width: 760px; }
+        .exini-odonto { display: flex; flex-direction: column; gap: 6px; max-width: 880px; margin: 0 auto; }
         .exini-odonto .arcada { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)) 6px repeat(8, minmax(0, 1fr)); gap: 3px; align-items: end; }
         .exini-odonto .linea { width: 2px; background: #003E75; justify-self: center; height: 100%; }
         .exini-odonto .diente { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; user-select: none; padding: 3px 0; border-radius: 6px; border: 1px solid #E1E6EB; background: #FAFBFC; }
         .exini-odonto .diente:hover { background: #EAF3FA; border-color: #0057A8; }
-        .exini-odonto .diente svg { width: 100%; max-width: 44px; height: auto; display: block; }
+        .exini-odonto .diente svg { width: 100%; max-width: 50px; height: auto; display: block; }
         .exini-odonto .diente svg path { fill: #fff; stroke: #98A2B3; stroke-width: 2; }
         .exini-odonto .diente:hover svg path { stroke: #003E75; }
         .exini-odonto .diente .num { font-size: .78rem; color: #111; font-weight: 600; line-height: 1; margin-bottom: 2px; }
@@ -166,6 +166,22 @@
                 <i class="ri-lock-2-line me-1"></i>
                 <strong>Examen inicial bloqueado.</strong> <span th:text="${v.candado.motivo}">motivo</span>
                 <div class="fs-sm mt-1">Puedes revisar las hojas, pero no se puede finalizar desde aquí.</div>
+            </div>
+            <!-- Dos usuarios sobre el mismo examen: la solicitud queda asignada al primero que la abre.
+                 Otro la puede ver, pero no finalizar hasta que la "tome" (ExamenInicialService.finalizar). -->
+            <div class="alert alert-warning py-2 px-3 d-flex align-items-center flex-wrap gap-2" id="exIniAtendido"
+                 th:if="${v.solicitud != null and v.atendidoPorOtro}">
+                <i class="ri-user-shared-line me-1"></i>
+                <span>Este examen lo está atendiendo <strong th:text="${v.solicitud.atendidoPor}">usuario</strong>
+                    <span th:if="${v.solicitud.atendidoAt != null}">desde las <strong th:text="${#temporals.format(v.solicitud.atendidoAt, 'HH:mm')}">10:32</strong></span>.
+                    Puedes revisarlo, pero solo quien lo tiene asignado puede finalizarlo.</span>
+                <button type="button" class="btn btn-sm btn-warning ms-auto" th:attr="data-id=${v.solicitud.id}"
+                        onclick="exIniTomar(this);"><i class="ri-hand-coin-line me-1"></i> Tomar examen</button>
+            </div>
+            <div class="fs-xs text-muted mb-2" th:if="${v.solicitud != null and !v.atendidoPorOtro and v.solicitud.atendidoPor != null}">
+                <i class="ri-user-follow-line me-1"></i> Asignado a ti
+                <span th:if="${v.solicitud.atendidoAt != null}" th:text="'desde las ' + ${#temporals.format(v.solicitud.atendidoAt, 'HH:mm')}">desde</span>
+                · solicitud <span th:text="${v.solicitud.referencia}">ref</span>
             </div>
             <div class="alert alert-warning py-2 px-3 fs-sm" th:if="${v.ultimoFinalizado != null and !v.candado.bloqueado}">
                 <i class="ri-information-line me-1"></i>

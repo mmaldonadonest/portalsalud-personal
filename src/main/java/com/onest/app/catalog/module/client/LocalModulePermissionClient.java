@@ -1,7 +1,6 @@
 package com.onest.app.catalog.module.client;
 
 import com.onest.app.catalog.module.dto.ModuleDto;
-import com.onest.app.security.model.AppSecRole;
 import com.onest.app.security.repository.AppMenuRoleRepository;
 import com.onest.app.security.repository.AppSecUserRepository;
 import java.util.List;
@@ -20,9 +19,7 @@ import org.springframework.stereotype.Component;
  * ({@code portal.permissions.shadow=true}) sin depender de cual esta activa.
  *
  * <p>Un usuario puede tener mas de un rol local a la vez (ej. ROLE_ADMIN, el gate
- * del panel /admin, sembrado aparte de este RBAC) - findRoleId prefiere el rol
- * que de verdad tenga menus asignados en SERV_MED_MENU_ROLE (el "rol clinico"), no
- * "el primero que se encuentre".
+ * del panel /admin, mas un rol clinico) - se usan los menus de TODOS sus roles activos.
  */
 @Component
 public class LocalModulePermissionClient implements ModulePermissionClient {
@@ -35,38 +32,47 @@ public class LocalModulePermissionClient implements ModulePermissionClient {
         this.menuRoleRepository = menuRoleRepository;
     }
 
+    /**
+     * Devuelve TODOS los roles activos del usuario, separados por coma ("3,7,9"), no uno solo.
+     *
+     * <p>10-oct-2026: antes se tomaba el primer rol con menus. El orden de los roles (un Set)
+     * no es fijo, asi que con ADMIN o MEDICO_ANALISTA primero el submenu del NSS salia vacio
+     * aunque el usuario tuviera ENFERMERO/USER/ADM, y al reiniciar podia volver a verse. La firma
+     * de la interfaz se conserva: quien llama siempre encadena findRoleId -> findMenusByRole, y
+     * findMenusByRole acepta la lista.
+     */
     @Override
     public Optional<String> findRoleId(String idUsuario) {
         return userRepository.findActiveByIdentifier(idUsuario)
-                .flatMap(user -> {
-                    List<AppSecRole> activos = user.getRoles().stream()
-                            .filter(role -> "Y".equals(role.getActive()))
-                            .toList();
-                    // Un usuario puede tener a la vez ROLE_ADMIN (gate del panel /admin,
-                    // sin relacion con menus clinicos) y un rol clinico (USER/ADM/ENFERMERO,
-                    // el que SI tiene filas en SERV_MED_MENU_ROLE) - preferir el que de verdad
-                    // tenga menus asignados, no "el primero que se encuentre" (el orden de
-                    // un Set no esta garantizado y con ROLE_ADMIN primero el submenu salia
-                    // vacio aunque el usuario si tuviera rol clinico).
-                    return activos.stream()
-                            .filter(role -> menuRoleRepository.existsByRoleId(role.getId()))
-                            .findFirst()
-                            .or(() -> activos.stream().findFirst());
-                })
-                .map(role -> role.getId().toString());
+                .map(user -> user.getRoles().stream()
+                        .filter(role -> "Y".equals(role.getActive()))
+                        .map(role -> role.getId().toString())
+                        .sorted()
+                        .collect(java.util.stream.Collectors.joining(",")))
+                .filter(ids -> !ids.isBlank());
     }
 
+    /** Une los menus de todos los roles recibidos, sin repetir y en el orden de SERV_MED_MENU. */
     @Override
     public List<ModuleDto> findMenusByRole(String idRol) {
-        Long roleId;
-        try {
-            roleId = Long.parseLong(idRol);
-        } catch (NumberFormatException ex) {
+        if (idRol == null || idRol.isBlank()) {
             return List.of();
         }
-        return menuRoleRepository.findActiveByRoleId(roleId).stream()
-                .map(mr -> new ModuleDto(mr.getMenu().getId().intValue(), mr.getMenu().getTitle(),
-                        mr.getMenu().getCode(), mr.getMenu().getIcon()))
+        java.util.Map<Long, com.onest.app.security.model.AppMenu> menus = new java.util.LinkedHashMap<>();
+        for (String parte : idRol.split(",")) {
+            Long roleId;
+            try {
+                roleId = Long.parseLong(parte.trim());
+            } catch (NumberFormatException ex) {
+                continue;
+            }
+            menuRoleRepository.findActiveByRoleId(roleId)
+                    .forEach(mr -> menus.putIfAbsent(mr.getMenu().getId(), mr.getMenu()));
+        }
+        return menus.values().stream()
+                .sorted(java.util.Comparator.comparing(com.onest.app.security.model.AppMenu::getOrderNo,
+                        java.util.Comparator.nullsLast(Integer::compareTo)))
+                .map(m -> new ModuleDto(m.getId().intValue(), m.getTitle(), m.getCode(), m.getIcon()))
                 .toList();
     }
 }

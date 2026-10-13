@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reporte de pruebas · 6-oct-2026</title>
+<style>
+  :root{
+    --blanco:#ffffff;
+    --azul:#0057A8; --azul-900:#003E75; --azul-300:#4FA8E0; --azul-100:#EAF3FA;
+    --verde:#2B9138; --verde-100:#EAF7EC;
+    --gris-50:#F8FAFC; --gris-100:#F2F4F7; --gris-200:#E1E6EB; --gris-300:#D0D5DD;
+    --gris-500:#667085; --gris-700:#475467; --gris-950:#20252B;
+    --ambar:#8a5300; --ambar-bg:#FFF7E6; --rojo:#B42318; --rojo-bg:#FEF3F2;
+    --fg:var(--gris-950); --muted:var(--gris-500); --line:var(--gris-200);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--blanco);color:var(--fg);font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 16px 80px}
+  .hero{background:var(--azul);color:#fff;margin:0 -16px 28px;padding:30px 16px 26px;}
+  .hero-in{max-width:1088px;margin:0 auto}
+  .hero h1{font-size:1.8rem;margin:0 0 4px;letter-spacing:-.015em;font-weight:700}
+  .hero .sub{opacity:.85;font-size:.94rem;margin:0}
+  .marca{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;opacity:.75;margin-bottom:10px}
+  h2{font-size:1.25rem;color:var(--azul-900);margin:38px 0 6px;padding-bottom:6px;border-bottom:2px solid var(--azul-100)}
+  h3{font-size:1.02rem;color:var(--azul-900);margin:22px 0 6px}
+  p.lead{color:var(--gris-700);margin:0 0 14px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:0 0 18px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 18px}
+  .kpi{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--gris-50)}
+  .kpi b{display:block;font-size:1.6rem;color:var(--azul);font-variant-numeric:tabular-nums;line-height:1.1}
+  .kpi span{font-size:.8rem;color:var(--muted)}
+  .kpi.ok b{color:var(--verde)}
+  table{width:100%;border-collapse:collapse;font-size:.88rem;margin:8px 0 14px}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--gris-100);color:var(--gris-700);font-weight:600;font-size:.8rem;text-transform:uppercase;letter-spacing:.04em}
+  code{font-family:Consolas,"Cascadia Mono",monospace;font-size:.84em;background:var(--gris-100);padding:1px 5px;border-radius:4px}
+  pre{background:var(--gris-50);border:1px solid var(--line);border-radius:8px;padding:12px;font-size:.8rem;overflow:auto;line-height:1.45}
+  .ok{background:var(--verde-100);border-left:4px solid var(--verde);padding:10px 14px;border-radius:6px;margin:10px 0;font-size:.9rem}
+  .nota{background:var(--ambar-bg);border-left:4px solid var(--ambar);padding:10px 14px;border-radius:6px;margin:10px 0;font-size:.9rem}
+  .malo{background:var(--rojo-bg);border-left:4px solid var(--rojo);padding:10px 14px;border-radius:6px;margin:10px 0;font-size:.9rem}
+  .tag{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
+  .tag.pass{background:var(--verde-100);color:var(--verde)}
+  .tag.bug{background:var(--rojo-bg);color:var(--rojo)}
+  .tag.info{background:var(--azul-100);color:var(--azul-900)}
+  .tag.amb{background:var(--ambar-bg);color:var(--ambar)}
+  td.c{text-align:center}
+  @media print{.card{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero"><div class="hero-in">
+    <div class="marca">Portal Salud · Servicio médico</div>
+    <h1>Reporte de pruebas automatizadas</h1>
+    <p class="sub">Examen médico inicial con integración OCR (simulada) y Examen médico migrado del PHP · ambiente QA · 6-oct-2026</p>
+  </div></div>
+
+  <nav style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 22px">
+    <a href="#resumen" style="font-size:.82rem;color:#003E75;background:#EAF3FA;border:1px solid #cfe3f5;border-radius:999px;padding:4px 12px;text-decoration:none">Resumen</a>
+    <a href="#ambiente" style="font-size:.82rem;color:#003E75;background:#EAF3FA;border:1px solid #cfe3f5;border-radius:999px;padding:4px 12px;text-decoration:none">Ambiente</a>
+    <a href="#casos-a" style="font-size:.82rem;color:#003E75;background:#EAF3FA;border:1px solid #cfe3f5;border-radius:999px;padding:4px 12px;text-decoration:none">A · Examen inicial + OCR (15)</a>
+    <a href="#casos-b" style="font-size:.82rem;color:#003E75;background:#EAF3FA;border:1px solid #cfe3f5;border-radius:999px;padding:4px 12px;text-decoration:none">B · Examen médico periódico (4)</a>
+    <a href="#casos-c" style="font-size:.82rem;color:#003E75;background:#EAF3FA;border:1px solid #cfe3f5;border-radius:999px;padding:4px 12px;text-decoration:none">C · Unitarias (2)</a>
+    <a href="#hallazgos" style="font-size:.82rem;color:#003E75;background:#EAF3FA;border:1px solid #cfe3f5;border-radius:999px;padding:4px 12px;text-decoration:none">Hallazgos</a>
+    <a href="#evidencia" style="font-size:.82rem;color:#003E75;background:#EAF3FA;border:1px solid #cfe3f5;border-radius:999px;padding:4px 12px;text-decoration:none">Evidencia</a>
+  </nav>
+
+  <h2 id="resumen">Resumen</h2>
+  <div class="kpis">
+    <div class="kpi ok"><b>19 / 19</b><span>casos E2E en verde (corrida final)</span></div>
+    <div class="kpi"><b>64 s</b><span>duración de la corrida completa</span></div>
+    <div class="kpi"><b>2 / 2</b><span>pruebas unitarias (JUnit) en JDK 22</span></div>
+    <div class="kpi"><b>1</b><span>bug real encontrado y corregido</span></div>
+    <div class="kpi"><b>6</b><span>corridas hasta estabilizar la suite</span></div>
+  </div>
+  <div class="card">
+    <p class="lead">Se construyó una suite de pruebas de extremo a extremo (Playwright + pytest) que opera el portal en un navegador real contra el Tomcat local apuntando a la base de QA, con un <b>simulador de OCR</b> en los dos sentidos: manda solicitudes al portal con la API key y recibe el webhook del dictamen validando la firma HMAC. La suite es <b>repetible</b>: cada corrida parte de cero (cancela lo que quedó vivo, crea su propia solicitud) y deja el NSS de pruebas listo para la siguiente.</p>
+    <div class="ok"><b>Resultado:</b> el flujo completo del examen inicial (OCR → aviso → captura → finalizar → webhook → consulta de respaldo) y el examen médico periódico funcionan de punta a punta. Se detectó y corrigió un bug de pérdida de datos en el autoguardado que no se había visto en pruebas manuales.</div>
+  </div>
+
+  <h2 id="ambiente">Ambiente</h2>
+  <div class="card">
+    <table>
+      <tr><th>Elemento</th><th>Valor</th></tr>
+      <tr><td>Portal</td><td>Tomcat 11 local, <code>http://localhost:9999/portal-salud</code>, WAR armado con <code>-Pqa</code> (perfil <code>test</code>)</td></tr>
+      <tr><td>Base del portal</td><td>QA · BIOMETRICO en <code>10.249.249.3:1523/orclpdb</code> (tablas <code>SERV_MED_*</code>)</td></tr>
+      <tr><td>Web services</td><td>ORDS QA <code>http://10.249.249.3/biows/ords/security</code> (login, ficha NSS, examen, ICD)</td></tr>
+      <tr><td>Usuario</td><td>Usuario real del portal en QA (login LEGACY_PHP), rol con Examen Médico, Examen inicial y bandeja</td></tr>
+      <tr><td>NSS de pruebas</td><td><code>30048315698</code></td></tr>
+      <tr><td>OCR</td><td>Simulado: cliente con la API key de QA; receptor en <code>127.0.0.1:8099</code> con el secreto HMAC de QA (la solicitud lleva su <code>callbackUrl</code>)</td></tr>
+      <tr><td>Herramientas</td><td>Python 3.14 · Playwright 1.5x (Chromium headless) · pytest · JUnit 5 / Mockito en JDK 22.0.2</td></tr>
+      <tr><td>Código</td><td><code>tests/e2e/</code> (conftest.py, ocr_sim.py, test_examen_inicial_ocr.py, test_examen_periodico.py); credenciales en <code>config/produccion/e2e.local.properties</code> (ignorado por git)</td></tr>
+    </table>
+  </div>
+
+  <h2>Casos ejecutados y resultado</h2>
+  <div class="card">
+    <h3 id="casos-a">A · Examen médico inicial con OCR simulado (15 casos)</h3>
+    <table>
+      <tr><th>#</th><th>Caso</th><th>Qué hace la prueba</th><th>Verificación</th><th class="c">Resultado</th></tr>
+      <tr><td>00</td><td>Limpieza</td><td>Lee la bandeja filtrada por el NSS y cancela por API las solicitudes vivas de corridas anteriores</td><td>Cancelación 200 (o 409 si ya estaba cerrada)</td><td class="c"><span class="tag pass">PASA</span></td></tr>
+      <tr><td>01</td><td>Llave mala</td><td>POST solicitud con <code>X-Api-Key</code> incorrecta</td><td><code>401 NO_AUTORIZADO</code></td><td class="c"><span class="tag pass">PASA</span></td></tr>
+      <tr><td>02</td><td>Obligatorios</td><td>POST sin <code>curp</code> y con NSS de 3 dígitos</td><td><code>400 SOLICITUD_INVALIDA</code>, <code>detalles[]</code> nombra curp y nss</td><td class="c"><span class="tag pass">PASA</span></td></tr>
+      <tr><td>03</td><td>Alta</td><td>POST con los 7 obligatorios + opcionales, referencia única <code>E2E-fecha-hora</code>, <code>callbackUrl</code> del receptor</td><td><code>201</code>, <code>PENDIENTE</code>, <code>caduca</code> = cita + 30 días (06-oct → 05-nov)</td><td class="c"><span class="tag pass">PASA</span></td></tr>
+      <tr><td>04</td><td>Idempotencia</td><td>Repite el POST con la misma referencia</td><td><code>200</code> con el mismo <code>solicitudId</code>; no se duplica</td><td class="c"><span class="tag pass">PASA</span></td></tr>
+      <tr><td>05</td><td>Campanita</td><td><code>GET /api/notificaciones</code> con la sesión del usuario</td><td>Trae la notificación con el nombre del candidato</td><td class="c"><span class="tag pass">PASA</span></td></tr>
+      <tr><td>06</td><td>Ficha y banner</td><td>Abre <code>/nss?nss=…</code></td><td>Aparece el banner "Examen médico inicial pendiente" en el resultado (no en la campanita oculta)</td><td class="c"><span class="tag pass">PASA</span></td></tr>
+      <tr><td>07</td><td>En captura y asignación</td><td>Abre el examen inicial; consulta la bandeja filtrada EN_CAPTURA</td><td>La solicitud está EN CAPTURA y la columna <i>Atiende</i> trae al usuario de la sesión; no sale el aviso de "lo atiende otro"</td><td class="c"><span class="tag pass">PASA</span></td></tr>
+      <tr><td>08</td><td>Autoguardado</td><td>Hoja 7 (Exploración): captura peso con valor único por corrida y talla; cambia a hoja 8; vuelve a abrir el examen</td><td>El peso capturado sigue ahí tras recargar</td><td class="c"><span class="tag pass">PASA</span> <span class="tag bug">BUG corregido</span></td></tr>
+      <tr><td>09</td><td>Finalizar</td><td>Hoja 10: dictamen NO APTO, diagnóstico ICD del catálogo ("fiebre"), firma dibujada en el canvas, Finalizar + confirmación</td><td>Sin error en pantalla; se abre pestaña nueva que navega al expediente impreso con el dictamen</td><td class="c"><span class="tag pass">PASA</span></td></tr>
+      <tr><td>10</td><td>Bandeja</td><td>Bandeja filtrada FINALIZADO</td><td>El renglón de la solicitud está FINALIZADO con dictamen NO_APTO</td><td class="c"><span class="tag pass">PASA</span></td></tr>
+      <tr><td>11</td><td>Webhook</td><td>Espera hasta 150 s el POST del portal en el receptor</td><td>Llega en ≤60 s; <code>X-Firma</code> = HMAC-SHA256(secreto, cuerpo) ✔; <code>evento</code>, <code>estatus DICTAMINADO</code>, <code>dictamen NO_APTO</code>, <code>referenciaOcr</code>, <code>nss</code>, <code>fechaDictamen</code>; cabeceras <code>X-Firma-Tiempo</code>, <code>X-Firma-V2</code>, <code>X-Evento</code></td><td class="c"><span class="tag pass">PASA</span></td></tr>
+      <tr><td>12</td><td>Consulta de respaldo</td><td><code>GET /solicitudes/{id}</code> y <code>?referenciaOcr=</code></td><td><code>FINALIZADO</code>, <code>dictamen NO_APTO</code>, <code>notificado: true</code></td><td class="c"><span class="tag pass">PASA</span></td></tr>
+      <tr><td>13</td><td>Cancelar finalizada</td><td><code>POST /cancelar</code> sobre la finalizada</td><td><code>409 YA_FINALIZADO</code></td><td class="c"><span class="tag pass">PASA</span></td></tr>
+      <tr><td>14</td><td>Documento</td><td><code>GET /solicitudes/{id}/documento</code> con la llave</td><td>200, HTML del expediente con el NSS</td><td class="c"><span class="tag pass">PASA</span></td></tr>
+    </table>
+
+    <h3 id="casos-b">B · Examen médico periódico, migrado del PHP (4 casos)</h3>
+    <table>
+      <tr><th>#</th><th>Caso</th><th>Qué hace la prueba</th><th>Verificación</th><th class="c">Resultado</th></tr>
+      <tr><td>01</td><td>Carga</td><td>Busca el NSS, abre el módulo Examen Médico, expande el grupo y la pestaña Exploración física</td><td>Acordeón con ≥5 grupos; la sección carga sus campos (<code>SERV_MED_EXPLORACION_FISICA.PESO</code>)</td><td class="c"><span class="tag pass">PASA</span></td></tr>
+      <tr><td>02</td><td>Guardar solo lo abierto</td><td>Captura peso, talla y una marca de hora en "Lenguaje"; Guardar examen; vuelve a abrir el módulo</td><td>Sin error; al recargar los tres valores vienen del WS (persistió en ORDS)</td><td class="c"><span class="tag pass">PASA</span></td></tr>
+      <tr><td>03</td><td>Ir y venir</td><td>Captura FC, cambia a la pestaña Cráneo y regresa sin guardar</td><td>El valor sigue en pantalla</td><td class="c"><span class="tag pass">PASA</span></td></tr>
+      <tr><td>04</td><td>Imprimir</td><td>Botón del expediente completo</td><td>Pestaña nueva con el NSS y la sección Exploración</td><td class="c"><span class="tag pass">PASA</span></td></tr>
+    </table>
+
+    <h3 id="casos-c">C · Pruebas unitarias (JUnit) en JDK 22</h3>
+    <table>
+      <tr><th>Caso</th><th>Qué verifica</th><th class="c">Resultado</th></tr>
+      <tr><td><code>PortalViewControllerTest.shouldRenderLoginPage</code></td><td><code>/login</code> responde 200 con la vista <code>auth/login</code></td><td class="c"><span class="tag pass">PASA</span></td></tr>
+      <tr><td><code>PortalViewControllerTest.shouldRenderHomePage</code></td><td><code>/home</code> autenticado responde 200 con el dashboard</td><td class="c"><span class="tag pass">PASA</span></td></tr>
+    </table>
+    <p class="lead">Antes no corrían: Mockito no podía adjuntar el agente de Byte Buddy en JDK 22. Se resolvió cargándolo como <code>-javaagent</code> en surefire (solución oficial de Mockito) y actualizando los mocks del test. El empaquetado no cambia (<code>skipTests=true</code> sigue por defecto; se corren con <code>mvn test -DskipTests=false</code>).</p>
+  </div>
+
+  <h2 id="hallazgos">Hallazgos</h2>
+  <div class="card">
+    <h3><span class="tag bug">BUG</span> Pérdida de datos en el autoguardado del examen inicial — corregido</h3>
+    <p><b>Síntoma:</b> el peso capturado en Exploración física (hoja 7) desaparecía al volver a abrir el examen, aunque el portal había respondido "Guardado".</p>
+    <p><b>Causa:</b> al cambiar de hoja el navegador manda dos autoguardados casi simultáneos (el de la hoja que se deja y el que programa la hoja que llega). <code>guardarBorrador</code> hace leer → fusionar → escribir; los dos leían el mismo borrador viejo y el segundo escribía sin el peso del primero (<i>lost update</i>). En la traza se vio claro: <code>borrador hoja 7 PESO=83.39</code> seguido de <code>borrador hoja 8 PESO=None</code> ×2.</p>
+    <p><b>Corrección:</b> (1) el servidor serializa leer-fusionar-escribir por NSS (<code>ExamenInicialService.guardarBorrador</code>, candado en JVM — un solo nodo de Tomcat); (2) el cliente encadena los autoguardados en una cola en vez de lanzarlos en paralelo (<code>exIniAutosave</code> en <code>nss-search.html</code>). Verificado: el caso 08 pasa en las tres corridas posteriores.</p>
+    <div class="malo"><b>Impacto en producción:</b> el WAR de producción armado el 6-oct a las 09:51 <b>no</b> trae esta corrección. Hay que rearmarlo antes de subirlo.</div>
+
+    <h3><span class="tag info">Confirmado</span> El candado hace su trabajo</h3>
+    <p>En la primera corrida con la base limpia la API respondió <code>409 EXAMEN_VIGENTE</code> ("ya es empleado y tiene un examen inicial finalizado el 03/10/2026 (Apto)"): el NSS de pruebas había quedado como empleado con inicial APTO. Es el comportamiento diseñado. Para que la suite sea repetible, finaliza siempre con <b>NO APTO</b> (único dictamen que reabre el candado) y se preparó <code>tests/e2e/preparar-nss-qa.local.sql</code> para abrirlo la primera vez.</p>
+
+    <h3><span class="tag amb">Dato</span> Catálogo ICD incompleto en QA</h3>
+    <p>El WS <code>Servcio/indice</code> de QA solo devuelve resultados para "fiebre"; "diabetes", "hipertension", "A00", "J00", "dolor" regresan vacío. Es el mismo WS que usa el PHP; no es un defecto del portal, pero limita las pruebas en QA. La suite usa "fiebre".</p>
+
+    <h3><span class="tag amb">Dato</span> Chips del dictamen son toggle</h3>
+    <p>Dar clic en el dictamen que ya está activo lo deselecciona. Para un usuario es razonable; la prueba lo contempla (solo da clic si no está activo). Si se quisiera evitar un clic accidental que deje el dictamen vacío, es un cambio de una línea.</p>
+
+    <h3><span class="tag info">Nota</span> <code>documentoUrl</code> nulo en QA</h3>
+    <p>En el webhook de QA <code>documentoUrl</code> viaja <code>null</code> porque <code>portal.integracion.ocr.public-base-url</code> está vacía en ese perfil. En producción va <code>https://health.onestcloud.mx</code> y el campo se llena. Esperado.</p>
+  </div>
+
+  <h2>Historial de corridas</h2>
+  <div class="card">
+    <table>
+      <tr><th>Corrida</th><th>Resultado</th><th>Causa / ajuste</th></tr>
+      <tr><td>1</td><td>Login rechazado</td><td>Se había puesto el usuario de base de datos (<code>ONEWMS_QA</code>) en vez de un usuario del portal. Ajuste de datos.</td></tr>
+      <tr><td>2</td><td>API 401 con la llave de QA</td><td>El Tomcat local servía el último WAR armado, que era el de <b>producción</b> (llaves de prod). Se rearmó con <code>-Pqa</code>. Lección: el directorio explotado siempre refleja el último <code>package</code>.</td></tr>
+      <tr><td>3</td><td>Pruebas fuera de orden</td><td>pytest agrupa por fixtures de sesión y separaba las de API de las de navegador. Todas reciben ahora la fixture de sesión.</td></tr>
+      <tr><td>4</td><td><code>409 EXAMEN_VIGENTE</code> en el alta</td><td>Candado abierto con el SQL de preparación; suite cambiada a NO APTO (ver hallazgos).</td></tr>
+      <tr><td>5</td><td>Caso 08 falla: peso perdido</td><td><b>Bug real</b> de lost update. Corregido en servidor y cliente; rearmado y redesplegado.</td></tr>
+      <tr><td>6</td><td>Caso 09: ICD vacío, dictamen deseleccionado, pestaña en "Generando…"; periódico: enlace oculto</td><td>Ajustes de la prueba (consulta "fiebre", clic condicional, esperar navegación de la pestaña, abrir el submenú por JS).</td></tr>
+      <tr><td>Final</td><td><b>19 / 19 en 64 s</b></td><td>Corrida completa desde cero, sin intervención.</td></tr>
+    </table>
+  </div>
+
+  <h2 id="evidencia">Evidencia</h2>
+  <div class="card">
+    <h3>Salida de pytest (corrida final)</h3>
+<pre>tests\e2e\test_examen_inicial_ocr.py::test_00_cancelar_solicitudes_vivas_previas  PASSED
+tests\e2e\test_examen_inicial_ocr.py::test_01_api_llave_mala_401                   PASSED
+tests\e2e\test_examen_inicial_ocr.py::test_02_api_obligatorios_400                 PASSED
+tests\e2e\test_examen_inicial_ocr.py::test_03_api_alta_201                         PASSED
+tests\e2e\test_examen_inicial_ocr.py::test_04_api_idempotente_200                  PASSED
+tests\e2e\test_examen_inicial_ocr.py::test_05_campanita_tiene_la_notificacion      PASSED
+tests\e2e\test_examen_inicial_ocr.py::test_06_ficha_candidato_y_banner             PASSED
+tests\e2e\test_examen_inicial_ocr.py::test_07_abrir_pasa_a_en_captura_y_asigna     PASSED
+tests\e2e\test_examen_inicial_ocr.py::test_08_autoguardado_persiste                PASSED
+tests\e2e\test_examen_inicial_ocr.py::test_09_finalizar_no_apto                    PASSED
+tests\e2e\test_examen_inicial_ocr.py::test_10_bandeja_finalizado                   PASSED
+tests\e2e\test_examen_inicial_ocr.py::test_11_webhook_llega_firmado                PASSED
+tests\e2e\test_examen_inicial_ocr.py::test_12_consulta_respaldo_finalizada         PASSED
+tests\e2e\test_examen_inicial_ocr.py::test_13_cancelar_finalizada_409              PASSED
+tests\e2e\test_examen_inicial_ocr.py::test_14_documento_con_llave                  PASSED
+tests\e2e\test_examen_periodico.py::test_01_carga_examen_y_seccion                 PASSED
+tests\e2e\test_examen_periodico.py::test_02_guardar_solo_lo_abierto                PASSED
+tests\e2e\test_examen_periodico.py::test_03_ir_y_venir_sin_perder                  PASSED
+tests\e2e\test_examen_periodico.py::test_04_imprimir_expediente                    PASSED
+======================== 19 passed in 64.50s (0:01:04) ========================</pre>
+
+    <h3>Traza del portal (<code>logs/portal-salud-ocr.log</code>), solicitud 13 de la corrida final</h3>
+<pre>[ocr-http] POST /portal-salud/api/integracion/ocr/examen-inicial/solicitudes -> 201
+  respondido: {"solicitudId":13,"referenciaOcr":"E2E-20261006-115543","nss":"30048315698","estatus":"PENDIENTE",
+               "recibido":"2026-10-06T11:55:44.430617-06:00","caduca":"2026-11-05","fechaCita":"2026-10-06"}
+
+11:56:18.327 [ocr-webhook] solicitud 13 intento 1 POST http://127.0.0.1:8099/dictamen
+  cabeceras: X-Evento=EXAMEN_INICIAL_FINALIZADO | X-Firma=7d9443cf… | X-Firma-Tiempo=1791309378 | X-Firma-V2=sha256=c7aff25c…
+  enviado:   {"evento":"EXAMEN_INICIAL_FINALIZADO","solicitudId":13,"referenciaOcr":"E2E-20261006-115543",
+              "nss":"30048315698","curp":"MACM830923HMCLLG01","estatus":"DICTAMINADO","dictamen":"NO_APTO",
+              "fechaDictamen":"2026-10-06","fechaExamen":"2026-10-06T11:56:09.869651-06:00","restricciones":[],"documentoUrl":null}
+11:56:18.438 [ocr-webhook] solicitud 13 intento 1 -> HTTP 200
+  respondido: {"recibido":true}</pre>
+    <p class="lead">El examen se finalizó a las 11:56:09 y el webhook salió a las 11:56:18 (siguiente ciclo del scheduler de 60 s). El receptor recalculó la firma sobre el cuerpo recibido y coincidió.</p>
+  </div>
+
+  <h2>Qué no cubre esta suite</h2>
+  <div class="card">
+    <ul>
+      <li>Dos usuarios reales sobre el mismo examen ("Tomar examen"): requiere un segundo usuario de QA. Está cubierto solo por el caso 07 (asignación al primero) y la prueba manual del 6-oct.</li>
+      <li>Reintentos del webhook (OCR caído) y caducidad a las 01:15: se probaron manualmente el 5-oct (solicitud 5), no en la suite.</li>
+      <li>El resto del flujo migrado del PHP (consultas, incapacidades, archivos, pre-test, antidoping, permisos): está en el plan manual <code>docs/plan-pruebas-flujo-principal.html</code>; se puede automatizar con el mismo esqueleto.</li>
+      <li>Producción: ninguna prueba automatizada corre contra producción.</li>
+    </ul>
+  </div>
+
+  <h2>Cómo volver a correrla</h2>
+  <div class="card">
+<pre>1. Tomcat local arriba con el WAR de QA:   mvn -Pqa -DskipTests package   (sin clean)
+2. Credenciales en config/produccion/e2e.local.properties (usuario del portal en QA, NSS de pruebas)
+3. Si el NSS quedó con inicial APTO (409 en el caso 03): tests/e2e/preparar-nss-qa.local.sql en la base del portal de QA
+4. python -m pytest tests/e2e -v            (--headed para ver el navegador)</pre>
+    <p class="lead">Cada corrida deja en QA: una solicitud FINALIZADA (referencia <code>E2E-fecha-hora</code>) y el examen tipo Admisión del NSS de pruebas con dictamen NO APTO; la sección Exploración física del examen periódico queda con peso 81, talla 1.76 y la marca de hora en "Lenguaje".</p>
+  </div>
+
+  <h2>Pendientes derivados</h2>
+  <div class="card">
+    <ol>
+      <li><b>Rearmar y subir el WAR de producción</b> con la corrección del autoguardado (y la bandeja, la traza OCR y el odontograma centrado, que tampoco están en prod).</li>
+      <li>Commit local de todo lo del 5–6 de octubre (código, SQL de bandeja, tests, documentos, pom para JDK 22) y actualizar en <code>CLAUDE.md</code> que los tests sí corren.</li>
+      <li>Cuando OCR entregue su receptor real: repetir el caso 11 contra ellos (misma firma) y los reintentos con su endpoint apagado.</li>
+    </ol>
+  </div>
+</div>
+</body>
+</html>

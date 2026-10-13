@@ -40,10 +40,16 @@ public class BiowsExamenClient implements ExamenClient {
     private static final Pattern TRABAJO_KEY = Pattern.compile("^trabajos\\[(\\d+)]\\.(.+)$");
 
     private final RestClient biowsRestClient;
+    /** Mismo ORDS, pero espera hasta 120 s: solo para guardar (ver BiowsClientConfig). */
+    private final RestClient restClientGuardado;
     private final BiowsProperties properties;
 
-    public BiowsExamenClient(RestClient biowsRestClient, BiowsProperties properties) {
+    public BiowsExamenClient(RestClient biowsRestClient,
+                             @org.springframework.beans.factory.annotation.Qualifier("biowsRestClientGuardadoLargo")
+                             RestClient restClientGuardado,
+                             BiowsProperties properties) {
         this.biowsRestClient = biowsRestClient;
+        this.restClientGuardado = restClientGuardado;
         this.properties = properties;
     }
 
@@ -174,16 +180,61 @@ public class BiowsExamenClient implements ExamenClient {
         }
 
         log.info("[biows] POST {}{} NSS={} secciones={}", properties.baseUrl(), PATH_SAVE, nss, secciones.size());
-        BiowsProcesoResponse response = biowsRestClient.post()
+        // Se lee como texto y se interpreta aqui, en vez de dejarlo al convertidor: asi, si ORDS
+        // responde algo que no es JSON (pagina de error, etiqueta rara), queda en el log lo que
+        // respondio de verdad. El 9-oct-2026 solo quedo "Error while extracting response".
+        long inicio = System.currentTimeMillis();
+        // Se leen los bytes crudos con exchange() y no con body(String.class): con la etiqueta
+        // application/json el convertidor de Jackson (primero de la lista) intentaba convertir el
+        // objeto JSON en un String y fallaba (500 del 10-oct 17:39, con ORDS ya respondiendo bien).
+        String crudo = restClientGuardado.post()
                 .uri(PATH_SAVE)
                 .body(payload)
-                .retrieve()
-                .body(BiowsProcesoResponse.class);
-
-        if (response == null || response.datos() == null || response.datos().isEmpty()) {
+                .exchange((req, res) -> {
+                    byte[] bytes = res.getBody().readAllBytes();
+                    String texto = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
+                    if (!res.getStatusCode().is2xxSuccessful()) {
+                        log.error("[biows] guardado de examen NSS={} HTTP {}: {}", nss, res.getStatusCode().value(), recortar(texto));
+                        throw new BiowsRechazoException("El servicio de exámenes respondió HTTP "
+                                + res.getStatusCode().value() + ". Revise si el examen se guardó antes de reintentar.");
+                    }
+                    return texto;
+                });
+        // Cuanto tarda ORDS en guardar: sirve para medir si el ajuste de la base lo bajo.
+        log.info("[biows] guardado de examen NSS={} respondio en {} ms", nss, System.currentTimeMillis() - inicio);
+        if (crudo == null || crudo.isBlank()) {
             return "";
         }
-        return response.datos().get(0).proceso();
+        BiowsProcesoResponse response;
+        try {
+            response = LECTOR.readValue(crudo, BiowsProcesoResponse.class);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
+            log.error("[biows] respuesta no JSON de {} NSS={}: {}", PATH_SAVE, nss, recortar(crudo));
+            throw new BiowsRechazoException(
+                    "El servicio de examenes respondio algo inesperado. Revise si el examen se guardo antes de reintentar.");
+        }
+        if (response.datos() == null || response.datos().isEmpty()) {
+            return "";
+        }
+        BiowsProcesoResponse.Dato d = response.datos().get(0);
+        // En Servcio/Medico, Estado 0 = aceptado. Los errores (-100 del procedimiento, -2 de la
+        // excepcion, 100 de rechazo) llegan con HTTP 200: sin esta revision el portal los
+        // mostraba como guardado exitoso y ademas registraba el historico del dictamen.
+        if (d.estado() != null && d.estado() != 0) {
+            log.error("[biows] guardado rechazado por ORDS NSS={} estado={} proceso={} data={}",
+                    nss, d.estado(), d.proceso(), d.data());
+            String detalle = d.data() != null && !d.data().isBlank() ? d.data() : d.mensaje();
+            throw new BiowsRechazoException("No se guardó el examen: " + d.proceso()
+                    + (detalle == null || detalle.isBlank() ? "" : " (" + detalle + ")"));
+        }
+        return d.proceso();
+    }
+
+    private static final com.fasterxml.jackson.databind.ObjectMapper LECTOR =
+            new com.fasterxml.jackson.databind.ObjectMapper();
+
+    private static String recortar(String s) {
+        return s.length() <= 2000 ? s : s.substring(0, 2000) + "...(" + s.length() + " caracteres)";
     }
 
     /**

@@ -136,7 +136,8 @@ public class SolicitudExamenService {
                 r.nombre().trim(), r.apellidoPaterno().trim(), r.apellidoMaterno().trim(), nacimiento, vacioANull(sexo),
                 vacioANull(r.estadoCivil()), vacioANull(r.escolaridad()), vacioANull(r.profesionOficio()), vacioANull(r.domicilio()),
                 vacioANull(r.telefono()), vacioANull(r.empresa()), r.cuenta().trim(), vacioANull(r.agencia()), r.puestoSolicitado().trim(),
-                cita, vacioANull(r.callbackUrl()), SolicitudExamen.PENDIENTE, caduca, null, null, null, null, null, null, null, null);
+                cita, vacioANull(r.callbackUrl()), SolicitudExamen.PENDIENTE, caduca, null, null, null, null, null, null, null, null,
+                null, null);
         long id = repo.crear(nueva, request == null ? null : request.getRemoteAddr());
         SolicitudExamen creada = repo.porId(id).orElseThrow();
 
@@ -190,13 +191,34 @@ public class SolicitudExamenService {
         return true;
     }
 
-    /** El medico abrio el examen inicial de ese NSS: PENDIENTE -> EN_CAPTURA. Nunca lanza. */
-    public void enCaptura(String nss) {
+    /**
+     * El medico abrio el examen inicial de ese NSS: PENDIENTE -> EN_CAPTURA y, si nadie lo
+     * atiende, queda asignado a el. Devuelve la solicitud ya actualizada (o vacio). Nunca lanza.
+     */
+    public Optional<SolicitudExamen> enCaptura(String nss, String usuario) {
         try {
-            repo.activaPorNss(nss).ifPresent(s -> repo.marcarEnCaptura(s.id()));
+            Optional<SolicitudExamen> activa = repo.activaPorNss(nss);
+            if (activa.isEmpty()) {
+                return Optional.empty();
+            }
+            repo.marcarEnCaptura(activa.get().id());
+            repo.asignarSiLibre(activa.get().id(), usuario);
+            return repo.porId(activa.get().id());
         } catch (RuntimeException ex) {
             log.debug("[ocr] sin solicitud en captura para {}: {}", nss, ex.getMessage());
+            return Optional.empty();
         }
+    }
+
+    /** "Tomar examen": el usuario se lo asigna aunque lo tuviera otro. */
+    public void tomar(long id, String usuario, HttpServletRequest request) {
+        repo.reasignar(id, usuario);
+        auditar("update", "Solicitud examen inicial", String.valueOf(id), "tomar examen", request);
+    }
+
+    /** Bandeja de examenes iniciales con filtros. */
+    public List<SolicitudExamen> bandeja(String estatus, String nss, String nombre, String desde, String hasta) {
+        return repo.bandeja(estatus, nss, nombre, fecha(desde), fecha(hasta), 500);
     }
 
     /** Examen inicial finalizado: cierra la solicitud viva del NSS y programa el webhook. */

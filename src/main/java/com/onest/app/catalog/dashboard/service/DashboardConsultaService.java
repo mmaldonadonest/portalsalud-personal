@@ -5,6 +5,7 @@ import com.onest.app.catalog.dashboard.dto.DashboardConsultaDto;
 import com.onest.app.catalog.dashboard.dto.PuntoMensualDto;
 import com.onest.app.catalog.dashboard.dto.SeriePredioDto;
 import com.onest.app.catalog.dashboard.repository.BitacoraHistoricoRepository;
+import com.onest.app.catalog.dashboard.repository.VistaAtencionRepository;
 import com.onest.app.catalog.expediente.dto.ConsultaReporteDto;
 import com.onest.app.catalog.expediente.service.ExpedienteService;
 import java.time.LocalDate;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 /**
@@ -49,13 +51,17 @@ public class DashboardConsultaService {
     private final ExpedienteService expedienteService;
     private final DashboardPredioFiltro predioFiltro;
     private final BitacoraHistoricoRepository historico;
+    // Solo existe con portal.historico.fuente=VISTA: entonces todo sale de la vista unificada
+    private final ObjectProvider<VistaAtencionRepository> vistaAtenciones;
 
     public DashboardConsultaService(ExpedienteService expedienteService,
                                     DashboardPredioFiltro predioFiltro,
-                                    BitacoraHistoricoRepository historico) {
+                                    BitacoraHistoricoRepository historico,
+                                    ObjectProvider<VistaAtencionRepository> vistaAtenciones) {
         this.expedienteService = expedienteService;
         this.predioFiltro = predioFiltro;
         this.historico = historico;
+        this.vistaAtenciones = vistaAtenciones;
     }
 
     /** Sin corte por predio/cuenta - el que ya usa /home desde el 17-ago. */
@@ -83,6 +89,10 @@ public class DashboardConsultaService {
      */
     public DashboardConsultaDto resumen(String fechaInicial, String fechaFinal, String predio, String cuenta,
                                         int topCausas) {
+        VistaAtencionRepository vista = vistaAtenciones.getIfAvailable();
+        if (vista != null) {
+            return resumenDesdeVista(vista, fechaInicial, fechaFinal, predio, cuenta, topCausas);
+        }
         List<ConsultaReporteDto> filas = expedienteService.reportePorFecha(fechaInicial, fechaFinal).stream()
                 // Mismo bug de "fila fantasma" ya visto en Accidentes: sin datos en el rango,
                 // el WS regresa un objeto con todos los campos null en vez de array vacio.
@@ -192,25 +202,6 @@ public class DashboardConsultaService {
         // que son 209 renglones de prueba. La pantalla decia "Sin atenciones en el periodo" junto
         // a una tarjeta con 134. El mismo porMes alimenta las dos cosas; lo unico que fallaba era
         // el momento de la foto.
-        List<PuntoMensualDto> tendencia = new ArrayList<>();
-        porMes.forEach((mes, cantidad) -> tendencia.add(new PuntoMensualDto(mes, cantidad)));
-        if (sinFecha > 0) {
-            tendencia.add(new PuntoMensualDto("Sin fecha", sinFecha));
-        }
-
-        // Solo los predios con mas atenciones, y "Sin asignar" fuera: no es un predio real y
-        // hoy concentraria casi todo, aplastando la escala de los demas.
-        List<SeriePredioDto> tendenciaPorPredio = porPredioMes.entrySet().stream()
-                .filter(e -> !DashboardPredioFiltro.SIN_ASIGNAR.equals(e.getKey()))
-                .sorted(Comparator.comparingLong(
-                        (Map.Entry<String, Map<String, Long>> e) -> e.getValue().values().stream()
-                                .mapToLong(Long::longValue).sum()).reversed())
-                .limit(MAX_PREDIOS_SERIE)
-                .map(e -> new SeriePredioDto(e.getKey(), e.getValue().entrySet().stream()
-                        .map(m -> new PuntoMensualDto(m.getKey(), m.getValue()))
-                        .toList()))
-                .toList();
-
         return new DashboardConsultaDto(
                 fechaInicial, fechaFinal,
                 filas.size() + atencionesHistorico, totalAccidentesEmergencias,
@@ -221,8 +212,78 @@ public class DashboardConsultaService {
                 aConteoPorRangoEdad(porEdad),
                 aConteo(porCuenta, MAX_CUENTAS),
                 aConteo(porPredio, Integer.MAX_VALUE),
-                totalPersonas, tendenciaPorPredio,
-                tendencia);
+                totalPersonas, seriesPorPredio(porPredioMes),
+                serieMensual(porMes, sinFecha));
+    }
+
+    /**
+     * Fase 2 de las vistas: portal y Excel juntos desde SERV_MED_V_ATENCION, sin llamar a ORDS.
+     * Mismo DTO y mismos topes que el camino de arriba, para que las pantallas no cambien.
+     * No hay "Sin fecha": la vista solo devuelve renglones dentro del rango de fechas.
+     */
+    private DashboardConsultaDto resumenDesdeVista(VistaAtencionRepository vista, String fechaInicial,
+                                                   String fechaFinal, String predio, String cuenta, int topCausas) {
+        LocalDate desde = FechaFiltro.aFecha(fechaInicial).orElse(null);
+        LocalDate hasta = FechaFiltro.aFecha(fechaFinal).orElse(null);
+
+        long[] totales = vista.totales(desde, hasta, predio, cuenta);
+
+        Map<String, Long> porMes = new TreeMap<>();
+        vista.tendenciaMensual(desde, hasta, predio, cuenta).forEach(p -> porMes.put(p.mes(), p.cantidad()));
+
+        Map<String, Map<String, Long>> porPredioMes = new LinkedHashMap<>();
+        vista.tendenciaPorPredio(desde, hasta, predio, cuenta).forEach(f -> porPredioMes
+                .computeIfAbsent((String) f[0], k -> new TreeMap<>())
+                .put((String) f[1], (Long) f[2]));
+
+        Map<String, Long> porEdad = new LinkedHashMap<>();
+        sumar(porEdad, vista.porDimension("EDAD", desde, hasta, predio, cuenta));
+
+        return new DashboardConsultaDto(
+                fechaInicial, fechaFinal,
+                totales[0], totales[2],
+                vista.porDimension("TIPO", desde, hasta, predio, cuenta),
+                vista.porDimension("AREA_ACCIDENTE", desde, hasta, predio, cuenta),
+                aConteo(aMapa(vista.porDimension("CAUSA", desde, hasta, predio, cuenta)),
+                        topCausas > 0 ? topCausas : MAX_CAUSAS),
+                vista.porDimension("GENERO", desde, hasta, predio, cuenta),
+                aConteoPorRangoEdad(porEdad),
+                aConteo(aMapa(vista.porDimension("CUENTA", desde, hasta, predio, cuenta)), MAX_CUENTAS),
+                vista.porDimension("PREDIO", desde, hasta, predio, cuenta),
+                totales[1], seriesPorPredio(porPredioMes),
+                serieMensual(porMes, 0));
+    }
+
+    private static Map<String, Long> aMapa(List<ConteoSimpleDto> conteos) {
+        Map<String, Long> mapa = new LinkedHashMap<>();
+        sumar(mapa, conteos);
+        return mapa;
+    }
+
+    private static List<PuntoMensualDto> serieMensual(Map<String, Long> porMes, long sinFecha) {
+        List<PuntoMensualDto> tendencia = new ArrayList<>();
+        porMes.forEach((mes, cantidad) -> tendencia.add(new PuntoMensualDto(mes, cantidad)));
+        if (sinFecha > 0) {
+            tendencia.add(new PuntoMensualDto("Sin fecha", sinFecha));
+        }
+        return tendencia;
+    }
+
+    /**
+     * Solo los predios con mas atenciones, y "Sin asignar" fuera: no es un predio real y
+     * hoy concentraria casi todo, aplastando la escala de los demas.
+     */
+    private static List<SeriePredioDto> seriesPorPredio(Map<String, Map<String, Long>> porPredioMes) {
+        return porPredioMes.entrySet().stream()
+                .filter(e -> !DashboardPredioFiltro.SIN_ASIGNAR.equals(e.getKey()))
+                .sorted(Comparator.comparingLong(
+                        (Map.Entry<String, Map<String, Long>> e) -> e.getValue().values().stream()
+                                .mapToLong(Long::longValue).sum()).reversed())
+                .limit(MAX_PREDIOS_SERIE)
+                .map(e -> new SeriePredioDto(e.getKey(), e.getValue().entrySet().stream()
+                        .map(m -> new PuntoMensualDto(m.getKey(), m.getValue()))
+                        .toList()))
+                .toList();
     }
 
     /**

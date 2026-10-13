@@ -48,7 +48,11 @@ public class BiowsExpedienteClient implements ExpedienteClient {
         if (response == null || response.datos() == null) {
             return List.of();
         }
+        // Sin consultas, el WS regresa un objeto "sin datos" (Proceso/Estado/Mensaje) DENTRO de Datos
+        // en vez de un arreglo vacio: sin id_consulta, se pintaba como un renglon vacio con boton
+        // "Ver". Mismo filtro que Incapacidades, Accidentes y Antidoping (12-oct-2026).
         return response.datos().stream()
+                .filter(d -> d.idConsulta() != null && !d.idConsulta().isBlank())
                 .map(d -> new ConsultaDto(d.idConsulta(), d.fechaConsulta(), d.tipoConsulta(), d.areaAccidente(), d.causa()))
                 .toList();
     }

@@ -6,6 +6,7 @@ import com.onest.app.catalog.dashboard.dto.PuntoMensualDto;
 import com.onest.app.catalog.dashboard.service.LesionMusculoesqueletica.Clasificacion;
 import com.onest.app.catalog.dashboard.service.LesionMusculoesqueletica.Grupo;
 import com.onest.app.catalog.dashboard.repository.BitacoraHistoricoRepository;
+import com.onest.app.catalog.dashboard.repository.VistaAtencionRepository;
 import com.onest.app.catalog.expediente.dto.ConsultaReporteDto;
 import com.onest.app.catalog.expediente.service.ExpedienteService;
 import java.time.LocalDate;
@@ -21,6 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 /**
@@ -44,16 +46,24 @@ public class DashboardMusculoesqueleticoService {
     private final ExpedienteService expedienteService;
     private final DashboardPredioFiltro predioFiltro;
     private final BitacoraHistoricoRepository historico;
+    // Solo existe con portal.historico.fuente=VISTA: entonces todo sale de la vista unificada
+    private final ObjectProvider<VistaAtencionRepository> vistaAtenciones;
 
     public DashboardMusculoesqueleticoService(ExpedienteService expedienteService,
                                               DashboardPredioFiltro predioFiltro,
-                                              BitacoraHistoricoRepository historico) {
+                                              BitacoraHistoricoRepository historico,
+                                              ObjectProvider<VistaAtencionRepository> vistaAtenciones) {
         this.expedienteService = expedienteService;
         this.predioFiltro = predioFiltro;
         this.historico = historico;
+        this.vistaAtenciones = vistaAtenciones;
     }
 
     public DashboardMusculoesqueleticoDto resumen(String fechaInicial, String fechaFinal, String predio, String cuenta) {
+        VistaAtencionRepository vista = vistaAtenciones.getIfAvailable();
+        if (vista != null) {
+            return resumenDesdeVista(vista, fechaInicial, fechaFinal, predio, cuenta);
+        }
         List<ConsultaReporteDto> filas = expedienteService.reportePorFecha(fechaInicial, fechaFinal).stream()
                 // fila fantasma del WS cuando no hay datos en el rango
                 .filter(f -> f.nss() != null && !f.nss().isBlank())
@@ -149,6 +159,95 @@ public class DashboardMusculoesqueleticoService {
         if (sinFecha > 0) {
             tendencia.add(new PuntoMensualDto("Sin fecha", sinFecha));
         }
+
+        return new DashboardMusculoesqueleticoDto(fechaInicial, fechaFinal,
+                filas.size(), sinDiagnostico, lesiones, personas.size(),
+                algias, columna, traumatismos, fracturas,
+                aConteo(porTipo, Integer.MAX_VALUE), aConteo(porRegion, Integer.MAX_VALUE),
+                aConteo(porPredio, Integer.MAX_VALUE), tendencia,
+                aConteo(porDiagnostico, MAX_DIAGNOSTICOS));
+    }
+
+    /**
+     * Fase 2 de las vistas: todo de SERV_MED_V_ATENCION, sin llamar a ORDS.
+     *
+     * <p>Lo del portal llega renglon por renglon y se clasifica aqui con la MISMA regla de siempre
+     * (clave CIE-10 + area anatomica); lo del Excel llega ya agregado por la etiqueta que marco la
+     * enfermera. Mismo DTO que el camino de arriba.
+     *
+     * <p>Un cambio a proposito: las personas con lesion ahora son la union por NSS de las dos
+     * fuentes. Antes solo contaban las del portal, porque la carga vieja no traia NSS.
+     */
+    private DashboardMusculoesqueleticoDto resumenDesdeVista(VistaAtencionRepository vista, String fechaInicial,
+                                                             String fechaFinal, String predio, String cuenta) {
+        LocalDate desde = FechaFiltro.aFecha(fechaInicial).orElse(null);
+        LocalDate hasta = FechaFiltro.aFecha(fechaFinal).orElse(null);
+
+        List<VistaAtencionRepository.FilaPortal> filas = vista.filasPortal(desde, hasta, predio, cuenta);
+
+        long sinDiagnostico = 0;
+        long lesiones = 0;
+        long algias = 0, columna = 0, traumatismos = 0, fracturas = 0;
+        Set<String> personas = new HashSet<>();
+        Map<String, Long> porTipo = new LinkedHashMap<>();
+        Map<String, Long> porRegion = new LinkedHashMap<>();
+        Map<String, Long> porPredio = new LinkedHashMap<>();
+        Map<String, Long> porMes = new TreeMap<>();
+        Map<String, Long> porDiagnostico = new LinkedHashMap<>();
+
+        for (VistaAtencionRepository.FilaPortal fila : filas) {
+            if (!tieneClave(fila.diagnostico())) {
+                sinDiagnostico++;
+                continue;
+            }
+            Optional<Clasificacion> c = LesionMusculoesqueletica.clasificar(fila.diagnostico(), fila.areaInvolucrada());
+            if (c.isEmpty()) {
+                continue; // con clave CIE-10 pero de otro capitulo: no es lesion musculoesqueletica
+            }
+            lesiones++;
+            if (fila.nss() != null) {
+                personas.add(fila.nss().trim());
+            }
+            switch (c.get().grupo()) {
+                case ALGIA -> algias++;
+                case COLUMNA -> columna++;
+                case TRAUMATISMO -> traumatismos++;
+                case FRACTURA -> fracturas++;
+            }
+            porTipo.merge(c.get().tipo(), 1L, Long::sum);
+            porRegion.merge(c.get().region(), 1L, Long::sum);
+            porPredio.merge(fila.predio(), 1L, Long::sum);
+            porDiagnostico.merge(claveCorta(fila.diagnostico()), 1L, Long::sum);
+            if (fila.fecha() != null) {
+                porMes.merge(YearMonth.from(fila.fecha()).toString(), 1L, Long::sum);
+            }
+        }
+
+        for (ConteoSimpleDto e : vista.lesionesExcel("TIPO", desde, hasta, predio, cuenta)) {
+            lesiones += e.cantidad();
+            Optional<Clasificacion> c = LesionMusculoesqueletica.clasificarDeEtiquetaExcel(e.clave());
+            if (c.isEmpty()) {
+                // Etiqueta fuera del catalogo conocido: cuenta como lesion pero no se fuerza a un grupo
+                porTipo.merge(e.clave(), e.cantidad(), Long::sum);
+                continue;
+            }
+            switch (c.get().grupo()) {
+                case ALGIA -> algias += e.cantidad();
+                case COLUMNA -> columna += e.cantidad();
+                case TRAUMATISMO -> traumatismos += e.cantidad();
+                case FRACTURA -> fracturas += e.cantidad();
+            }
+            porTipo.merge(c.get().tipo(), e.cantidad(), Long::sum);
+            porRegion.merge(c.get().region(), e.cantidad(), Long::sum);
+        }
+        vista.lesionesExcel("PREDIO", desde, hasta, predio, cuenta)
+                .forEach(p -> porPredio.merge(p.clave(), p.cantidad(), Long::sum));
+        vista.lesionesExcel("MES", desde, hasta, predio, cuenta)
+                .forEach(p -> porMes.merge(p.clave(), p.cantidad(), Long::sum));
+        personas.addAll(vista.nssConLesionExcel(desde, hasta, predio, cuenta));
+
+        List<PuntoMensualDto> tendencia = new ArrayList<>();
+        porMes.forEach((mes, cantidad) -> tendencia.add(new PuntoMensualDto(mes, cantidad)));
 
         return new DashboardMusculoesqueleticoDto(fechaInicial, fechaFinal,
                 filas.size(), sinDiagnostico, lesiones, personas.size(),

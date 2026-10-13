@@ -5,6 +5,7 @@ import com.onest.app.catalog.dashboard.dto.ConteoSimpleDto;
 import com.onest.app.catalog.dashboard.dto.DashboardExamenDto;
 import com.onest.app.catalog.dashboard.dto.PuntoMensualDto;
 import com.onest.app.catalog.dashboard.repository.BitacoraHistoricoRepository;
+import com.onest.app.catalog.dashboard.repository.VistaExamenRepository;
 import com.onest.app.catalog.examen.dto.ExamenReporteDto;
 import com.onest.app.catalog.examen.service.ExamenService;
 import java.time.LocalDate;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 /**
@@ -47,12 +49,16 @@ public class DashboardExamenService {
     private final ExamenService examenService;
     private final DashboardPredioFiltro predioFiltro;
     private final BitacoraHistoricoRepository historico;
+    // Solo existe con portal.historico.fuente=VISTA: entonces todo sale de la vista unificada
+    private final ObjectProvider<VistaExamenRepository> vistaExamenes;
 
     public DashboardExamenService(ExamenService examenService, DashboardPredioFiltro predioFiltro,
-                                  BitacoraHistoricoRepository historico) {
+                                  BitacoraHistoricoRepository historico,
+                                  ObjectProvider<VistaExamenRepository> vistaExamenes) {
         this.examenService = examenService;
         this.predioFiltro = predioFiltro;
         this.historico = historico;
+        this.vistaExamenes = vistaExamenes;
     }
 
     /** Sin corte por predio/cuenta - el que usa /home. */
@@ -66,6 +72,10 @@ public class DashboardExamenService {
      * vacio = sin corte, identico al comportamiento anterior.
      */
     public DashboardExamenDto resumen(String fechaInicial, String fechaFinal, String predio, String cuenta) {
+        VistaExamenRepository vista = vistaExamenes.getIfAvailable();
+        if (vista != null) {
+            return resumenDesdeVista(vista, fechaInicial, fechaFinal, predio, cuenta);
+        }
         List<ExamenReporteDto> filas = examenService.reportePorFecha(fechaInicial, fechaFinal).stream()
                 // Mismo bug de "fila fantasma" ya visto en los otros 3 dashboards: sin datos
                 // en el rango, el WS regresa un objeto con todos los campos null.
@@ -166,6 +176,26 @@ public class DashboardExamenService {
                 aConteo(porPredio, true),
                 tendencia,
                 aConteo(porMesDictamen, false));
+    }
+
+    /**
+     * Fase 2 de las vistas: portal, Excel y pos incapacidad de la carga vieja desde
+     * SERV_MED_V_EXAMEN, sin llamar a ORDS. Mismo DTO que el camino de arriba.
+     */
+    private DashboardExamenDto resumenDesdeVista(VistaExamenRepository vista, String fechaInicial,
+                                                 String fechaFinal, String predio, String cuenta) {
+        LocalDate desde = FechaFiltro.aFecha(fechaInicial).orElse(null);
+        LocalDate hasta = FechaFiltro.aFecha(fechaFinal).orElse(null);
+
+        ConteoDictamenDto t = vista.totales(desde, hasta, predio, cuenta);
+        List<ConteoDictamenDto> porMes = vista.porMes(desde, hasta, predio, cuenta);
+
+        return new DashboardExamenDto(
+                fechaInicial, fechaFinal,
+                t.cantidad(), t.apto(), t.noApto(), t.aptoCondicionado(), t.aptoRestringido(),
+                vista.porPredio(desde, hasta, predio, cuenta),
+                porMes.stream().map(m -> new PuntoMensualDto(m.clave(), m.cantidad())).toList(),
+                porMes);
     }
 
     /**

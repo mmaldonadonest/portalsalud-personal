@@ -17,6 +17,10 @@
                     <a href="javascript:void(0)" class="nav-link has-sub"><i class="ri-booklet-line"></i> <span>Expediente General</span></a>
                     <nav class="nav nav-sub" id="nssModulesSub"></nav>
                 </li>
+                <!-- Centro de ayuda: para todos; el contenido se filtra por los menus del rol -->
+                <li class="nav-item" th:if="${ayudaVisible}">
+                    <a th:href="@{/ayuda}" href="/ayuda" class="nav-link" th:classappend="${currentPath == '/ayuda'} ? ' active' : ''"><i class="ri-question-answer-line"></i> <span>Ayuda</span></a>
+                </li>
             </ul>
         </div>
         <!-- Examenes: paginas standalone fuera del flujo de NSS (grupo propio desde 14-sep).
@@ -28,12 +32,16 @@
         <!-- th:with en un th:block aparte: Thymeleaf evalua th:if ANTES que th:with del mismo elemento. -->
         <th:block th:with="verAntidoping=${menusPermitidos == null or menusPermitidos.contains('ANTIDOPING_SELECCION')},
                            verConsumibles=${menusPermitidos == null or menusPermitidos.contains('CONSUMIBLES')},
-                           verCausas=${menusPermitidos == null or menusPermitidos.contains('CAUSAS_CONSULTA')}">
+                           verCausas=${menusPermitidos == null or menusPermitidos.contains('CAUSAS_CONSULTA')},
+                           verBandeja=${menusPermitidos == null or menusPermitidos.contains('EXAMEN_INICIAL_BANDEJA')}">
         <div class="nav-group"
-             th:if="${verAntidoping or verConsumibles or verCausas}"
-             th:classappend="${currentPath == '/antidoping-seleccion' or currentPath == '/consumibles' or currentPath == '/causas-consulta'} ? ' show' : ''">
+             th:if="${verAntidoping or verConsumibles or verCausas or verBandeja}"
+             th:classappend="${currentPath == '/antidoping-seleccion' or currentPath == '/consumibles' or currentPath == '/causas-consulta' or currentPath == '/examen-inicial/bandeja'} ? ' show' : ''">
             <a href="javascript:void(0)" class="nav-label">Exámenes</a>
             <ul class="nav nav-sidebar">
+                <li class="nav-item" th:if="${verBandeja}">
+                    <a th:href="@{/examen-inicial/bandeja}" href="/examen-inicial/bandeja" class="nav-link" th:classappend="${currentPath == '/examen-inicial/bandeja'} ? ' active' : ''"><i class="ri-inbox-line"></i> <span>Exámenes iniciales</span></a>
+                </li>
                 <li class="nav-item" th:if="${verAntidoping}">
                     <a th:href="@{/antidoping-seleccion}" href="/antidoping-seleccion" class="nav-link" th:classappend="${currentPath == '/antidoping-seleccion'} ? ' active' : ''"><i class="ri-shuffle-line"></i> <span>Antidoping - Seleccion</span></a>
                 </li>
@@ -129,6 +137,9 @@
                     <a th:href="@{/admin/usuarios}" href="/admin/usuarios" class="nav-link" th:classappend="${currentPath == '/admin/usuarios'} ? ' active' : ''"><i class="ri-user-settings-line"></i> <span>Usuarios (rol)</span></a>
                 </li>
                 <li class="nav-item">
+                    <a th:href="@{/admin/ayuda}" href="/admin/ayuda" class="nav-link" th:classappend="${currentPath == '/admin/ayuda'} ? ' active' : ''"><i class="ri-question-answer-line"></i> <span>Ayuda (artículos)</span></a>
+                </li>
+                <li class="nav-item">
                     <a th:href="@{/admin/predios}" href="/admin/predios" class="nav-link" th:classappend="${currentPath == '/admin/predios'} ? ' active' : ''"><i class="ri-map-pin-line"></i> <span>Predios (cuentas)</span></a>
                 </li>
                 <li class="nav-item">
@@ -143,11 +154,9 @@
                 <img th:src="@{${currentUserAvatar}}"   alt="avatar usuario" onerror="this.onerror=null;this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjUwIiBmaWxsPSIjQ0JENUUxIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSIzOCIgcj0iMTgiIGZpbGw9IiM5NEEzQjgiLz48cGF0aCBkPSJNNTAgNThjLTIyIDAtMzggMTQtMzggMzJ2MTBoNzZWOTBjMC0xOC0xNi0zMi0zOC0zMnoiIGZpbGw9IiM5NEEzQjgiLz48L3N2Zz4K';">
             </div>
             <div class="sidebar-footer-body">
-                <h6><a href="javascript:void(0)" th:text="${currentUserName}">Usuario del portal</a></h6>
-                <!-- Un chip por rol: con 2+ roles el texto corrido se salia del cuadro. -->
-                <p class="sidebar-roles" th:title="${currentUserRole}">
-                    <span class="sidebar-rol" th:each="r : ${#strings.arraySplit(currentUserRole, ',')}" th:text="${#strings.trim(r)}">ROL</span>
-                </p>
+                <!-- 10-oct: sin chips de rol aqui. Con varios roles ocupaban el pie y desplazaban el
+                     menu; los roles se ven en el header (y en el title del nombre, al pasar el mouse). -->
+                <h6><a href="javascript:void(0)" th:text="${currentUserName}" th:title="${currentUserRole}">Usuario del portal</a></h6>
             </div>
             <a id="sidebarFooterMenu" href="javascript:void(0)" class="dropdown-link"><i class="ri-arrow-down-s-line"></i></a>
         </div>

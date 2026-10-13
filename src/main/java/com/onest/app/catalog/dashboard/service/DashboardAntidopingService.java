@@ -7,6 +7,7 @@ import com.onest.app.catalog.dashboard.dto.ConteoSimpleDto;
 import com.onest.app.catalog.dashboard.dto.DashboardAntidopingDto;
 import com.onest.app.catalog.dashboard.dto.PuntoMensualDto;
 import com.onest.app.catalog.dashboard.repository.BitacoraHistoricoRepository;
+import com.onest.app.catalog.dashboard.repository.VistaAntidopingRepository;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 /**
@@ -43,13 +45,17 @@ public class DashboardAntidopingService {
     private final AntidopingService antidopingService;
     private final DashboardPredioFiltro predioFiltro;
     private final BitacoraHistoricoRepository historico;
+    // Solo existe con portal.historico.fuente=VISTA: entonces todo sale de la vista unificada
+    private final ObjectProvider<VistaAntidopingRepository> vistaAntidoping;
 
     public DashboardAntidopingService(AntidopingService antidopingService,
                                       DashboardPredioFiltro predioFiltro,
-                                      BitacoraHistoricoRepository historico) {
+                                      BitacoraHistoricoRepository historico,
+                                      ObjectProvider<VistaAntidopingRepository> vistaAntidoping) {
         this.antidopingService = antidopingService;
         this.predioFiltro = predioFiltro;
         this.historico = historico;
+        this.vistaAntidoping = vistaAntidoping;
     }
 
     /** Sin corte por predio/cuenta - el que usa /home. */
@@ -59,6 +65,10 @@ public class DashboardAntidopingService {
 
     /** Con corte opcional por predio y/o cuenta. Posible desde el 11-sep-2026 (WS _cta). */
     public DashboardAntidopingDto resumen(String fechaInicial, String fechaFinal, String predio, String cuenta) {
+        VistaAntidopingRepository vista = vistaAntidoping.getIfAvailable();
+        if (vista != null) {
+            return resumenDesdeVista(vista, fechaInicial, fechaFinal, predio, cuenta);
+        }
         List<AntidopingReporteDto> filas = antidopingService.reportePorFecha(fechaInicial, fechaFinal).stream()
                 // Mismo bug de "fila fantasma" ya visto en Accidentes/Consulta: sin datos en
                 // el rango, el WS regresa un objeto con todos los campos null.
@@ -144,6 +154,26 @@ public class DashboardAntidopingService {
                                 .map(t -> new ConteoCruzadoDto(p.getKey(), t.getKey(), t.getValue(), 0)))
                         .toList(),
                 tendencia);
+    }
+
+    /**
+     * Fase 2 de las vistas: portal, Excel por NSS y carga vieja (mientras el Excel nuevo este vacio)
+     * desde SERV_MED_V_ANTIDOPING, sin llamar a ORDS. Mismo DTO que el camino de arriba.
+     */
+    private DashboardAntidopingDto resumenDesdeVista(VistaAntidopingRepository vista, String fechaInicial,
+                                                     String fechaFinal, String predio, String cuenta) {
+        LocalDate desde = FechaFiltro.aFecha(fechaInicial).orElse(null);
+        LocalDate hasta = FechaFiltro.aFecha(fechaFinal).orElse(null);
+        long[] t = vista.totales(desde, hasta, predio, cuenta);
+        return new DashboardAntidopingDto(
+                fechaInicial, fechaFinal, t[0], t[1],
+                vista.porDimension("TIPO", desde, hasta, predio, cuenta),
+                vista.porDimension("SUSTANCIA", desde, hasta, predio, cuenta),
+                vista.porDimension("RESULTADO", desde, hasta, predio, cuenta),
+                vista.porDimension("STATUS", desde, hasta, predio, cuenta),
+                vista.porDimension("PREDIO", desde, hasta, predio, cuenta),
+                vista.porPredioYTipo(desde, hasta, predio, cuenta),
+                vista.tendenciaMensual(desde, hasta, predio, cuenta));
     }
 
     private static void incrementar(Map<String, Long> mapa, String clave) {

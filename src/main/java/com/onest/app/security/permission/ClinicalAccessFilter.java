@@ -80,6 +80,8 @@ public class ClinicalAccessFilter extends OncePerRequestFilter {
         RUTAS_EXAMENES_LOCAL.put("/api/consumibles", "CONSUMIBLES");
         RUTAS_EXAMENES_LOCAL.put("/causas-consulta", "CAUSAS_CONSULTA");
         RUTAS_EXAMENES_LOCAL.put("/api/causas-consulta", "CAUSAS_CONSULTA");
+        RUTAS_EXAMENES_LOCAL.put("/examen-inicial/bandeja", "EXAMEN_INICIAL_BANDEJA");
+        RUTAS_EXAMENES_LOCAL.put("/api/examen-inicial/bandeja", "EXAMEN_INICIAL_BANDEJA");
     }
 
     private final PermissionService permissionService;

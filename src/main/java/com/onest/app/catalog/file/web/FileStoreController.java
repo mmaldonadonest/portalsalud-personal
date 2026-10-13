@@ -1,7 +1,12 @@
 package com.onest.app.catalog.file.web;
 
 import com.onest.app.audit.web.Auditado;
+import com.onest.app.catalog.dashboard.repository.VistaExamenRepository;
 import com.onest.app.catalog.file.service.FileStoreService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -25,10 +30,16 @@ import org.springframework.web.server.ResponseStatusException;
 @Controller
 public class FileStoreController {
 
-    private final FileStoreService fileStoreService;
+    private static final Logger log = LoggerFactory.getLogger(FileStoreController.class);
 
-    public FileStoreController(FileStoreService fileStoreService) {
+    private final FileStoreService fileStoreService;
+    // Solo existe con portal.historico.fuente=VISTA: Historico E.M. muestra tambien los examenes del Excel
+    private final ObjectProvider<VistaExamenRepository> vistaExamenes;
+
+    public FileStoreController(FileStoreService fileStoreService,
+                               ObjectProvider<VistaExamenRepository> vistaExamenes) {
         this.fileStoreService = fileStoreService;
+        this.vistaExamenes = vistaExamenes;
     }
 
     /** Sube uno o mas PDF asociados a una consulta (relacion = idArchivoRel). */
@@ -82,7 +93,30 @@ public class FileStoreController {
         model.addAttribute("tipo", tipo);
         model.addAttribute("titulo", TIPOS.get(tipo));
         model.addAttribute("files", fileStoreService.listByNssAndType(nss, tipo));
+        if ("examen_medico".equals(tipo)) {
+            agregarHistoricoExamenes(nss, model);
+        }
         return "fragments/archivos :: view";
+    }
+
+    /**
+     * En Historico E.M., ademas de los PDF, los examenes del Excel (layouts 2, 3 y 4 por NSS) como
+     * tarjeta "Histórico Excel". Sin el interruptor VISTA no se agrega nada. Si la vista falla, los
+     * archivos se ven igual y la tarjeta avisa: el historico es un complemento.
+     */
+    private void agregarHistoricoExamenes(String nss, Model model) {
+        VistaExamenRepository vista = vistaExamenes.getIfAvailable();
+        if (vista == null || nss.isEmpty()) {
+            return;
+        }
+        model.addAttribute("conHistorico", true);
+        try {
+            model.addAttribute("historico", vista.historicoPorNss(nss));
+        } catch (DataAccessException ex) {
+            log.warn("[expediente] historico de examenes no disponible para el NSS: {}", ex.getMessage());
+            model.addAttribute("historico", java.util.List.of());
+            model.addAttribute("historicoError", true);
+        }
     }
 
     /** Borra un adjunto por id (erasedocksLAB del legacy). */

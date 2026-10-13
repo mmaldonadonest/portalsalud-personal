@@ -20,12 +20,13 @@ import java.util.Optional;
  * <p>Ante algo que no reconoce devuelve vacio en vez de lanzar: una fecha ilegible significa
  * "sin corte por ese extremo", no que la pantalla falle.
  */
-final class FechaFiltro {
+public final class FechaFiltro {
 
     private FechaFiltro() {
     }
 
-    static Optional<LocalDate> aFecha(String fecha) {
+    // Publica desde el 11-oct-2026: tambien la usa DashboardController (/api/dashboard/fuentes)
+    public static Optional<LocalDate> aFecha(String fecha) {
         if (fecha == null || fecha.isBlank()) {
             return Optional.empty();
         }

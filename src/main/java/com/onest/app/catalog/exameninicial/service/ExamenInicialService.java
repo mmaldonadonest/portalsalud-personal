@@ -67,7 +67,8 @@ public class ExamenInicialService {
                         List<ContactoEmergenciaDto> contactos, List<Trabajo> trabajos,
                         DatosGeneralesExamenDto datosGenerales, String firmaGuardada,
                         Borrador borrador, Finalizado ultimoFinalizado, int avance, int capturados, int total,
-                        boolean tablaBorrador, Candado candado, boolean candidatoOcr) {
+                        boolean tablaBorrador, Candado candado, boolean candidatoOcr,
+                        com.onest.app.integration.ocr.SolicitudExamen solicitud, boolean atendidoPorOtro) {
     }
 
     /**
@@ -130,11 +131,13 @@ public class ExamenInicialService {
     private final ExamenHistoricoRepository historico;
     private final com.onest.app.integration.ocr.SolicitudExamenRepository solicitudes;
     private final ApplicationEventPublisher eventos;
+    private final com.onest.app.integration.ocr.SolicitudExamenService solicitudService;
 
     public ExamenInicialService(ExamenService examenService, ContactoEmergenciaService contactoEmergenciaService,
                                 DatosGeneralesExamenService datosGeneralesExamenService, NssSearchService nssSearchService,
                                 MedTagRepository tags, ExamenBorradorRepository borradores, ExamenHistoricoRepository historico,
-                                com.onest.app.integration.ocr.SolicitudExamenRepository solicitudes, ApplicationEventPublisher eventos) {
+                                com.onest.app.integration.ocr.SolicitudExamenRepository solicitudes, ApplicationEventPublisher eventos,
+                                @org.springframework.context.annotation.Lazy com.onest.app.integration.ocr.SolicitudExamenService solicitudService) {
         this.examenService = examenService;
         this.contactoEmergenciaService = contactoEmergenciaService;
         this.datosGeneralesExamenService = datosGeneralesExamenService;
@@ -144,6 +147,7 @@ public class ExamenInicialService {
         this.historico = historico;
         this.solicitudes = solicitudes;
         this.eventos = eventos;
+        this.solicitudService = solicitudService;
     }
 
     /** Dictamen vigente en el WS como codigo del contrato OCR (APTO, NO_APTO...), o vacio. */
@@ -334,30 +338,44 @@ public class ExamenInicialService {
         int hojaActual = borrador.map(Borrador::hojaActual).filter(x -> x >= 1 && x <= HOJAS.size()).orElse(1);
         int avance = total == 0 ? 0 : (int) Math.round(100.0 * capturadosTotal / total);
         Candado candado = candado(limpio, ultimo.isPresent(), esEmpleado);
-        // Integracion OCR: si hay solicitud pendiente para este NSS, el medico ya la esta atendiendo
-        try {
-            solicitudes.activaPorNss(limpio).ifPresent(sol -> solicitudes.marcarEnCaptura(sol.id()));
-        } catch (org.springframework.dao.DataAccessException ex) {
-            log.debug("[examen-inicial] sin tabla de solicitudes OCR: {}", ex.getMostSpecificCause().getMessage());
-        }
+        // Integracion OCR: si hay solicitud viva para este NSS pasa a EN_CAPTURA y, si nadie la
+        // atiende, queda asignada a quien la abre. Si la tiene otro usuario, se avisa (atendidoPorOtro)
+        // y finalizar() lo rechaza hasta que la "tome".
+        String yo = usuarioActual();
+        com.onest.app.integration.ocr.SolicitudExamen solicitud = solicitudService.enCaptura(limpio, yo).orElse(null);
+        boolean atendidoPorOtro = solicitud != null && solicitud.atendidoPor() != null
+                && !solicitud.atendidoPor().equalsIgnoreCase(yo);
         return new Vista(limpio, empleado, hojas, hojaActual, contactos, trabajos, datosGenerales,
                 examenService.firmaGuardada(limpio), borrador.orElse(null),
-                ultimo.orElse(null), avance, capturadosTotal, total, tablaBorrador, candado, candidatoOcr);
+                ultimo.orElse(null), avance, capturadosTotal, total, tablaBorrador, candado, candidatoOcr,
+                solicitud, atendidoPorOtro);
     }
 
     /** Autoguardado: funde los campos recibidos con el borrador existente y recuerda la hoja. */
     public void guardarBorrador(String nss, int hoja, Map<String, String> datos) {
         String limpio = normalizeNss(nss);
-        Map<String, String> fusion = new LinkedHashMap<>(borradores.buscar(limpio).map(Borrador::datos).orElse(Map.of()));
-        if (datos != null) {
-            datos.forEach((k, v) -> {
-                if (k != null && !k.isBlank() && !"nss".equals(k) && !"_csrf".equals(k)) {
-                    fusion.put(k, v == null ? "" : v);
-                }
-            });
+        // Leer-fusionar-escribir serializado por NSS: al cambiar de hoja el front manda el
+        // autoguardado de la hoja que deja y, casi a la vez, el de la que abre; sin esto los dos
+        // leian el mismo borrador viejo y el segundo pisaba lo del primero (lo detecto la suite
+        // E2E: el peso de Exploracion se perdia). Un solo nodo de Tomcat, basta el candado en JVM.
+        synchronized (candadoBorrador(limpio)) {
+            Map<String, String> fusion = new LinkedHashMap<>(borradores.buscar(limpio).map(Borrador::datos).orElse(Map.of()));
+            if (datos != null) {
+                datos.forEach((k, v) -> {
+                    if (k != null && !k.isBlank() && !"nss".equals(k) && !"_csrf".equals(k)) {
+                        fusion.put(k, v == null ? "" : v);
+                    }
+                });
+            }
+            int h = hoja < 1 || hoja > HOJAS.size() ? 1 : hoja;
+            borradores.guardar(limpio, h, fusion, usuarioActual());
         }
-        int h = hoja < 1 || hoja > HOJAS.size() ? 1 : hoja;
-        borradores.guardar(limpio, h, fusion, usuarioActual());
+    }
+
+    private final java.util.concurrent.ConcurrentHashMap<String, Object> candadosBorrador = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private Object candadoBorrador(String nss) {
+        return candadosBorrador.computeIfAbsent(nss, k -> new Object());
     }
 
     /**
@@ -374,6 +392,18 @@ public class ExamenInicialService {
         Candado candado = candado(limpio, borradores.ultimoFinalizado(limpio).isPresent());
         if (candado.bloqueado()) {
             throw new IllegalArgumentException(candado.motivo());
+        }
+        // Solo quien tiene asignada la solicitud puede finalizar (dos usuarios sobre el mismo examen)
+        try {
+            String yo = usuarioActual();
+            solicitudes.activaPorNss(limpio).ifPresent(sol -> {
+                if (sol.atendidoPor() != null && !sol.atendidoPor().equalsIgnoreCase(yo)) {
+                    throw new IllegalArgumentException("Este examen lo está atendiendo " + sol.atendidoPor()
+                            + ". Si debes continuarlo tú, usa «Tomar examen» en la pantalla.");
+                }
+            });
+        } catch (org.springframework.dao.DataAccessException ex) {
+            log.debug("[examen-inicial] sin tabla de solicitudes: {}", ex.getMostSpecificCause().getMessage());
         }
 
         String dictamen = b.getOrDefault("SERV_MED_RESULTADO_EXAMEN.DICTAMEN", "");

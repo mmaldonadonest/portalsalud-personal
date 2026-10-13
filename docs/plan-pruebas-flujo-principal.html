@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan de pruebas · Flujo principal (migrado de PHP)</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root{
+    --blanco:#ffffff;
+    --azul:#0057A8; --azul-700:#00549E; --azul-900:#003E75; --azul-300:#4FA8E0; --azul-100:#EAF3FA;
+    --verde:#2B9138; --verde-100:#EAF7EC;
+    --gris-50:#F8FAFC; --gris-100:#F2F4F7; --gris-200:#E1E6EB; --gris-300:#D0D5DD;
+    --gris-500:#667085; --gris-700:#475467; --gris-950:#20252B;
+    --ambar:#8a5300; --ambar-bg:#FFF7E6; --rojo:#B42318; --rojo-bg:#FEF3F2;
+    --fg:var(--gris-950); --muted:var(--gris-500); --line:var(--gris-200);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--blanco);color:var(--fg);
+       font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 16px 80px}
+  .hero{background:var(--azul);color:#fff;margin:0 -16px 28px;padding:30px 16px 26px;}
+  .hero-in{max-width:1148px;margin:0 auto}
+  .hero h1{font-size:1.8rem;margin:0 0 4px;letter-spacing:-.015em;font-weight:700}
+  .hero .sub{opacity:.85;font-size:.94rem;margin:0}
+  .marca{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;opacity:.75;margin-bottom:10px}
+  nav.idx{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 26px}
+  nav.idx a{font-size:.82rem;color:var(--azul-900);background:var(--azul-100);border:1px solid #cfe3f5;border-radius:999px;padding:4px 12px;text-decoration:none}
+  nav.idx a:hover{background:#d9ebfa}
+  h2{font-size:1.25rem;color:var(--azul-900);margin:38px 0 6px;padding-bottom:6px;border-bottom:2px solid var(--azul-100)}
+  h3{font-size:1.02rem;color:var(--azul-900);margin:22px 0 6px}
+  p.lead{color:var(--gris-700);margin:0 0 14px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:0 0 18px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .mermaid{background:var(--gris-50);border:1px solid var(--line);border-radius:10px;padding:14px;margin:10px 0 14px;overflow-x:auto}
+  .mermaid svg{max-width:100%;height:auto}
+  table{width:100%;border-collapse:collapse;font-size:.88rem;margin:8px 0 14px}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--gris-100);color:var(--gris-700);font-weight:600;font-size:.8rem;text-transform:uppercase;letter-spacing:.04em}
+  code{font-family:Consolas,"Cascadia Mono",monospace;font-size:.84em;background:var(--gris-100);padding:1px 5px;border-radius:4px}
+  .nota{background:var(--ambar-bg);border-left:4px solid var(--ambar);padding:10px 14px;border-radius:6px;margin:10px 0;font-size:.9rem}
+  .ok{background:var(--verde-100);border-left:4px solid var(--verde);padding:10px 14px;border-radius:6px;margin:10px 0;font-size:.9rem}
+  .tag{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;margin-right:4px;white-space:nowrap}
+  .tag.php{background:#EBE9FE;color:#5925DC}
+  .tag.ws{background:var(--azul-100);color:var(--azul-900)}
+  .tag.crit{background:var(--rojo-bg);color:var(--rojo)}
+  .prog{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+  .prog b{color:var(--azul-900)}
+  .prog-pct{font-size:1.4rem;font-weight:700;color:var(--azul);font-variant-numeric:tabular-nums}
+  .barra{height:14px;border-radius:7px;background:var(--gris-100);overflow:hidden;border:1px solid var(--gris-200);margin-bottom:14px}
+  .barra i{display:block;height:100%;background:var(--verde);width:0;transition:width .3s}
+  .grupos{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin:0 0 14px}
+  .grupo{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:.82rem;background:var(--gris-50)}
+  .grupo b{display:block;color:var(--azul-900)}
+  .grupo .g{height:6px;background:var(--gris-200);border-radius:3px;margin-top:5px;overflow:hidden}
+  .grupo .g i{display:block;height:100%;background:var(--verde);width:0}
+  tr.caso td:first-child{white-space:nowrap}
+  tr.caso input[type=checkbox]{width:18px;height:18px;vertical-align:middle;cursor:pointer}
+  tr.caso.hecho td{background:var(--verde-100)}
+  tr.caso textarea{width:100%;min-height:34px;border:1px solid var(--gris-300);border-radius:6px;padding:4px 6px;font:inherit;font-size:.84rem;resize:vertical}
+  .acciones{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 14px}
+  .acciones button{font:inherit;font-size:.82rem;padding:5px 12px;border-radius:6px;border:1px solid var(--gris-300);background:#fff;cursor:pointer}
+  .acciones button:hover{background:var(--gris-100)}
+  @media print{.acciones{display:none} .mermaid{break-inside:avoid} tr{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero"><div class="hero-in">
+    <div class="marca">Portal Salud · Servicio médico</div>
+    <h1>Plan de pruebas: flujo principal migrado de PHP</h1>
+    <p class="sub">Login → búsqueda de NSS → Expediente General (archivos, consultas, incapacidades, examen médico, pre-test, antidoping) · corte 6-oct-2026</p>
+  </div></div>
+
+  <nav class="idx">
+    <a href="#alcance">Alcance</a>
+    <a href="#flujo">Flujo</a>
+    <a href="#datos">Datos de prueba</a>
+    <a href="#pruebas">Casos de prueba</a>
+    <a href="#g0">0 · Acceso</a>
+    <a href="#g1">1 · Búsqueda NSS</a>
+    <a href="#g2">2 · Archivos</a>
+    <a href="#g3">3 · Consultas</a>
+    <a href="#g4">4 · Incapacidades</a>
+    <a href="#g5">5 · Examen médico</a>
+    <a href="#g6">6 · Pre-Test</a>
+    <a href="#g7">7 · Antidoping</a>
+    <a href="#g8">8 · Permisos</a>
+    <a href="#g9">9 · Paridad PHP</a>
+  </nav>
+
+  <!-- ===================================================================== -->
+  <h2 id="alcance">Alcance</h2>
+  <div class="card">
+    <p class="lead">Solo lo que ya existía en el portal PHP y se migró a Java sobre los <b>mismos web services ORDS</b> (es decir, mismos datos que ve el PHP). Lo nuevo del portal (accidentes con seguimiento, maternidad, restricciones, causas, consumibles, dashboard, administración, examen inicial, OCR) <b>no</b> entra aquí.</p>
+    <table>
+      <tr><th>Módulo</th><th>En PHP era</th><th>Id ORDS (permiso)</th><th>Qué guarda</th></tr>
+      <tr><td>Acceso</td><td><code>login.html</code></td><td>—</td><td>Sesión por NSS + contraseña (ORDS) / SSO del launcher</td></tr>
+      <tr><td>Búsqueda NSS + ficha</td><td><code>expediente.html</code>, <code>candidato.html</code>, <code>searcherror.html</code></td><td>— (<code>validateModules</code> arma el menú)</td><td>Solo lectura</td></tr>
+      <tr><td>E. Laboratorio / Histórico E.M / Nota Médica / Nota Incapacidad</td><td><code>archivosExamen.html</code>, <code>archivoNotaMédica.html</code>, <code>archivoNotaIncap.html</code></td><td>2, 3, 4, 5</td><td>PDF en disco + <code>SERV_MED_FS_FILE</code></td></tr>
+      <tr><td>Archivo de consultas / Consulta médica</td><td><code>consultaMedica.html</code></td><td>6, 7</td><td>WS consulta + firma + ICD + adjuntos</td></tr>
+      <tr><td>Incapacidades / Archivo incapacidades</td><td><code>incapacidadForm.html</code>, <code>archivoIncapacidades.html</code></td><td>8 (alta), 9 (lista)</td><td>WS incapacidad</td></tr>
+      <tr><td>Examen médico</td><td><code>examenMedico.html</code>, <code>examenMedicoPeriodico.html</code>, <code>forms*</code>, <code>heredoFam*</code></td><td>10</td><td>WS <code>Servcio/Medico</code> (46 secciones) + <code>SERV_MED_TAG</code></td></tr>
+      <tr><td>Pre-Test</td><td><code>pretest.html</code>, <code>checklistRRHH.html</code></td><td>11</td><td>WS pretest + firma</td></tr>
+      <tr><td>Antidoping (lista + alta)</td><td>parte de expediente</td><td>12</td><td>WS antidoping</td></tr>
+    </table>
+    <div class="nota"><b>Criterio de aceptación general:</b> lo que se captura en Java lo debe ver el PHP igual (y al revés) mientras convivan, porque escriben en los mismos WS. Por eso el grupo 9 (paridad) es el que decide si se puede apagar el PHP.</div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 id="flujo">Flujo</h2>
+  <div class="card">
+    <pre class="mermaid">
+flowchart LR
+  L["Login<br/>NSS + contraseña<br/>(o SSO launcher)"] --> H["Inicio"]
+  H --> B["Búsqueda NSS"]
+  B --> F{"¿Existe?"}
+  F -->|no| X["'Sin registro' / candidato<br/>ficha reducida"]
+  F -->|sí| P["Ficha de identificación<br/>+ menú Expediente General<br/>según rol (validateModules)"]
+  P --> A["Archivos PDF<br/>E. Lab · Hist. E.M<br/>Nota Médica · Nota Incap."]
+  P --> C["Archivo de consultas<br/>→ Consulta médica (alta)"]
+  P --> I["Archivo incapacidades<br/>→ Incapacidad (alta)"]
+  P --> E["Examen médico<br/>(acordeón 46 secciones)"]
+  P --> T["Pre-Test"]
+  P --> D["Antidoping"]
+  C --> WS[("WS ORDS<br/>10.249.249.3/biows")]
+  I --> WS
+  E --> WS
+  T --> WS
+  D --> WS
+  A --> FS[("Disco + SERV_MED_FS_FILE")]
+    </pre>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 id="datos">Datos de prueba</h2>
+  <div class="card">
+    <table>
+      <tr><th>Qué</th><th>Valor / de dónde sacarlo</th><th>Para qué casos</th></tr>
+      <tr><td>NSS de pruebas (prod)</td><td><code>30048315698</code> — limpiar al terminar con <code>docs/script-prod/limpiar-nss-pruebas.local.sql</code></td><td>Todas las altas</td></tr>
+      <tr><td>NSS empleado real con historial</td><td>Uno con consultas, incapacidades y examen capturados <b>desde el PHP</b> (pedir al servicio médico)</td><td>1.x, 3.1, 4.1, 5.1, 9.x</td></tr>
+      <tr><td>NSS de candidato</td><td>Uno con registro en biométrico pero sin usuario (el WS responde ficha reducida)</td><td>1.3</td></tr>
+      <tr><td>NSS multipredio</td><td>Si existe; hoy no hay casos reales (ver nota en 1.4)</td><td>1.4</td></tr>
+      <tr><td>NSS inexistente</td><td><code>99999999999</code></td><td>1.2</td></tr>
+      <tr><td>Usuarios</td><td>Uno con <b>todos</b> los módulos y uno con rol limitado (p. ej. solo 6, 7)</td><td>0.x, 8.x</td></tr>
+      <tr><td>PDF</td><td>Uno chico (&lt;1 MB) y uno de ~20 MB (límite 25 MB)</td><td>2.x</td></tr>
+    </table>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 id="pruebas">Casos de prueba</h2>
+  <p class="lead">Marca cada caso al pasarlo y anota el resultado; el avance se guarda en este navegador. <span class="tag crit">CRÍTICO</span> = si falla no se libera. <span class="tag ws">WS</span> = el resultado se verifica también contra el PHP o directamente en el WS.</p>
+  <div class="card">
+    <div class="prog"><b>Avance</b><span class="prog-pct"><span id="pct">0%</span> · <span id="cnt">0/0</span></span></div>
+    <div class="barra"><i id="bar"></i></div>
+    <div class="grupos" id="grupos"></div>
+    <div class="acciones">
+      <button onclick="marcarTodo(false)">Desmarcar todo</button>
+      <button onclick="exportar()">Copiar resultado (texto)</button>
+      <button onclick="window.print()">Imprimir</button>
+    </div>
+
+    <h3 id="g0">0 · Acceso</h3>
+    <table data-grupo="0 Acceso">
+      <tr><th style="width:36px"></th><th style="width:16%">Caso</th><th>Pasos</th><th>Resultado esperado</th><th style="width:20%">Resultado / notas</th></tr>
+      <tr class="caso" data-id="0.1"><td><input type="checkbox"></td><td>Login correcto <span class="tag crit">CRÍTICO</span></td><td>NSS + contraseña válidos</td><td>Entra al inicio; en el header sale el nombre y el avatar; el menú lateral muestra solo los grupos del rol</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="0.2"><td><input type="checkbox"></td><td>Contraseña mal</td><td>NSS válido, contraseña incorrecta</td><td>Mensaje de error en el login, sin entrar; no se queda colgado ni muestra error técnico</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="0.3"><td><input type="checkbox"></td><td>Usuario sin rol</td><td>Entrar con un NSS que existe pero no tiene rol</td><td>Entra, pero "Expediente General" queda vacío y no hay módulos; mensaje claro, no pantalla en blanco</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="0.4"><td><input type="checkbox"></td><td>SSO desde el launcher</td><td>Abrir el portal desde la tarjeta del launcher</td><td>Entra sin pedir contraseña con el NSS del token; si el rol no tiene la app, mensaje de acceso denegado</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="0.5"><td><input type="checkbox"></td><td>Sesión expirada</td><td>Dejar el portal abierto &gt; 4 h (o invalidar la sesión) y dar clic en un módulo</td><td>Redirige a <code>/login?expired</code> con aviso; no error 403 en seco</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="0.6"><td><input type="checkbox"></td><td>Cerrar sesión</td><td>Menú de usuario → Salir</td><td>Vuelve al login; "Atrás" del navegador no muestra datos</td><td><textarea></textarea></td></tr>
+    </table>
+
+    <h3 id="g1">1 · Búsqueda de NSS y ficha</h3>
+    <table data-grupo="1 Búsqueda NSS">
+      <tr><th style="width:36px"></th><th style="width:16%">Caso</th><th>Pasos</th><th>Resultado esperado</th><th style="width:20%">Resultado / notas</th></tr>
+      <tr class="caso" data-id="1.1"><td><input type="checkbox"></td><td>Empleado existente <span class="tag crit">CRÍTICO</span> <span class="tag ws">WS</span></td><td>Buscar el NSS de un empleado activo</td><td>Ficha: nombre, NSS, CURP, puesto, cuenta, predio, edad, sexo, antigüedad; igual que en el PHP para el mismo NSS. Se activa "Expediente General" con los módulos del rol</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="1.2"><td><input type="checkbox"></td><td>NSS inexistente</td><td>Buscar <code>99999999999</code></td><td>Mensaje "sin registro" (equivalente a <code>searcherror</code>); el menú de expediente no se activa</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="1.3"><td><input type="checkbox"></td><td>Candidato</td><td>Buscar un NSS que el WS responde como candidato ("Sin Registro de Usuario")</td><td>Ficha reducida (CURP, estado del proceso) como en <code>candidato.html</code>; sin módulos clínicos</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="1.4"><td><input type="checkbox"></td><td>Multipredio</td><td>Buscar un NSS con más de una asociación (si existe)</td><td>Aviso listando cada predio/cuenta; la ficha muestra la primera. <i>Si no hay casos reales, anotar "sin datos" y no bloquear</i></td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="1.5"><td><input type="checkbox"></td><td>Entrada del NSS</td><td>Pegar el NSS con espacios al inicio/fin; escribir 10 dígitos; escribir letras</td><td>Se recorta solo; 10 y 11 dígitos se aceptan; letras no pasan la validación</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="1.6"><td><input type="checkbox"></td><td>Buscar otro NSS</td><td>Con un expediente abierto, buscar un segundo NSS</td><td>La ficha y los módulos cambian al nuevo; nada del anterior queda en pantalla (listas, formularios, firma)</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="1.7"><td><input type="checkbox"></td><td>Enlace directo</td><td>Abrir <code>/nss?nss=…</code> en una pestaña nueva</td><td>Carga la ficha directo sin volver a teclear</td><td><textarea></textarea></td></tr>
+    </table>
+
+    <h3 id="g2">2 · Archivos PDF (E. Laboratorio, Histórico E.M, Nota Médica, Nota Incapacidad)</h3>
+    <table data-grupo="2 Archivos">
+      <tr><th style="width:36px"></th><th style="width:16%">Caso</th><th>Pasos</th><th>Resultado esperado</th><th style="width:20%">Resultado / notas</th></tr>
+      <tr class="caso" data-id="2.1"><td><input type="checkbox"></td><td>Subir un PDF <span class="tag crit">CRÍTICO</span></td><td>E. Laboratorio → elegir PDF → Subir</td><td>Spinner, mensaje de éxito, aparece en la lista con fecha y nombre; archivo en disco bajo <code>portal.files.root</code> y fila en <code>SERV_MED_FS_FILE</code></td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="2.2"><td><input type="checkbox"></td><td>Varios a la vez</td><td>Seleccionar 3 PDFs → Subir</td><td>Los 3 en la lista</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="2.3"><td><input type="checkbox"></td><td>Descargar</td><td>Clic en descargar de un archivo</td><td>Se descarga el mismo PDF, abre bien, nombre original</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="2.4"><td><input type="checkbox"></td><td>Borrar</td><td>Clic en borrar → confirmar</td><td>Desaparece de la lista; ya no se puede descargar por URL directa</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="2.5"><td><input type="checkbox"></td><td>Cada módulo a su categoría</td><td>Subir un PDF distinto en E. Laboratorio, Histórico E.M, Nota Médica y Nota Incapacidad</td><td>Cada uno aparece solo en su módulo (no se mezclan)</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="2.6"><td><input type="checkbox"></td><td>No PDF / muy grande</td><td>Subir un .docx; subir un PDF &gt; 25 MB</td><td>Mensaje claro de rechazo en ambos; la lista no cambia</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="2.7"><td><input type="checkbox"></td><td>Archivos migrados <span class="tag ws">WS</span></td><td>Buscar un NSS que tenía PDFs en el PHP (migración del 1-oct)</td><td>Los archivos históricos se ven y descargan desde Java</td><td><textarea></textarea></td></tr>
+    </table>
+
+    <h3 id="g3">3 · Archivo de consultas y Consulta médica</h3>
+    <table data-grupo="3 Consultas">
+      <tr><th style="width:36px"></th><th style="width:16%">Caso</th><th>Pasos</th><th>Resultado esperado</th><th style="width:20%">Resultado / notas</th></tr>
+      <tr class="caso" data-id="3.1"><td><input type="checkbox"></td><td>Historial <span class="tag ws">WS</span></td><td>Archivo de consultas de un NSS con historial del PHP</td><td>Mismas consultas y mismo orden que en el PHP; las de accidente/emergencia resaltadas en amarillo con etiqueta "Accidente"</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="3.2"><td><input type="checkbox"></td><td>Detalle</td><td>Botón Ver de una consulta</td><td>Modal con todos los campos, diagnóstico ICD, y la firma si la tenía; adjuntos descargables</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="3.3"><td><input type="checkbox"></td><td>Buscar / exportar</td><td>Escribir en el buscador; Exportar a Excel</td><td>La tabla filtra en vivo; el Excel trae las columnas visibles</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="3.4"><td><input type="checkbox"></td><td>Alta de consulta <span class="tag crit">CRÍTICO</span> <span class="tag ws">WS</span></td><td>Consulta médica: tipo, causa, peso 80 / talla 1.75, signos, motivo, exploración, tratamiento, ICD (≥3 letras y elegir), firma, Guardar</td><td>IMC calculado solo; mensaje de éxito; el formulario y la firma se limpian; la consulta aparece en el Archivo de consultas <b>y en el PHP</b></td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="3.5"><td><input type="checkbox"></td><td>ICD obligatorio</td><td>Guardar sin elegir diagnóstico del catálogo (texto suelto)</td><td>No guarda; mensaje pidiendo elegir del catálogo</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="3.6"><td><input type="checkbox"></td><td>Consulta con adjunto</td><td>Alta con 2 PDFs adjuntos</td><td>Se guardan y se ven en el detalle (Ver)</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="3.7"><td><input type="checkbox"></td><td>Consulta de accidente</td><td>Alta marcando tipo accidente/emergencia y área anatómica</td><td>En el Archivo sale resaltada con la etiqueta</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="3.8"><td><input type="checkbox"></td><td>Error del WS</td><td>Guardar con un valor que el WS rechace (p. ej. fecha inválida) o con el WS caído</td><td>Mensaje de error legible junto al botón (no body vacío ni 500 en blanco); los datos capturados no se pierden</td><td><textarea></textarea></td></tr>
+    </table>
+
+    <h3 id="g4">4 · Incapacidades y Archivo de incapacidades</h3>
+    <table data-grupo="4 Incapacidades">
+      <tr><th style="width:36px"></th><th style="width:16%">Caso</th><th>Pasos</th><th>Resultado esperado</th><th style="width:20%">Resultado / notas</th></tr>
+      <tr class="caso" data-id="4.1"><td><input type="checkbox"></td><td>Lista <span class="tag ws">WS</span></td><td>Archivo incapacidades de un NSS con historial del PHP</td><td>Mismos registros que el PHP; detalle con Ver</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="4.2"><td><input type="checkbox"></td><td>Filtros</td><td>Filtrar por Ramo y por Rubro; buscar texto; Exportar</td><td>La tabla y el Excel respetan los filtros</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="4.3"><td><input type="checkbox"></td><td>Alta IMSS inicial <span class="tag crit">CRÍTICO</span> <span class="tag ws">WS</span></td><td>Rubro IMSS, Ramo Enfermedad General, Tipo Inicial, fechas, salario 500 / 7 días, firma, Guardar</td><td>Costo = 3,500 calculado solo; éxito; aparece en el Archivo <b>y en el PHP</b></td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="4.4"><td><input type="checkbox"></td><td>Alta subsecuente</td><td>Tipo Subsecuente con fecha de inicio subsecuente y término</td><td>Guarda; en la lista se distingue de la inicial</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="4.5"><td><input type="checkbox"></td><td>Alta interna</td><td>Rubro Interna, ramo RT1, con ST2 y goce de sueldo</td><td>Guarda con esos valores; se ven en el detalle</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="4.6"><td><input type="checkbox"></td><td>Fechas incoherentes</td><td>Término anterior al inicio</td><td>Validación en pantalla antes de mandar al WS</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="4.7"><td><input type="checkbox"></td><td>Reporte por fechas</td><td>Reporte de incapacidades por rango (todas las NSS)</td><td>Trae las del rango; cuadra con la suma por NSS</td><td><textarea></textarea></td></tr>
+    </table>
+
+    <h3 id="g5">5 · Examen médico (periódico)</h3>
+    <table data-grupo="5 Examen médico">
+      <tr><th style="width:36px"></th><th style="width:16%">Caso</th><th>Pasos</th><th>Resultado esperado</th><th style="width:20%">Resultado / notas</th></tr>
+      <tr class="caso" data-id="5.1"><td><input type="checkbox"></td><td>Carga del examen existente <span class="tag crit">CRÍTICO</span> <span class="tag ws">WS</span></td><td>Abrir Examen médico de un NSS capturado en el PHP; abrir cada grupo del acordeón</td><td>Cada sección trae lo que el PHP guardó (heredofamiliares, APNP, inmunizaciones, AGO, APP, exploración física, laboratorio, dictamen…). Comparar 3 secciones contra el PHP campo por campo</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="5.2"><td><input type="checkbox"></td><td>Guardar solo lo abierto <span class="tag crit">CRÍTICO</span></td><td>Abrir y modificar 2 secciones, no abrir las demás, Guardar examen</td><td>Las 2 cambian; las no abiertas conservan sus valores (no se pisan con vacío). Verificar en el PHP</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="5.3"><td><input type="checkbox"></td><td>Ir y venir sin perder</td><td>Capturar en una pestaña, cambiar a otra y volver sin guardar</td><td>Lo capturado sigue ahí</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="5.4"><td><input type="checkbox"></td><td>Examen nuevo completo <span class="tag ws">WS</span></td><td>NSS de pruebas sin examen: "Abrir todo", capturar cada sección, dictamen, firma, Guardar</td><td>Guarda sin error; al recargar trae todo; el PHP lo muestra igual</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="5.5"><td><input type="checkbox"></td><td>Antecedentes laborales</td><td>Agregar 2 trabajos previos, guardar su sección; borrar uno</td><td>Tabla actualizada; persiste al recargar</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="5.6"><td><input type="checkbox"></td><td>Contactos de emergencia</td><td>Capturar 3 contactos, guardar; intentar un 4º</td><td>Máximo 3; persisten</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="5.7"><td><input type="checkbox"></td><td>Diagnósticos secundarios</td><td>Capturar 2 con buscador ICD, guardar</td><td>Persisten con código y descripción</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="5.8"><td><input type="checkbox"></td><td>Imprimir expediente</td><td>Botón Imprimir / "Guardar y descargar"</td><td>Se abre el documento con todas las secciones, dictamen y firma; mismo contenido que el PDF del PHP</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="5.9"><td><input type="checkbox"></td><td>Firma</td><td>Guardar con firma dibujada; recargar</td><td>La firma se conserva y sale en el impreso</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="5.10"><td><input type="checkbox"></td><td>Guardado parcial con error</td><td>Provocar error del WS en una sección (p. ej. valor fuera de rango)</td><td>Mensaje indica qué sección falló; las demás no quedan a medias sin aviso</td><td><textarea></textarea></td></tr>
+    </table>
+
+    <h3 id="g6">6 · Pre-Test</h3>
+    <table data-grupo="6 Pre-Test">
+      <tr><th style="width:36px"></th><th style="width:16%">Caso</th><th>Pasos</th><th>Resultado esperado</th><th style="width:20%">Resultado / notas</th></tr>
+      <tr class="caso" data-id="6.1"><td><input type="checkbox"></td><td>Carga <span class="tag ws">WS</span></td><td>Abrir Pre-Test de un NSS capturado en el PHP</td><td>Datos personales, domicilio, contactos, cuestionario sí/no con observaciones y síntomas como en el PHP</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="6.2"><td><input type="checkbox"></td><td>Alta completa <span class="tag crit">CRÍTICO</span> <span class="tag ws">WS</span></td><td>NSS de pruebas: llenar todo, firma, Guardar</td><td>Éxito; al recargar trae todo; el PHP lo muestra igual</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="6.3"><td><input type="checkbox"></td><td>Sí con observación</td><td>Marcar Sí en 2 preguntas con observación; No en el resto</td><td>Se guarda la observación solo en las Sí</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="6.4"><td><input type="checkbox"></td><td>Checklist RRHH</td><td>Si el rol lo tiene: abrir el checklist y marcar documentos</td><td>Persiste; equivale a <code>checklistRRHH.html</code></td><td><textarea></textarea></td></tr>
+    </table>
+
+    <h3 id="g7">7 · Antidoping</h3>
+    <table data-grupo="7 Antidoping">
+      <tr><th style="width:36px"></th><th style="width:16%">Caso</th><th>Pasos</th><th>Resultado esperado</th><th style="width:20%">Resultado / notas</th></tr>
+      <tr class="caso" data-id="7.1"><td><input type="checkbox"></td><td>Lista <span class="tag ws">WS</span></td><td>Antidoping de un NSS con registros</td><td>Mismos registros que el PHP; los Positivos en rojo</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="7.2"><td><input type="checkbox"></td><td>Alta antidoping <span class="tag ws">WS</span></td><td>Nuevo registro: Antidoping, sustancia THC, Negativo, conclusión, Guardar</td><td>Aparece en la lista; en el PHP también</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="7.3"><td><input type="checkbox"></td><td>Alta alcoholemia</td><td>Tipo Alcoholemia</td><td>El campo sustancia se oculta/deshabilita; guarda</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="7.4"><td><input type="checkbox"></td><td>Lista vacía</td><td>NSS sin registros</td><td>"Sin registros" — sin filas fantasma vacías</td><td><textarea></textarea></td></tr>
+    </table>
+
+    <h3 id="g8">8 · Permisos por rol (validateModules)</h3>
+    <table data-grupo="8 Permisos">
+      <tr><th style="width:36px"></th><th style="width:16%">Caso</th><th>Pasos</th><th>Resultado esperado</th><th style="width:20%">Resultado / notas</th></tr>
+      <tr class="caso" data-id="8.1"><td><input type="checkbox"></td><td>Menú según rol <span class="tag crit">CRÍTICO</span></td><td>Entrar con el usuario limitado (solo 6, 7) y buscar un NSS</td><td>En Expediente General solo salen Archivo de consultas y Consulta médica</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="8.2"><td><input type="checkbox"></td><td>Ruta directa bloqueada</td><td>Con ese usuario, llamar a mano <code>/api/nss/examen</code> (POST data=NSS)</td><td>403; no devuelve datos</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="8.3"><td><input type="checkbox"></td><td>Mismo menú que el PHP</td><td>Mismo usuario en PHP y en Java</td><td>Mismos módulos visibles en ambos</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="8.4"><td><input type="checkbox"></td><td>Cambio de rol en caliente</td><td>Quitar un módulo al rol en Administración; el usuario vuelve a buscar el NSS</td><td>El módulo desaparece sin reiniciar nada (a más tardar al volver a entrar)</td><td><textarea></textarea></td></tr>
+    </table>
+
+    <h3 id="g9">9 · Paridad con el PHP (convivencia)</h3>
+    <p class="lead">Mientras el PHP siga encendido, los dos escriben en los mismos WS. Estas pruebas se hacen con las dos ventanas abiertas.</p>
+    <table data-grupo="9 Paridad PHP">
+      <tr><th style="width:36px"></th><th style="width:16%">Caso</th><th>Pasos</th><th>Resultado esperado</th><th style="width:20%">Resultado / notas</th></tr>
+      <tr class="caso" data-id="9.1"><td><input type="checkbox"></td><td>Java → PHP consulta <span class="tag crit">CRÍTICO</span></td><td>Alta de consulta en Java (3.4); abrir el mismo NSS en el PHP</td><td>La consulta se ve en el PHP con los mismos valores y firma</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="9.2"><td><input type="checkbox"></td><td>PHP → Java consulta</td><td>Alta de consulta en el PHP; recargar el Archivo en Java</td><td>Aparece en Java con resaltado de accidente si aplica</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="9.3"><td><input type="checkbox"></td><td>Java → PHP incapacidad <span class="tag crit">CRÍTICO</span></td><td>Alta en Java (4.3); ver en el PHP</td><td>Mismos campos y costo</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="9.4"><td><input type="checkbox"></td><td>Java → PHP examen <span class="tag crit">CRÍTICO</span></td><td>Guardar 2 secciones en Java (5.2); abrir el examen en el PHP</td><td>Las 2 secciones con los valores nuevos; el resto intacto</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="9.5"><td><input type="checkbox"></td><td>PHP → Java examen</td><td>Cambiar una sección en el PHP; recargar en Java</td><td>Java muestra el cambio</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="9.6"><td><input type="checkbox"></td><td>Acentos y ñ</td><td>Capturar "Ñuñez, cirugía de rodilla" en motivo (Java) y leer en PHP; y al revés</td><td>Se leen bien en ambos lados (sin "Ã±")</td><td><textarea></textarea></td></tr>
+      <tr class="caso" data-id="9.7"><td><input type="checkbox"></td><td>Archivos PHP nuevos</td><td>Subir un PDF en el PHP después de la migración; buscar en Java</td><td>Documentar si se ve o no: define si hace falta corte o re-migración (~15 archivos/día sin migrar)</td><td><textarea></textarea></td></tr>
+    </table>
+
+    <div class="nota"><b>Para liberar:</b> todos los <span class="tag crit">CRÍTICO</span> en verde (0.1, 1.1, 2.1, 3.4, 4.3, 5.1, 5.2, 6.2, 8.1, 9.1, 9.3, 9.4). Lo demás se puede documentar como pendiente sin bloquear.</div>
+  </div>
+</div>
+
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: 'base', themeVariables: {
+    primaryColor: '#EAF3FA', primaryBorderColor: '#0057A8', primaryTextColor: '#20252B',
+    lineColor: '#475467', secondaryColor: '#F2F4F7', tertiaryColor: '#FFF7E6', fontSize: '13px'
+  }});
+
+  var CLAVE = 'plan-pruebas-flujo-principal';
+  var filas = Array.prototype.slice.call(document.querySelectorAll('tr.caso'));
+  var tablas = Array.prototype.slice.call(document.querySelectorAll('table[data-grupo]'));
+  function leer() { try { return JSON.parse(localStorage.getItem(CLAVE) || '{}'); } catch (e) { return {}; } }
+  function guardar(d) { try { localStorage.setItem(CLAVE, JSON.stringify(d)); } catch (e) {} }
+  function hecho(tr) { return tr.querySelector('input[type=checkbox]').checked; }
+  function pintar() {
+    var total = 0;
+    filas.forEach(function (tr) { var ok = hecho(tr); tr.classList.toggle('hecho', ok); if (ok) { total++; } });
+    var pct = filas.length ? Math.round(total * 100 / filas.length) : 0;
+    document.getElementById('pct').textContent = pct + '%';
+    document.getElementById('cnt').textContent = total + '/' + filas.length;
+    document.getElementById('bar').style.width = pct + '%';
+    var g = document.getElementById('grupos');
+    g.innerHTML = '';
+    tablas.forEach(function (t) {
+      var fs = Array.prototype.slice.call(t.querySelectorAll('tr.caso'));
+      var n = fs.filter(hecho).length;
+      var div = document.createElement('div');
+      div.className = 'grupo';
+      div.innerHTML = '<b></b><span></span><div class="g"><i></i></div>';
+      div.querySelector('b').textContent = t.dataset.grupo;
+      div.querySelector('span').textContent = n + '/' + fs.length;
+      div.querySelector('i').style.width = (fs.length ? n * 100 / fs.length : 0) + '%';
+      g.appendChild(div);
+    });
+  }
+  function persistir() {
+    var d = {};
+    filas.forEach(function (tr) { d[tr.dataset.id] = { ok: hecho(tr), nota: tr.querySelector('textarea').value }; });
+    guardar(d);
+    pintar();
+  }
+  (function init() {
+    var d = leer();
+    filas.forEach(function (tr) {
+      var e = d[tr.dataset.id];
+      if (e) { tr.querySelector('input[type=checkbox]').checked = !!e.ok; tr.querySelector('textarea').value = e.nota || ''; }
+      tr.querySelector('input[type=checkbox]').addEventListener('change', persistir);
+      tr.querySelector('textarea').addEventListener('input', persistir);
+    });
+    pintar();
+  })();
+  function marcarTodo(v) { filas.forEach(function (tr) { tr.querySelector('input[type=checkbox]').checked = v; }); persistir(); }
+  function exportar() {
+    var lineas = [];
+    filas.forEach(function (tr) {
+      var tds = tr.querySelectorAll('td');
+      var nota = tr.querySelector('textarea').value.trim();
+      lineas.push((hecho(tr) ? '[x] ' : '[ ] ') + tr.dataset.id + ' ' + tds[1].textContent.replace(/CRÍTICO|WS/g, '').trim() + (nota ? ' — ' + nota : ''));
+    });
+    var txt = 'Pruebas flujo principal · ' + document.getElementById('cnt').textContent + '\n' + lineas.join('\n');
+    if (navigator.clipboard) { navigator.clipboard.writeText(txt); alert('Copiado al portapapeles.'); } else { prompt('Copia:', txt); }
+  }
+</script>
+</body>
+</html>

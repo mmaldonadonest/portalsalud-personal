@@ -34,6 +34,10 @@
     <!-- Campanita: la llena scripts.html (notifSondear) desde GET /api/notificaciones cada
          45 s y al cargar; con permiso del navegador tambien lanza el aviso de escritorio.
          Tabla SERV_MED_NOTIFICACION (db/sql/app_domain/notificaciones.sql). -->
+    <!-- Ayuda: abre el chat de ayuda (fragments/ayuda-panel.html) -->
+    <div class="ms-3 ms-xl-4" th:if="${ayudaVisible}">
+        <a href="javascript:void(0)" class="dropdown-link" title="Ayuda del portal" onclick="ayudaAbrir();"><i class="ri-question-line"></i></a>
+    </div>
     <div class="dropdown dropdown-notification ms-3 ms-xl-4" id="notifDropdown">
         <a href="javascript:void(0)" class="dropdown-link" data-bs-toggle="dropdown" data-bs-auto-close="outside" title="Notificaciones">
             <small id="notifCount" th:text="${notificationCount}">0</small><i class="ri-notification-3-line"></i>

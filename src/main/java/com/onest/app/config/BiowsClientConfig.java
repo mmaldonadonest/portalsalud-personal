@@ -21,14 +21,36 @@ import org.springframework.web.client.RestClient;
 @EnableConfigurationProperties(BiowsProperties.class)
 public class BiowsClientConfig {
 
+    // SIN @Primary a proposito: los clientes eligen su RestClient por nombre de parametro
+    // (biowsRestClient, intranetRestClient) o con @Qualifier. Un @Primary aqui desvio las
+    // llamadas de la intranet a ORDS (10-oct-2026).
     @Bean
     public RestClient biowsRestClient(RestClient.Builder builder, BiowsProperties properties, ObjectMapper objectMapper) {
         // Timeouts explicitos: un ORDS inalcanzable no debe colgar el request
         // (critico para el login HYBRID/LEGACY_PHP que pasa por el WS).
+        return construir(builder, properties, objectMapper, Duration.ofSeconds(20));
+    }
+
+    /**
+     * Solo para el guardado del examen (POST Servcio/Medico). 10-oct-2026: ORDS tarda mas de 20 s
+     * en guardar el examen completo (47 secciones, ~100 sentencias en los procedimientos) y el
+     * cliente cortaba con "Read timed out" mientras ORDS seguia guardando: el usuario veia un 500
+     * de un examen que si quedaba guardado. El resto de las llamadas sigue con 20 s.
+     */
+    @Bean
+    public RestClient biowsRestClientGuardadoLargo(RestClient.Builder builder, BiowsProperties properties,
+                                                   ObjectMapper objectMapper) {
+        return construir(builder, properties, objectMapper, Duration.ofSeconds(120));
+    }
+
+    private static RestClient construir(RestClient.Builder builder, BiowsProperties properties,
+                                        ObjectMapper objectMapper, Duration lectura) {
         ClientHttpRequestFactorySettings timeouts = ClientHttpRequestFactorySettings.DEFAULTS
                 .withConnectTimeout(Duration.ofSeconds(5))
-                .withReadTimeout(Duration.ofSeconds(20));
-        return builder
+                .withReadTimeout(lectura);
+        // clone(): el Builder lo comparte Spring; sin copia, el segundo bean heredaria la
+        // configuracion acumulada del primero (convertidores duplicados).
+        return builder.clone()
                 .baseUrl(properties.baseUrl())
                 .requestFactory(ClientHttpRequestFactories.get(timeouts))
                 .defaultHeader("x-api-key", properties.apiKey())
@@ -52,7 +74,12 @@ public class BiowsClientConfig {
                 MediaType.APPLICATION_JSON,
                 MediaType.valueOf("application/*+json"),
                 MediaType.TEXT_HTML,
-                MediaType.TEXT_PLAIN));
+                MediaType.TEXT_PLAIN,
+                // Los handlers no fijan el Content-Type (no llaman owa_util.mime_header) y ORDS
+                // lo decide solo: el 9-oct-2026 11:45 el guardado del examen llego etiquetado
+                // como octet-stream con el JSON adentro, y el usuario vio un 500 aunque el
+                // examen si se guardo.
+                MediaType.APPLICATION_OCTET_STREAM));
         return converter;
     }
 }

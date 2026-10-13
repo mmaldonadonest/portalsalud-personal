@@ -4,6 +4,7 @@ import com.onest.app.catalog.dashboard.dto.ConteoSimpleDto;
 import com.onest.app.catalog.dashboard.dto.DashboardMaternidadDto;
 import com.onest.app.catalog.dashboard.dto.PuntoMensualDto;
 import com.onest.app.catalog.dashboard.repository.BitacoraHistoricoRepository;
+import com.onest.app.catalog.dashboard.repository.VistaMaternidadRepository;
 import com.onest.app.catalog.maternidad.client.MaternidadClient;
 import com.onest.app.catalog.maternidad.dto.MaternidadReporteDto;
 import java.time.LocalDate;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 /**
@@ -51,15 +53,23 @@ public class DashboardMaternidadService {
     private final MaternidadClient client;
     private final DashboardPredioFiltro predioFiltro;
     private final BitacoraHistoricoRepository historico;
+    // Solo existe con portal.historico.fuente=VISTA: entonces todo sale de la vista unificada
+    private final ObjectProvider<VistaMaternidadRepository> vistaMaternidad;
 
     public DashboardMaternidadService(MaternidadClient client, DashboardPredioFiltro predioFiltro,
-                                      BitacoraHistoricoRepository historico) {
+                                      BitacoraHistoricoRepository historico,
+                                      ObjectProvider<VistaMaternidadRepository> vistaMaternidad) {
         this.client = client;
         this.predioFiltro = predioFiltro;
         this.historico = historico;
+        this.vistaMaternidad = vistaMaternidad;
     }
 
     public DashboardMaternidadDto resumen(String fechaInicial, String fechaFinal, String predio, String cuenta) {
+        VistaMaternidadRepository vista = vistaMaternidad.getIfAvailable();
+        if (vista != null) {
+            return resumenDesdeVista(vista, fechaInicial, fechaFinal, predio, cuenta);
+        }
         List<MaternidadReporteDto> filas = client.reportePorFecha(fechaInicial, fechaFinal).stream()
                 .filter(f -> predioFiltro.coincide(f.cuenta(), predio, cuenta))
                 .toList();
@@ -145,6 +155,39 @@ public class DashboardMaternidadService {
                 conSemanas > 0 ? (double) sumaSemanas / conSemanas : 0,
                 aConteo(porEstatus), aConteo(porPredio), aConteoOrdenClave(porTrimestre),
                 aTendencia(porMes), aTendencia(partosMes));
+    }
+
+    /**
+     * Fase 2 de las vistas: chequeos del portal, reportes mensuales del Excel y carga vieja
+     * (mientras el Excel nuevo este vacio) desde SERV_MED_V_MATERNIDAD, sin llamar a ORDS. Mismo DTO.
+     *
+     * <p>A diferencia del camino de arriba, las personas ya no se SUMAN entre fuentes: con NSS en
+     * las dos se cuentan una vez. Y las revisiones proximas siguen saliendo solo del portal (el
+     * layout no trae proxima revision), igual que antes.
+     */
+    private DashboardMaternidadDto resumenDesdeVista(VistaMaternidadRepository vista, String fechaInicial,
+                                                     String fechaFinal, String predio, String cuenta) {
+        LocalDate desde = FechaFiltro.aFecha(fechaInicial).orElse(null);
+        LocalDate hasta = FechaFiltro.aFecha(fechaFinal).orElse(null);
+        long[] t = vista.totales(desde, hasta, predio, cuenta);
+
+        Map<String, Long> porTrimestre = new LinkedHashMap<>();
+        long suma = 0;
+        List<Integer> semanas = vista.semanas(desde, hasta, predio, cuenta);
+        for (int s : semanas) {
+            suma += s;
+            porTrimestre.merge(trimestre(s), 1L, Long::sum);
+        }
+
+        return new DashboardMaternidadDto(
+                fechaInicial, fechaFinal,
+                t[0], t[1], t[2], t[3],
+                semanas.isEmpty() ? 0 : (double) suma / semanas.size(),
+                vista.porDimension("ESTATUS", desde, hasta, predio, cuenta),
+                vista.porDimension("PREDIO", desde, hasta, predio, cuenta),
+                aConteoOrdenClave(porTrimestre),
+                vista.tendenciaMensual(desde, hasta, predio, cuenta),
+                vista.partosPorMes(desde, hasta, predio, cuenta));
     }
 
     private static String trimestre(int semanas) {

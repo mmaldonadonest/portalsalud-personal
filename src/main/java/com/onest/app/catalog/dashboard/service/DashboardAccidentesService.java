@@ -8,6 +8,7 @@ import com.onest.app.catalog.dashboard.dto.SerieMensualDto;
 import com.onest.app.catalog.dashboard.dto.DashboardAccidentesDto;
 import com.onest.app.catalog.dashboard.dto.PuntoMensualDto;
 import com.onest.app.catalog.dashboard.repository.BitacoraHistoricoRepository;
+import com.onest.app.catalog.dashboard.repository.VistaAccidenteRepository;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 /**
@@ -35,13 +37,17 @@ public class DashboardAccidentesService {
     private final AccidenteService accidenteService;
     private final DashboardPredioFiltro predioFiltro;
     private final BitacoraHistoricoRepository historico;
+    // Solo existe con portal.historico.fuente=VISTA: entonces todo sale de la vista unificada
+    private final ObjectProvider<VistaAccidenteRepository> vistaAccidentes;
 
     public DashboardAccidentesService(AccidenteService accidenteService,
                                       DashboardPredioFiltro predioFiltro,
-                                      BitacoraHistoricoRepository historico) {
+                                      BitacoraHistoricoRepository historico,
+                                      ObjectProvider<VistaAccidenteRepository> vistaAccidentes) {
         this.accidenteService = accidenteService;
         this.predioFiltro = predioFiltro;
         this.historico = historico;
+        this.vistaAccidentes = vistaAccidentes;
     }
 
 
@@ -56,6 +62,10 @@ public class DashboardAccidentesService {
      * vacio = sin corte, identico al comportamiento anterior.
      */
     public DashboardAccidentesDto resumen(String fechaInicial, String fechaFinal, String predio, String cuenta) {
+        VistaAccidenteRepository vista = vistaAccidentes.getIfAvailable();
+        if (vista != null) {
+            return resumenDesdeVista(vista, fechaInicial, fechaFinal, predio, cuenta);
+        }
         List<AccidenteReporteDto> filas = accidenteService.reportePorFecha(fechaInicial, fechaFinal).stream()
                 // El WS devuelve una fila "fantasma" (todos los campos null) cuando no hay
                 // datos en el rango, en vez de un array vacio - se descarta aqui.
@@ -155,6 +165,39 @@ public class DashboardAccidentesService {
                                 .map(t -> new ConteoCruzadoDto(p.getKey(), t.getKey(),
                                         t.getValue().cantidad, t.getValue().costo)))
                         .toList(),
+                tipoMes.entrySet().stream()
+                        .map(e -> new SerieMensualDto(e.getKey(), e.getValue().entrySet().stream()
+                                .map(m -> new PuntoMensualDto(m.getKey(), m.getValue()))
+                                .toList()))
+                        .toList());
+    }
+
+    /**
+     * Fase 2 de las vistas: portal y Excel juntos desde SERV_MED_V_ACCIDENTE, sin llamar a ORDS.
+     * Mismo DTO que el camino de arriba, para que las pantallas no cambien. No hay "Sin fecha":
+     * la vista solo devuelve accidentes dentro del rango.
+     */
+    private DashboardAccidentesDto resumenDesdeVista(VistaAccidenteRepository vista, String fechaInicial,
+                                                     String fechaFinal, String predio, String cuenta) {
+        LocalDate desde = FechaFiltro.aFecha(fechaInicial).orElse(null);
+        LocalDate hasta = FechaFiltro.aFecha(fechaFinal).orElse(null);
+
+        ConteoCostoDto totales = vista.totales(desde, hasta, predio, cuenta);
+
+        Map<String, Map<String, Long>> tipoMes = new LinkedHashMap<>();
+        vista.porTipoYMes(desde, hasta, predio, cuenta).forEach(f -> tipoMes
+                .computeIfAbsent((String) f[0], k -> new TreeMap<>())
+                .put((String) f[1], (Long) f[2]));
+
+        return new DashboardAccidentesDto(
+                fechaInicial, fechaFinal,
+                totales.cantidad(), totales.costo(),
+                vista.porDimension("TIPO_RIESGO", desde, hasta, predio, cuenta),
+                vista.porDimension("CAUSA_RT", desde, hasta, predio, cuenta),
+                vista.porDimension("STATUS", desde, hasta, predio, cuenta),
+                vista.porDimension("PREDIO", desde, hasta, predio, cuenta),
+                vista.tendenciaMensual(desde, hasta, predio, cuenta),
+                vista.porPredioYTipo(desde, hasta, predio, cuenta),
                 tipoMes.entrySet().stream()
                         .map(e -> new SerieMensualDto(e.getKey(), e.getValue().entrySet().stream()
                                 .map(m -> new PuntoMensualDto(m.getKey(), m.getValue()))

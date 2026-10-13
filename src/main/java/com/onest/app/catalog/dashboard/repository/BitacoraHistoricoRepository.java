@@ -797,6 +797,15 @@ public class BitacoraHistoricoRepository {
         return sumaAtributoIncapacidad(desde, hasta, predio, cuenta, ATR_DIAS, ATR_DIAS_INT);
     }
 
+    /**
+     * Personas por rubro y mes como {rubro, "YYYY-MM", NSS}. La carga vieja NO trae NSS, asi que
+     * aqui no hay nada que aportar: las tarjetas "Personas IMSS / internas" siguen solo con el
+     * portal. XlsHistoricoRepository si lo llena (10-oct-2026).
+     */
+    public List<String[]> incapacidadNssPorRubroYMes(LocalDate desde, LocalDate hasta, String predio, String cuenta) {
+        return List.of();
+    }
+
     // ---------------------------------------------------------------------------------------
     //  Accidentabilidad
     // ---------------------------------------------------------------------------------------

@@ -16,8 +16,15 @@ public class OcrCaducidadJob {
         this.service = service;
     }
 
+    /** Ver OcrWebhookService.tareasActivas: apagado solo en copias de prueba contra produccion. */
+    @org.springframework.beans.factory.annotation.Value("${portal.tareas-programadas.activas:true}")
+    private boolean tareasActivas;
+
     @Scheduled(cron = "0 15 1 * * *")
     public void caducar() {
+        if (!tareasActivas) {
+            return;
+        }
         try {
             service.caducarVencidas();
         } catch (RuntimeException ex) {

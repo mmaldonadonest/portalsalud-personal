@@ -17,6 +17,16 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class OcrIntegracionConfig {
 
+    /** Traza de peticiones de OCR; va ANTES del de API key para registrar tambien los 401. */
+    @Bean
+    public FilterRegistrationBean<OcrTrazaFilter> ocrTrazaFilter() {
+        FilterRegistrationBean<OcrTrazaFilter> reg = new FilterRegistrationBean<>(new OcrTrazaFilter());
+        reg.addUrlPatterns(OcrApiKeyFilter.PREFIJO + "*");
+        reg.setOrder(Ordered.HIGHEST_PRECEDENCE + 9);
+        reg.setName("ocrTrazaFilter");
+        return reg;
+    }
+
     @Bean
     public FilterRegistrationBean<OcrApiKeyFilter> ocrApiKeyFilter(OcrProperties props) {
         FilterRegistrationBean<OcrApiKeyFilter> reg = new FilterRegistrationBean<>(new OcrApiKeyFilter(props));

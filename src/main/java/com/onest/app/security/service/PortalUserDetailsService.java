@@ -54,7 +54,8 @@ public class PortalUserDetailsService implements UserDetailsService {
                 displayName,
                 avatar,
                 user.getPasswordHash(),
-                authorities
+                authorities,
+                email
         );
     }
 

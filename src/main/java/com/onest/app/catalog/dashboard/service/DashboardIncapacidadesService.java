@@ -14,6 +14,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import com.onest.app.catalog.dashboard.repository.BitacoraHistoricoRepository;
+import com.onest.app.catalog.dashboard.repository.VistaIncapacidadRepository;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -22,6 +23,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 /**
@@ -37,13 +39,17 @@ public class DashboardIncapacidadesService {
     private final IncapacidadService incapacidadService;
     private final DashboardPredioFiltro predioFiltro;
     private final BitacoraHistoricoRepository historico;
+    // Solo existe con portal.historico.fuente=VISTA: entonces todo sale de la vista unificada
+    private final ObjectProvider<VistaIncapacidadRepository> vistaIncapacidades;
 
     public DashboardIncapacidadesService(IncapacidadService incapacidadService,
                                          DashboardPredioFiltro predioFiltro,
-                                         BitacoraHistoricoRepository historico) {
+                                         BitacoraHistoricoRepository historico,
+                                         ObjectProvider<VistaIncapacidadRepository> vistaIncapacidades) {
         this.incapacidadService = incapacidadService;
         this.predioFiltro = predioFiltro;
         this.historico = historico;
+        this.vistaIncapacidades = vistaIncapacidades;
     }
 
 
@@ -58,6 +64,10 @@ public class DashboardIncapacidadesService {
      * vacio = sin corte, identico al comportamiento anterior.
      */
     public DashboardIncapacidadesDto resumen(String fechaInicial, String fechaFinal, String predio, String cuenta) {
+        VistaIncapacidadRepository vista = vistaIncapacidades.getIfAvailable();
+        if (vista != null) {
+            return resumenDesdeVista(vista, fechaInicial, fechaFinal, predio, cuenta);
+        }
         List<IncapacidadReporteDto> filas = incapacidadService.reportePorFecha(fechaInicial, fechaFinal).stream()
                 .filter(f -> predioFiltro.coincide(f.cuenta(), predio, cuenta))
                 .toList();
@@ -151,6 +161,30 @@ public class DashboardIncapacidadesService {
             sinFecha += Math.max(0, episodiosHistorico
                     - mensualHistorico.stream().mapToLong(PuntoMensualDto::cantidad).sum());
 
+            // Con la carga por NSS (tablas SERV_MED_XLS_*) las personas del Excel se JUNTAN con las
+            // del portal por NSS: alimentan "Personas IMSS / internas" y personas por mes y rubro, y
+            // el total deja de sumar dos veces a quien esta en las dos fuentes. Con la carga vieja
+            // (por nombre) la lista viene vacia y todo queda como antes.
+            List<String[]> nssHistorico = historico.incapacidadNssPorRubroYMes(desde, hasta, predio, cuenta);
+            if (!nssHistorico.isEmpty()) {
+                Set<String> personas = new HashSet<>();
+                filas.forEach(f -> {
+                    if (f.nss() != null && !f.nss().isBlank()) {
+                        personas.add(f.nss().trim());
+                    }
+                });
+                for (String[] x : nssHistorico) {
+                    nssPorRubro.computeIfAbsent(x[0], k -> new HashSet<>()).add(x[2]);
+                    if (x[1] != null) {
+                        nssRubroMes.computeIfAbsent(x[0], k -> new TreeMap<>())
+                                .computeIfAbsent(x[1], k -> new HashSet<>()).add(x[2]);
+                    }
+                    personas.add(x[2]);
+                }
+                // totalPersonas + personasHistorico (abajo) da la union: se ajusta personasHistorico
+                personasHistorico = personas.size() - totalPersonas;
+            }
+
             historico.incapacidadDiasPorMes(desde, hasta, predio, cuenta)
                     .forEach(p -> porMesDias.merge(p.mes(), p.cantidad(), Long::sum));
             historico.incapacidadDiasPorMesYRamo(desde, hasta, predio, cuenta).forEach(x ->
@@ -195,6 +229,45 @@ public class DashboardIncapacidadesService {
                 nssRubroMes.entrySet().stream()
                         .map(e -> new SerieMensualDto(e.getKey(), e.getValue().entrySet().stream()
                                 .map(m -> new PuntoMensualDto(m.getKey(), m.getValue().size()))
+                                .toList()))
+                        .toList());
+    }
+
+    /**
+     * Fase 2 de las vistas: portal y Excel juntos desde SERV_MED_V_INCAPACIDAD, sin llamar a ORDS.
+     * Mismo DTO que el camino de arriba. No hay "Sin fecha": la vista ya resuelve la fecha con el
+     * mismo coalesce (inicio, si no registro) y solo devuelve lo que cae en el rango.
+     */
+    private DashboardIncapacidadesDto resumenDesdeVista(VistaIncapacidadRepository vista, String fechaInicial,
+                                                        String fechaFinal, String predio, String cuenta) {
+        LocalDate desde = FechaFiltro.aFecha(fechaInicial).orElse(null);
+        LocalDate hasta = FechaFiltro.aFecha(fechaFinal).orElse(null);
+
+        VistaIncapacidadRepository.Totales t = vista.totales(desde, hasta, predio, cuenta);
+        List<ConteoDto> porMes = vista.porMes(desde, hasta, predio, cuenta);
+
+        Map<String, Map<String, Long>> diasRamoMes = new LinkedHashMap<>();
+        vista.diasPorRamoYMes(desde, hasta, predio, cuenta).forEach(x -> diasRamoMes
+                .computeIfAbsent((String) x[0], k -> new TreeMap<>()).put((String) x[1], (Long) x[2]));
+
+        Map<String, Map<String, Long>> personasRubroMes = new LinkedHashMap<>();
+        vista.personasPorRubroYMes(desde, hasta, predio, cuenta).forEach(x -> personasRubroMes
+                .computeIfAbsent((String) x[0], k -> new TreeMap<>()).put((String) x[1], (Long) x[2]));
+
+        return new DashboardIncapacidadesDto(
+                fechaInicial, fechaFinal,
+                t.incapacidades(), t.personas(), t.dias(), t.costo(),
+                vista.porDimension("RAMO", desde, hasta, predio, cuenta),
+                vista.porDimension("RUBRO", desde, hasta, predio, cuenta),
+                vista.porDimension("ESTADO", desde, hasta, predio, cuenta),
+                vista.porDimension("PREDIO", desde, hasta, predio, cuenta),
+                porMes.stream().map(m -> new PuntoMensualDto(m.clave(), m.cantidad())).toList(),
+                porMes.stream().map(m -> new PuntoMensualDiasDto(m.clave(), m.diasAutorizados())).toList(),
+                aSeries(diasRamoMes),
+                vista.personasPorRubro(desde, hasta, predio, cuenta),
+                personasRubroMes.entrySet().stream()
+                        .map(e -> new SerieMensualDto(e.getKey(), e.getValue().entrySet().stream()
+                                .map(m -> new PuntoMensualDto(m.getKey(), m.getValue()))
                                 .toList()))
                         .toList());
     }

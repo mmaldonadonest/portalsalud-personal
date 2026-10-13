@@ -45,7 +45,13 @@ public class BiowsIncapacidadClient implements IncapacidadClient {
         if (response == null || response.datos() == null) {
             return List.of();
         }
-        return response.datos().stream().map(BiowsIncapacidadClient::toList).toList();
+        // Sin incapacidades, el WS regresa un objeto "sin datos" (Proceso/Estado/Mensaje) DENTRO de
+        // Datos en vez de un arreglo vacio: sin id_consulta, se pintaba como un renglon vacio con
+        // boton "Ver". Mismo filtro que Accidentes, Antidoping y Restricciones (11-oct-2026).
+        return response.datos().stream()
+                .filter(d -> d.idConsulta() != null && !d.idConsulta().isBlank())
+                .map(BiowsIncapacidadClient::toList)
+                .toList();
     }
 
     @Override

@@ -44,4 +44,15 @@ public class ApiExceptionHandler {
                 .headers(headers -> headers.setContentType(MediaType.valueOf("text/plain;charset=UTF-8")))
                 .body(texto);
     }
+
+    /**
+     * ORDS rechazo el guardado (Estado distinto de 0) o respondio algo que no es JSON. Va como
+     * 502 con el motivo en texto, para que el usuario lo lea en vez de un 500 generico. Aplica a
+     * cualquier pantalla que guarde el examen (modulo general y examen inicial).
+     */
+    @ExceptionHandler(com.onest.app.catalog.examen.client.BiowsRechazoException.class)
+    public Object handleRechazoOrds(com.onest.app.catalog.examen.client.BiowsRechazoException ex,
+                                    HttpServletRequest request) {
+        return handleResponseStatus(new ResponseStatusException(HttpStatus.BAD_GATEWAY, ex.getMessage(), ex), request);
+    }
 }
