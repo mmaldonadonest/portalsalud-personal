@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Limpieza y apagado del PHP</title>
+<style>
+  :root{
+    --bg:#ffffff; --fg:#20252B; --muted:#667085; --line:#E1E6EB; --soft:#F8FAFC;
+    --azul:#0057A8; --azul-900:#003E75; --azul-100:#EAF3FA;
+    --ok:#2B9138; --ok-bg:#EAF7EC; --warn:#8a5300; --warn-bg:#FFF7E6; --bad:#B42318; --bad-bg:#FEF3F2;
+  }
+  /* Siempre fondo blanco: el usuario no quiere modo oscuro en los reportes */
+  html{color-scheme:light}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1000px;margin:0 auto;padding:24px 16px 60px}
+  h1{margin:0 0 4px;font-size:1.5rem;color:var(--azul-900)}
+  .sub{color:var(--muted);margin:0 0 18px}
+  h2{color:var(--azul-900);font-size:1.1rem;margin:26px 0 8px}
+  table{width:100%;border-collapse:collapse;font-size:.9rem}
+  th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);color:var(--muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.04em}
+  td.n{font-weight:700;text-align:center;width:36px}
+  tr.grupo td{background:var(--soft);font-weight:700;color:var(--azul-900)}
+  code{font-family:Consolas,monospace;font-size:.85em}
+  @media (max-width:700px){ table{font-size:.8rem} th,td{padding:5px 6px} }
+  .estado{display:inline-block;font-size:.72rem;font-weight:700;border-radius:999px;padding:1px 8px;white-space:nowrap}
+  .estado[data-estado="pendiente"]{background:#F2F4F7;color:#667085;border:1px solid var(--line)}
+  .estado[data-estado="en-curso"]{background:var(--warn-bg);color:var(--warn)}
+  .estado[data-estado="hecho"]{background:var(--ok-bg);color:var(--ok)}
+  .progreso{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:14px 0}
+  .progreso .fila{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px}
+  .progreso .pct{font-size:1.6rem;font-weight:700;color:var(--azul-900)}
+  .barra{height:14px;background:#EEF1F4;border-radius:999px;overflow:hidden;display:flex}
+  .barra .b-hecho{background:var(--ok)}
+  .barra .b-curso{background:#F2B35A}
+  .leyenda{font-size:.8rem;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Limpieza de la carga vieja y apagado del PHP</h1>
+  <p class="sub">Separado del plan de carga el 11-oct-2026 (<code>docs/plan-carga-excel-layout.html</code>). Son frentes que dependen de la carga pero no son parte de ella, así que no cuentan en su avance. Base de todos los scripts: BIOMETRICO de producción; los corre el usuario.</p>
+
+  <h2>1. Limpieza posterior de la carga vieja (por nombre)</h2>
+  <p class="sub" style="margin:0 0 6px">Se hace <b>después</b> de activar las gráficas con la carga nueva (paso 9 del plan) y de que el primer ciclo mensual esté aprobado. Hasta entonces la carga vieja es la reversa y la fuente del cuadre. Script existente, con simulacro: <code>C:\miguel\portalsalud-personal\docs\script-prod\excel-99-reversa-bitacora.sql</code> (<code>v_familia</code> = una familia, <code>v_forzar</code> = 'N' simula, 'S' borra).</p>
+
+  <div class="progreso" data-progreso="limpieza">
+    <div class="fila"><b>Avance de la limpieza</b><span class="pct">0%</span></div>
+    <div class="barra"><div class="b-hecho" style="width:0%"></div><div class="b-curso" style="width:0%"></div></div>
+    <div class="leyenda"></div>
+  </div>
+
+  <table>
+    <tr><th>Tabla vieja</th><th>Qué guarda</th><th>Qué se hace</th></tr>
+    <tr><td><code>SERV_MED_BITACORA_EVENTO</code></td><td>Un renglón por evento, identificado por nombre</td><td>Borrar por familia: ATENCION, EXAMEN_INGRESO, EXAMEN_PERIODICO, INCAPACIDAD, ACCIDENTE</td></tr>
+    <tr><td><code>SERV_MED_BITACORA_ATRIBUTO</code></td><td>Los campos de cada evento (causa, dictamen, días, costos…)</td><td>Se borran junto con sus eventos (el script lo hace primero)</td></tr>
+    <tr><td><code>SERV_MED_BITACORA_LOTE</code></td><td>Un renglón por archivo y hoja cargados</td><td>Se borran los lotes de las familias limpiadas</td></tr>
+    <tr><td><code>SERV_MED_BITACORA_METRICA</code></td><td>Consumibles (medicamentos y material fijo)</td><td>No se toca hasta que consumibles tenga layout nuevo</td></tr>
+    <tr><td><code>SERV_MED_BITACORA_ESTADO_MES</code> · <code>_NOMENCL</code></td><td>Seguimiento (pospuesto 7-oct); vacías</td><td>Nada por ahora</td></tr>
+  </table>
+  <p class="sub" style="margin:6px 0 6px">Ojo: la vista <code>SERV_MED_V_EXAMEN</code> lee el examen pos incapacidad de la carga vieja (<code>FAMILIA = 'EXAMEN_POS_INCAP'</code>) mientras su layout siga en revisión. Esa familia no se borra en esta limpieza.</p>
+  <table style="margin-top:8px">
+    <tr><th>#</th><th>Paso</th><th>Listo cuando</th><th>Estado</th></tr>
+    <tr><td class="n">L1</td><td>Inventario de lo que hay por familia (solo lectura): <code>C:\miguel\portalsalud-personal\docs\script-prod\excel-04-que-se-cargo.sql</code></td><td>Conteos por familia anotados</td><td><span class="estado" data-grupo="limpieza" data-estado="pendiente">Pendiente</span></td></tr>
+    <tr><td class="n">L2</td><td>Simulacro por familia (<code>v_forzar = 'N'</code>) para las 5 familias migradas</td><td>Conteos del simulacro = inventario</td><td><span class="estado" data-grupo="limpieza" data-estado="pendiente">Pendiente</span></td></tr>
+    <tr><td class="n">L3</td><td>Borrado real por familia (<code>v_forzar = 'S'</code>), una a la vez, verificando las gráficas después de cada una</td><td>Las 5 familias borradas; gráficas sin cambio</td><td><span class="estado" data-grupo="limpieza" data-estado="pendiente">Pendiente</span></td></tr>
+    <tr><td class="n">L4</td><td>Quitar del portal el código que lee la carga vieja de esas familias</td><td>WAR sin lecturas a familias migradas</td><td><span class="estado" data-grupo="limpieza" data-estado="pendiente">Pendiente</span></td></tr>
+    <tr><td class="n">L5</td><td>Borrar las tablas viejas (DROP) solo cuando ninguna familia las use, incluido consumibles</td><td>Ninguna lectura en el código</td><td><span class="estado" data-grupo="limpieza" data-estado="pendiente">Pendiente</span></td></tr>
+  </table>
+
+  <h2>2. Apagar el PHP versión 1</h2>
+  <p class="sub" style="margin:0 0 6px">Hoy el PHP solo se usa como <b>repositorio de los PDF de exámenes médicos</b>: no captura consultas, incapacidades ni accidentes, así que no participa en la carga de Excel ni en el traslape. Se recomienda apagarlo porque sigue guardando ~15 archivos al día que no llegan al portal.</p>
+
+  <div class="progreso" data-progreso="php">
+    <div class="fila"><b>Avance del apagado del PHP</b><span class="pct">0%</span></div>
+    <div class="barra"><div class="b-hecho" style="width:0%"></div><div class="b-curso" style="width:0%"></div></div>
+    <div class="leyenda"></div>
+  </div>
+  <table>
+    <tr><th>#</th><th>Paso</th><th>Listo cuando</th><th>Estado</th></tr>
+    <tr class="grupo"><td colspan="4">Condiciones</td></tr>
+    <tr><td class="n">A</td><td>Todos los usuarios del PHP entran al portal en producción (app del lanzador con roles, usuarios y menús)</td><td>Confirmado</td><td><span class="estado" data-grupo="php" data-estado="pendiente">Pendiente</span></td></tr>
+    <tr><td class="n">B</td><td>El portal sube y consulta los PDF de exámenes (módulo Histórico E.M.) igual que el PHP</td><td>Probado con quien los sube</td><td><span class="estado" data-grupo="php" data-estado="pendiente">Pendiente</span></td></tr>
+    <tr><td class="n">C</td><td>Fecha anunciada al servicio médico</td><td>Comunicada</td><td><span class="estado" data-grupo="php" data-estado="pendiente">Pendiente</span></td></tr>
+    <tr class="grupo"><td colspan="4">Corte</td></tr>
+    <tr><td class="n">D</td><td>Bloquear altas en el PHP o apagarlo</td><td>Ya no recibe archivos</td><td><span class="estado" data-grupo="php" data-estado="pendiente">Pendiente</span></td></tr>
+    <tr><td class="n">E</td><td>Migración incremental de archivos (idempotente)</td><td>Conteo PHP = conteo portal</td><td><span class="estado" data-grupo="php" data-estado="pendiente">Pendiente</span></td></tr>
+    <tr><td class="n">F</td><td>Dejarlo apagado sin borrar servidor ni datos por un tiempo</td><td>Reversa disponible</td><td><span class="estado" data-grupo="php" data-estado="pendiente">Pendiente</span></td></tr>
+  </table>
+</div>
+
+<script>
+// El avance se calcula de los estados de la tabla: % = pasos hechos / total, por grupo.
+// Para actualizarlo solo hay que cambiar data-estado de cada paso (pendiente | en-curso | hecho).
+document.querySelectorAll('[data-progreso]').forEach(function (caja) {
+  var grupo = caja.getAttribute('data-progreso');
+  var marcas = document.querySelectorAll('.estado[data-grupo="' + grupo + '"]');
+  var total = marcas.length, hechos = 0, curso = 0;
+  marcas.forEach(function (m) {
+    var e = m.getAttribute('data-estado');
+    if (e === 'hecho') hechos++; else if (e === 'en-curso') curso++;
+  });
+  var pct = total ? Math.round(hechos * 100 / total) : 0;
+  var pctCurso = total ? Math.round(curso * 100 / total) : 0;
+  caja.querySelector('.pct').textContent = pct + '%';
+  caja.querySelector('.b-hecho').style.width = pct + '%';
+  caja.querySelector('.b-curso').style.width = pctCurso + '%';
+  caja.querySelector('.leyenda').textContent =
+    hechos + ' de ' + total + ' pasos hechos · ' + curso + ' en curso · ' + (total - hechos - curso) + ' pendientes';
+});
+</script>
+</body>
+</html>

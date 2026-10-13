@@ -104,8 +104,8 @@ public class DestinoConfig {
         // Se registra la URL y el usuario, NUNCA la contrasena
         log.info("Destino: {} como {}{}{}", url,
                 hayCredenciales ? usuario : "(usuario del wallet)",
-                conTns ? " · tns en " + tns : "",
-                conWallet ? " · wallet en " + wallet : "");
+                conTns ? " | tns en " + tns : "",
+                conWallet ? " | wallet en " + wallet : "");
         return ds;
     }
 
