@@ -273,6 +273,11 @@ public class CargaService {
                 ? LectorEquipo.leer(hoja, loteId, mapeo.familia().name(), predio, anio)
                 : LectorMatrizMensual.leer(hoja, loteId, mapeo.familia().name(), predio, anio);
 
+        // La categoria de cada medicamento no tiene columna en SERV_MED_BITACORA_METRICA: solo la usa
+        // el generador de layouts de prueba, que lee en memoria (nss-generar-excel).
+        if (repo instanceof com.onest.excel.persistencia.BitacoraMemoria memoria) {
+            memoria.registrarCategorias(res.categorias());
+        }
         var metricas = res.metricas();
         if (muestra && metricas.size() > FILAS_MUESTRA) {
             metricas = metricas.subList(0, FILAS_MUESTRA);

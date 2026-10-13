@@ -201,6 +201,7 @@ public final class DetectorEncabezado {
             }
             columnas.add(new Encabezado.Columna(c, grupoActual, sub));
         }
+        columnas = desambiguar(columnas, subs);
         // filaSub es la mas profunda: de ella depende donde empiezan los datos
         int filaSub = filasSub.isEmpty() ? filaGrupo : filasSub.getLast();
         return new Encabezado(filaGrupo, filaSub, List.copyOf(columnas));
@@ -221,6 +222,54 @@ public final class DetectorEncabezado {
      * abajo dejaba {@code NEGATIVO} y {@code POSITIVO} sin nombre. La mas profunda con texto
      * resuelve las dos.
      */
+    /**
+     * Subetiquetas repetidas dentro de un mismo grupo: se les antepone su nivel intermedio.
+     *
+     * <p>Lo destapo accidentes 2025 (13-oct-2026): {@code CALIFICADO} se parte en {@code LABORAL} y
+     * {@code TRAYECTO} y cada uno trae su {@code ST7}, {@code ST2}, {@code DIAS} y {@code COSTO}. Con
+     * solo la subetiqueta mas profunda las dos quedaban como {@code CALIFICADO.ST7}, y la de trayecto
+     * pisaba a la de laboral: de 44 accidentes con ST7 solo se leian los 23 de trayecto, y los dias
+     * de los laborales se perdian. Ahora quedan {@code LABORAL ST7} y {@code TRAYECTO ST7}.
+     *
+     * <p>Solo se tocan las columnas cuya subetiqueta se repite en su grupo; lo que ya tenia nombre
+     * unico no cambia, asi que las demas familias leen exactamente igual que antes.
+     */
+    private static List<Encabezado.Columna> desambiguar(List<Encabezado.Columna> columnas, List<List<String>> subs) {
+        if (subs.size() < 2) {
+            return columnas;
+        }
+        // Se compara el nombre con que quedara el atributo, no el texto crudo: "ST2 (FECHA INICIO Y
+        // ALTA)" y "ST2 (FECHA ALTA)" son textos distintos pero los dos terminan en ST2 y chocan igual.
+        java.util.function.Function<Encabezado.Columna, String> clave =
+                c -> c.grupo() + "\u0000" + Normalizador.nombreAtributo(c.subetiqueta());
+        java.util.Map<String, Integer> veces = new java.util.HashMap<>();
+        for (Encabezado.Columna c : columnas) {
+            if (c.subetiqueta() != null) {
+                veces.merge(clave.apply(c), 1, Integer::sum);
+            }
+        }
+        // El nivel intermedio viene en celdas combinadas: se propaga a la derecha dentro del grupo
+        List<String> intermedia = subs.get(subs.size() - 2);
+        List<Encabezado.Columna> res = new ArrayList<>(columnas.size());
+        String grupoPrevio = null;
+        String nivel = null;
+        for (Encabezado.Columna c : columnas) {
+            if (!java.util.Objects.equals(c.grupo(), grupoPrevio)) {
+                grupoPrevio = c.grupo();
+                nivel = null;
+            }
+            String v = c.indice() < intermedia.size() ? Normalizador.etiqueta(intermedia.get(c.indice())) : null;
+            if (v != null) {
+                nivel = v;
+            }
+            boolean repetida = c.subetiqueta() != null && veces.getOrDefault(clave.apply(c), 0) > 1;
+            res.add(repetida && nivel != null && !nivel.equals(c.subetiqueta())
+                    ? new Encabezado.Columna(c.indice(), c.grupo(), nivel + " " + c.subetiqueta())
+                    : c);
+        }
+        return res;
+    }
+
     private static String subetiquetaDe(List<List<String>> subs, int columna) {
         for (int i = subs.size() - 1; i >= 0; i--) {
             List<String> fila = subs.get(i);

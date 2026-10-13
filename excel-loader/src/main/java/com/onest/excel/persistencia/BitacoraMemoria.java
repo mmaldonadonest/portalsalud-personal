@@ -33,6 +33,8 @@ public class BitacoraMemoria extends BitacoraRepository {
     /** loteId -> (fila del Excel -> id del evento), lo que en la base resuelve idsPorFila. */
     private final Map<Long, Map<Integer, Long>> filas = new HashMap<>();
     private final List<MetricaFila> metricas = new ArrayList<>();
+    /** Medicamento -> categoria (VIA ORAL, INYECTABLE...), de los renglones-titulo de la matriz. */
+    private final Map<String, String> categorias = new HashMap<>();
     private long siguienteLote = 1;
     private long siguienteEvento = 1;
 
@@ -106,6 +108,14 @@ public class BitacoraMemoria extends BitacoraRepository {
         m.put("ATRIBUTO", eventos.values().stream().mapToInt(e -> e.atributos().size()).sum());
         m.put("METRICA", metricas.size());
         return m;
+    }
+
+    public void registrarCategorias(Map<String, String> nuevas) {
+        nuevas.forEach(categorias::putIfAbsent);
+    }
+
+    public String categoria(String concepto) {
+        return concepto == null ? null : categorias.get(concepto);
     }
 
     public List<Evento> eventos() {

@@ -109,14 +109,15 @@ public enum LayoutNss {
 
     // --- 12-oct-2026: layouts de docs/09102026/corregidos/ (DDL en excel-nss-06-ddl-pos-antidoping.sql)
 
-    // Trae todas las columnas del periodico mas CAUSA y FOLIO INCAPACIDAD: el reconocimiento por
-    // encabezados lo distingue porque gana el layout con mas columnas presentes.
+    // Trae todas las columnas del periodico mas CAUSA: el reconocimiento por encabezados lo distingue
+    // porque gana el layout con mas columnas presentes.
+    // SIN FOLIO INCAPACIDAD (13-oct-2026, el usuario lo quito de la plantilla): los Excel historicos
+    // no lo traen. La columna FOLIO_INCAPACIDAD de SERV_MED_XLS_EXAMEN_POS se queda (acepta nulo) y no
+    // se llena. En el PORTAL si debe capturarse el folio (P12 del plan).
     EXAMEN_POS_INCAP("EXAMEN POS INCAPACIDAD", "SERV_MED_XLS_EXAMEN_POS", true, List.of(
             nss(),
             fecha("FECHA EXAMEN", "FECHA", true),
             catalogo("CAUSA", "CAUSA", "CAUSA_EXAMEN_POS_INCAP", false),
-            // La plantilla le puso validacion de 11 caracteres por error; un folio real trae 8
-            texto("FOLIO INCAPACIDAD", "FOLIO_INCAPACIDAD", 20),
             catalogo("PREDIO", "PREDIO", "PREDIO", true),
             catalogo("AREA", "AREA", "AREA", true),
             catalogo("STATUS", "DICTAMEN", "DICTAMEN", false),

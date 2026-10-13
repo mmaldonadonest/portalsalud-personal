@@ -52,8 +52,21 @@ public final class LectorMatrizMensual {
      * @param conceptos cuantas entidades (medicamentos) se encontraron
      */
     public record Resultado(List<BitacoraRepository.MetricaFila> metricas, int conceptos,
-                            List<String> avisos) {
+                            List<String> avisos, java.util.Map<String, String> categorias) {
+
+        /** Sin categorias (material fijo y las hojas que no las traen). */
+        public Resultado(List<BitacoraRepository.MetricaFila> metricas, int conceptos, List<String> avisos) {
+            this(metricas, conceptos, avisos, java.util.Map.of());
+        }
     }
+
+    /**
+     * Las categorias de medicamento tal como titulan sus grupos en la hoja (13-oct-2026): VIA ORAL,
+     * INYECTABLE... van como renglon de titulo arriba de sus medicamentos, no como columna. Las mismas
+     * del catalogo CATEGORIA_MEDICAMENTO del layout nuevo.
+     */
+    private static final List<String> CATEGORIAS = List.of("VIA ORAL", "INYECTABLE", "TOPICO", "OFTALMICO",
+            "OTICO", "ANTIBIOTICO INYECTABLE", "ANTIBIOTICO ORAL", "OTROS", "ESPECIFICO", "MATERIAL", "URGENCIA");
 
     /**
      * Lee la matriz y devuelve una metrica por (concepto, mes, medida).
@@ -83,8 +96,19 @@ public final class LectorMatrizMensual {
         }
 
         int conceptos = 0;
+        // Categoria vigente: el ultimo renglon-titulo visto. "EQUIPO" cierra los medicamentos.
+        java.util.Map<String, String> categorias = new java.util.LinkedHashMap<>();
+        String categoria = null;
         for (int r = primeraFilaDatos; r <= hoja.ultimaFila(); r++) {
             String concepto = Normalizador.etiqueta(hoja.texto(r, 0));
+            String clave = Normalizador.texto(concepto);
+            if (clave != null && CATEGORIAS.contains(clave.replaceAll("\\s+", " "))) {
+                categoria = clave.replaceAll("\\s+", " ");
+            } else if ("EQUIPO".equals(clave)) {
+                categoria = null;
+            } else if (categoria != null && concepto != null) {
+                categorias.putIfAbsent(concepto, categoria);
+            }
             if (!esConcepto(concepto)) {
                 continue;
             }
@@ -93,7 +117,7 @@ public final class LectorMatrizMensual {
                 leerMes(hoja, r, b, filaMedida, filaSub, loteId, familia, predio, anio, metricas);
             }
         }
-        return new Resultado(metricas, conceptos, avisos);
+        return new Resultado(metricas, conceptos, avisos, categorias);
     }
 
     /** Un mes y el rango de columnas que ocupa. */

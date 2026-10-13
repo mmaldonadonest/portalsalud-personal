@@ -553,6 +553,10 @@ public class PrellenadoNss {
         long id = 1;
         for (var e : porClave.entrySet()) {
             Object[] b = base.get(e.getKey());
+            String categoria = mem.categoria((String) b[2]);
+            if (categoria != null) {
+                e.getValue().put("CATEGORIA", new Object[]{categoria, null, null});
+            }
             res.add(new Evento(id++, (LocalDate) b[0], (String) b[1], null, null, null, (String) b[2], null, null,
                     null, null, "MEDICAMENTOS", e.getValue()));
         }
@@ -565,13 +569,11 @@ public class PrellenadoNss {
         v.add(nss);
         v.add(e.fecha());
         v.add(cat("CAUSA_EXAMEN_POS_INCAP", e.texto("RAMO_INCAPACIDAD"), n, "CAUSA"));
-        v.add(null);                         // FOLIO INCAPACIDAD: el Excel 2025 no lo trae
-        n.add("FOLIO INCAPACIDAD: no estaba en el Excel original");
         v.add(cat("PREDIO", e.predio(), n, "PREDIO"));
         v.add(cat("AREA", e.area(), n, "AREA"));
         v.add(dictamen(e.texto("DICTAMEN"), n));
-        v.add(null);
-        v.add(null);
+        v.add(e.texto("DIAGNOSTICO"));
+        v.add(e.texto("RESULTADOS_PENDIENTES"));
         return new Fila(v, n);
     }
 
@@ -641,7 +643,8 @@ public class PrellenadoNss {
         v.add(cat("PREDIO", e.predio(), n, "PREDIO"));
         v.add(e.fecha() == null ? null : ValidadorNss.MESES.get(e.fecha().getMonthValue() - 1));
         v.add(e.fecha() == null ? null : e.fecha().getYear());
-        v.add(null);                         // CATEGORIA: la matriz vieja no la separa
+        // CATEGORIA: del renglon-titulo de su grupo en la matriz (VIA ORAL, INYECTABLE...)
+        v.add(cat("CATEGORIA_MEDICAMENTO", e.texto("CATEGORIA"), n, "CATEGORIA"));
         v.add(e.nombre());                   // DESCRIPCION = el medicamento
         v.add(null);                         // LOTE, FECHA DE INGRESO, FECHA DE CADUCIDAD: no estaban
         v.add(null);
@@ -748,8 +751,8 @@ public class PrellenadoNss {
         v.add(e.fecha());
         v.add(cat("TIPO_EXAMEN_INGRESO", e.texto("TIPO_EXAMEN"), n, "TIPO DE EXAMEN"));
         v.add(dictamen(e.texto("DICTAMEN"), n));
-        v.add(null);                         // DIAGNOSTICO, ESTADO CIVIL, ESCOLARIDAD: no estaban
-        v.add(null);
+        v.add(e.texto("DIAGNOSTICO"));
+        v.add(null);                         // ESTADO CIVIL, ESCOLARIDAD: no estaban
         v.add(null);
         return new Fila(v, n);
     }
@@ -762,8 +765,8 @@ public class PrellenadoNss {
         v.add(cat("AREA", e.area(), n, "AREA"));
         v.add(e.fecha());
         v.add(dictamen(e.texto("DICTAMEN"), n));
-        v.add(null);
-        v.add(null);
+        v.add(e.texto("DIAGNOSTICO"));
+        v.add(e.texto("RESULTADOS_PENDIENTES"));
         return new Fila(v, n);
     }
 
@@ -830,18 +833,32 @@ public class PrellenadoNss {
         v.add(nss);
         v.add(cat("PREDIO", e.predio(), n, "PREDIO"));
         v.add(cat("AREA", e.area(), n, "AREA"));
-        v.add(e.fecha());
-        n.add(e.fecha() == null ? "FECHA: no estaba, capturar la del accidente"
+        // El ST7 (aviso de accidente) vive dentro de CALIFICADO o IMPROCEDENTE. Con ST7, la FECHA del
+        // accidente se toma de ahi: es la fecha real mas cercana que trae el Excel (13-oct-2026); sin
+        // ST7 queda el mes reportado (dia 1).
+        // Desde el 13-oct-2026 el lector separa LABORAL y TRAYECTO (CALIFICADO.LABORAL_ST7, ...); antes
+        // la de trayecto pisaba a la laboral. Se busca primero el lado del tipo de riesgo del renglon.
+        String lado = "TRAYECTO".equalsIgnoreCase(e.texto("TIPO_RIESGO")) ? "TRAYECTO" : "LABORAL";
+        String otro = "LABORAL".equals(lado) ? "TRAYECTO" : "LABORAL";
+        LocalDate st7 = primeraFecha(e, "CALIFICADO." + lado + "_ST7", "IMPROCEDENTE." + lado + "_ST7",
+                "CALIFICADO." + otro + "_ST7", "IMPROCEDENTE." + otro + "_ST7", "CALIFICADO.ST7", "IMPROCEDENTE.ST7");
+        v.add(st7 != null ? st7 : e.fecha());
+        n.add(st7 != null ? "FECHA: tomada del ST7 (aviso de accidente); confirmar la del accidente"
+                : e.fecha() == null ? "FECHA: no estaba, capturar la del accidente"
                 : "FECHA: es el MES reportado (dia 1), cambiar por la fecha real del accidente");
         v.add(cat("TIPO_RIESGO", e.texto("TIPO_RIESGO"), n, "TIPO DE RIESGO"));
         v.add(e.texto("DIAGNOSTICO"));
         v.add(e.numero("SDI"));
         v.add(e.numero("SDI.PAGO_60"));
-        v.add(null);                                   // ST7 FECHA AVISO: no estaba
-        LocalDate st2 = e.fechaAtr("CALIFICADO.ST2") != null ? e.fechaAtr("CALIFICADO.ST2") : e.fechaAtr("IMPROCEDENTE.ST2");
+        v.add(st7);
+        LocalDate st2 = primeraFecha(e, "CALIFICADO." + lado + "_ST2", "IMPROCEDENTE." + lado + "_ST2",
+                "CALIFICADO." + otro + "_ST2", "IMPROCEDENTE." + otro + "_ST2", "CALIFICADO.ST2", "IMPROCEDENTE.ST2");
         v.add(st2);
-        BigDecimal dc = cero(e.numero("CALIFICADO.DIAS"));
-        BigDecimal di = cero(e.numero("IMPROCEDENTE.DIAS"));
+        // DIAS: laboral + trayecto (+ el nombre anterior, por si el archivo no los separa)
+        BigDecimal dc = cero(e.numero("CALIFICADO.DIAS")).add(cero(e.numero("CALIFICADO.LABORAL_DIAS")))
+                .add(cero(e.numero("CALIFICADO.TRAYECTO_DIAS")));
+        BigDecimal di = cero(e.numero("IMPROCEDENTE.DIAS")).add(cero(e.numero("IMPROCEDENTE.LABORAL_DIAS")))
+                .add(cero(e.numero("IMPROCEDENTE.TRAYECTO_DIAS")));
         BigDecimal cc = cero(e.numero("COSTO.CALIFICADO"));
         BigDecimal ci = cero(e.numero("COSTO.IMPROCEDENTE"));
         BigDecimal dias = dc.add(di);
@@ -865,6 +882,16 @@ public class PrellenadoNss {
         v.add(e.fechaAtr("FECHA_CALIFICACION"));
         v.add(e.texto("OBSERVACIONES"));
         return new Fila(v, n);
+    }
+
+    private static LocalDate primeraFecha(Evento e, String... nombres) {
+        for (String n : nombres) {
+            LocalDate f = e.fechaAtr(n);
+            if (f != null) {
+                return f;
+            }
+        }
+        return null;
     }
 
     private static BigDecimal cero(BigDecimal b) {

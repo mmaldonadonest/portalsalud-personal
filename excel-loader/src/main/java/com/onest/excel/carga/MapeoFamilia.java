@@ -158,13 +158,17 @@ public record MapeoFamilia(
             Familia.EXAMEN_INGRESO, NOMBRE_ESTANDAR, FECHA_ESTANDAR,
             Map.of("CUENTA", CUENTA, "AREA", AREA, "PUESTO", PUESTO,
                    "RANGO DE EDAD", RANGO_EDAD, "GENERO", GENERO, "SEXO", GENERO),
-            Map.of("STATUS", "DICTAMEN", "TIPO DE EXAMEN", "TIPO_EXAMEN"));
+            // DIAGNOSTICO y RESULTADOS PENDIENTES (13-oct-2026): estaban en los tres reportes de examen
+            // y no se leian porque las graficas solo usan el dictamen; los layouts nuevos si los piden.
+            Map.of("STATUS", "DICTAMEN", "TIPO DE EXAMEN", "TIPO_EXAMEN",
+                   "DIAGNOSTICO", "DIAGNOSTICO", "RESULTADOS PENDIENTES", "RESULTADOS_PENDIENTES"));
 
     public static final MapeoFamilia EXAMEN_PERIODICO = new MapeoFamilia(
             Familia.EXAMEN_PERIODICO, NOMBRE_ESTANDAR, FECHA_ESTANDAR,
             Map.of("CUENTA", CUENTA, "AREA", AREA, "PUESTO", PUESTO,
                    "RANGO DE EDAD", RANGO_EDAD, "GENERO", GENERO, "SEXO", GENERO),
-            Map.of("STATUS", "DICTAMEN"));
+            Map.of("STATUS", "DICTAMEN",
+                   "DIAGNOSTICO", "DIAGNOSTICO", "RESULTADOS PENDIENTES", "RESULTADOS_PENDIENTES"));
 
     /**
      * EXAMEN POS INCAPACIDAD. 116 columnas, 8 bloques.
@@ -184,7 +188,8 @@ public record MapeoFamilia(
             Familia.EXAMEN_POS_INCAP, NOMBRE_ESTANDAR, FECHA_ESTANDAR,
             Map.of("CUENTA", CUENTA, "AREA", AREA, "PUESTO", PUESTO,
                    "RANGO DE EDAD", RANGO_EDAD, "GENERO", GENERO, "SEXO", GENERO),
-            Map.of("STATUS", "DICTAMEN", "CAUSA", "RAMO_INCAPACIDAD"),
+            Map.of("STATUS", "DICTAMEN", "CAUSA", "RAMO_INCAPACIDAD",
+                   "DIAGNOSTICO", "DIAGNOSTICO", "RESULTADOS PENDIENTES", "RESULTADOS_PENDIENTES"),
             java.util.Set.of("DATOS INCAPACIDAD"));
 
     /**
@@ -382,7 +387,10 @@ public record MapeoFamilia(
                     Map.entry("DX IMSS", "DIAGNOSTICO"),
                     Map.entry("FECHA PARA CALIFICACION", "FECHA_CALIFICACION"),
                     Map.entry("OBSERVACIONES", "OBSERVACIONES"),
-                    Map.entry("DOCUMENTO SUBIDO", "DOCUMENTO_FZ")),
+                    Map.entry("DOCUMENTO SUBIDO", "DOCUMENTO_FZ"),
+                    // 2025 (13-oct-2026): SDI es UNA columna simple ("(SALARIO DIARIO INTEGRADO)"),
+                    // no el grupo SDI + PAGO 60% de 2026, y como grupo de campos no se leia nada.
+                    Map.entry("SDI", "SDI")),
             // SDI abarca DOS columnas -el salario diario integrado y el PAGO 60%- y las dos van
             // llenas en cada renglon. Como one-hot levantaba un aviso por renglon: 42 de 42 en
             // AIFA, 28 de 28 en Z Vallejo.
