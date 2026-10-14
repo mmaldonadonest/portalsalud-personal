@@ -44,6 +44,7 @@
                                 <th>Diagnostico</th>
                                 <th>SDI</th>
                                 <th>Status calificacion</th>
+                                <th>Días</th>
                                 <th>Costo</th>
                                 <th>Observaciones</th>
                                 <th>Usuario</th>
@@ -58,6 +59,7 @@
                                 <td th:text="${a.diagnostico}">-</td>
                                 <td th:text="${a.sdi}">-</td>
                                 <td th:text="${a.statusCalificacion}">-</td>
+                                <td th:text="${a.dias ?: '-'}">-</td>
                                 <td th:text="${a.costo}">-</td>
                                 <td th:text="${a.observaciones}">-</td>
                                 <td th:text="${a.usuario}">-</td>
@@ -117,6 +119,7 @@
                                 <th>SDI</th>
                                 <th>Calificación</th>
                                 <th>Estatus del caso</th>
+                                <th>Días</th>
                                 <th>Costo</th>
                                 <th>Predio</th>
                                 <th>Observaciones</th>
@@ -131,6 +134,7 @@
                                 <td th:text="${h.sdi != null ? '$' + #numbers.formatDecimal(h.sdi, 1, 'COMMA', 2, 'POINT') : '-'}">-</td>
                                 <td th:text="${h.statusCalificacion ?: '-'}">-</td>
                                 <td th:text="${h.status ?: '-'}">-</td>
+                                <td th:text="${h.dias ?: '-'}">-</td>
                                 <td th:text="${h.costo != null ? '$' + #numbers.formatDecimal(h.costo, 1, 'COMMA', 2, 'POINT') : '-'}">-</td>
                                 <td th:text="${h.predio ?: '-'}">-</td>
                                 <td th:text="${h.observaciones ?: '-'}">-</td>

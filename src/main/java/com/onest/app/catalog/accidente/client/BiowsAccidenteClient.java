@@ -27,8 +27,10 @@ import org.springframework.web.client.RestClient;
 public class BiowsAccidenteClient implements AccidenteClient {
 
     private static final Logger log = LoggerFactory.getLogger(BiowsAccidenteClient.class);
-    private static final String PATH_ACCIDENTE = "/Servcio/accidente";
-    private static final String PATH_CONSULTA_ACCIDENTE = "/Servcio/consulta_accidente";
+    // _v2 (13-oct-2026): clones con DIAS, docs/ords-accidentes-v2.sql. Los originales siguen
+    // publicados sin cambios; volver a ellos es quitar el sufijo.
+    private static final String PATH_ACCIDENTE = "/Servcio/accidente_v2";
+    private static final String PATH_CONSULTA_ACCIDENTE = "/Servcio/consulta_accidente_v2";
     // _cta = clon del WS original que ademas devuelve CUENTA por registro (10-sep-2026,
     // docs/ords-cuenta-en-reportes.sql). El original sigue publicado e intacto.
     private static final String PATH_REPORTE_FECHA = "/Servcio/consulta_accidentes_fecha_cta";
@@ -136,7 +138,8 @@ public class BiowsAccidenteClient implements AccidenteClient {
     private static AccidenteDto toDto(BiowsAccidenteResponse.Dato d) {
         return new AccidenteDto(
                 d.idRegistro(), d.fechaRegistro(), d.fechaAccidente(), d.tipoRiesgo(), d.causaRt(),
-                d.diagnostico(), d.sdi(), d.statusCalificacion(), d.costo(), d.observaciones(), d.usuario(), null);
+                d.diagnostico(), d.sdi(), d.statusCalificacion(), d.costo(), d.observaciones(), d.usuario(), null,
+                d.dias());
     }
 
     private static AccidenteReporteDto toReporte(BiowsAccidenteReporteResponse.Dato d) {

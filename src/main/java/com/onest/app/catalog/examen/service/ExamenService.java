@@ -25,7 +25,12 @@ import org.springframework.stereotype.Service;
 public class ExamenService {
 
     // type: SINO (Si/No + OBS opcional) | TEXT | DATE
-    private record Campo(String field, String label, String type, boolean hasObs) {
+    // tag: si no es null, el campo se lee/escribe en SERV_MED_TAG con ese TYPE (no en el WS) y
+    // field es la columna del WS que se muestra como respaldo cuando el tag esta vacio.
+    private record Campo(String field, String label, String type, boolean hasObs, String tag) {
+        Campo(String field, String label, String type, boolean hasObs) {
+            this(field, label, type, hasObs, null);
+        }
     }
 
     private record Seccion(String dataKey, List<Campo> campos) {
@@ -50,6 +55,38 @@ public class ExamenService {
     private static Campo area(String f, String l) {
         return new Campo(f, l, "AREA", false);
     }
+
+    /**
+     * OPCION (13-oct-2026): una sola opcion entre botones, como el select del PHP
+     * (formsEFis/EFis.html) y los chips del examen inicial. El texto elegido se guarda en ESA
+     * columna; las opciones viven en examen-seccion.html.
+     */
+    private static Campo opcion(String f, String l) {
+        return new Campo(f, l, "OPCION", false);
+    }
+
+    /**
+     * OCULTO: columnas que la tabla tiene pero el PHP nunca lleno (MESOMORFO, ENDOMORFICA,
+     * INTERES...): la opcion elegida se guardaba solo en la primera columna del grupo. No se
+     * muestran; viajan en un hidden con su valor para que guardar no borre lo que hubiera.
+     */
+    private static Campo oculto(String f, String l) {
+        return new Campo(f, l, "OCULTO", false);
+    }
+
+    /**
+     * Texto guardado en SERV_MED_TAG (13-oct-2026). Oidos: el PHP capturaba en los tags
+     * ODCAEINPEXP... y mandaba vacias las columnas de SERV_MED_OIDOS (su JS buscaba controles
+     * que no existen); el impreso lee los tags. Medido 13-oct: ~3,000 NSS con tag vs 11 filas
+     * con dato en SERV_MED_OIDOS. respaldo = columna del WS que se muestra si el tag esta vacio.
+     */
+    private static Campo tagTexto(String tag, String l, String respaldo) {
+        return new Campo(respaldo, l, "TEXT", false, tag);
+    }
+
+    /** Prefijo de las claves de formulario que van a SERV_MED_TAG y no al WS. */
+    private static final String PREFIJO_TAG = "TAG.";
+    private static final String GRUPO_TAG_FISICO = "EXAMEN_FISICO";
 
     private static final Map<String, Seccion> CATALOGO = new LinkedHashMap<>();
 
@@ -249,14 +286,17 @@ public class ExamenService {
         CATALOGO.put("Exploración física", new Seccion("SERV_MED_EXPLORACION_FISICA", List.of(
                 text("PESO", "Peso"), text("TALLA", "Talla"), text("IMC", "IMC"),
                 text("FC", "FC"), text("FR", "FR"), text("TA", "TA"), text("TEMP", "Temperatura"),
-                text("ECTOMORFICO", "Ectomórfico"), text("MESOMORFO", "Mesomorfo"), text("ENDOMORFICA", "Endomórfica"),
+                // Constitucion, estado emocional, facies y marcha: en el PHP eran UN select cada uno y
+                // el texto elegido se guardaba en la primera columna del grupo (ECTOMORFICO,
+                // SERENIDAD, HIPOCRITA, PARKINSON); las demas columnas nunca se llenaron (13-oct-2026)
+                opcion("ECTOMORFICO", "Constitución"), oculto("MESOMORFO", "Mesomorfo"), oculto("ENDOMORFICA", "Endomórfica"),
                 text("SATISFACCION", "Satisfacción"), text("COMP_TRABAJO", "Comp. trabajo"), text("COMP_ORGANIZACION", "Comp. organización"),
                 text("TIEMPO", "Tiempo"), text("ESPACIO", "Espacio"), text("PERSONA", "Persona"),
-                text("SERENIDAD", "Serenidad"), text("INTERES", "Interés"), text("ANTAGONICO", "Antagónico"),
-                text("ENTUSIASTA", "Entusiasta"), text("ENOJO", "Enojo"), text("HIPOCRITA", "Hipócrita"),
-                text("ICTERICA", "Ictérica"), text("ANEMICA", "Anémica"), text("TIROIDEA", "Tiroidea"),
-                text("NOLMAL_FASCIES", "Facies normal"), text("PARKINSON", "Parkinson"), text("HEMIPLEJICO", "Hemipléjico"),
-                text("ATAXICA", "Atáxica"), text("HEMIPARESIA", "Hemiparesia"), text("NORMAL_MARCHA", "Marcha normal"),
+                opcion("SERENIDAD", "Estado emocional"), oculto("INTERES", "Interés"), oculto("ANTAGONICO", "Antagónico"),
+                oculto("ENTUSIASTA", "Entusiasta"), oculto("ENOJO", "Enojo"), opcion("HIPOCRITA", "Facies"),
+                oculto("ICTERICA", "Ictérica"), oculto("ANEMICA", "Anémica"), oculto("TIROIDEA", "Tiroidea"),
+                oculto("NOLMAL_FASCIES", "Facies normal"), opcion("PARKINSON", "Marcha"), oculto("HEMIPLEJICO", "Hemipléjico"),
+                oculto("ATAXICA", "Atáxica"), oculto("HEMIPARESIA", "Hemiparesia"), oculto("NORMAL_MARCHA", "Marcha normal"),
                 text("LENGUAJE", "Lenguaje"), text("CONVER_FLUIDA", "Conversación fluida"), text("COHERENCIA_PALABLAS", "Coherencia de palabras"))));
         CATALOGO.put("Cráneo", new Seccion("SERV_MED_CRANEO", List.of(
                 text("OJOS", "Ojos"), text("PUPILAS", "Pupilas"), text("CONJUNTIVAS", "Conjuntivas"),
@@ -270,9 +310,16 @@ public class ExamenService {
                 text("CERVICA", "Cervical"), text("DORSAL", "Dorsal"), text("LUMBAR", "Lumbar"))));
         CATALOGO.put("Boca", new Seccion("SERV_MED_BOCA", List.of(
                 text("LESIONES", "Lesiones"), text("ENCIAS", "Encías"), text("OROIFARINGE", "Orofaringe"))));
+        // Los nombres de tag no corresponden a la etiqueta (OD = OIMEMTIMINPEXP): es el mapeo del
+        // PHP (formsEFis/EFis.html) y del impreso (examen-documento.html), se respeta tal cual
         CATALOGO.put("Oídos", new Seccion("SERV_MED_OIDOS", List.of(
-                text("CAE", "CAE"), text("MEM_TIM", "Membrana timpánica"), text("AGUD_AUDIT", "Agudeza auditiva"),
-                text("OD", "Oído derecho"), text("OI", "Oído izquierdo"))));
+                oculto("CAE", "CAE"), oculto("MEM_TIM", "Membrana timpánica"), oculto("AGUD_AUDIT", "Agudeza auditiva"),
+                oculto("OD", "Oído derecho"), oculto("OI", "Oído izquierdo"),
+                tagTexto("ODCAEINPEXP", "CAE", "CAE"),
+                tagTexto("ODMEMTIMINPEXP", "Membrana timpánica", "MEM_TIM"),
+                tagTexto("ODAGAUDIINPEXP", "Agudeza auditiva", "AGUD_AUDIT"),
+                tagTexto("OIMEMTIMINPEXP", "Oído derecho (OD)", "OD"),
+                tagTexto("OIAGAUDIINPEXP", "Oído izquierdo (OI)", "OI"))));
         CATALOGO.put("Tórax", new Seccion("SERV_MED_TORAX", List.of(
                 text("RUIDOS_CARDIACOS", "Ruidos cardíacos"), text("REG_PRECORDIAL", "Región precordial"),
                 text("CAMPOS_PULM", "Campos pulmonares"))));
@@ -399,6 +446,9 @@ public class ExamenService {
         Set<String> out = new java.util.HashSet<>();
         for (Seccion sec : CATALOGO.values()) {
             for (Campo c : sec.campos()) {
+                if (c.tag() != null) {
+                    continue;   // va a SERV_MED_TAG; su columna de respaldo ya esta como OCULTO
+                }
                 out.add(sec.dataKey() + "." + c.field());
                 if (c.hasObs()) {
                     out.add(sec.dataKey() + "." + c.field() + "_OBS");
@@ -422,7 +472,47 @@ public class ExamenService {
         if ("SERV_ANTECEDENTESLAB".equals(sec.dataKey())) {
             completarDesdeTags(data, normalizeNss(nss));
         }
+        if (sec.campos().stream().anyMatch(c -> c.tag() != null)) {
+            cargarCamposTag(data, normalizeNss(nss));
+        }
         return itemsDesde(sec, data);
+    }
+
+    /** TYPEs de SERV_MED_TAG que el catalogo permite leer/escribir (lista cerrada). */
+    private static Set<String> tiposTag() {
+        Set<String> out = new java.util.LinkedHashSet<>();
+        for (Seccion sec : CATALOGO.values()) {
+            for (Campo c : sec.campos()) {
+                if (c.tag() != null) {
+                    out.add(c.tag());
+                }
+            }
+        }
+        return out;
+    }
+
+    /** Ultimo valor de cada tag del catalogo, o mapa vacio si no se pudo leer. */
+    private Map<String, String> leerTags(String nss) {
+        Map<String, String> out = new LinkedHashMap<>();
+        Set<String> tipos = tiposTag();
+        try {
+            // los tags de Oidos empiezan con OD/OI: dos lecturas por prefijo y se filtra a la lista
+            for (String prefijo : List.of("OD", "OI")) {
+                tags.latestByNssAndTypePrefix(nss, prefijo).forEach((k, v) -> {
+                    if (tipos.contains(k)) {
+                        out.put(k, v);
+                    }
+                });
+            }
+        } catch (RuntimeException ex) {
+            log.warn("[examen] no se pudieron leer los tags de {}: {}", nss, ex.getMessage());
+        }
+        return out;
+    }
+
+    /** Pone en data las claves "TAG.<TYPE>" con el ultimo valor de SERV_MED_TAG. */
+    private void cargarCamposTag(Map<String, String> data, String nss) {
+        leerTags(nss).forEach((k, v) -> data.put(PREFIJO_TAG + k, v));
     }
 
     /**
@@ -469,13 +559,17 @@ public class ExamenService {
      * por seccion porque el acordeon carga una a la vez; aqui serian 22 llamadas por nada.
      */
     public ExpedienteImpreso expedienteCompleto(String nss) {
-        Map<String, String> data = client.getExamenData(normalizeNss(nss));
+        Map<String, String> data = new LinkedHashMap<>(client.getExamenData(normalizeNss(nss)));
+        cargarCamposTag(data, normalizeNss(nss));
         List<GrupoImpreso> grupos = new ArrayList<>();
         for (Grupo g : grupos()) {
             List<SeccionImpresa> secciones = new ArrayList<>();
             for (String nombre : g.secciones()) {
                 List<ExamItem> items = new ArrayList<>();
                 for (ExamItem it : itemsDesde(CATALOGO.get(nombre), data)) {
+                    if ("OCULTO".equals(it.type())) {
+                        continue;   // columnas que el PHP nunca lleno: en papel solo serian renglones vacios
+                    }
                     items.add(new ExamItem(it.type(), it.label(), it.fieldName(), legible(it.value()),
                             it.obsName(), legible(it.obsValue())));
                 }
@@ -513,6 +607,15 @@ public class ExamenService {
     private static List<ExamItem> itemsDesde(Seccion sec, Map<String, String> data) {
         List<ExamItem> items = new ArrayList<>();
         for (Campo campo : sec.campos()) {
+            if (campo.tag() != null) {
+                // tag primero; si esta vacio, lo que hubiera en la columna del WS (asi no se pierde
+                // y al guardar pasa al tag)
+                String deTag = mostrable(data.get(PREFIJO_TAG + campo.tag()));
+                String valor = deTag.isBlank()
+                        ? mostrable(ExamenClaves.leer(data, sec.dataKey() + "." + campo.field())) : deTag;
+                items.add(new ExamItem(campo.type(), campo.label(), PREFIJO_TAG + campo.tag(), valor, null, null));
+                continue;
+            }
             String base = sec.dataKey() + "." + campo.field();
             String obsName = campo.hasObs() ? base + "_OBS" : null;
             // ExamenClaves.leer(): el WS de lectura devuelve varias claves con nombre distinto
@@ -589,14 +692,51 @@ public class ExamenService {
     public String guardar(String nss, Map<String, String> campos, String firma, String origen) {
         String limpio = normalizeNss(nss);
         invalidar(limpio);
-        Map<String, String> c = campos == null ? Map.of() : campos;
+        // Las claves "TAG.<TYPE>" van a SERV_MED_TAG, no al WS: se separan antes de mandarlo
+        Map<String, String> c = new LinkedHashMap<>();
+        Map<String, String> nuevosTags = new LinkedHashMap<>();
+        Set<String> tipos = tiposTag();
+        if (campos != null) {
+            campos.forEach((k, v) -> {
+                if (k.startsWith(PREFIJO_TAG)) {
+                    String tipo = k.substring(PREFIJO_TAG.length());
+                    if (tipos.contains(tipo)) {
+                        nuevosTags.put(tipo, v);
+                    }
+                } else {
+                    c.put(k, v);
+                }
+            });
+        }
         String r = client.guardar(limpio, c, firma);
+        guardarTags(limpio, nuevosTags);
         invalidar(limpio);
         String dictamen = c.getOrDefault("SERV_MED_RESULTADO_EXAMEN.DICTAMEN", "");
         if (dictamen != null && !dictamen.isBlank()) {
             registrarHistorico(limpio, origen, dictamen.trim());
         }
         return r;
+    }
+
+    /**
+     * Escribe solo los tags cuyo valor cambio respecto al vigente: abrir y guardar sin tocar
+     * Oidos no reescribe ~3,000 historicos ni crea filas vacias. Va despues del WS: si el WS
+     * falla, no queda medio examen en tags.
+     */
+    private void guardarTags(String nss, Map<String, String> nuevos) {
+        if (nuevos.isEmpty()) {
+            return;
+        }
+        Map<String, String> vigentes = leerTags(nss);
+        String usuario = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() == null
+                ? "SISTEMA" : org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        nuevos.forEach((tipo, valor) -> {
+            String nuevo = valor == null ? "" : valor.trim();
+            String actual = mostrable(vigentes.get(tipo)).trim();
+            if (!nuevo.equals(actual)) {
+                tags.upsert(nss, tipo, nuevo, GRUPO_TAG_FISICO, usuario);
+            }
+        });
     }
 
     /**
@@ -638,6 +778,7 @@ public class ExamenService {
     public Map<String, List<ExamItem>> itemsDeTodas(String nss) {
         Map<String, String> data = new java.util.LinkedHashMap<>(datosExamen(normalizeNss(nss)));
         completarDesdeTags(data, normalizeNss(nss));
+        cargarCamposTag(data, normalizeNss(nss));
         Map<String, List<ExamItem>> out = new LinkedHashMap<>();
         for (Map.Entry<String, Seccion> e : CATALOGO.entrySet()) {
             out.put(e.getKey(), itemsDesde(e.getValue(), data));

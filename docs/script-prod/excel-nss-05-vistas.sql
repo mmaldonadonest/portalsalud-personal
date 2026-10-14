@@ -331,13 +331,16 @@ SELECT CAST('PORTAL' AS VARCHAR2(12))                              FUENTE,
        CAST(REPLACE(a.STATUS_CALIFICACION, '_', ' ') AS VARCHAR2(30)) STATUS_CALIFICACION,
        CAST(NULL AS VARCHAR2(30))                                  STATUS,
        a.COSTO                                                     COSTO,
-       CAST(a.OBSERVACIONES AS VARCHAR2(1000))                     OBSERVACIONES
+       CAST(a.OBSERVACIONES AS VARCHAR2(1000))                     OBSERVACIONES,
+       -- DIAS: columna agregada 13-oct-2026 (accidente-13-dias.sql); va al final para no mover
+       -- las posiciones del UNION
+       a.DIAS                                                      DIAS
   FROM SERV_MED_ACCIDENTE a
   LEFT JOIN SERV_MED_V_EMPLEADO emp ON emp.NSS = a.NSS
 UNION ALL
 SELECT 'EXCEL', TO_CHAR(x.ID), x.NSS, x.FECHA, x.PREDIO, x.CUENTA, x.AREA, x.NOMBRE, x.GENERO, x.EDAD,
        x.PUESTO, x.TIPO_RIESGO, x.CAUSA_RT, x.DX_IMSS, x.SDI, x.STATUS_CALIFICACION, x.STATUS, x.COSTO,
-       x.OBSERVACIONES
+       x.OBSERVACIONES, x.DIAS
   FROM SERV_MED_XLS_ACCIDENTE x
  WHERE x.ESTADO_REGISTRO = 'VALIDO'
    AND NOT EXISTS (SELECT 1 FROM SERV_MED_ACCIDENTE a

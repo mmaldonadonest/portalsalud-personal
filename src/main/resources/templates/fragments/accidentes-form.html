@@ -56,6 +56,12 @@
                     <label class="form-label" for="accidenteSdi">Salario diario integrado (SDI)</label>
                     <input type="number" step="0.01" class="form-control" name="sdi" id="accidenteSdi" placeholder="SDI">
                 </div>
+                <!-- Dias (13-oct-2026): igual que DIAS del layout 6; va a SERV_MED_ACCIDENTE.DIAS
+                     via Servcio/accidente_v2. Se captura, no se calcula. -->
+                <div class="col-md-4">
+                    <label class="form-label" for="accidenteDias">Días de incapacidad</label>
+                    <input type="number" step="1" min="0" class="form-control" name="dias" id="accidenteDias" placeholder="Días">
+                </div>
                 <div class="col-md-4">
                     <label class="form-label" for="accidenteCosto">Costo</label>
                     <input type="number" step="0.01" class="form-control" name="costo" id="accidenteCosto" placeholder="Costo">

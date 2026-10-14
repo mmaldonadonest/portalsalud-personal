@@ -275,6 +275,9 @@ public class ExamenInicialService {
                     String obs = it.obsName() != null && b.containsKey(it.obsName()) ? b.get(it.obsName()) : it.obsValue();
                     items.add(new ExamItem(it.type(), it.label(), it.fieldName(), value, it.obsName(), obs));
                     valores.put(it.fieldName(), value == null ? "" : value);
+                    if ("OCULTO".equals(it.type())) {
+                        continue;   // no se captura en pantalla: no cuenta para el avance
+                    }
                     n++;
                     if (value != null && !value.isBlank()) {
                         capturados++;
@@ -419,7 +422,8 @@ public class ExamenInicialService {
         Set<String> clavesWs = ExamenService.clavesEscritura();
         Map<String, String> camposWs = new LinkedHashMap<>();
         for (Map.Entry<String, String> e : b.entrySet()) {
-            if (clavesWs.contains(e.getKey()) || e.getKey().endsWith(".DICTAMEN")) {
+            // "TAG.*" (Oidos, 13-oct-2026): examenService.guardar los separa y escribe en SERV_MED_TAG
+            if (clavesWs.contains(e.getKey()) || e.getKey().endsWith(".DICTAMEN") || e.getKey().startsWith("TAG.")) {
                 camposWs.put(e.getKey(), e.getValue());
             }
         }

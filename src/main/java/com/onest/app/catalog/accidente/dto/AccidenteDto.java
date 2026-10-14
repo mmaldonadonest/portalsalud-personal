@@ -20,10 +20,11 @@ public record AccidenteDto(
         String costo,
         String observaciones,
         String usuario,
-        String estado
+        String estado,
+        String dias
 ) {
     public AccidenteDto withEstado(String nuevoEstado) {
         return new AccidenteDto(idRegistro, fechaRegistro, fechaAccidente, tipoRiesgo, causaRt, diagnostico, sdi,
-                statusCalificacion, costo, observaciones, usuario, nuevoEstado);
+                statusCalificacion, costo, observaciones, usuario, nuevoEstado, dias);
     }
 }

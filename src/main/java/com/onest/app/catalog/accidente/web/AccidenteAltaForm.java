@@ -19,5 +19,6 @@ public class AccidenteAltaForm {
     private String sdi;
     private String statusCalificacion;
     private String costo;
+    private String dias;
     private String observaciones;
 }

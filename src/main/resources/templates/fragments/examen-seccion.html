@@ -2,7 +2,7 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <body>
 <!--
-  Una seccion del examen (U07). type = SINO | TEXT | DATE. Pre-cargada.
+  Una seccion del examen (U07). type = SINO | TEXT | DATE | AREA | RESULTADO | OPCION | OCULTO. Pre-cargada.
   name = clave punteada (p.ej. NEUROLOGIA.AVC) para el futuro guardado completo.
 -->
 <div th:fragment="seccion" class="card bg-light mb-3 exsec" th:attr="data-seccion=${seccion}">
@@ -22,9 +22,38 @@
             </div>
             <div id="examenIcdResult" class="mt-2"></div>
         </div>
+        <!-- OCULTO: columnas que el PHP nunca lleno (MESOMORFO, INTERES...). No se muestran, pero
+             viajan con su valor para que guardar no borre lo que hubiera. -->
+        <input th:each="it : ${items}" th:if="${it.type == 'OCULTO'}" type="hidden"
+               th:name="${it.fieldName}" th:value="${it.value}">
+        <style>
+            .exsec .exini-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+            .exsec .exini-chips .btn { color: #111; font-size: .85rem; }
+            .exsec .exini-chips .btn.activo { background: #0057A8; border-color: #0057A8; color: #fff; }
+        </style>
         <div class="row g-3">
-            <div class="col-md-6" th:each="it : ${items}">
+            <div class="col-md-6" th:each="it : ${items}" th:unless="${it.type == 'OCULTO'}">
                 <label class="form-label mb-1" th:text="${it.label}">Campo</label>
+
+                <!-- OPCION (13-oct-2026): una opcion entre botones, mismos valores que el select del PHP
+                     (formsEFis/EFis.html) y los chips del examen inicial. Clic en la activa la desmarca. -->
+                <div th:if="${it.type == 'OPCION'}"
+                     th:with="campo=${#strings.substringAfter(it.fieldName, '.')},
+                              opciones=${campo == 'ECTOMORFICO' ? {'Ectomórfica':'Ectomórfica (delgado)','Mesomorfo':'Mesomorfo (musculoso)','Endomórfica':'Endomórfica (sobrepeso)'}
+                                       : campo == 'SERENIDAD' ? {'serenidad':'Serenidad','interés':'Interés','entusiasta':'Entusiasta','antagónico':'Antagónico','enojo':'Enojo'}
+                                       : campo == 'HIPOCRITA' ? {'normal':'Normal','hipocrática':'Hipocrática','ictérica':'Ictérica','anémica':'Anémica','tiroidea':'Tiroidea'}
+                                       : {'normal':'Normal','parkinson':'Parkinson','hemipléjico':'Hemipléjico','Atáxica':'Atáxica','hemiparesia':'Hemiparesia'}}">
+                    <div class="exini-chips">
+                        <input type="hidden" th:name="${it.fieldName}" th:value="${it.value}">
+                        <button type="button" th:each="o : ${opciones}" class="btn btn-sm btn-outline-secondary"
+                                th:classappend="${it.value == o.key} ? 'activo' : ''"
+                                th:attr="data-val=${o.key}" th:text="${o.value}" onclick="exIniChip(this);">opción</button>
+                    </div>
+                    <!-- Lo capturado antes como texto libre y que no es una de las opciones: se ve y se
+                         conserva hasta que se elija otra -->
+                    <small class="text-muted" th:if="${it.value != null and !#strings.isEmpty(it.value) and !opciones.containsKey(it.value)}"
+                           th:text="|Capturado antes: ${it.value}|">Capturado antes</small>
+                </div>
 
                 <div th:if="${it.type == 'SINO'}" class="d-flex gap-2">
                     <select class="form-select form-select-sm" style="max-width: 110px;" th:name="${it.fieldName}">

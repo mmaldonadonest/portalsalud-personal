@@ -94,7 +94,8 @@ public class VistaAccidenteRepository {
     /** Un accidente del Excel, tal cual quedo en el layout. Solo lectura. */
     public record Historico(LocalDate fecha, String tipoRiesgo, String causaRt, String dxImss,
                             java.math.BigDecimal sdi, String statusCalificacion, String status,
-                            java.math.BigDecimal costo, String observaciones, String predio, String area) {
+                            java.math.BigDecimal costo, String observaciones, String predio, String area,
+                            Integer dias) {
     }
 
     /**
@@ -104,13 +105,14 @@ public class VistaAccidenteRepository {
      */
     public List<Historico> historicoPorNss(String nss) {
         return jdbc.query("SELECT e.FECHA, e.TIPO_RIESGO, e.CAUSA_RT, e.DX_IMSS, e.SDI, e.STATUS_CALIFICACION, "
-                        + "e.STATUS, e.COSTO, e.OBSERVACIONES, e.PREDIO, e.AREA" + VISTA
+                        + "e.STATUS, e.COSTO, e.OBSERVACIONES, e.PREDIO, e.AREA, e.DIAS" + VISTA
                         + " WHERE e.NSS = ? AND e.FUENTE = 'EXCEL' ORDER BY e.FECHA DESC",
                 (rs, i) -> new Historico(
                         rs.getDate(1) == null ? null : rs.getDate(1).toLocalDate(),
                         rs.getString(2), rs.getString(3), rs.getString(4), rs.getBigDecimal(5),
                         rs.getString(6), rs.getString(7), rs.getBigDecimal(8), rs.getString(9),
-                        rs.getString(10), rs.getString(11)),
+                        rs.getString(10), rs.getString(11),
+                        rs.getObject(12) == null ? null : rs.getInt(12)),
                 nss);
     }
 

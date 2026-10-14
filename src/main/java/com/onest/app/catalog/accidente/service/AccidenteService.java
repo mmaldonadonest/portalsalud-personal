@@ -130,8 +130,25 @@ public class AccidenteService {
                 parseDecimal(form.getCosto(), "costo"),
                 form.getObservaciones(),
                 USUARIO_FIJO,
-                usuarioActual());
+                usuarioActual(),
+                parseDias(form.getDias()));
         return client.crearAccidente(request);
+    }
+
+    /** Dias de incapacidad: opcional, entero de 0 a 99999 (NUMBER(5) en SERV_MED_ACCIDENTE). */
+    private static Integer parseDias(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            int dias = Integer.parseInt(value.trim());
+            if (dias < 0 || dias > 99_999) {
+                throw new IllegalArgumentException("Los días deben estar entre 0 y 99999");
+            }
+            return dias;
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("Los días deben ser un número entero", ex);
+        }
     }
 
     private static String formatFechaAccidente(String isoDate) {

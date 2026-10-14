@@ -106,6 +106,11 @@
                 <div class="col-12"><label class="form-label">Comentarios adicionales</label>
                     <textarea class="form-control" name="comentarios_adicionales" rows="2" th:text="${p['comentarios_adicionales']}"></textarea></div>
 
+                <!-- Condicion (13-oct-2026): campo nuevo, no existia en el PHP. Texto libre por ahora;
+                     se guarda en SERV_MED_TAG como CONDICIONPRETEST (sin cambio de BD) -->
+                <div class="col-12"><label class="form-label" for="pretestCondicion">Condición</label>
+                    <textarea class="form-control" name="CONDICION" id="pretestCondicion" rows="2" th:text="${p['CONDICION']}"></textarea></div>
+
                 <div class="col-12">
                     <label class="form-label d-block">Firma del paciente</label>
                     <input type="hidden" name="drawdataUrl" id="firma" th:value="${p['drawdataUrl']}">
