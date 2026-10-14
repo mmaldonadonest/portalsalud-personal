@@ -20,8 +20,8 @@ import org.springframework.stereotype.Repository;
  *
  * <p>Solo existe con {@code portal.historico.fuente=VISTA}.
  *
- * <p>Diferencia con el camino viejo: la sustancia se cuenta por prueba (una por renglon); la carga
- * vieja contaba hallazgos y un positivo podia traer dos sustancias. Y el estatus junta conclusion y
+ * <p>La sustancia se cuenta por hallazgo: un positivo con "AMF, MET" suma a las dos barras (ver
+ * porSustanciaSeparada); los totales de pruebas y positivos cuentan la prueba una vez. Y el estatus junta conclusion y
  * estatus laboral como lo hacia el portal (STATUS_CONCLUSION), con el texto del layout.
  */
 @Repository
@@ -65,8 +65,30 @@ public class VistaAntidopingRepository {
             f.and(condicion);
         }
         f.filtros(desde, hasta, predio, cuenta);
-        return jdbc.query(f.sql() + " GROUP BY " + expr + " ORDER BY COUNT(*) DESC",
+        List<ConteoSimpleDto> filas = jdbc.query(f.sql() + " GROUP BY " + expr + " ORDER BY COUNT(*) DESC",
                 (rs, i) -> new ConteoSimpleDto(rs.getString("clave"), rs.getLong("cantidad")), f.params());
+        return "SUSTANCIA".equals(dimension) ? porSustanciaSeparada(filas) : filas;
+    }
+
+    /**
+     * Desde el 13-oct-2026 el layout 7 trae una columna por sustancia y una prueba puede salir positiva
+     * a varias: el Excel las guarda juntas ("AMF, MET, THC"). Se reparten para que cada sustancia
+     * tenga su barra: esa prueba suma 1 a AMF, 1 a MET y 1 a THC (y sigue siendo UNA prueba en los
+     * totales, que no pasan por aqui).
+     */
+    private static List<ConteoSimpleDto> porSustanciaSeparada(List<ConteoSimpleDto> filas) {
+        java.util.Map<String, Long> suma = new java.util.LinkedHashMap<>();
+        for (ConteoSimpleDto c : filas) {
+            for (String s : c.clave().split("\\s*,\\s*")) {
+                if (!s.isBlank()) {
+                    suma.merge(s.trim(), c.cantidad(), Long::sum);
+                }
+            }
+        }
+        return suma.entrySet().stream()
+                .map(e -> new ConteoSimpleDto(e.getKey(), e.getValue()))
+                .sorted(java.util.Comparator.comparingLong(ConteoSimpleDto::cantidad).reversed())
+                .toList();
     }
 
     /** Predio x tipo de prueba (sin costo: el antidoping no lo tiene). */

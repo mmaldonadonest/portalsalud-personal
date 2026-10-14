@@ -5,6 +5,7 @@ import static com.onest.excel.nss.CampoNss.decimal;
 import static com.onest.excel.nss.CampoNss.decimalConSigno;
 import static com.onest.excel.nss.CampoNss.entero;
 import static com.onest.excel.nss.CampoNss.fecha;
+import static com.onest.excel.nss.CampoNss.marca;
 import static com.onest.excel.nss.CampoNss.nss;
 import static com.onest.excel.nss.CampoNss.texto;
 import static com.onest.excel.nss.CampoNss.textoObligatorio;
@@ -50,7 +51,10 @@ public enum LayoutNss {
             catalogo("STATUS", "DICTAMEN", "DICTAMEN", false),
             texto("DIAGNOSTICO", "DIAGNOSTICO", 1000),
             texto("ESTADO CIVIL", "ESTADO_CIVIL", 40),
-            texto("ESCOLARIDAD", "ESCOLARIDAD", 60))),
+            texto("ESCOLARIDAD", "ESCOLARIDAD", 60),
+            // 13-oct-2026: el Excel original las trae y el layout no (DDL excel-nss-12)
+            texto("RESULTADOS PENDIENTES", "RESULTADOS_PENDIENTES", 500),
+            texto("OBSERVACIONES", "OBSERVACIONES", 1000))),
 
     EXAMEN_PERIODICO("EXAMEN PERIODICO", "SERV_MED_XLS_EXAMEN_PER", true, List.of(
             nss(),
@@ -59,7 +63,8 @@ public enum LayoutNss {
             fecha("FECHA EXAMEN", "FECHA", true),
             catalogo("STATUS", "DICTAMEN", "DICTAMEN", false),
             texto("DIAGNOSTICO", "DIAGNOSTICO", 1000),
-            texto("RESULTADOS PENDIENTES", "RESULTADOS_PENDIENTES", 500))),
+            texto("RESULTADOS PENDIENTES", "RESULTADOS_PENDIENTES", 500),
+            texto("OBSERVACIONES", "OBSERVACIONES", 1000))),   // 13-oct-2026, DDL excel-nss-12
 
     INCAPACIDADES("INCAPACIDADES", "SERV_MED_XLS_INCAPACIDAD", true, List.of(
             nss(),
@@ -122,7 +127,8 @@ public enum LayoutNss {
             catalogo("AREA", "AREA", "AREA", true),
             catalogo("STATUS", "DICTAMEN", "DICTAMEN", false),
             texto("DIAGNOSTICO", "DIAGNOSTICO", 1000),
-            texto("RESULTADOS PENDIENTES", "RESULTADOS_PENDIENTES", 500))),
+            texto("RESULTADOS PENDIENTES", "RESULTADOS_PENDIENTES", 500),
+            texto("OBSERVACIONES", "OBSERVACIONES", 1000))),   // 13-oct-2026, DDL excel-nss-12
 
     // Solo empleados (decision 12-oct): el antidoping de candidatos se captura en el examen inicial
     ANTIDOPING("ANTIDOPING", "SERV_MED_XLS_ANTIDOPING", true, List.of(
@@ -132,7 +138,11 @@ public enum LayoutNss {
             fecha("FECHA", "FECHA", true),
             catalogo("TIPO DE PRUEBA", "TIPO_PRUEBA", "TIPO_PRUEBA", true),
             catalogo("RESULTADO", "RESULTADO", "RESULTADO_PRUEBA", true),
-            catalogo("DOPING", "SUSTANCIA", "SUSTANCIA", false),
+            // 13-oct-2026: una columna por sustancia con 1 (en vez de una sola DOPING): una prueba
+            // puede salir positiva a varias (hasta 6 en los Excel de 2025 y 2026). Se guardan juntas
+            // en SUSTANCIA ("AMF, MET, THC"), ver ValidadorNss y columnasDerivadas().
+            marca("AMF"), marca("BARB"), marca("BENZO"), marca("COC"), marca("LSD"), marca("MET"),
+            marca("OPI"), marca("PVC"), marca("THC"), marca("SOLVENTE"), marca("OTRO"),
             decimal("ALCOHOLEMIA %", "ALCOHOLEMIA"),
             catalogo("CONCLUSION", "CONCLUSION", "CONCLUSION_ANTIDOPING", false),
             catalogo("STATUS", "STATUS", "STATUS_ANTIDOPING", false),
@@ -241,6 +251,7 @@ public enum LayoutNss {
         return switch (this) {
             case MEDICAMENTOS -> List.of("FECHA");
             case MATERNIDAD -> List.of("CLAVE_EMBARAZO");
+            case ANTIDOPING -> List.of("SUSTANCIA");
             default -> List.of();
         };
     }

@@ -453,6 +453,13 @@ public class PrellenadoNss {
             }
             Map<String, Object[]> atr = new LinkedHashMap<>();
             for (var a : ev.atributos()) {
+                // Una prueba de antidoping puede traer VARIAS sustancias: el lector deja un atributo
+                // SUSTANCIA por cada marca. Se juntan con "|" en vez de quedarse con la ultima.
+                Object[] previo = atr.get(a.nombre());
+                if ("SUSTANCIA".equals(a.nombre()) && previo != null && previo[0] != null && a.valor() != null) {
+                    atr.put(a.nombre(), new Object[]{previo[0] + "|" + a.valor(), null, null});
+                    continue;
+                }
                 atr.put(a.nombre(), new Object[]{a.valor(),
                         a.valorNum() == null ? null : BigDecimal.valueOf(a.valorNum()), a.valorFecha()});
             }
@@ -574,6 +581,7 @@ public class PrellenadoNss {
         v.add(dictamen(e.texto("DICTAMEN"), n));
         v.add(e.texto("DIAGNOSTICO"));
         v.add(e.texto("RESULTADOS_PENDIENTES"));
+        v.add(e.texto("OBSERVACIONES"));
         return new Fila(v, n);
     }
 
@@ -596,7 +604,19 @@ public class PrellenadoNss {
         }
         v.add(cat("TIPO_PRUEBA", tipo, n, "TIPO DE PRUEBA"));
         v.add(cat("RESULTADO_PRUEBA", e.texto("RESULTADO"), n, "RESULTADO"));
-        v.add(cat("SUSTANCIA", e.texto("SUSTANCIA"), n, "DOPING"));
+        // Una columna por sustancia: 1 en las que vienen marcadas en el Excel original (pueden ser
+        // varias). En 2026 la hoja trae AMF dos veces: se marca una sola columna.
+        java.util.Set<String> sust = new java.util.HashSet<>();
+        String crudas = e.texto("SUSTANCIA");
+        if (crudas != null) {
+            for (String s : crudas.split("\\|")) {
+                CatalogosNss.buscar("SUSTANCIA", s.trim()).ifPresentOrElse(sust::add,
+                        () -> n.add("DOPING: '" + s.trim() + "' no es una de las 11 columnas de sustancia"));
+            }
+        }
+        for (String s : List.of("AMF", "BARB", "BENZO", "COC", "LSD", "MET", "OPI", "PVC", "THC", "SOLVENTE", "OTRO")) {
+            v.add(sust.contains(s) ? 1 : null);
+        }
         v.add(alcohol);
         v.add(cat("CONCLUSION_ANTIDOPING", e.texto("CONCLUSION"), n, "CONCLUSION"));
         v.add(cat("STATUS_ANTIDOPING", e.estatus(), n, "STATUS"));
@@ -752,8 +772,10 @@ public class PrellenadoNss {
         v.add(cat("TIPO_EXAMEN_INGRESO", e.texto("TIPO_EXAMEN"), n, "TIPO DE EXAMEN"));
         v.add(dictamen(e.texto("DICTAMEN"), n));
         v.add(e.texto("DIAGNOSTICO"));
-        v.add(null);                         // ESTADO CIVIL, ESCOLARIDAD: no estaban
-        v.add(null);
+        v.add(e.texto("ESTADO_CIVIL"));
+        v.add(e.texto("ESCOLARIDAD"));
+        v.add(e.texto("RESULTADOS_PENDIENTES"));
+        v.add(e.texto("OBSERVACIONES"));
         return new Fila(v, n);
     }
 
@@ -767,6 +789,7 @@ public class PrellenadoNss {
         v.add(dictamen(e.texto("DICTAMEN"), n));
         v.add(e.texto("DIAGNOSTICO"));
         v.add(e.texto("RESULTADOS_PENDIENTES"));
+        v.add(e.texto("OBSERVACIONES"));
         return new Fila(v, n);
     }
 

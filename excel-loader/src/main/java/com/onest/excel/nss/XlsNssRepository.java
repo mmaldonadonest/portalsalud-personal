@@ -124,7 +124,8 @@ public class XlsNssRepository {
 
     private void insertar(LayoutNss layout, long lote, List<ValidadorNss.Registro> registros) {
         List<String> columnas = new ArrayList<>(List.of("LOTE_ID", "ORIGEN_FILA"));
-        layout.campos().forEach(c -> columnas.add(c.columna()));
+        // Los campos MARCA no tienen columna propia: se guardan juntos en una derivada (SUSTANCIA)
+        layout.campos().stream().filter(c -> c.columna() != null).forEach(c -> columnas.add(c.columna()));
         columnas.addAll(layout.columnasDerivadas());
         if (layout.empleado()) {
             columnas.addAll(List.of("NOMBRE", "GENERO", "EDAD", "CUENTA", "PUESTO"));

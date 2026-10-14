@@ -23,7 +23,16 @@ import java.util.List;
 public record CampoNss(String encabezado, String columna, Tipo tipo, int maximo, String catalogo,
                        boolean obligatorio, boolean negativoConAviso, String alias) {
 
-    public enum Tipo { NSS, TEXTO, FECHA, ENTERO, DECIMAL, CATALOGO }
+    /**
+     * MARCA (13-oct-2026): casilla 1 / 0 / vacia, como las sustancias de antidoping (una columna por
+     * sustancia, varias pueden venir en 1). No tiene columna propia en la tabla: ValidadorNss junta
+     * las marcadas en una columna derivada (SUSTANCIA = "AMF, MET, THC").
+     */
+    public enum Tipo { NSS, TEXTO, FECHA, ENTERO, DECIMAL, CATALOGO, MARCA }
+
+    static CampoNss marca(String encabezado) {
+        return new CampoNss(encabezado, null, Tipo.MARCA, 0, null, false, false, null);
+    }
 
     /** El encabezado oficial y, si hay, el alterno. */
     public List<String> encabezadosAceptados() {

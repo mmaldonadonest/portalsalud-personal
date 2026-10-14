@@ -161,14 +161,18 @@ public record MapeoFamilia(
             // DIAGNOSTICO y RESULTADOS PENDIENTES (13-oct-2026): estaban en los tres reportes de examen
             // y no se leian porque las graficas solo usan el dictamen; los layouts nuevos si los piden.
             Map.of("STATUS", "DICTAMEN", "TIPO DE EXAMEN", "TIPO_EXAMEN",
-                   "DIAGNOSTICO", "DIAGNOSTICO", "RESULTADOS PENDIENTES", "RESULTADOS_PENDIENTES"));
+                   "DIAGNOSTICO", "DIAGNOSTICO", "RESULTADOS PENDIENTES", "RESULTADOS_PENDIENTES",
+                   // 13-oct-2026: columnas de texto del candidato que el layout nuevo si pide
+                   "ESTADO CIVIL", "ESTADO_CIVIL", "ESCOLARIDAD", "ESCOLARIDAD",
+                   "OBSERVACIONES", "OBSERVACIONES"));
 
     public static final MapeoFamilia EXAMEN_PERIODICO = new MapeoFamilia(
             Familia.EXAMEN_PERIODICO, NOMBRE_ESTANDAR, FECHA_ESTANDAR,
             Map.of("CUENTA", CUENTA, "AREA", AREA, "PUESTO", PUESTO,
                    "RANGO DE EDAD", RANGO_EDAD, "GENERO", GENERO, "SEXO", GENERO),
             Map.of("STATUS", "DICTAMEN",
-                   "DIAGNOSTICO", "DIAGNOSTICO", "RESULTADOS PENDIENTES", "RESULTADOS_PENDIENTES"));
+                   "DIAGNOSTICO", "DIAGNOSTICO", "RESULTADOS PENDIENTES", "RESULTADOS_PENDIENTES",
+                   "OBSERVACIONES", "OBSERVACIONES"));
 
     /**
      * EXAMEN POS INCAPACIDAD. 116 columnas, 8 bloques.
@@ -189,7 +193,8 @@ public record MapeoFamilia(
             Map.of("CUENTA", CUENTA, "AREA", AREA, "PUESTO", PUESTO,
                    "RANGO DE EDAD", RANGO_EDAD, "GENERO", GENERO, "SEXO", GENERO),
             Map.of("STATUS", "DICTAMEN", "CAUSA", "RAMO_INCAPACIDAD",
-                   "DIAGNOSTICO", "DIAGNOSTICO", "RESULTADOS PENDIENTES", "RESULTADOS_PENDIENTES"),
+                   "DIAGNOSTICO", "DIAGNOSTICO", "RESULTADOS PENDIENTES", "RESULTADOS_PENDIENTES",
+                   "OBSERVACIONES", "OBSERVACIONES"),
             java.util.Set.of("DATOS INCAPACIDAD"));
 
     /**
@@ -233,7 +238,10 @@ public record MapeoFamilia(
                     Map.of("NEGATIVO", "RESULTADO",
                            "POSITIVO", "RESULTADO",
                            "%", "ALCOHOLEMIA"),
-                    "SUSTANCIA")));
+                    "SUSTANCIA"),
+                   // 2025 (13-oct-2026): las sustancias vienen en su PROPIO grupo "SUBSTANCIA", no bajo
+                   // RESULTADO como en 2026, y no se leian. Todas sus marcas son sustancias.
+                   "SUBSTANCIA", new Multimarca(Map.of(), "SUSTANCIA")));
 
     /**
      * MATERNIDAD. 153 columnas, 9 bloques.

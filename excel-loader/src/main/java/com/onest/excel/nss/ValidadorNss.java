@@ -120,10 +120,21 @@ public final class ValidadorNss {
         Map<String, Object> valores = new LinkedHashMap<>();
         List<Error> errores = new ArrayList<>();
         List<Error> avisos = new ArrayList<>();
+        List<String> marcadas = new ArrayList<>();   // campos MARCA en 1, en el orden del layout
         for (Map.Entry<CampoNss, Integer> e : indices.entrySet()) {
             CampoNss c = e.getKey();
             String crudo = fila.valor(e.getValue());
             String v = crudo == null ? "" : crudo.trim();
+            if (c.tipo() == CampoNss.Tipo.MARCA) {
+                // 1 = aplica; 0 o vacio = no aplica. Cualquier otra cosa (X, SI...) es error, para
+                // que la captura sea uniforme (decision 13-oct-2026).
+                if (v.matches("1(\\.0+)?")) {
+                    marcadas.add(c.encabezado());
+                } else if (!v.isEmpty() && !v.matches("0(\\.0+)?")) {
+                    errores.add(new Error(fila.numero(), c.encabezado(), v, "solo se acepta 1 (aplica), 0 o vacio"));
+                }
+                continue;
+            }
             if (v.isEmpty()) {
                 if (c.obligatorio()) {
                     errores.add(new Error(fila.numero(), c.encabezado(), "", "es obligatorio"));
@@ -164,6 +175,18 @@ public final class ValidadorNss {
                         "falta FUM o FECHA PROBABLE DE PARTO: sin una de las dos no se identifica el embarazo"));
             }
         }
+        // Antidoping: las sustancias marcadas se guardan juntas ("AMF, MET, THC"). Que el veredicto y
+        // las sustancias no cuadren no rechaza el renglon (asi viene capturado), pero se avisa.
+        if (layout == LayoutNss.ANTIDOPING) {
+            valores.put("SUSTANCIA", marcadas.isEmpty() ? null : String.join(", ", marcadas));
+            Object resultado = valores.get("RESULTADO");
+            if ("POSITIVO".equals(resultado) && marcadas.isEmpty() && "ANTIDOPING".equals(valores.get("TIPO_PRUEBA"))) {
+                avisos.add(new Error(fila.numero(), "RESULTADO", "POSITIVO", "positivo sin ninguna sustancia marcada"));
+            } else if ("NEGATIVO".equals(resultado) && !marcadas.isEmpty()) {
+                avisos.add(new Error(fila.numero(), "RESULTADO", "NEGATIVO",
+                        "negativo con sustancia marcada (" + String.join(", ", marcadas) + ")"));
+            }
+        }
         // Medicamentos: el mes viene como nombre y el ano aparte (en el Excel original el mes es un
         // encabezado de texto); la FECHA que usan el reemplazo y las graficas es el dia 1 de ese mes.
         if (layout == LayoutNss.MEDICAMENTOS && valores.get("MES") != null && valores.get("ANIO") != null) {
@@ -200,6 +223,7 @@ public final class ValidadorNss {
                 }
             }
             case DECIMAL -> c.negativoConAviso() ? numero(v) : noNegativo(numero(v));
+            case MARCA -> v;   // no llega aqui: las marcas se resuelven en validar()
             case CATALOGO -> CatalogosNss.buscar(c.catalogo(), v).orElseThrow(() ->
                     new IllegalArgumentException("no esta en el catalogo " + c.catalogo()
                             + " (validos: " + CatalogosNss.validos(c.catalogo()) + ")"));
