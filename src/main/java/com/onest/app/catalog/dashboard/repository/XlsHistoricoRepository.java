@@ -49,8 +49,8 @@ public class XlsHistoricoRepository extends BitacoraHistoricoRepository {
             "(SELECT * FROM SERV_MED_XLS_ACCIDENTE WHERE ESTADO_REGISTRO = 'VALIDO') e";
 
     /**
-     * Examenes = nuevo ingreso + periodico (tablas nuevas) + pos incapacidad (carga vieja, su layout
-     * sigue en revision). El dictamen nuevo (APTO_CONDICIONADO...) se traduce a la etiqueta con
+     * Examenes = nuevo ingreso + periodico + pos incapacidad (tablas nuevas; sin carga vieja
+     * desde el 14-oct-2026). El dictamen nuevo (APTO_CONDICIONADO...) se traduce a la etiqueta con
      * codigo que reconoce DictamenExamen.deEtiquetaExcel, la misma de la carga vieja: "(15)",
      * "(30)", "(45)", "(60)". Sin eso "NO_APTO" contenia "APTO" y caia en el bucket equivocado.
      */
@@ -60,9 +60,8 @@ public class XlsHistoricoRepository extends BitacoraHistoricoRepository {
             + "FROM SERV_MED_XLS_EXAMEN_ING WHERE ESTADO_REGISTRO = 'VALIDO' "
             + "UNION ALL SELECT FECHA, PREDIO, CUENTA, " + DICTAMEN_NUEVO + " DICTAMEN "
             + "FROM SERV_MED_XLS_EXAMEN_PER WHERE ESTADO_REGISTRO = 'VALIDO' "
-            + "UNION ALL SELECT ev.FECHA, ev.PREDIO, ev.CUENTA, at.VALOR DICTAMEN "
-            + "FROM SERV_MED_BITACORA_EVENTO ev LEFT JOIN SERV_MED_BITACORA_ATRIBUTO at "
-            + "ON at.EVENTO_ID = ev.ID AND at.NOMBRE = 'DICTAMEN' WHERE ev.FAMILIA = 'EXAMEN_POS_INCAP') e";
+            + "UNION ALL SELECT FECHA, PREDIO, CUENTA, " + DICTAMEN_NUEVO + " DICTAMEN "
+            + "FROM SERV_MED_XLS_EXAMEN_POS WHERE ESTADO_REGISTRO = 'VALIDO') e";
 
     private final JdbcTemplate jdbc;
 
@@ -370,9 +369,8 @@ public class XlsHistoricoRepository extends BitacoraHistoricoRepository {
 
     // ---------------------------------------------------------------------------------------
     //  Consumibles (layout 9, 12-oct-2026): SERV_MED_XLS_MEDICAMENTO y SERV_MED_XLS_MATERIAL_FIJO.
-    //  Sin portal con que unirlos, asi que no hay vista: se leen las tablas. MIENTRAS esten vacias se
-    //  sigue leyendo la carga vieja (SERV_MED_BITACORA_METRICA), para que la pantalla no quede en
-    //  blanco antes de la primera carga.
+    //  Sin portal con que unirlos, asi que no hay vista: se leen las tablas. Sin respaldo a la carga
+    //  vieja (decision 14-oct-2026): si estan vacias, la pantalla queda vacia.
     // ---------------------------------------------------------------------------------------
 
     private static final String MEDICAMENTO = "(SELECT * FROM SERV_MED_XLS_MEDICAMENTO WHERE ESTADO_REGISTRO = 'VALIDO') e";
@@ -380,20 +378,13 @@ public class XlsHistoricoRepository extends BitacoraHistoricoRepository {
     private static final String CONSUMO = "COALESCE(e.TOTAL_LOTE, NVL(e.CONSUMO_S1, 0) + NVL(e.CONSUMO_S2, 0) "
             + "+ NVL(e.CONSUMO_S3, 0) + NVL(e.CONSUMO_S4, 0) + NVL(e.CONSUMO_S5, 0))";
 
-    private boolean hayMedicamentosNuevos() {
-        return hay(MEDICAMENTO);
-    }
-
     @Override
     public boolean hayConsumo() {
-        return hayMedicamentosNuevos() || hay("(SELECT * FROM SERV_MED_XLS_MATERIAL_FIJO) e") || super.hayConsumo();
+        return hay(MEDICAMENTO) || hay("(SELECT * FROM SERV_MED_XLS_MATERIAL_FIJO) e");
     }
 
     @Override
     public long[] totalesConsumo(LocalDate desde, LocalDate hasta, String predio) {
-        if (!hayMedicamentosNuevos()) {
-            return super.totalesConsumo(desde, hasta, predio);
-        }
         Filtro f = new Filtro("SELECT NVL(SUM(" + CONSUMO + "), 0), COUNT(DISTINCT CASE WHEN " + CONSUMO
                 + " > 0 THEN e.DESCRIPCION END) FROM " + MEDICAMENTO).filtros(desde, hasta, predio, null);
         return jdbc.queryForObject(f.sql(), (rs, i) -> new long[]{rs.getLong(1), rs.getLong(2)}, f.params());
@@ -401,9 +392,6 @@ public class XlsHistoricoRepository extends BitacoraHistoricoRepository {
 
     @Override
     public List<ConteoSimpleDto> consumoPorMedicamento(LocalDate desde, LocalDate hasta, String predio, int limite) {
-        if (!hayMedicamentosNuevos()) {
-            return super.consumoPorMedicamento(desde, hasta, predio, limite);
-        }
         Filtro f = new Filtro("SELECT e.DESCRIPCION clave, NVL(SUM(" + CONSUMO + "), 0) cantidad FROM " + MEDICAMENTO)
                 .filtros(desde, hasta, predio, null);
         return conteo(f.sql() + " GROUP BY e.DESCRIPCION HAVING SUM(" + CONSUMO + ") > 0 ORDER BY 2 DESC",
@@ -412,9 +400,6 @@ public class XlsHistoricoRepository extends BitacoraHistoricoRepository {
 
     @Override
     public List<ConteoSimpleDto> consumoPorPredio(LocalDate desde, LocalDate hasta, String predio) {
-        if (!hayMedicamentosNuevos()) {
-            return super.consumoPorPredio(desde, hasta, predio);
-        }
         Filtro f = new Filtro("SELECT NVL(e.PREDIO, '" + SIN_DATO + "') clave, NVL(SUM(" + CONSUMO + "), 0) cantidad FROM "
                 + MEDICAMENTO).filtros(desde, hasta, predio, null);
         return conteo(f.sql() + " GROUP BY NVL(e.PREDIO, '" + SIN_DATO + "') ORDER BY 2 DESC", f.params(), 0);
@@ -422,23 +407,17 @@ public class XlsHistoricoRepository extends BitacoraHistoricoRepository {
 
     @Override
     public List<PuntoMensualDto> consumoTendencia(LocalDate desde, LocalDate hasta, String predio) {
-        if (!hayMedicamentosNuevos()) {
-            return super.consumoTendencia(desde, hasta, predio);
-        }
         return mensual(new Filtro("SELECT " + MES + " mes, NVL(SUM(" + CONSUMO + "), 0) cantidad FROM " + MEDICAMENTO)
                 .filtros(desde, hasta, predio, null));
     }
 
     /**
-     * Equipo vigente por predio: lo recibido que no tiene fecha de baja. Como en la carga vieja, NO
-     * se acota por fecha: es el estado del inventario, no un hecho del periodo.
+     * Equipo vigente por predio: lo recibido que no tiene fecha de baja. NO se acota por fecha: es el
+     * estado del inventario, no un hecho del periodo.
      */
     @Override
     public List<ConteoSimpleDto> equipoPorPredio(String predio) {
         String fuente = "(SELECT * FROM SERV_MED_XLS_MATERIAL_FIJO WHERE ESTADO_REGISTRO = 'VALIDO') e";
-        if (!hay(fuente)) {
-            return super.equipoPorPredio(predio);
-        }
         Filtro f = new Filtro("SELECT NVL(e.PREDIO, '" + SIN_DATO + "') clave, NVL(SUM(NVL(e.CANTIDAD_SURTIDA, 0)), 0) "
                 + "cantidad FROM " + fuente).and("e.FECHA_BAJA IS NULL").filtros(null, null, predio, null);
         return conteo(f.sql() + " GROUP BY NVL(e.PREDIO, '" + SIN_DATO + "') ORDER BY 2 DESC", f.params(), 0);

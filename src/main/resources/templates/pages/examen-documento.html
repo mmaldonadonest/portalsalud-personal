@@ -134,7 +134,9 @@
     </div>
     <div class="row mt-3 ">
         <div class="col-4">
-            <p  style="font-size: 13px;">Agencia: <b>[[${d.v('empresa')}]]</b></p>
+            <!-- 15-oct-2026: el PHP llenaba "Agencia" con la empresa del WS ("Onest Mexico" para todos);
+                 ahora es la agencia real (solicitud OCR > BIO_EMPLEADO.SOCIEDAD > vacio) -->
+            <p  style="font-size: 13px;">Agencia: <b>[[${d.v('AGENCIA')}]]</b></p>
         </div>
         <div class="col-4">
             <p  style="font-size: 13px;">Departamento: [[${d.v('cuenta')}]]</p>
@@ -194,19 +196,20 @@
                         </td>
                     </tr>
                     <tr class="">
-                        <td>F. Implementación: 18 DE OCTUBRE DE 2022</td>
-                        <td>Revisión: 01</td>
+                        <!-- FT-SO-32 rev. 03 (pie del Word de calidad: "REV-03, ultima actualizacion 14/10/2026") -->
+                        <td>F. Implementación: 14 de octubre de 2026</td>
+                        <td>Revisión: 03</td>
 
 
                     </tr>
                     <td>Clave de control: FT-SO-32</td>
-                    <td>Reemplaza a: 00</td>
+                    <td>Reemplaza a: 02</td>
                     <tr>
 
                     </tr>
                     <tr class="">
 
-                        <td>Motivo del cambio: Actualización por vigencia.</td>
+                        <td>Motivo del cambio: Actualización por vigencia</td>
                         <td></td>
 
                     </tr>
@@ -218,7 +221,7 @@
         <center>
             <h6>AVISO DE PRIVACIDAD</h6>
         </center>
-        <p style="font-size: 11px;">SALUD OCUPACIONAL DE GRUPO LOGISTICO INTEGRAL, mejor conocido como ONEST LOGISTICS, con domicilio en calle
+        <p style="font-size: 11px;">SALUD OCUPACIONAL DE GRUPO LOGISTICO INTEGRAL, mejor conocido como ONEST SMARTLOGISTICS, con domicilio en calle
             Autopista México Querétaro Km 34.5 Nave 5, colonia San Isidro, ciudad Cuautitlán Izcalli, municipio o delegación Cuautitlán Izcalli,
             c.p. 54730, en la entidad de Estado de México, país México, y portal de internet https://www.onestlogistics.com, es el responsable del
             uso y protección de sus datos personales, y al respecto le informamos lo siguiente:</p>
@@ -235,10 +238,11 @@
         <p style="font-size: 11px;">
             Sí consiento que mis datos personales se utilicen para los siguientes fines:
             <br>
-            <b>[*]Obtener muestras biológicas en los casos que sean necesarios para evaluar las aptitudes médicas o para algún tamizaje
-                de diagnóstico.</b><br>
-            <b>[*]Conocer los datos de índole médico para evaluar el estado de salud para ingresar, cambiar de puesto, ascender, de
-                manera periódica o concluir su relación laboral.</b>
+            <!-- FT-SO-32 rev. 03: casillas vacias, las marca el titular a mano (antes salian marcadas [*]) -->
+            <b>[ ] Obtener muestras biológicas en los casos que sean necesarios para evaluar las aptitudes médicas o para algún tamizaje
+                de diagnóstico</b><br>
+            <b>[ ] Conocer los datos de índole médico para evaluar el estado de salud para ingresar, cambiar de puesto, ascender, de
+                manera periódica o concluir su relación laboral</b>
         </p>
         <p style="font-size: 11px;">
             La negativa para el uso de sus datos personales para estas finalidades no podrá ser un motivo para que le neguemos los servicios y
@@ -263,8 +267,9 @@
         <p style="font-size: 11px;">
             Con relación a las transferencias que requieren de su consentimiento, por favor indique a continuación si nos lo otorga:
         </p>
-        <b class="form-check-label" style="font-size: 11px;" for="exampleCheck1">[*]Sí otorgo mi consentimiento para las siguientes transferencias de mis datos personales: P&G, Unilever de México, Inditex
+        <b class="form-check-label" style="font-size: 11px;" for="exampleCheck1">[ ] Sí otorgo mi consentimiento para las siguientes transferencias de mis datos personales: P&G, Unilever de México, Inditex
             y Otros clientes.</b>
+        <p style="font-size: 11px; margin-top: 10px;">Nombre y firma del titular: ________________________________________</p>
         <p style="font-size: 11px;">
             ¿Cómo puede acceder, rectificar o cancelar sus datos personales, u oponerse a su uso?
         </p>
@@ -294,25 +299,27 @@
                     <thead>
                     </thead>
                     <tbody>
+                        <!-- Hoja 2 del AVISO DE PRIVACIDAD: lleva el encabezado del FT-SO-32. En el PHP
+                             tenia por error el del examen (FT-SO-04); corregido 15-oct-2026. -->
                         <tr>
                             <td colspan="2">
-                                <center>EXAMEN MEDICO LABORAL</center>
+                                <center>AVISO DE PRIVACIDAD</center>
                             </td>
                         </tr>
                         <tr class="">
-                            <td>F. Implementación: 18 de septiembre de 2024</td>
-                            <td>Revisión: 04</td>
+                            <td>F. Implementación: 14 de octubre de 2026</td>
+                            <td>Revisión: 03</td>
 
 
                         </tr>
-                        <td>Clave de control: FT-SO-04</td>
-                        <td>Reemplaza a: 03</td>
+                        <td>Clave de control: FT-SO-32</td>
+                        <td>Reemplaza a: 02</td>
                         <tr>
 
                         </tr>
                         <tr class="">
 
-                            <td>Motivo del cambio: Actualización de logo</td>
+                            <td>Motivo del cambio: Actualización por vigencia</td>
                             <td></td>
 
                         </tr>
@@ -345,7 +352,7 @@
 
         </p>
         <p style="font-size: 11px;">
-            b) ¿Qué información y/o documentación deberá contener la solicitud? Solicitud puntual
+            b) ¿Qué información y/o documentación deberá contener la solicitud? Solicitud puntual,
         </p>
         <p style="font-size: 11px;">
             c) ¿En cuántos días le daremos respuesta a su solicitud? 72 horas hábiles
@@ -365,12 +372,12 @@
         <p style="font-size: 11px;">El procedimiento a través del cual se llevarán a cabo las notificaciones sobre cambios o actualizaciones al presente aviso de privacidad
             es el siguiente:
         </p>
-        <p style="font-size: 11px;">Por medio de cartel en el consultorio médico Su consentimiento para el tratamiento de sus datos personal</p>
-        <b class="form-check-label" style="font-size: 11px;" for="exampleCheck2">[*]Sí consiento que mis datos personales sean tratados de conformidad con los términos y condiciones informados en el
-	    presente aviso de privacidad.</b>
+        <p style="font-size: 11px;">Por medio de cartel en el consultorio médico Su consentimiento para el tratamiento de sus datos personales.</p>
+        <b class="form-check-label" style="font-size: 11px;" for="exampleCheck2">Sí consiento que mis datos personales sean tratados de conformidad con los términos y condiciones informados en el
+	    presente aviso de privacidad. [ ]</b>
 <br/><br/>
         <center>
-            <h6>Nombre y firma</h6>
+            <h6>Nombre y firma del titular</h6>
             <img th:if="${d.firmaTrabajador != null}" th:src="${d.firmaTrabajador}" class="img-fluid" width="50px" alt=""><br>
             <p  style="font-size: 12px;font-weight:bold" >[[${d.v('apellidoP')}]] [[${d.v('apellidoM')}]] [[${d.v('nombre')}]]</p>
         </center>
@@ -390,23 +397,23 @@
                 <tbody>
                     <tr>
                         <td colspan="2">
-                            <center>EXAMEN MEDICO LABORAL</center>
+                            <center>[[${d.v('ENC_TITULO')}]]</center>
                         </td>
                     </tr>
                     <tr class="">
-                        <td>F. Implementación: 18 de septiembre de 2024</td>
-                        <td>Revisión: 04</td>
+                        <td>F. Implementación: [[${d.v('ENC_IMPLEMENTACION')}]]</td>
+                        <td>Revisión: [[${d.v('ENC_REVISION')}]]</td>
 
 
                     </tr>
-                    <td>Clave de control: FT-SO-04</td>
-                    <td>Reemplaza a: 03</td>
+                    <td>Clave de control: [[${d.v('ENC_CLAVE')}]]</td>
+                    <td>Reemplaza a: [[${d.v('ENC_REEMPLAZA')}]]</td>
                     <tr>
 
                     </tr>
                     <tr class="">
 
-                        <td>Motivo del cambio: Actualización de logo</td>
+                        <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
                         <td>Hoja 1 de 5</td>
 
                     </tr>
@@ -422,88 +429,83 @@
 
     <div class="col-12">
         <h6>Información Personal</h6>
+        <!-- Orden de la ficha de identificacion del FT-SO-17 (15-oct-2026); agencia, cuenta y RFC
+             al final porque el formato no los pide pero sirven para identificar. Sin el renglon
+             "Completo" que venia del PHP. -->
         <div class="row">
             <div class="col-6">
                 <table class="table table-bordered table-sm">
                     <tr>
-                        <th></th>
-                        <th></th>
+                        <td>Fecha de realización del examen</td>
+                        <td>[[${d.v('FECHA_EXAMEN')}]]</td>
                     </tr>
                     <tr>
                         <td>Nombre</td>
-                        <td>[[${d.v('nombre')}]]</td>
+                        <td>[[${d.v('nombre')}]] [[${d.v('apellidoP')}]] [[${d.v('apellidoM')}]]</td>
                     </tr>
                     <tr>
-                        <td>Apellido Paterno</td>
-                        <td>[[${d.v('apellidoP')}]]</td>
-                    </tr>
-                    <tr>
-                        <td>Apellido Materno</td>
-                        <td>[[${d.v('apellidoM')}]]</td>
-                    </tr>
-                    <tr>
-                        <td>RFC</td>
-                        <td>[[${d.v('RFC')}]]</td>
-                    </tr>
-                    <tr>
-                        <td>NSS</td>
-                        <td>[[${d.v('NSS')}]]</td>
+                        <td>Edad</td>
+                        <td>[[${d.v('edad')}]]</td>
                     </tr>
                     <tr>
                         <td>Sexo</td>
                         <td>[[${d.v('sexo')}]]</td>
                     </tr>
                     <tr>
-                        <td>Cuenta</td>
-                        <td>[[${d.v('cuenta')}]]</td>
+                        <td>Núm. IMSS</td>
+                        <td>[[${d.v('NSS')}]]</td>
                     </tr>
                     <tr>
-                        <td>Empresa</td>
-                        <td>[[${d.v('empresa')}]]</td>
+                        <td>Fecha de nacimiento</td>
+                        <td>[[${d.v('fechaNacimiento')}]]</td>
                     </tr>
                     <tr>
-                        <td>Puesto</td>
-                        <td>[[${d.v('puesto')}]]</td>
+                        <td>Estado civil</td>
+                        <td>[[${d.v('edoCivil')}]]</td>
                     </tr>
-
+                    <tr>
+                        <td>Escolaridad</td>
+                        <td>[[${d.v('ESCOLARIDAD')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>Profesión u oficio</td>
+                        <td>[[${d.v('PROFESION')}]]</td>
+                    </tr>
                 </table>
             </div>
             <div class="col-6">
                 <table class="table table-bordered table-sm">
                     <tr>
-                        <th></th>
-                        <th></th>
-                    <tr>
-                        <td>Edad</td>
-                        <td>[[${d.v('edad')}]]</td>
-                    </tr>
-                    <tr>
-                        <td>Fecha de Nacimiento</td>
-                        <td>[[${d.v('fechaNacimiento')}]]</td>
-                    </tr>
-                    <tr>
-                        <td>Estado Civil</td>
-                        <td>[[${d.v('edoCivil')}]]</td>
-                    </tr>
-                    <tr>
-                        <td>Dirección</td>
+                        <td>Domicilio</td>
                         <td>[[${d.v('direccion')}]]</td>
                     </tr>
                     <tr>
-                        <td>Teléfono Celular</td>
-                        <td>[[${d.v('telefono')}]]</td>
+                        <td>Teléfono</td>
+                        <td>[[${d.v('telefono')}]] [[${d.v('telefonoF')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>Departamento</td>
+                        <td>[[${d.v('DEPARTAMENTO')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>Puesto</td>
+                        <td>[[${d.v('puesto')}]]</td>
                     </tr>
                     <tr>
                         <td>Turno</td>
                         <td>[[${d.v('turno')}]]</td>
                     </tr>
                     <tr>
-                        <td>Teléfono Fijo</td>
-                        <td>[[${d.v('telefonoF')}]]</td>
+                        <td>Agencia</td>
+                        <td>[[${d.v('AGENCIA')}]]</td>
                     </tr>
                     <tr>
-                        <td>Completo</td>
-                        <td>[[${d.v('check')}]]</td>
+                        <td>Cuenta</td>
+                        <td>[[${d.v('cuenta')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>RFC</td>
+                        <td>[[${d.v('RFC')}]]</td>
                     </tr>
                 </table>
             </div>
@@ -649,23 +651,23 @@
                     <tbody>
                         <tr>
                             <td colspan="2">
-                                <center>EXAMEN MEDICO LABORAL</center>
+                                <center>[[${d.v('ENC_TITULO')}]]</center>
                             </td>
                         </tr>
                         <tr class="">
-                            <td>F. Implementación: 18 de septiembre de 2024</td>
-                            <td>Revisión: 04</td>
+                            <td>F. Implementación: [[${d.v('ENC_IMPLEMENTACION')}]]</td>
+                            <td>Revisión: [[${d.v('ENC_REVISION')}]]</td>
 
 
                         </tr>
-                        <td>Clave de control: FT-SO-04</td>
-                        <td>Reemplaza a: 03</td>
+                        <td>Clave de control: [[${d.v('ENC_CLAVE')}]]</td>
+                        <td>Reemplaza a: [[${d.v('ENC_REEMPLAZA')}]]</td>
                         <tr>
 
                         </tr>
                         <tr class="">
 
-                            <td>Motivo del cambio: Actualización de logo</td>
+                            <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
                             <td>Hoja 1 de 5</td>
 
                         </tr>
@@ -920,23 +922,23 @@
                         <tbody>
                             <tr>
                                 <td colspan="2">
-                                    <center>EXAMEN MEDICO LABORAL</center>
+                                    <center>[[${d.v('ENC_TITULO')}]]</center>
                                 </td>
                             </tr>
                             <tr class="">
-                                <td>F. Implementación: 18 de septiembre de 2024</td>
-                                <td>Revisión: 04</td>
+                                <td>F. Implementación: [[${d.v('ENC_IMPLEMENTACION')}]]</td>
+                                <td>Revisión: [[${d.v('ENC_REVISION')}]]</td>
 
 
                             </tr>
-                            <td>Clave de control: FT-SO-04</td>
-                            <td>Reemplaza a: 03</td>
+                            <td>Clave de control: [[${d.v('ENC_CLAVE')}]]</td>
+                            <td>Reemplaza a: [[${d.v('ENC_REEMPLAZA')}]]</td>
                             <tr>
 
                             </tr>
                             <tr class="">
 
-                                <td>Motivo del cambio: Actualización de logo</td>
+                                <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
                                 <td>Hoja 2 de 5</td>
 
                             </tr>
@@ -1172,23 +1174,23 @@
                         <tbody>
                             <tr>
                                 <td colspan="2">
-                                    <center>EXAMEN MEDICO LABORAL</center>
+                                    <center>[[${d.v('ENC_TITULO')}]]</center>
                                 </td>
                             </tr>
                             <tr class="">
-                                <td>F. Implementación: 18 de septiembre de 2024</td>
-                                <td>Revisión: 04</td>
+                                <td>F. Implementación: [[${d.v('ENC_IMPLEMENTACION')}]]</td>
+                                <td>Revisión: [[${d.v('ENC_REVISION')}]]</td>
 
 
                             </tr>
-                            <td>Clave de control: FT-SO-04</td>
-                            <td>Reemplaza a: 03</td>
+                            <td>Clave de control: [[${d.v('ENC_CLAVE')}]]</td>
+                            <td>Reemplaza a: [[${d.v('ENC_REEMPLAZA')}]]</td>
                             <tr>
 
                             </tr>
                             <tr class="">
 
-                                <td>Motivo del cambio: Actualización de logo</td>
+                                <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
                                 <td>Hoja 2 de 5</td>
 
                             </tr>
@@ -1402,23 +1404,23 @@
                         <tbody>
                             <tr>
                                 <td colspan="2">
-                                    <center>EXAMEN MEDICO LABORAL</center>
+                                    <center>[[${d.v('ENC_TITULO')}]]</center>
                                 </td>
                             </tr>
                             <tr class="">
-                                <td>F. Implementación: 18 de septiembre de 2024</td>
-                                <td>Revisión: 04</td>
+                                <td>F. Implementación: [[${d.v('ENC_IMPLEMENTACION')}]]</td>
+                                <td>Revisión: [[${d.v('ENC_REVISION')}]]</td>
 
 
                             </tr>
-                            <td>Clave de control: FT-SO-04</td>
-                            <td>Reemplaza a: 03</td>
+                            <td>Clave de control: [[${d.v('ENC_CLAVE')}]]</td>
+                            <td>Reemplaza a: [[${d.v('ENC_REEMPLAZA')}]]</td>
                             <tr>
 
                             </tr>
                             <tr class="">
 
-                                <td>Motivo del cambio: Actualización de logo</td>
+                                <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
                                 <td>Hoja 3 de 5</td>
 
                             </tr>
@@ -1677,23 +1679,23 @@
                         <tbody>
                             <tr>
                                 <td colspan="2">
-                                    <center>EXAMEN MEDICO LABORAL</center>
+                                    <center>[[${d.v('ENC_TITULO')}]]</center>
                                 </td>
                             </tr>
                             <tr class="">
-                                <td>F. Implementación: 18 de septiembre de 2024</td>
-                                <td>Revisión: 04</td>
+                                <td>F. Implementación: [[${d.v('ENC_IMPLEMENTACION')}]]</td>
+                                <td>Revisión: [[${d.v('ENC_REVISION')}]]</td>
 
 
                             </tr>
-                            <td>Clave de control: FT-SO-04</td>
-                            <td>Reemplaza a: 03</td>
+                            <td>Clave de control: [[${d.v('ENC_CLAVE')}]]</td>
+                            <td>Reemplaza a: [[${d.v('ENC_REEMPLAZA')}]]</td>
                             <tr>
 
                             </tr>
                             <tr class="">
 
-                                <td>Motivo del cambio: Actualización de logo</td>
+                                <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
                                 <td>Hoja 3 de 5</td>
 
                             </tr>
@@ -1860,19 +1862,19 @@
                     <th class="table-primary">Valor</th>
                 </tr>
                 <tr>
-                    <td>OD (Ojo Derecho)</td>
+                    <td>OD sin lentes (SL)</td>
                     <td>[[${d.v('OD')}]]</td>
                 </tr>
                 <tr>
-                    <td>Lente (Ojo Derecho)</td>
+                    <td>OD con lentes (CL)</td>
                     <td>[[${d.v('LENTEOJODERECHOEXP')}]]</td>
                 </tr>
                 <tr>
-                    <td>OIZ (Ojo Izquierdo)</td>
+                    <td>OIZ sin lentes (SL)</td>
                     <td>[[${d.v('OIZ')}]]</td>
                 </tr>
                 <tr>
-                    <td>Lente (Ojo Izquierdo)</td>
+                    <td>OIZ con lentes (CL)</td>
                     <td>[[${d.v('LENTEOJOIZQUIERDOEXP')}]]</td>
                 </tr>
                 <tr>
@@ -1907,23 +1909,23 @@
                             <tbody>
                                 <tr>
                                     <td colspan="2">
-                                        <center>EXAMEN MEDICO LABORAL</center>
+                                        <center>[[${d.v('ENC_TITULO')}]]</center>
                                     </td>
                                 </tr>
                                 <tr class="">
-                                    <td>F. Implementación: 18 de septiembre de 2024</td>
-                                    <td>Revisión: 04</td>
+                                    <td>F. Implementación: [[${d.v('ENC_IMPLEMENTACION')}]]</td>
+                                    <td>Revisión: [[${d.v('ENC_REVISION')}]]</td>
 
 
                                 </tr>
-                                <td>Clave de control: FT-SO-04</td>
-                                <td>Reemplaza a: 03</td>
+                                <td>Clave de control: [[${d.v('ENC_CLAVE')}]]</td>
+                                <td>Reemplaza a: [[${d.v('ENC_REEMPLAZA')}]]</td>
                                 <tr>
 
                                 </tr>
                                 <tr class="">
 
-                                    <td>Motivo del cambio: Actualización de logo</td>
+                                    <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
                                     <td>Hoja 4 de 5</td>
 
                                 </tr>
@@ -2095,23 +2097,23 @@
                             <tbody>
                                 <tr>
                                     <td colspan="2">
-                                        <center>EXAMEN MEDICO LABORAL</center>
+                                        <center>[[${d.v('ENC_TITULO')}]]</center>
                                     </td>
                                 </tr>
                                 <tr class="">
-                                    <td>F. Implementación: 18 de septiembre de 2024</td>
-                                    <td>Revisión: 04</td>
+                                    <td>F. Implementación: [[${d.v('ENC_IMPLEMENTACION')}]]</td>
+                                    <td>Revisión: [[${d.v('ENC_REVISION')}]]</td>
 
 
                                 </tr>
-                                <td>Clave de control: FT-SO-04</td>
-                                <td>Reemplaza a: 03</td>
+                                <td>Clave de control: [[${d.v('ENC_CLAVE')}]]</td>
+                                <td>Reemplaza a: [[${d.v('ENC_REEMPLAZA')}]]</td>
                                 <tr>
 
                                 </tr>
                                 <tr class="">
 
-                                    <td>Motivo del cambio: Actualización de logo</td>
+                                    <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
                                     <td>Hoja 4 de 5</td>
 
                                 </tr>
@@ -2241,23 +2243,23 @@
                         <tbody>
                             <tr>
                                 <td colspan="2">
-                                    <center>EXAMEN MEDICO LABORAL</center>
+                                    <center>[[${d.v('ENC_TITULO')}]]</center>
                                 </td>
                             </tr>
                             <tr class="">
-                                <td>F. Implementación: 18 de septiembre de 2024</td>
-                                <td>Revisión: 04</td>
+                                <td>F. Implementación: [[${d.v('ENC_IMPLEMENTACION')}]]</td>
+                                <td>Revisión: [[${d.v('ENC_REVISION')}]]</td>
 
 
                             </tr>
-                            <td>Clave de control: FT-SO-04</td>
-                            <td>Reemplaza a: 03</td>
+                            <td>Clave de control: [[${d.v('ENC_CLAVE')}]]</td>
+                            <td>Reemplaza a: [[${d.v('ENC_REEMPLAZA')}]]</td>
                             <tr>
 
                             </tr>
                             <tr class="">
 
-                                <td>Motivo del cambio: Actualización de logo</td>
+                                <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
                                 <td>Hoja 5 de 5</td>
 
                             </tr>

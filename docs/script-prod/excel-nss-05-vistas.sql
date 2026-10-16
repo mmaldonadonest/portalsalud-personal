@@ -209,7 +209,11 @@ SELECT CAST('PORTAL' AS VARCHAR2(12))                              FUENTE,
   LEFT JOIN SERV_MED_V_EMPLEADO emp ON emp.NSS = i.NSS
 UNION ALL
 SELECT 'EXCEL', TO_CHAR(x.ID), x.NSS, x.FECHA, x.PREDIO, x.CUENTA, x.AREA, x.NOMBRE, x.GENERO, x.EDAD,
-       x.PUESTO, x.FOLIO, x.RUBRO, x.RAMO, x.TIPO, x.FECHA_TERMINO, x.DIAS, x.SDI, x.COSTO_TOTAL,
+       x.PUESTO, x.FOLIO, x.RUBRO,
+       -- Interna sin ramo (14-oct-2026, excel-nss-14): el ramo es del IMSS y una interna no lo tiene;
+       -- se muestra como INTERNA para que en las graficas por ramo no caiga en "Sin dato"
+       NVL(x.RAMO, CASE WHEN x.RUBRO = 'INTERNA' THEN 'INTERNA' END),
+       x.TIPO, x.FECHA_TERMINO, x.DIAS, x.SDI, x.COSTO_TOTAL,
        NULL, x.DIAGNOSTICO
   FROM SERV_MED_XLS_INCAPACIDAD x
  WHERE x.ESTADO_REGISTRO = 'VALIDO'
@@ -253,20 +257,24 @@ SELECT CAST('PORTAL' AS VARCHAR2(12))                              FUENTE,
                  AND UPPER(TRIM(h.APTO_CONDICIONADO)) NOT IN ('0','N','NO','FALSE') THEN 'APTO_CONDICIONADO'
             WHEN TRIM(h.APTO) IS NOT NULL
                  AND UPPER(TRIM(h.APTO)) NOT IN ('0','N','NO','FALSE') THEN 'APTO' END DICTAMEN,
-       CAST(NULL AS VARCHAR2(1000))                                DIAGNOSTICO
+       CAST(NULL AS VARCHAR2(1000))                                DIAGNOSTICO,
+       -- RANGO_EDAD (14-oct-2026, excel-nss-13): al final para no mover las posiciones del UNION
+       CAST(CASE WHEN TRUNC(MONTHS_BETWEEN(TRUNC(h.FECHA_REGISTRO), emp.FECHA_NAC) / 12) IS NULL OR TRUNC(MONTHS_BETWEEN(TRUNC(h.FECHA_REGISTRO), emp.FECHA_NAC) / 12) <= 0 THEN NULL WHEN TRUNC(MONTHS_BETWEEN(TRUNC(h.FECHA_REGISTRO), emp.FECHA_NAC) / 12) <= 25 THEN '18-25' WHEN TRUNC(MONTHS_BETWEEN(TRUNC(h.FECHA_REGISTRO), emp.FECHA_NAC) / 12) <= 35 THEN '26-35' WHEN TRUNC(MONTHS_BETWEEN(TRUNC(h.FECHA_REGISTRO), emp.FECHA_NAC) / 12) <= 45 THEN '36-45' WHEN TRUNC(MONTHS_BETWEEN(TRUNC(h.FECHA_REGISTRO), emp.FECHA_NAC) / 12) <= 55 THEN '46-55' ELSE '55+' END AS VARCHAR2(10)) RANGO_EDAD
   FROM SERV_MED_RESULTADO_EXAMEN_HIST h
   LEFT JOIN SERV_MED_V_EMPLEADO emp ON emp.NSS = h.NSS
 UNION ALL
 SELECT 'EXCEL', TO_CHAR(x.ID), x.NSS, x.FECHA, x.PREDIO, x.CUENTA, x.AREA,
        TRIM(REGEXP_REPLACE(x.NOMBRE || ' ' || x.APELLIDO_PATERNO || ' ' || x.APELLIDO_MATERNO, ' +', ' ')),
-       x.GENERO, x.EDAD, x.PUESTO_SOLICITADO, 'NUEVO_INGRESO', x.TIPO_EXAMEN, x.DICTAMEN, x.DIAGNOSTICO
+       x.GENERO, x.EDAD, x.PUESTO_SOLICITADO, 'NUEVO_INGRESO', x.TIPO_EXAMEN, x.DICTAMEN, x.DIAGNOSTICO,
+       NVL(x.RANGO_EDAD, CASE WHEN x.EDAD IS NULL OR x.EDAD <= 0 THEN NULL WHEN x.EDAD <= 25 THEN '18-25' WHEN x.EDAD <= 35 THEN '26-35' WHEN x.EDAD <= 45 THEN '36-45' WHEN x.EDAD <= 55 THEN '46-55' ELSE '55+' END)
   FROM SERV_MED_XLS_EXAMEN_ING x
  WHERE x.ESTADO_REGISTRO = 'VALIDO'
    AND NOT EXISTS (SELECT 1 FROM SERV_MED_RESULTADO_EXAMEN_HIST h
                     WHERE h.NSS = x.NSS AND TRUNC(h.FECHA_REGISTRO) BETWEEN x.FECHA - 1 AND x.FECHA + 1)
 UNION ALL
 SELECT 'EXCEL', TO_CHAR(x.ID), x.NSS, x.FECHA, x.PREDIO, x.CUENTA, x.AREA, x.NOMBRE, x.GENERO, x.EDAD,
-       x.PUESTO, 'PERIODICO', NULL, x.DICTAMEN, x.DIAGNOSTICO
+       x.PUESTO, 'PERIODICO', NULL, x.DICTAMEN, x.DIAGNOSTICO,
+       CASE WHEN x.EDAD IS NULL OR x.EDAD <= 0 THEN NULL WHEN x.EDAD <= 25 THEN '18-25' WHEN x.EDAD <= 35 THEN '26-35' WHEN x.EDAD <= 45 THEN '36-45' WHEN x.EDAD <= 55 THEN '46-55' ELSE '55+' END
   FROM SERV_MED_XLS_EXAMEN_PER x
  WHERE x.ESTADO_REGISTRO = 'VALIDO'
    AND NOT EXISTS (SELECT 1 FROM SERV_MED_RESULTADO_EXAMEN_HIST h
@@ -274,29 +282,14 @@ SELECT 'EXCEL', TO_CHAR(x.ID), x.NSS, x.FECHA, x.PREDIO, x.CUENTA, x.AREA, x.NOM
 UNION ALL
 -- v4: pos incapacidad del layout nuevo por NSS (SERV_MED_XLS_EXAMEN_POS, excel-nss-06)
 SELECT 'EXCEL', TO_CHAR(x.ID), x.NSS, x.FECHA, x.PREDIO, x.CUENTA, x.AREA, x.NOMBRE, x.GENERO, x.EDAD,
-       x.PUESTO, 'POS_INCAPACIDAD', NULL, x.DICTAMEN, x.DIAGNOSTICO
+       x.PUESTO, 'POS_INCAPACIDAD', NULL, x.DICTAMEN, x.DIAGNOSTICO,
+       CASE WHEN x.EDAD IS NULL OR x.EDAD <= 0 THEN NULL WHEN x.EDAD <= 25 THEN '18-25' WHEN x.EDAD <= 35 THEN '26-35' WHEN x.EDAD <= 45 THEN '36-45' WHEN x.EDAD <= 55 THEN '46-55' ELSE '55+' END
   FROM SERV_MED_XLS_EXAMEN_POS x
  WHERE x.ESTADO_REGISTRO = 'VALIDO'
    AND NOT EXISTS (SELECT 1 FROM SERV_MED_RESULTADO_EXAMEN_HIST h
-                    WHERE h.NSS = x.NSS AND TRUNC(h.FECHA_REGISTRO) BETWEEN x.FECHA - 1 AND x.FECHA + 1)
-UNION ALL
--- Carga vieja: el dictamen viene como texto del Excel ("APTO (15)", "NO APTO", ...). El orden de
--- los WHEN importa: "NO APTO" y "APTO CONDICIONADO" tambien contienen "APTO".
--- v4: solo MIENTRAS el layout nuevo de pos incapacidad este vacio. En cuanto se carga el primer
--- renglon valido, la carga vieja deja de leerse sola (si no, se contaria dos veces).
-SELECT 'CARGA_VIEJA', TO_CHAR(ev.ID), NULL, ev.FECHA, ev.PREDIO, ev.CUENTA, ev.AREA,
-       ev.NOMBRE, ev.GENERO, NULL, ev.PUESTO, 'POS_INCAPACIDAD', NULL,
-       CASE WHEN UPPER(at.VALOR) LIKE '%NO APTO%'   OR at.VALOR LIKE '%(30)%' THEN 'NO_APTO'
-            WHEN UPPER(at.VALOR) LIKE '%RESTRING%'  OR at.VALOR LIKE '%(60)%' THEN 'APTO_RESTRINGIDO'
-            WHEN UPPER(at.VALOR) LIKE '%CONDICION%' OR at.VALOR LIKE '%(45)%' THEN 'APTO_CONDICIONADO'
-            WHEN UPPER(at.VALOR) LIKE '%APTO%'      OR at.VALOR LIKE '%(15)%' THEN 'APTO' END,
-       NULL
-  FROM SERV_MED_BITACORA_EVENTO ev
-  LEFT JOIN SERV_MED_BITACORA_ATRIBUTO at ON at.EVENTO_ID = ev.ID AND at.NOMBRE = 'DICTAMEN'
- WHERE ev.FAMILIA = 'EXAMEN_POS_INCAP'
-   AND NOT EXISTS (SELECT 1 FROM SERV_MED_XLS_EXAMEN_POS n WHERE n.ESTADO_REGISTRO = 'VALIDO');
+                    WHERE h.NSS = x.NSS AND TRUNC(h.FECHA_REGISTRO) BETWEEN x.FECHA - 1 AND x.FECHA + 1);
 
-COMMENT ON TABLE SERV_MED_V_EXAMEN IS 'Examenes: portal (SERV_MED_RESULTADO_EXAMEN_HIST) + nuevo ingreso y periodico del Excel por NSS + pos incapacidad de la carga vieja.';
+COMMENT ON TABLE SERV_MED_V_EXAMEN IS 'Examenes: portal (SERV_MED_RESULTADO_EXAMEN_HIST) + nuevo ingreso, periodico y pos incapacidad del Excel por NSS. Sin carga vieja (14-oct-2026).';
 
 -- ======================================================================
 -- 5 de 5: SERV_MED_V_ACCIDENTE -- accidentes del portal + del Excel
@@ -389,24 +382,9 @@ SELECT 'EXCEL', TO_CHAR(x.ID), x.NSS, x.FECHA, x.PREDIO, x.CUENTA, x.AREA, x.NOM
  WHERE x.ESTADO_REGISTRO = 'VALIDO'
    AND NOT EXISTS (SELECT 1 FROM SERV_MED_ANTIDOPING_RESULTADO p
                     WHERE p.NSS = x.NSS AND TRUNC(p.FECHA_REGISTRO) = x.FECHA
-                      AND UPPER(TRIM(p.TIPO_PRUEBA)) = x.TIPO_PRUEBA)
-UNION ALL
--- Carga vieja: atributos EAV. Un positivo podia traer mas de una sustancia: aqui sale una (la
--- primera); la pantalla vieja contaba hallazgos, esta cuenta pruebas.
-SELECT 'CARGA_VIEJA', TO_CHAR(ev.ID), NULL, ev.FECHA, ev.PREDIO, ev.CUENTA, ev.AREA, ev.NOMBRE, ev.GENERO, NULL,
-       ev.PUESTO,
-       (SELECT MAX(a.VALOR) FROM SERV_MED_BITACORA_ATRIBUTO a WHERE a.EVENTO_ID = ev.ID AND a.NOMBRE = 'TIPO_PRUEBA'),
-       (SELECT MAX(a.VALOR) FROM SERV_MED_BITACORA_ATRIBUTO a WHERE a.EVENTO_ID = ev.ID AND a.NOMBRE = 'RESULTADO'),
-       (SELECT MIN(a.VALOR) FROM SERV_MED_BITACORA_ATRIBUTO a WHERE a.EVENTO_ID = ev.ID AND a.NOMBRE = 'SUSTANCIA'),
-       (SELECT MAX(a.VALOR_NUM) FROM SERV_MED_BITACORA_ATRIBUTO a WHERE a.EVENTO_ID = ev.ID AND a.NOMBRE = 'ALCOHOLEMIA'),
-       (SELECT MAX(a.VALOR) FROM SERV_MED_BITACORA_ATRIBUTO a WHERE a.EVENTO_ID = ev.ID AND a.NOMBRE = 'CONCLUSION'),
-       ev.ESTATUS,
-       NULL
-  FROM SERV_MED_BITACORA_EVENTO ev
- WHERE ev.FAMILIA = 'ANTIDOPING'
-   AND NOT EXISTS (SELECT 1 FROM SERV_MED_XLS_ANTIDOPING n WHERE n.ESTADO_REGISTRO = 'VALIDO');
+                      AND UPPER(TRIM(p.TIPO_PRUEBA)) = x.TIPO_PRUEBA);
 
-COMMENT ON TABLE SERV_MED_V_ANTIDOPING IS 'Antidoping: portal (SERV_MED_ANTIDOPING_RESULTADO) + Excel por NSS (SERV_MED_XLS_ANTIDOPING) + carga vieja mientras el Excel nuevo este vacio.';
+COMMENT ON TABLE SERV_MED_V_ANTIDOPING IS 'Antidoping: portal (SERV_MED_ANTIDOPING_RESULTADO) + Excel por NSS (SERV_MED_XLS_ANTIDOPING). Sin carga vieja (14-oct-2026).';
 
 -- ======================================================================
 -- v4: SERV_MED_V_MATERNIDAD -- seguimiento CON HISTORIAL: chequeos del portal + reportes mensuales
@@ -453,28 +431,9 @@ SELECT 'EXCEL', TO_CHAR(x.ID), x.NSS, x.FECHA, x.PREDIO, x.CUENTA, x.AREA, x.NOM
   FROM SERV_MED_XLS_MATERNIDAD x
  WHERE x.ESTADO_REGISTRO = 'VALIDO'
    AND NOT EXISTS (SELECT 1 FROM SERV_MED_MATERNIDAD_SEGUIMIENTO p
-                    WHERE p.NSS = x.NSS AND TRUNC(p.FECHA_REGISTRO, 'MM') = TRUNC(x.FECHA, 'MM'))
-UNION ALL
--- Carga vieja: atributos EAV, sin NSS. La fecha probable de parto es texto ISO (era formula).
-SELECT 'CARGA_VIEJA', TO_CHAR(ev.ID), NULL, ev.FECHA, ev.PREDIO, ev.CUENTA, ev.AREA, ev.NOMBRE, ev.GENERO, NULL,
-       ev.PUESTO,
-       'NOMBRE|' || ev.NOMBRE_NORM,
-       ev.ESTATUS,
-       NULL,
-       (SELECT MAX(a.VALOR_NUM) FROM SERV_MED_BITACORA_ATRIBUTO a
-         WHERE a.EVENTO_ID = ev.ID AND a.NOMBRE = 'EDAD_GESTACIONAL.SEMANA' AND a.VALOR_NUM BETWEEN 1 AND 45),
-       (SELECT MAX(CASE WHEN REGEXP_LIKE(a.VALOR, '^[0-9]{4}-[0-9]{2}-[0-9]{2}')
-                        THEN TO_DATE(SUBSTR(a.VALOR, 1, 10), 'YYYY-MM-DD') END)
-          FROM SERV_MED_BITACORA_ATRIBUTO a WHERE a.EVENTO_ID = ev.ID AND a.NOMBRE = 'FECHA_PROBABLE_PARTO'),
-       (SELECT MAX(COALESCE(a.VALOR_FECHA, CASE WHEN REGEXP_LIKE(a.VALOR, '^[0-9]{4}-[0-9]{2}-[0-9]{2}')
-                                                THEN TO_DATE(SUBSTR(a.VALOR, 1, 10), 'YYYY-MM-DD') END))
-          FROM SERV_MED_BITACORA_ATRIBUTO a WHERE a.EVENTO_ID = ev.ID AND a.NOMBRE = 'REINICIO_REAL'),
-       NULL, NULL, NULL, NULL, NULL, NULL
-  FROM SERV_MED_BITACORA_EVENTO ev
- WHERE ev.FAMILIA = 'MATERNIDAD'
-   AND NOT EXISTS (SELECT 1 FROM SERV_MED_XLS_MATERNIDAD n WHERE n.ESTADO_REGISTRO = 'VALIDO');
+                    WHERE p.NSS = x.NSS AND TRUNC(p.FECHA_REGISTRO, 'MM') = TRUNC(x.FECHA, 'MM'));
 
-COMMENT ON TABLE SERV_MED_V_MATERNIDAD IS 'Maternidad con historial: chequeos del portal + reportes mensuales del Excel (SERV_MED_XLS_MATERNIDAD) + carga vieja mientras el Excel nuevo este vacio. Embarazo = CLAVE_EMBARAZO.';
+COMMENT ON TABLE SERV_MED_V_MATERNIDAD IS 'Maternidad con historial: chequeos del portal + reportes mensuales del Excel (SERV_MED_XLS_MATERNIDAD). Sin carga vieja (14-oct-2026). Embarazo = CLAVE_EMBARAZO.';
 
 -- ======================================================================
 -- v4: SERV_MED_V_MATERNIDAD_ACTUAL -- estado actual de cada embarazo = su renglon mas reciente

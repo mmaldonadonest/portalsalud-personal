@@ -87,22 +87,30 @@
                     <span th:if="${result.solicitudOcr.estatus == 'CANCELADO'}" th:text="' (' + ${result.solicitudOcr.motivoCancel} + ')'"></span>
                 </div>
 
-                <div class="ficha-datos">
-                    <div class="dato"><div class="l">Cuenta</div><div class="v" th:text="${e.cuenta}">-</div></div>
-                    <div class="dato"><div class="l">Puesto</div><div class="v" th:text="${puestoTexto}">-</div></div>
-                    <div class="dato"><div class="l">Empresa</div><div class="v" th:text="${e.nombreEmpresa}">-</div></div>
-                    <div class="dato" th:unless="${#strings.isEmpty(e.email)}"><div class="l">Correo</div><div class="v" th:text="${e.email}">-</div></div>
-                    <div class="dato ancho" th:unless="${#strings.isEmpty(e.direccion)}"><div class="l">Dirección</div><div class="v" th:text="${e.direccion}">-</div></div>
+                <!-- Orden y campos del FT-SO-17 (15-oct-2026): nombre y NSS van en el encabezado
+                     azul; despues edad, sexo, nacimiento, edo. civil, escolaridad, profesion,
+                     domicilio, tel, departamento, puesto y turno. Todos se muestran aunque vengan
+                     vacios ("—"), para que se vea que falta el dato. Al final, lo que no pide el
+                     formato pero sirve para identificar: agencia, cuenta, RFC, correo. -->
+                <div class="ficha-datos compacta"
+                     th:with="tel=${#strings.trim((e.celular ?: '') + (!#strings.isEmpty(e.celular) and !#strings.isEmpty(e.telFijo) ? ' · ' : '') + (e.telFijo ?: ''))}">
+                    <div class="dato"><div class="l">Edad</div><div class="v" th:text="${e.edad != null ? e.edad + ' años' : '—'}">-</div></div>
+                    <div class="dato"><div class="l">Sexo</div><div class="v" th:text="${#strings.isEmpty(sexoTexto)} ? '—' : ${sexoTexto}">-</div></div>
+                    <div class="dato"><div class="l">Fecha de nacimiento</div><div class="v" th:text="${#strings.isEmpty(e.fechaNacimiento)} ? '—' : ${e.fechaNacimiento}">-</div></div>
+                    <div class="dato"><div class="l">Estado civil</div><div class="v" th:text="${#strings.isEmpty(e.estadoCivil)} ? '—' : ${e.estadoCivil}">-</div></div>
+                    <div class="dato"><div class="l">Escolaridad</div><div class="v" th:text="${#strings.isEmpty(escolaridad)} ? '—' : ${escolaridad}">-</div></div>
+                    <div class="dato"><div class="l">Profesión u oficio</div><div class="v" th:text="${#strings.isEmpty(profesion)} ? '—' : ${profesion}">-</div></div>
+                    <div class="dato"><div class="l">Teléfono</div><div class="v" th:text="${#strings.isEmpty(tel)} ? '—' : ${tel}">-</div></div>
+                    <div class="dato"><div class="l">Departamento</div><div class="v" th:text="${#strings.isEmpty(departamento)} ? '—' : ${departamento}">-</div></div>
+                    <div class="dato"><div class="l">Puesto</div><div class="v" th:text="${#strings.isEmpty(puestoTexto)} ? '—' : ${puestoTexto}">-</div></div>
+                    <div class="dato"><div class="l">Turno</div><div class="v" th:text="${#strings.isEmpty(e.turno)} ? '—' : ${e.turno}">-</div></div>
                 </div>
-                <div class="ficha-datos compacta">
-                    <div class="dato"><div class="l">Nacimiento</div><div class="v" th:text="${e.fechaNacimiento}">-</div></div>
-                    <div class="dato"><div class="l">Edad</div><div class="v" th:text="${e.edad != null ? e.edad + ' años' : ''}">-</div></div>
-                    <div class="dato"><div class="l">Sexo</div><div class="v" th:text="${sexoTexto}">-</div></div>
-                    <div class="dato" th:unless="${#strings.isEmpty(e.estadoCivil)}"><div class="l">Estado civil</div><div class="v" th:text="${e.estadoCivil}">-</div></div>
-                    <div class="dato"><div class="l">RFC</div><div class="v" th:text="${e.rfc}">-</div></div>
-                    <div class="dato" th:unless="${#strings.isEmpty(e.turno)}"><div class="l">Turno</div><div class="v" th:text="${e.turno}">-</div></div>
-                    <div class="dato" th:unless="${#strings.isEmpty(e.celular)}"><div class="l">Celular</div><div class="v" th:text="${e.celular}">-</div></div>
-                    <div class="dato" th:unless="${#strings.isEmpty(e.telFijo)}"><div class="l">Teléfono fijo</div><div class="v" th:text="${e.telFijo}">-</div></div>
+                <div class="ficha-datos">
+                    <div class="dato ancho"><div class="l">Domicilio</div><div class="v" th:text="${#strings.isEmpty(e.direccion)} ? '—' : ${e.direccion}">-</div></div>
+                    <div class="dato"><div class="l">Agencia</div><div class="v" th:text="${#strings.isEmpty(agencia)} ? 'No disponible' : ${agencia}">-</div></div>
+                    <div class="dato"><div class="l">Cuenta</div><div class="v" th:text="${#strings.isEmpty(e.cuenta)} ? '—' : ${e.cuenta}">-</div></div>
+                    <div class="dato"><div class="l">RFC</div><div class="v" th:text="${#strings.isEmpty(e.rfc)} ? '—' : ${e.rfc}">-</div></div>
+                    <div class="dato" th:unless="${#strings.isEmpty(e.email)}"><div class="l">Correo</div><div class="v" th:text="${e.email}">-</div></div>
                 </div>
 
                 <!-- NSS multipredio (docs/entregable-liberacion-stoppers-salud.html §4): mas de

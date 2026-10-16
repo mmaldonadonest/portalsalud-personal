@@ -81,7 +81,8 @@ public class DashboardController {
     @GetMapping("/fuentes")
     public Map<String, Object> fuentes(
             @RequestParam("fechaInicial") String fechaInicial,
-            @RequestParam("fechaFinal") String fechaFinal) {
+            @RequestParam("fechaFinal") String fechaFinal,
+            @RequestParam(name = "predio", required = false) String predio) {
         VistaFuentesRepository repo = vistaFuentes.getIfAvailable();
         if (repo == null) {
             return Map.of("disponible", false);
@@ -90,7 +91,7 @@ public class DashboardController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "fechaInicial invalida"));
         LocalDate hasta = FechaFiltro.aFecha(fechaFinal)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "fechaFinal invalida"));
-        return Map.of("disponible", true, "familias", repo.porFamiliaYFuente(desde, hasta));
+        return Map.of("disponible", true, "familias", repo.porFamiliaYFuente(desde, hasta, predio));
     }
 
     /** KPIs de incapacidades en un rango de fechas (ISO yyyy-MM-dd, igual que el reporte existente). */

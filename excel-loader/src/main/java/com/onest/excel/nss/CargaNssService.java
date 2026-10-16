@@ -145,10 +145,14 @@ public class CargaNssService {
             avisos.add(errores.size() + " error(es) en " + errores.stream().map(ValidadorNss.Error::fila)
                     .distinct().count() + " renglon(es): ver " + csv.getFileName());
         }
-        if (!avisosFila.isEmpty()) {
-            avisos.add(avisosFila.size() + " renglon(es) con costo negativo: no se rechazan, entran tal cual "
-                    + "y el predio debe revisarlos (TIPO = AVISO en " + csv.getFileName() + ")");
-        }
+        // Un aviso por motivo (costo negativo, interna sin area/ramo, positivo sin sustancia...): antes
+        // todos se anunciaban como "costo negativo", aunque fueran de antidoping (visto el 14-oct-2026)
+        avisosFila.stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                        a -> a.encabezado() + ": " + a.motivo().split(";")[0],
+                        java.util.LinkedHashMap::new, java.util.stream.Collectors.counting()))
+                .forEach((motivo, n) -> avisos.add(n + " aviso(s) " + motivo + " -> entran tal cual y el predio "
+                        + "debe revisarlos (TIPO = AVISO en " + csv.getFileName() + ")"));
 
         XlsNssRepository.Escritura escritura = null;
         boolean omitido = false;

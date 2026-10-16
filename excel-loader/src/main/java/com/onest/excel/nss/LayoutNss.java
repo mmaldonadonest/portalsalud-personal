@@ -4,6 +4,7 @@ import static com.onest.excel.nss.CampoNss.catalogo;
 import static com.onest.excel.nss.CampoNss.decimal;
 import static com.onest.excel.nss.CampoNss.decimalConSigno;
 import static com.onest.excel.nss.CampoNss.entero;
+import static com.onest.excel.nss.CampoNss.enteroNuevo;
 import static com.onest.excel.nss.CampoNss.fecha;
 import static com.onest.excel.nss.CampoNss.marca;
 import static com.onest.excel.nss.CampoNss.nss;
@@ -42,7 +43,9 @@ public enum LayoutNss {
             texto("APELLIDO_MATERNO", "APELLIDO_MATERNO", 120),
             texto("PUESTO SOLICITADO", "PUESTO_SOLICITADO", 160),
             catalogo("GENERO", "GENERO", "GENERO", false),
-            entero("EDAD", "EDAD"),
+            // Rango y no edad (14-oct-2026): los Excel del servicio medico solo marcan el rango;
+            // la edad exacta del candidato llega despues por OCR (fecha de nacimiento)
+            catalogo("RANGO DE EDAD", "RANGO_EDAD", "RANGO_EDAD", false),
             texto("CUENTA", "CUENTA", 160),
             catalogo("PREDIO", "PREDIO", "PREDIO", true),
             catalogo("AREA", "AREA", "AREA", true),
@@ -155,10 +158,15 @@ public enum LayoutNss {
             nss(),
             catalogo("PREDIO", "PREDIO", "PREDIO", true),
             catalogo("AREA", "AREA", "AREA", true),
-            // Renombrada a FECHA DE CORTE en la plantilla (12-oct); se acepta "FECHA" de versiones previas
-            fecha("FECHA DE CORTE", "FECHA", "FECHA", true),
+            // Es la fecha de corte / mes reportado. La plantilla la llamo FECHA (10-oct), FECHA DE CORTE
+            // (12-oct) y FECHA DE INGRESO (15-oct, mismo significado, decision del usuario): se aceptan las tres
+            fecha("FECHA DE INGRESO", "FECHA DE CORTE|FECHA", "FECHA", true),
             catalogo("STATUS LABORAL", "STATUS_LABORAL", "ESTATUS_LABORAL", true),
             fecha("FUM", "FUM", false),
+            // 15-oct-2026: columnas nuevas de la plantilla (se capturan, no se calculan de la FUM).
+            // Los archivos de antes no las traen y se siguen reconociendo (DDL excel-nss-16)
+            enteroNuevo("SEMANA GESTACION", "SEMANA_GESTACION"),
+            enteroNuevo("MES GESTACION", "MES_GESTACION"),
             fecha("FECHA PROBABLE DE PARTO", "FECHA_PROB_PARTO", false),
             fecha("FECHA PROBABLE DE INCAP PRENATAL", "FECHA_PROB_INCAP_PRENATAL", false),
             fecha("FECHA PROBABLE REINICIO DE LABORES", "FECHA_PROB_REINICIO", false),

@@ -19,9 +19,24 @@ import java.util.List;
  * @param alias             otro encabezado que se acepta para la misma columna (null si no hay).
  *                          Para plantillas que traen un error de dedo que despues se puede corregir:
  *                          el archivo se reconoce con cualquiera de las dos formas.
+ * @param puedeFaltar       columna agregada despues a la plantilla: si el archivo no la trae (una
+ *                          version anterior), el layout se reconoce igual y la columna entra vacia
  */
 public record CampoNss(String encabezado, String columna, Tipo tipo, int maximo, String catalogo,
-                       boolean obligatorio, boolean negativoConAviso, String alias) {
+                       boolean obligatorio, boolean negativoConAviso, String alias, boolean puedeFaltar) {
+
+    CampoNss(String encabezado, String columna, Tipo tipo, int maximo, String catalogo,
+             boolean obligatorio, boolean negativoConAviso, String alias) {
+        this(encabezado, columna, tipo, maximo, catalogo, obligatorio, negativoConAviso, alias, false);
+    }
+
+    /**
+     * Entero opcional que se agrego a la plantilla despues de que ya habia archivos capturados
+     * (15-oct-2026: SEMANA y MES GESTACION en maternidad). Los archivos viejos se siguen reconociendo.
+     */
+    static CampoNss enteroNuevo(String encabezado, String columna) {
+        return new CampoNss(encabezado, columna, Tipo.ENTERO, 0, null, false, false, null, true);
+    }
 
     /**
      * MARCA (13-oct-2026): casilla 1 / 0 / vacia, como las sustancias de antidoping (una columna por
@@ -34,9 +49,15 @@ public record CampoNss(String encabezado, String columna, Tipo tipo, int maximo,
         return new CampoNss(encabezado, null, Tipo.MARCA, 0, null, false, false, null);
     }
 
-    /** El encabezado oficial y, si hay, el alterno. */
+    /** El encabezado oficial y, si hay, los alternos ({@code alias} admite varios separados por "|"). */
     public List<String> encabezadosAceptados() {
-        return alias == null ? List.of(encabezado) : List.of(encabezado, alias);
+        if (alias == null) {
+            return List.of(encabezado);
+        }
+        List<String> todos = new java.util.ArrayList<>();
+        todos.add(encabezado);
+        todos.addAll(List.of(alias.split("\\|")));
+        return List.copyOf(todos);
     }
 
     static CampoNss nss() {

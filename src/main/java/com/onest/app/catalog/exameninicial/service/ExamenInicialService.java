@@ -6,6 +6,7 @@ import com.onest.app.catalog.examen.dto.ExamItem;
 import com.onest.app.catalog.examen.service.ContactoEmergenciaService;
 import com.onest.app.catalog.examen.service.DatosGeneralesExamenService;
 import com.onest.app.catalog.examen.repository.ExamenHistoricoRepository;
+import com.onest.app.catalog.examen.service.AyudasFormato;
 import com.onest.app.catalog.examen.service.ExamenService;
 import com.onest.app.catalog.exameninicial.repository.ExamenBorradorRepository;
 import com.onest.app.catalog.exameninicial.repository.ExamenBorradorRepository.Borrador;
@@ -27,7 +28,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 /**
- * Examen medico inicial (FT-SO-04 rev. 04): captura por hojas, en el orden del formato, con
+ * Examen medico inicial (FT-SO-04 rev. 05): captura por hojas, en el orden del formato, con
  * borrador que se guarda solo. Es una PANTALLA distinta sobre el MISMO almacen del modulo
  * Examen medico: al finalizar, los campos viajan al WS Servcio/Medico y a SERV_MED_TAG
  * exactamente igual que desde ese modulo (mismo catalogo de secciones, mismos servicios),
@@ -68,8 +69,49 @@ public class ExamenInicialService {
                         DatosGeneralesExamenDto datosGenerales, String firmaGuardada,
                         Borrador borrador, Finalizado ultimoFinalizado, int avance, int capturados, int total,
                         boolean tablaBorrador, Candado candado, boolean candidatoOcr,
-                        com.onest.app.integration.ocr.SolicitudExamen solicitud, boolean atendidoPorOtro) {
+                        com.onest.app.integration.ocr.SolicitudExamen solicitud, boolean atendidoPorOtro,
+                        String agencia, String agenciaElegida) {
+
+        /** Predeterminado del FT-SO-04 para el selector de agencia. */
+        public String agenciaPredeterminada() {
+            return com.onest.app.catalog.examen.service.ExamenDocumentoService.AGENCIA_PREDETERMINADA;
+        }
+
+        /** Reglas de captura del FT-SO-04 rev. 05 por fieldName (para la plantilla). */
+        public Map<String, AyudasFormato.Ayuda> ayudas() {
+            return AyudasFormato.AYUDAS;
+        }
+
+        /** true si algun campo de la seccion tiene ayuda del formato (se pinta con OK/NO). */
+        public boolean conAyuda(SeccionVista s) {
+            return AyudasFormato.alguno(s.items());
+        }
+
     }
+
+
+    /**
+     * Hoja 5 (patologicos): el FT-SO-04 trae la "X" impresa en NO en las sub-listas
+     * (oftalmologico, cardio, digestivo, ...). Al abrir, lo que no tenga valor aparece en No.
+     * Quedan fuera las preguntas que el formato deja sin marcar (cargas, perforaciones,
+     * tatuajes, alergias).
+     */
+    private static final int HOJA_PATOLOGICOS = 5;
+    private static final Set<String> SIN_PRESELECCION = Set.of(
+            "SERV_MED_TOXI_NO_PATO.ALT_CARGA ", "SERV_MED_TOXI_NO_PATO.PERFORACIONES",
+            "SERV_MED_TOXI_NO_PATO.TATUAJES", "SERV_MED_TOXI_NO_PATO.ALERGIAS");
+
+    /**
+     * Hoja 3 (heredofamiliares, 15-oct-2026): el FT-SO-04 trae "NEGADOS" como observacion
+     * predeterminada. Al abrir, lo vacio aparece en No con "NEGADOS" (Obesidad y Otras solo No:
+     * el formato no les pone texto). El medico solo marca Si donde hay antecedente.
+     */
+    private static final int HOJA_HEREDOFAMILIARES = 3;
+    private static final Set<String> SIN_NEGADOS = Set.of("Obesidad", "Otras");
+    private static final String NEGADOS = "NEGADOS";
+
+    /** Clave del borrador con la agencia elegida (solo existe si la base no trae agencia). */
+    private static final String CAMPO_AGENCIA = "agenciaExamen";
 
     /**
      * Candado: el inicial es de nuevo ingreso. Si la persona ya tiene un examen capturado desde
@@ -89,23 +131,23 @@ public class ExamenInicialService {
     public record ExamenInicialFinalizado(String nss, String dictamen) {
     }
 
-    /** Orden y agrupacion del FT-SO-04 rev. 04 (hoja 1 de 3 .. 3 de 3 del Excel, partidas en 10 pasos). */
+    /** Orden y agrupacion del FT-SO-04 rev. 05 (hoja 1 de 3 .. 3 de 3 del Excel, partidas en 10 pasos). */
     public static final List<Hoja> HOJAS = List.of(
             new Hoja(1, "Ficha", "Ficha de identificación", "Datos del trabajador (vienen del biométrico) y teléfonos de emergencia.", "FICHA", List.of()),
             new Hoja(2, "Laborales", "Antecedentes laborales", "Edad al iniciar, cuántos trabajos, pensión y hasta 4 empleos anteriores.", "LABORAL",
                     List.of("Antecedentes laborales (resumen)")),
-            new Hoja(3, "Heredofamiliares", "Antecedentes heredofamiliares", "Marca Sí solo donde haya antecedente; «Todo normal» pone No en el resto.", "SECCIONES",
+            new Hoja(3, "Heredofamiliares", "Antecedentes heredofamiliares", "Marca Sí solo donde haya antecedente; «Todo normal» pone No y «NEGADOS» en observaciones, como el formato.", "SECCIONES",
                     List.of("Neurología", "Cardiopatía", "Neumopatía", "Toxicológico", "Nefropatías", "Endocrinas", "Obesidad", "Mentales", "Generales", "Otras")),
             new Hoja(4, "No patológicos", "No patológicos, inmunizaciones y gineco-obstétricos", "", "SECCIONES",
                     List.of("APNP (no patológicos)", "Inmunizaciones", "Gineco-obstétricos (AGO)")),
-            new Hoja(5, "Patológicos", "Antecedentes personales patológicos", "Marca Sí solo donde haya antecedente; «Todo normal» pone No en el resto.", "SECCIONES",
+            new Hoja(5, "Patológicos", "Antecedentes personales patológicos", "Como en el formato, todo abre en No: marca Sí solo donde haya antecedente.", "SECCIONES",
                     List.of("APP: personales patológicos", "APP: oftalmológico", "APP: digestivo", "APP: renal", "APP: sistema nervioso",
                             "APP: músculo-esquelético", "APP: cardiovascular", "APP: toxicológico", "APP: endocrino")),
             new Hoja(6, "Padecimiento", "Padecimiento actual e interrogatorio", "", "SECCIONES",
                     List.of("Padecimiento actual", "Interrogatorio por aparatos")),
-            new Hoja(7, "Exploración", "Exploración física", "Signos vitales, cabeza y cuello. «Todo normal» llena con Normal lo que esté vacío.", "EXPLORACION",
+            new Hoja(7, "Exploración", "Exploración física", "Signos vitales, cabeza y cuello. OK pone el texto del formato («SIN AGREGADOS», «AUSENTES»...); NO pide escribir el hallazgo.", "EXPLORACION",
                     List.of("Exploración física", "Cráneo", "Agudeza visual", "Oídos", "Cuello", "Nariz", "Tórax")),
-            new Hoja(8, "Columna y piel", "Columna, abdomen, extremidades y piel", "«Todo normal» llena con Normal lo que esté vacío.", "SECCIONES",
+            new Hoja(8, "Columna y piel", "Columna, abdomen, extremidades y piel", "OK pone el texto del formato; NO pide escribir el hallazgo. «Todo normal» pone OK en lo que esté vacío.", "SECCIONES",
                     List.of("Columna vertebral", "Columna (movilidad)", "Abdomen", "Genitales", "Urinario", "Extremidades", "Piel")),
             new Hoja(9, "Boca y dientes", "Boca y dientes", "Dientes en notación FDI (11-48). Solo anota los que tengan hallazgo.", "SECCIONES",
                     List.of("Boca", "Dientes")),
@@ -132,12 +174,15 @@ public class ExamenInicialService {
     private final com.onest.app.integration.ocr.SolicitudExamenRepository solicitudes;
     private final ApplicationEventPublisher eventos;
     private final com.onest.app.integration.ocr.SolicitudExamenService solicitudService;
+    private final com.onest.app.catalog.examen.service.ExamenDocumentoService documentoService;
 
     public ExamenInicialService(ExamenService examenService, ContactoEmergenciaService contactoEmergenciaService,
                                 DatosGeneralesExamenService datosGeneralesExamenService, NssSearchService nssSearchService,
                                 MedTagRepository tags, ExamenBorradorRepository borradores, ExamenHistoricoRepository historico,
                                 com.onest.app.integration.ocr.SolicitudExamenRepository solicitudes, ApplicationEventPublisher eventos,
-                                @org.springframework.context.annotation.Lazy com.onest.app.integration.ocr.SolicitudExamenService solicitudService) {
+                                @org.springframework.context.annotation.Lazy com.onest.app.integration.ocr.SolicitudExamenService solicitudService,
+                                com.onest.app.catalog.examen.service.ExamenDocumentoService documentoService) {
+        this.documentoService = documentoService;
         this.examenService = examenService;
         this.contactoEmergenciaService = contactoEmergenciaService;
         this.datosGeneralesExamenService = datosGeneralesExamenService;
@@ -273,6 +318,21 @@ public class ExamenInicialService {
                 for (ExamItem it : base) {
                     String value = b.containsKey(it.fieldName()) ? b.get(it.fieldName()) : it.value();
                     String obs = it.obsName() != null && b.containsKey(it.obsName()) ? b.get(it.obsName()) : it.obsValue();
+                    boolean vacio = value == null || value.isBlank();
+                    if (h.numero() == HOJA_PATOLOGICOS && "SINO".equals(it.type()) && vacio
+                            && !SIN_PRESELECCION.contains(it.fieldName())) {
+                        value = "0";
+                    }
+                    if (h.numero() == HOJA_HEREDOFAMILIARES && "SINO".equals(it.type())) {
+                        if (vacio) {
+                            value = "0";
+                        }
+                        // todo No sin observacion lleva "NEGADOS", tambien el No de un examen anterior
+                        if ("0".equals(value) && it.obsName() != null && (obs == null || obs.isBlank())
+                                && !SIN_NEGADOS.contains(nombre)) {
+                            obs = NEGADOS;
+                        }
+                    }
                     items.add(new ExamItem(it.type(), it.label(), it.fieldName(), value, it.obsName(), obs));
                     valores.put(it.fieldName(), value == null ? "" : value);
                     if ("OCULTO".equals(it.type())) {
@@ -351,7 +411,11 @@ public class ExamenInicialService {
         return new Vista(limpio, empleado, hojas, hojaActual, contactos, trabajos, datosGenerales,
                 examenService.firmaGuardada(limpio), borrador.orElse(null),
                 ultimo.orElse(null), avance, capturadosTotal, total, tablaBorrador, candado, candidatoOcr,
-                solicitud, atendidoPorOtro);
+                solicitud, atendidoPorOtro,
+                // Agencia del FT-SO-04 rev. 05: la de la base (solo lectura) y, si no hay, la que
+                // elige el medico (borrador > ultima elegida en un examen; vacio = predeterminado)
+                documentoService.agencia(limpio, solicitud == null ? null : solicitud.agencia()),
+                b.containsKey(CAMPO_AGENCIA) ? b.get(CAMPO_AGENCIA) : documentoService.agenciaCapturada(limpio));
     }
 
     /** Autoguardado: funde los campos recibidos con el borrador existente y recuerda la hoja. */
@@ -476,6 +540,14 @@ public class ExamenInicialService {
         copiarTag(b, "SERV_ANTECEDENTESLAB.cantidad_trabajos", "cantidad_trabajos", limpio, usuario);
         copiarTag(b, "SERV_ANTECEDENTESLAB.pension", "pension", limpio, usuario);
         tagsTrabajo.forEach((type, v) -> tags.upsert(limpio, type, v, "HISTORIA_LABORAL", usuario));
+
+        // 5) Agencia elegida por el medico (solo cuando la base no la trae: la ficha no pinta el
+        // selector en otro caso). Mismo grupo que el tipo de examen: es dato del encabezado.
+        String agenciaElegida = b.getOrDefault(CAMPO_AGENCIA, "").trim();
+        if (!agenciaElegida.isEmpty()) {
+            tags.upsert(limpio, com.onest.app.catalog.examen.service.ExamenDocumentoService.TAG_AGENCIA,
+                    agenciaElegida, "PERMISO_EXAMEN", usuario);
+        }
 
         borradores.finalizar(limpio, usuario);
         eventos.publishEvent(new ExamenInicialFinalizado(limpio, dictamen.trim()));

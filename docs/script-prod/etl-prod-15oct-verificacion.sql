@@ -1,0 +1,43 @@
+-- ============================================================================
+-- Base de PRODUCCION (BIOMETRICO). SOLO LECTURA. Verificacion de la carga ETL del
+-- 15-oct-2026 16:09-16:10: 364 archivos (legacy-23311..23687) y 4 tags (SOURCE_ID 1,349,019..22).
+-- Esperado: archivos legacy 22,193 -> 22,557 ; tags con SOURCE_ID 550,984 -> 550,988.
+-- ============================================================================
+SET LINESIZE 200
+SET PAGESIZE 200
+
+-- 1) Totales
+SELECT 'FILE legacy' k, COUNT(*) n FROM SERV_MED_FS_FILE WHERE BUSINESS_KEY LIKE 'legacy-%'
+UNION ALL SELECT 'TAG con SOURCE_ID', COUNT(SOURCE_ID) FROM SERV_MED_TAG;
+
+-- 2) Lo de esta corrida (esperado 364 y 4)
+SELECT 'FS_FILE' tabla, COUNT(*) n, MIN(CREATED_AT) desde, MAX(CREATED_AT) hasta
+  FROM SERV_MED_FS_FILE WHERE CREATED_BY = 'ETL_LEGACY' AND CREATED_AT >= TIMESTAMP '2026-10-15 16:00:00'
+UNION ALL
+SELECT 'TAG', COUNT(*), MIN(MIGRATED_AT), MAX(MIGRATED_AT)
+  FROM SERV_MED_TAG WHERE CREATED_BY = 'ETL_LEGACY' AND MIGRATED_AT >= TIMESTAMP '2026-10-15 16:00:00';
+
+-- 3) Archivos nuevos: rango, fechas reales y calidad (todo en 0 salvo archivos/mb)
+SELECT COUNT(*) archivos,
+       MIN(TO_NUMBER(SUBSTR(BUSINESS_KEY, 8))) id_min, MAX(TO_NUMBER(SUBSTR(BUSINESS_KEY, 8))) id_max,
+       MIN(DATE_UPLOAD) desde, MAX(DATE_UPLOAD) hasta, ROUND(SUM(SIZE_BYTES) / 1048576, 1) mb,
+       SUM(CASE WHEN NSS IS NULL THEN 1 ELSE 0 END) sin_nss,
+       SUM(CASE WHEN CHECKSUM_SHA256 IS NULL THEN 1 ELSE 0 END) sin_checksum,
+       SUM(CASE WHEN STORAGE_PATH IS NULL THEN 1 ELSE 0 END) sin_ruta
+  FROM SERV_MED_FS_FILE
+ WHERE CREATED_BY = 'ETL_LEGACY' AND CREATED_AT >= TIMESTAMP '2026-10-15 16:00:00';
+
+-- 4) Los 4 tags
+SELECT SOURCE_ID, NSS, TYPE, TAG_GROUP, MIGRATED_AT
+  FROM SERV_MED_TAG WHERE CREATED_BY = 'ETL_LEGACY' AND MIGRATED_AT >= TIMESTAMP '2026-10-15 16:00:00'
+ ORDER BY SOURCE_ID;
+
+-- 5) Sin duplicados (esperado: sin filas en ambas)
+SELECT BUSINESS_KEY, COUNT(*) FROM SERV_MED_FS_FILE WHERE BUSINESS_KEY LIKE 'legacy-%'
+ GROUP BY BUSINESS_KEY HAVING COUNT(*) > 1;
+SELECT SOURCE_ID, COUNT(*) FROM SERV_MED_TAG WHERE SOURCE_ID IS NOT NULL
+ GROUP BY SOURCE_ID HAVING COUNT(*) > 1;
+
+-- 6) Los 60 tags de 30048315698 NO se cargaron: lo vigente sigue siendo lo del portal (11-oct)
+SELECT COUNT(*) tags_etl_hoy_de_30048315698 FROM SERV_MED_TAG
+ WHERE NSS = '30048315698' AND CREATED_BY = 'ETL_LEGACY' AND MIGRATED_AT >= TIMESTAMP '2026-10-15 16:00:00';

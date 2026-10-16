@@ -35,7 +35,10 @@ public final class CatalogosNss {
                 "OTICO", "PSICOSOMATICO", "RESPIRATORIO", "TENSION ARTERIAL (DETEC/CONTROL)",
                 "TOMA DE GLUCOSA", "VACUNA / METODO PF / SEG SALUD", "FISIOTERAPIA", "NOM 035",
                 "MT - ALGIA / MIALGIA /CONTUSION", "MP - ALGIA / MIALGIA /CONTUSION",
-                "GRAL - ALGIA / MIALGIA /CONTUSION", "CERVICAL / DORSAL / LUMBAR"));
+                "GRAL - ALGIA / MIALGIA /CONTUSION", "CERVICAL / DORSAL / LUMBAR",
+                // 14-oct-2026: decision del usuario, catalogo oficial = el del Excel + CEFALEA (los
+                // medicos la capturan aparte de NEUROLOGICO en el Excel y en el portal)
+                "CEFALEA"));
         CATALOGOS.put("LESION_ME", List.of("AMPUTACION MT", "AMPUTACION MP", "ALGIA / MIALGIA / CONTUSION MT",
                 "ALGIA / MIALGIA / CONTUSION MP", "CERVICALGIA / DORSALGIA / LUMBALGIA",
                 "CONTUSION/TRAUMA CABEZA", "CONTUSION/TRAUMA TRONCO", "ESGUINCE MT", "ESGUINCE MP",
@@ -43,6 +46,9 @@ public final class CatalogosNss {
         CATALOGOS.put("TIPO_EXAMEN_INGRESO", List.of("EMNI", "PRETEST"));
         CATALOGOS.put("DICTAMEN", List.of("APTO", "APTO_CONDICIONADO", "APTO_RESTRINGIDO", "NO_APTO"));
         CATALOGOS.put("GENERO", List.of("FEM", "MASC"));
+        // Rango de edad de nuevo ingreso (14-oct-2026): los mismos cortes que marcan los Excel
+        // originales y que usa la grafica de edades del portal (Normalizador.rangoEdad)
+        CATALOGOS.put("RANGO_EDAD", List.of("18-25", "26-35", "36-45", "46-55", "55+"));
         CATALOGOS.put("RUBRO_INCAP", List.of("IMSS", "INTERNA"));
         CATALOGOS.put("RAMO_INCAPACIDADES", List.of("EG", "MAT", "RT1", "RT2"));
         CATALOGOS.put("TIPO_INCAP", List.of("I", "S", "MAT"));
@@ -84,14 +90,31 @@ public final class CatalogosNss {
     private CatalogosNss() {
     }
 
-    /** Forma oficial del valor si esta en el catalogo; vacio si no. */
+    /**
+     * Variantes que se capturan con otro nombre y equivalen a un valor oficial (14-oct-2026). Se
+     * guardan como el oficial y el validador deja un AVISO, para que se vea que se tradujo.
+     * Clave: catalogo -> variante (como la escriben) -> valor oficial.
+     */
+    private static final Map<String, Map<String, String>> EQUIVALENCIAS = Map.of(
+            "CAUSA_CONSULTA", Map.of(
+                    "OFTALMOLOGICA", "OFTALMICO",
+                    "OFTALMOLOGICO", "OFTALMICO"));
+
+    /** Forma oficial del valor si esta en el catalogo (o es una variante conocida); vacio si no. */
     public static Optional<String> buscar(String catalogo, String valor) {
         List<String> lista = CATALOGOS.get(catalogo);
         if (lista == null || valor == null) {
             return Optional.empty();
         }
         String buscado = clave(valor);
-        return lista.stream().filter(v -> clave(v).equals(buscado)).findFirst();
+        Optional<String> oficial = lista.stream().filter(v -> clave(v).equals(buscado)).findFirst();
+        if (oficial.isPresent()) {
+            return oficial;
+        }
+        return EQUIVALENCIAS.getOrDefault(catalogo, Map.of()).entrySet().stream()
+                .filter(e -> clave(e.getKey()).equals(buscado))
+                .map(Map.Entry::getValue)
+                .findFirst();
     }
 
     /** Para el mensaje de error: los valores validos, abreviados si son muchos. */

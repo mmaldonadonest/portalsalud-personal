@@ -52,6 +52,25 @@ public class ExamenService {
         return new Campo(f, l, "DATE", false);
     }
 
+    /**
+     * DOSIS (16-oct-2026): numero de dosis, botones Ninguna/1/2/3 como el FT-SO-17. COVID es
+     * NUMBER y el PHP lo capturaba como numero; medido en prod: 3 dosis 1,417, 2 dosis 759,
+     * 4-6 dosis 121. Como Si/No, guardar convertia esas dosis en 0.
+     */
+    private static Campo dosis(String f, String l) {
+        return new Campo(f, l, "DOSIS", false);
+    }
+
+    /**
+     * SINO_TEXTO (16-oct-2026): No / Si + detalle en UN campo de texto. Pension en el PHP era texto
+     * libre; medido en prod (tag pension): ~2,470 variantes de "no" (NO, NEGADO, NINGUNO, N/A...),
+     * 740 vacios y ~35 con el tramite escrito ("ST7 CERRADO 2019"). Se guarda "NO" o el detalle
+     * (o "SI" sin detalle); lo ya capturado no se reescribe hasta que se toque.
+     */
+    private static Campo sinoTexto(String f, String l) {
+        return new Campo(f, l, "SINO_TEXTO", false);
+    }
+
     private static Campo area(String f, String l) {
         return new Campo(f, l, "AREA", false);
     }
@@ -84,6 +103,19 @@ public class ExamenService {
         return new Campo(respaldo, l, "TEXT", false, tag);
     }
 
+    /**
+     * Texto que solo existe en SERV_MED_TAG, sin columna del WS (15-oct-2026, FT-SO-04 rev. 05).
+     * La clave de respaldo no existe en el WS, asi que lee vacio si no hay tag.
+     */
+    private static Campo tagSolo(String tag, String l) {
+        return new Campo(tag, l, "TEXT", false, tag);
+    }
+
+    /** Fecha que solo existe en SERV_MED_TAG (como tagSolo, pero con control de fecha). */
+    private static Campo tagFecha(String tag, String l) {
+        return new Campo(tag, l, "DATE", false, tag);
+    }
+
     /** Prefijo de las claves de formulario que van a SERV_MED_TAG y no al WS. */
     private static final String PREFIJO_TAG = "TAG.";
     private static final String GRUPO_TAG_FISICO = "EXAMEN_FISICO";
@@ -100,7 +132,7 @@ public class ExamenService {
         CATALOGO.put("Antecedentes laborales (resumen)", new Seccion("SERV_ANTECEDENTESLAB", List.of(
                 text("edad_inicio_laboral", "Edad al iniciar a laborar"),
                 text("cantidad_trabajos", "¿Cuántos trabajos ha tenido?"),
-                text("pension", "Pensión IMSS o trámite pendiente (ST2/ST3/ST4/ST7/ST9)"))));
+                sinoTexto("pension", "Pensión IMSS o trámite pendiente (ST2/ST3/ST4/ST7/ST9)"))));
 
         // ---- Antecedentes heredofamiliares (Slice 1): Si/No + observaciones ----
         CATALOGO.put("Neurología", new Seccion("NEUROLOGIA", List.of(
@@ -188,7 +220,9 @@ public class ExamenService {
                 text("HOBBIES_PASATIEMPOS", "Hobbies / pasatiempos"),
                 text("FC2", "Frecuencia (hobbies)"))));
 
-        // ---- Inmunizaciones: vacunas Si/No + fecha ----
+        // ---- Inmunizaciones: vacunas Si/No + fecha de influenza + COVID por dosis (FT-SO-17) ----
+        // FECHA de la tabla es la de COVID (asi la rotulaba el PHP y casi solo hay fecha donde hay
+        // dosis); la de influenza el PHP la guardaba en el tag fechaINFLUEN (saveContactosEmergencia.php).
         CATALOGO.put("Inmunizaciones", new Seccion("SERV_MED_INMUNIZACIONES", List.of(
                 sino0("BLG", "BCG"),
                 sino0("SABIN", "Sabin"),
@@ -197,8 +231,9 @@ public class ExamenService {
                 sino0("SR", "SR"),
                 sino0("INFLUENZA", "Influenza"),
                 sino0("TD", "Td"),
-                sino0("COVID", "COVID"),
-                date("FECHA", "Fecha"))));
+                tagFecha("fechaINFLUEN", "Fecha influenza"),
+                dosis("COVID", "COVID-19 (dosis)"),
+                date("FECHA", "Fecha COVID"))));
 
         // ---- Antecedentes gineco-obstetricos (AGO): texto ----
         CATALOGO.put("Gineco-obstétricos (AGO)", new Seccion("SERV_MED_ANT_GIN_OBSTETRICOS", List.of(
@@ -206,9 +241,10 @@ public class ExamenService {
                 text("RITMO", "Ritmo"),
                 text("IVSA", "IVSA"),
                 text("FUM", "FUM"),
+                // G, P, A, C: orden de los FT-SO (16-oct-2026)
                 text("G", "Gesta (G)"),
-                text("A", "Abortos (A)"),
                 text("P", "Partos (P)"),
+                text("A", "Abortos (A)"),
                 text("C", "Cesáreas (C)"),
                 text("MET_PLANIFICACION", "Método de planificación"),
                 text("PAPANICOLAOU", "Papanicolaou"),
@@ -218,10 +254,11 @@ public class ExamenService {
         // ---- Antecedentes personales patologicos (APP): Si/No (+ obs) ----
         CATALOGO.put("APP: personales patológicos", new Seccion("SERV_MED_ANT_PER_PATOLOGICOS", List.of(
                 sino0("ENF_CONGENITAS", "Enf. congénitas"),
-                sino0("GENITAL", "Genital"),
+                // etiquetas como el FT-SO-04 rev. 05 (filas 66-69), con su aclaracion entre parentesis
+                sino0("GENITAL", "Genital (prolapsos)"),
                 sino0("ENF_PROP_INF", "Enf. propias de la infancia"),
                 sino0("DERMATOPATIAS", "Dermatopatías"),
-                sino0("SIST_AUDITIVO", "Sistema auditivo"),
+                sino0("SIST_AUDITIVO", "Sistema auditivo (sordera, perforación de tímpano)"),
                 sino0("RESPIRATORIO", "Respiratorio"),
                 sino0("SIS_OLFATIVO", "Sistema olfativo"),
                 sino0("TRAUMATICOS", "Traumáticos"))));
@@ -237,7 +274,7 @@ public class ExamenService {
                 sino("HERNIAS", "Hernias"),
                 sino("CIRROSIS", "Cirrosis"),
                 sino("COLITIS", "Colitis"),
-                sino("GASTRITIS", "Gastritis"),
+                sino("GASTRITIS", "Gastritis y esofagitis"),
                 sino("HEMORROIDES", "Hemorroides"),
                 sino("CIRUGIAS", "Cirugías"))));
         CATALOGO.put("APP: renal", new Seccion("SERV_MED_RENAL", List.of(
@@ -246,8 +283,8 @@ public class ExamenService {
                 sino("LITIASIS", "Litiasis"))));
         CATALOGO.put("APP: sistema nervioso", new Seccion("SERV_MED_SIST_NERVIOSO", List.of(
                 sino("ANEURISMA", "Aneurisma"),
-                sino("ENF_DEG_MUS_NEU", "Enf. degenerativa musc./neuro."),
-                sino("ACC_CER_VASCU", "Acc. cerebrovascular"),
+                sino("ENF_DEG_MUS_NEU", "Enf. degenerativas musculares y neuronales"),
+                sino("ACC_CER_VASCU", "Accidente cerebrovascular"),
                 sino("EPILEPSIA", "Epilepsia"),
                 sino("PAR_FACIAL", "Parálisis facial"))));
         CATALOGO.put("APP: músculo-esquelético", new Seccion("SERV_MED_MUS_ESQUELETICO", List.of(
@@ -267,7 +304,8 @@ public class ExamenService {
                 sino("TABAQUISMO", "Tabaquismo"),
                 sino("ALCOHOLISMO", "Alcoholismo"),
                 sino("DROGAS", "Drogas"),
-                sino("ALT_CARGA ", "Alteración de carga"),
+                // la pregunta del FT-SO-04: "¿Algun trastorno que repercuta en la manipulacion de cargas manuales?"
+                sino("ALT_CARGA ", "Trastorno que afecte la manipulación de cargas"),
                 sino("PERFORACIONES", "Perforaciones"),
                 sino("TATUAJES", "Tatuajes"),
                 sino("ALERGIAS", "Alergias"))));
@@ -275,6 +313,12 @@ public class ExamenService {
                 sino("DIABETES", "Diabetes"),
                 sino("HIPERTIROIDISMO", "Hipertiroidismo"),
                 sino("HIPOTIROIDISMO", "Hipotiroidismo"))));
+        // FT-SO-17 (periodico, 15-oct-2026): categorias del formato que no tienen tabla en el WS.
+        // Texto en SERV_MED_TAG: "NEGADOS" o el antecedente. Sin columna de respaldo.
+        CATALOGO.put("APP: otros", new Seccion("SERV_MED_APP_OTROS", List.of(
+                tagSolo("APPHEMATOPATIAS", "Hematopatías"),
+                tagSolo("APPTRANSFUSIONALES", "Transfusionales"),
+                tagSolo("APPQUIRURGICOS", "Quirúrgicos"))));
 
         // ---- Padecimiento actual / Interrogatorio (textarea) ----
         CATALOGO.put("Padecimiento actual", new Seccion("SERV_MED_PADECI_ACTUAL", List.of(
@@ -302,7 +346,13 @@ public class ExamenService {
                 text("OJOS", "Ojos"), text("PUPILAS", "Pupilas"), text("CONJUNTIVAS", "Conjuntivas"),
                 text("REFLEJOS", "Reflejos"), text("FONDO_OJO", "Fondo de ojo"))));
         CATALOGO.put("Agudeza visual", new Seccion("SERV_MED_AGUDEZA_VISUAL", List.of(
-                text("OD", "Ojo derecho"), text("OIZ", "Ojo izquierdo"), text("COLORES", "Colores"))));
+                // SL/CL del FT-SO-04: OD/OIZ es la medida SIN lentes; la medida CON lentes ya la
+                // capturaba el PHP en estos tags (medido 15-oct-2026: "20/10", "20/20", "SDPA", "N/A"...;
+                // solo 43 de ~2,100 son 0/1). pdfGenerator.php los imprimia mal como Si/No.
+                text("OD", "Ojo derecho sin lentes (SL)"), text("OIZ", "Ojo izquierdo sin lentes (SL)"),
+                tagSolo("LENTEOJODERECHOEXP", "Ojo derecho con lentes (CL)"),
+                tagSolo("LENTEOJOIZQUIERDOEXP", "Ojo izquierdo con lentes (CL)"),
+                text("COLORES", "Colores"))));
         CATALOGO.put("Nariz", new Seccion("SERV_MED_NARIZ", List.of(
                 text("CAVIDAD_NASAL", "Cavidad nasal"), text("MUCOSA", "Mucosa"),
                 text("TABIQUE_NASA", "Tabique nasal"), text("OLFATO", "Olfato"))));
@@ -367,26 +417,43 @@ public class ExamenService {
 
     // Agrupacion puramente de UI (no afecta guardado/lectura) - un nombre de seccion que no
     // aparezca aqui simplemente no se agrupa (no rompe el catalogo si cambia).
+    // Un grupo por seccion del FT-SO-04 / FT-SO-17, con su mismo titulo y orden (16-oct-2026);
+    // los dos coinciden si la exploracion se lee por columnas, que es como estan maquetados.
+    // Heredofamiliares y APNP solo los pide el FT-SO-04: examen-shell.html los oculta en el
+    // periodico y ahi agrega «"Inmunizaciones"» al titulo de no patologicos, como el FT-SO-17.
+    // Los nombres de grupo los compara examen-shell.html: si cambian, cambiarlos tambien alla.
     private static final List<Map.Entry<String, List<String>>> GRUPOS = List.of(
             Map.entry("Antecedentes laborales", List.of(
                     "Antecedentes laborales (resumen)")),
-            Map.entry("Heredofamiliares", List.of(
+            Map.entry("Antecedentes heredofamiliares", List.of(
                     "Neurología", "Cardiopatía", "Neumopatía", "Toxicológico", "Nefropatías",
                     "Endocrinas", "Obesidad", "Mentales", "Generales", "Otras",
                     "Heredofamiliares (resumen)")),
-            Map.entry("Antecedentes personales", List.of(
-                    "APNP (no patológicos)", "Inmunizaciones", "Gineco-obstétricos (AGO)",
-                    "APP: personales patológicos", "APP: oftalmológico", "APP: digestivo",
-                    "APP: renal", "APP: sistema nervioso", "APP: músculo-esquelético",
-                    "APP: cardiovascular", "APP: toxicológico", "APP: endocrino")),
-            Map.entry("Padecimiento e interrogatorio", List.of(
-                    "Padecimiento actual", "Interrogatorio por aparatos")),
+            Map.entry("Antecedentes personales no patológicos", List.of(
+                    "APNP (no patológicos)", "Inmunizaciones")),
+            Map.entry("Antecedentes gineco-obstétricos", List.of(
+                    "Gineco-obstétricos (AGO)")),
+            // La pestana "Patologicos (resumen)" la inserta examen-shell.html antes de las APP
+            Map.entry("Antecedentes personales patológicos", List.of(
+                    "APP: personales patológicos", "APP: oftalmológico", "APP: renal",
+                    "APP: cardiovascular", "APP: sistema nervioso", "APP: digestivo",
+                    "APP: músculo-esquelético", "APP: endocrino", "APP: toxicológico", "APP: otros")),
+            Map.entry("Padecimiento actual", List.of(
+                    "Padecimiento actual")),
+            Map.entry("Interrogatorio por aparatos y sistemas", List.of(
+                    "Interrogatorio por aparatos")),
             Map.entry("Exploración física", List.of(
                     "Exploración física", "Cráneo", "Agudeza visual", "Nariz", "Columna vertebral",
-                    "Boca", "Oídos", "Tórax", "Columna (movilidad)", "Abdomen", "Genitales",
-                    "Urinario", "Extremidades", "Piel", "Cuello", "Dientes")),
-            Map.entry("Cierre", List.of(
-                    "Estudios realizados", "Diagnóstico", "Plan terapéutico", "Resultado del examen")));
+                    "Boca", "Oídos", "Cuello", "Tórax", "Columna (movilidad)", "Abdomen", "Genitales",
+                    "Urinario", "Extremidades", "Piel", "Dientes")),
+            Map.entry("Estudios realizados y resultados", List.of(
+                    "Estudios realizados")),
+            Map.entry("Diagnóstico", List.of(
+                    "Diagnóstico")),
+            Map.entry("Plan o terapéutica empleada", List.of(
+                    "Plan terapéutico")),
+            Map.entry("Resultado del examen", List.of(
+                    "Resultado del examen")));
 
     private final ExamenClient client;
     private final MedTagRepository tags;
@@ -496,8 +563,10 @@ public class ExamenService {
         Map<String, String> out = new LinkedHashMap<>();
         Set<String> tipos = tiposTag();
         try {
-            // los tags de Oidos empiezan con OD/OI: dos lecturas por prefijo y se filtra a la lista
-            for (String prefijo : List.of("OD", "OI")) {
+            // una lectura por prefijo de 2 letras (OD/OI de Oidos, LE de lentes) y se filtra a la lista
+            Set<String> prefijos = new java.util.TreeSet<>();
+            tipos.forEach(t -> prefijos.add(t.substring(0, Math.min(2, t.length()))));
+            for (String prefijo : prefijos) {
                 tags.latestByNssAndTypePrefix(nss, prefijo).forEach((k, v) -> {
                     if (tipos.contains(k)) {
                         out.put(k, v);

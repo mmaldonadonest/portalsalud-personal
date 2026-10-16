@@ -1,0 +1,21 @@
+C:\Users\Miguel\Downloads\MORBILIDAD\MORBILIDAD 2025\TOLUCA
+C:\Users\Miguel\Downloads\MORBILIDAD\MORBILIDAD 2026\TOLUCA
+
+para el menu de examen medico   copiar la parte de dientes de examen inicial 
+
+Datos que se cargan y ninguna pantalla muestra
+Exámenes:
+Resultados pendientes y observaciones (en los 3 tipos).
+Estado civil y escolaridad (nuevo ingreso).
+Causa (pos incapacidad).
+Rango de edad: está en la vista, pero ninguna gráfica lo usa.
+Incapacidades:
+SDI, pago 60 % y costos por ramo (solo se usa el costo total).
+Primera incapacidad, causa, alta e ingreso a la operación, ST7.
+Accidentes:
+Pago 60 %, ST7, ST2, descripción breve, fecha para calificación.
+Los días solo se ven en la ficha por NSS, no en las gráficas.
+Antidoping: alcoholemia % y observaciones.
+Maternidad: fechas probables, folio, lactancia, reanudación y los 3 correos de aviso.
+Medicamentos: categoría (falta la gráfica por categoría), lote, caducidad y existencias.
+Material fijo: tipo, motivo y nombre del equipo (solo se cuentan las piezas).

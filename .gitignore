@@ -1,4 +1,7 @@
-/target/
+# Del build solo se versiona el WAR (16-oct-2026): instruccion de tener el ejecutable de
+# produccion en el repo privado para reinstalar en caso de desastre. Lleva credenciales adentro.
+/target/*
+!/target/portal-salud-0.0.1-SNAPSHOT.war
 /etl/target/
 
 # Scripts con datos personales (NSS y nombres de empleados reales): no se versionan.
@@ -8,8 +11,8 @@
 *.local.bat
 *.local.cmd
 *.local.ps1
-# Copia local de las credenciales de produccion (config/produccion/*.local.properties)
-*.local.properties
+# config/produccion/*.local.properties SI se versiona (16-oct-2026, repo privado, instruccion
+# de respaldo completo para recuperar la instalacion)
 *.local.sh
 # WARs armados para produccion (llevan credenciales adentro)
 /dist/
@@ -20,3 +23,7 @@ docs/script-prod/seed_tablas
 docs/script-prod/verificacion
 docs/script-prod/acentos_verif
 /excel-loader/target/
+
+# Bitacoras locales y cache de Python
+/logs/
+__pycache__/

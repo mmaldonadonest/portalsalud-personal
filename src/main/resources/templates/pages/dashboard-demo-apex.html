@@ -104,6 +104,14 @@
                 <label class="form-label fs-12 mb-1">Fecha final</label>
                 <input type="date" id="fFechaFinal" class="form-control form-control-sm" value="">
             </div>
+            <div>
+                <!-- Predio (14-oct-2026): las APIs del Inicio ya aceptaban predio; la lista sale de
+                     /api/dashboard/predios (abierta a todo usuario, igual que el Inicio) -->
+                <label class="form-label fs-12 mb-1" for="fPredio">Predio</label>
+                <select id="fPredio" class="form-select form-select-sm" style="min-width: 180px;">
+                    <option value="">Todos los predios</option>
+                </select>
+            </div>
             <button type="button" id="btnActualizar" class="btn btn-primary btn-sm">Actualizar</button>
             <span id="estado" class="fs-12 text-muted"></span>
         </div>
@@ -323,7 +331,12 @@
                 return '<div class="apex-tooltip-modern"><div class="tt-title">' + categoria + '</div>' + filas + '</div>';
             }
 
+            // Cambiar el predio actualiza solo: si se cambia dos veces seguidas, la respuesta vieja
+            // podia llegar al final y pisar a la nueva. Solo pinta la ultima peticion.
+            var ultimaCarga = 0;
+
             async function cargar() {
+                var miCarga = ++ultimaCarga;
                 var fechaInicial = document.getElementById('fFechaInicial').value;
                 var fechaFinal = document.getElementById('fFechaFinal').value;
                 var estado = document.getElementById('estado');
@@ -333,6 +346,10 @@
                 }
                 estado.textContent = 'Cargando...';
                 var qs = 'fechaInicial=' + encodeURIComponent(fechaInicial) + '&fechaFinal=' + encodeURIComponent(fechaFinal);
+                var predio = document.getElementById('fPredio').value;
+                if (predio) {
+                    qs += '&predio=' + encodeURIComponent(predio);
+                }
                 try {
                     var [resumenRes, incapacidadesRes, examenRes, accidentesRes, consultasRes, antidopingRes] = await Promise.all([
                         fetch(contextPath + 'api/dashboard/resumen-general?' + qs),
@@ -342,6 +359,9 @@
                         fetch(contextPath + 'api/dashboard/consultas?' + qs),
                         fetch(contextPath + 'api/dashboard/antidoping?' + qs)
                     ]);
+                    if (miCarga !== ultimaCarga) {
+                        return;   // ya hay una carga mas nueva en camino
+                    }
                     if (!resumenRes.ok || !incapacidadesRes.ok || !examenRes.ok || !accidentesRes.ok || !consultasRes.ok || !antidopingRes.ok) {
                         estado.textContent = 'Error al consultar los endpoints (HTTP ' + resumenRes.status + ').';
                         return;
@@ -352,6 +372,9 @@
                     var accidentes = await accidentesRes.json();
                     var consultas = await consultasRes.json();
                     var antidoping = await antidopingRes.json();
+                    if (miCarga !== ultimaCarga) {
+                        return;
+                    }
 
                     pintarKpis(resumen, antidoping);
                     pintarTendencia(resumen.tendenciaMensual);
@@ -745,10 +768,11 @@
                 var lineas = document.querySelectorAll('.kpi-fuente');
                 lineas.forEach(function (el) { el.textContent = ''; });
                 try {
+                    var miCarga = ultimaCarga;
                     var r = await fetch(contextPath + 'api/dashboard/fuentes?' + qs);
                     if (!r.ok) { return; }
                     var d = await r.json();
-                    if (!d.disponible) { return; }
+                    if (!d.disponible || miCarga !== ultimaCarga) { return; }
                     lineas.forEach(function (el) {
                         var f = (d.familias || {})[el.getAttribute('data-familia')] || {};
                         var partes = ['Portal ' + numero(f.PORTAL), 'Excel ' + numero(f.EXCEL)];
@@ -765,7 +789,29 @@
             document.getElementById('fFechaFinal').value = hoy.getFullYear() + '-'
                 + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
 
+            /**
+             * Opciones del select de predio. Si la lista falla, el select queda en "Todos los
+             * predios" y el Inicio funciona como antes: un catalogo caido no tumba la pagina.
+             */
+            async function cargarPredios() {
+                try {
+                    var r = await fetch(contextPath + 'api/dashboard/predios');
+                    if (!r.ok) { return; }
+                    var select = document.getElementById('fPredio');
+                    (await r.json()).forEach(function (nombre) {
+                        var opt = document.createElement('option');
+                        opt.value = nombre;
+                        opt.textContent = nombre;
+                        select.appendChild(opt);
+                    });
+                } catch (e) {
+                    console.warn('[dashboard] lista de predios no disponible:', e);
+                }
+            }
+
             document.getElementById('btnActualizar').addEventListener('click', cargar);
+            document.getElementById('fPredio').addEventListener('change', cargar);
+            cargarPredios();
             cargar();
         })();
     </script>

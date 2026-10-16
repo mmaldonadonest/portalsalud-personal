@@ -50,7 +50,7 @@ public class PrellenadoNss {
     /** Un evento viejo con sus atributos (nombre -> valor, numero o fecha). */
     record Evento(long id, LocalDate fecha, String predio, String area, String cuenta, String puesto,
                   String nombre, String nombreNorm, String genero, String estatus, String origen,
-                  String hoja, Map<String, Object[]> atr) {
+                  String hoja, Map<String, Object[]> atr, String rangoEdad) {
         String texto(String n) {
             Object[] a = atr.get(n);
             return a == null || a[0] == null ? null : a[0].toString().trim();
@@ -419,7 +419,7 @@ public class PrellenadoNss {
                 }, p);
         List<Evento> res = new ArrayList<>();
         jdbc.query("SELECT e.ID, e.FECHA, e.PREDIO, e.AREA, e.CUENTA, e.PUESTO, e.NOMBRE, e.NOMBRE_NORM, e.GENERO, "
-                + "e.ESTATUS, e.ORIGEN_ARCHIVO, e.ORIGEN_HOJA FROM SERV_MED_BITACORA_EVENTO e WHERE " + filtro
+                + "e.ESTATUS, e.ORIGEN_ARCHIVO, e.ORIGEN_HOJA, e.RANGO_EDAD FROM SERV_MED_BITACORA_EVENTO e WHERE " + filtro
                 + " ORDER BY e.PREDIO, e.FECHA, e.ORIGEN_FILA", rs -> {
                     Date f = rs.getDate("FECHA");
                     long id = rs.getLong("ID");
@@ -431,7 +431,7 @@ public class PrellenadoNss {
                             rs.getString("AREA"), rs.getString("CUENTA"), rs.getString("PUESTO"),
                             rs.getString("NOMBRE"), rs.getString("NOMBRE_NORM"), rs.getString("GENERO"),
                             rs.getString("ESTATUS"), archivo, rs.getString("ORIGEN_HOJA"),
-                            atributos.getOrDefault(id, Map.of())));
+                            atributos.getOrDefault(id, Map.of()), rs.getString("RANGO_EDAD")));
                 }, p);
         return res;
     }
@@ -464,7 +464,7 @@ public class PrellenadoNss {
                         a.valorNum() == null ? null : BigDecimal.valueOf(a.valorNum()), a.valorFecha()});
             }
             res.add(new Evento(ev.id(), f.fecha(), f.predio(), f.area(), f.cuenta(), f.puesto(), f.nombre(),
-                    f.nombreNorm(), f.genero(), f.estatus(), f.origenArchivo(), f.origenHoja(), atr));
+                    f.nombreNorm(), f.genero(), f.estatus(), f.origenArchivo(), f.origenHoja(), atr, f.rangoEdad()));
         }
         res.sort(java.util.Comparator.comparing((Evento e) -> nvl(e.predio()))
                 .thenComparing(e -> e.fecha() == null ? LocalDate.MIN : e.fecha()));
@@ -565,7 +565,7 @@ public class PrellenadoNss {
                 e.getValue().put("CATEGORIA", new Object[]{categoria, null, null});
             }
             res.add(new Evento(id++, (LocalDate) b[0], (String) b[1], null, null, null, (String) b[2], null, null,
-                    null, null, "MEDICAMENTOS", e.getValue()));
+                    null, null, "MEDICAMENTOS", e.getValue(), null));
         }
         return res;
     }
@@ -636,7 +636,7 @@ public class PrellenadoNss {
         v.add(cat("AREA", e.area(), n, "AREA"));
         v.add(e.fecha());
         if (e.fecha() == null) {
-            n.add("FECHA DE CORTE: caso sin mes reportado (antes de 2025), capturar");
+            n.add("FECHA DE INGRESO: caso sin mes reportado (antes de 2025), capturar");
         }
         v.add(cat("ESTATUS_LABORAL", e.estatus(), n, "STATUS LABORAL"));
         v.add(e.fechaAtr("FUM"));
@@ -764,7 +764,7 @@ public class PrellenadoNss {
         v.add(materno);
         v.add(e.puesto());
         v.add(cat("GENERO", e.genero(), n, "GENERO"));
-        v.add(null);                         // EDAD: la carga vieja solo tiene el rango
+        v.add(cat("RANGO_EDAD", e.rangoEdad(), n, "RANGO DE EDAD"));   // el rango marcado en el original
         v.add(e.cuenta());
         v.add(cat("PREDIO", e.predio(), n, "PREDIO"));
         v.add(cat("AREA", e.area(), n, "AREA"));

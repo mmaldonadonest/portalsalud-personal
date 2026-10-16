@@ -111,11 +111,23 @@ public class ExamenController {
             Model model) {
         try {
             model.addAttribute("seccion", seccion);
-            model.addAttribute("items", examenService.itemsDeSeccion(seccion, nss));
+            java.util.List<com.onest.app.catalog.examen.dto.ExamItem> items = examenService.itemsDeSeccion(seccion, nss);
+            model.addAttribute("items", items);
+            model.addAttribute("valores", valores(items));
+            // ayudas del formato EMLE (FT-SO-17 / FT-SO-04) para la exploracion
+            model.addAttribute("ayudas", com.onest.app.catalog.examen.service.AyudasFormato.AYUDAS);
+            model.addAttribute("conAyuda", com.onest.app.catalog.examen.service.AyudasFormato.alguno(items));
             return "fragments/examen-seccion :: seccion";
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }
+    }
+
+    /** Nombre de campo -> valor, para el odontograma compartido con el examen inicial (16-oct-2026). */
+    private static Map<String, String> valores(java.util.List<com.onest.app.catalog.examen.dto.ExamItem> items) {
+        Map<String, String> m = new LinkedHashMap<>();
+        items.forEach(it -> m.put(it.fieldName(), it.value() == null ? "" : it.value()));
+        return m;
     }
 
     /**
@@ -133,6 +145,9 @@ public class ExamenController {
             org.thymeleaf.context.Context ctx = new org.thymeleaf.context.Context(new java.util.Locale("es", "MX"));
             ctx.setVariable("seccion", e.getKey());
             ctx.setVariable("items", e.getValue());
+            ctx.setVariable("valores", valores(e.getValue()));
+            ctx.setVariable("ayudas", com.onest.app.catalog.examen.service.AyudasFormato.AYUDAS);
+            ctx.setVariable("conAyuda", com.onest.app.catalog.examen.service.AyudasFormato.alguno(e.getValue()));
             html.put(e.getKey(), templateEngine.process("fragments/examen-seccion", java.util.Set.of("seccion"), ctx));
         }
         return html;

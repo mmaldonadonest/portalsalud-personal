@@ -9,10 +9,61 @@
 <div th:fragment="shell">
     <div class="card card-one">
         <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <h6 class="card-title mb-0">Examen medico &mdash; Antecedentes heredofamiliares</h6>
+            <div class="d-flex align-items-center flex-wrap gap-2">
+                <h6 class="card-title mb-0">Examen médico</h6>
+                <span class="badge bg-primary fs-6 px-3 py-2" th:text="'NSS ' + ${nss}">NSS</span>
+                <!-- Tipo de examen, solo informativo (15-oct-2026): decide el formato EMLE que se
+                     imprime. Se cambia en "Datos generales del examen" y esta etiqueta se actualiza
+                     al guardar (guardarDatosGeneralesExamen). -->
+                <style>
+                    /* un color por tipo de examen (codigos del legacy: 1 Admision ... 5 Especial) */
+                    .examen-tipo-tag { color: #fff; }
+                    .examen-tipo-tag.tipo-1 { background: #2B9138; }
+                    .examen-tipo-tag.tipo-2 { background: #0E7490; }
+                    .examen-tipo-tag.tipo-3 { background: #6938EF; }
+                    .examen-tipo-tag.tipo-4 { background: #B54708; }
+                    .examen-tipo-tag.tipo-5 { background: #475467; }
+                    .examen-tipo-tag.tipo- { background: #FDB022; color: #111; }
+                    /* Patologicos (resumen) FT-SO-17: dos columnas como el formato */
+                    /* maximo 2 columnas (una sola si el panel mide menos de ~510px) */
+                    .exapp-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(max(240px, calc(50% - 12px)), 1fr)); gap: 0 24px; }
+                    .exapp-fila { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 8px; align-items: center;
+                        padding: 5px 0; border-bottom: 1px dashed #eef0f3; }
+                    .exapp-fila .lbl { font-size: .92rem; color: #111; }
+                    .exapp-fila a.lbl { color: #0057A8; text-decoration: none; }
+                    .exapp-fila .nota { font-size: .8rem; color: #667085; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                    .exapp-fila .obs { grid-column: 1 / -1; }
+                    /* detalle en linea: la seccion APP real, a todo el ancho bajo su par de renglones */
+                    .exapp-det { grid-column: 1 / -1; margin: 6px 0 10px; border-left: 3px solid #0057A8; padding-left: 10px; }
+                    .exapp-det .exsec { margin-bottom: 0 !important; }
+                    /* dentro del detalle la seccion no es "tarjeta dentro de tarjeta": sin borde, fondo
+                       ni relleno propios (la barra azul ya la marca). Eran ~80px por lado de anidamiento
+                       que encogian el odontograma y los renglones en pantallas angostas (16-oct-2026) */
+                    #examenAccordion .accordion-body { padding: 12px; }
+                    .exapp-det { padding-left: 8px; }
+                    .exapp-det > .exsec { background: transparent !important; border: 0 !important; box-shadow: none; }
+                    .exapp-det > .exsec > .card-header { background: transparent; border-bottom: 0; padding-left: 0 !important; padding-right: 0 !important; }
+                    .exapp-det > .exsec > .card-body { padding: 4px 0 0; }
+                    .exapp-fila.abierta a.lbl i { display: inline-block; transform: rotate(180deg); }
+                    .exapp-fila .nota.hallazgo { color: #B42318; }
+                    .exlista-ok { padding: 1px 8px; font-size: .8rem; }
+                    /* al abrir un grupo se lleva su encabezado arriba, sin quedar bajo la barra fija */
+                    #examenAccordion .examen-grupo { scroll-margin-top: 90px; }
+                    .exapp-btns .btn { min-width: 44px; padding: 2px 8px; font-size: .85rem; color: #111; }
+                    .exapp-btns .btn.activo-no { background: #2B9138; border-color: #2B9138; color: #fff; }
+                    .exapp-btns .btn.activo-si { background: #B42318; border-color: #B42318; color: #fff; }
+                    /* El FT-SO-17 (periodico) no pide heredofamiliares ni APNP (solo inmunizaciones):
+                       se ocultan sin quitarlos del DOM, para no perder lo capturado si cambia el tipo */
+                    #examenAccordion.tipo-2 .solo-ftso04 { display: none !important; }
+                    #examenAccordion:not(.tipo-2) .solo-ftso17 { display: none !important; }
+                </style>
+                <span id="examenTipoTag" class="badge fs-6 px-3 py-2 examen-tipo-tag"
+                      th:classappend="${'tipo-' + datosGenerales.tipoExamen}"
+                      th:text="${datosGenerales.tipoExamen == ''} ? 'Sin tipo de examen' : ${tiposExamen[datosGenerales.tipoExamen]}">Periódico</span>
+            </div>
             <!-- Mismas dos acciones que el menu "Examen medico" del PHP (Abrir / Imprimir expediente),
                  aqui en el card porque el sidebar del theme es global, no contextual por modulo. -->
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 ms-auto">
                 <button type="button" class="btn btn-sm btn-outline-secondary" id="btnAbrirTodoExamen"
                         title="Expandir todos los grupos y cargar todas las secciones"
                         onclick="abrirTodoExamen(this);">
@@ -24,7 +75,6 @@
                         onclick="window.open(this.dataset.url, '_blank');">
                     <i class="ri-printer-line me-1"></i>Imprimir expediente
                 </button>
-                <span class="badge bg-primary" th:text="'NSS ' + ${nss}">NSS</span>
             </div>
         </div>
         <div class="card-body">
@@ -37,33 +87,64 @@
               NO borra lo que no hayas guardado. Ver cargarPaneExamen/actualizarBadgeGrupoExamen
               en nss-search.html.
             -->
-            <div class="accordion examen-accordion mb-3" id="examenAccordion">
-                <div class="accordion-item examen-grupo" th:each="g, gStat : ${grupos}">
+            <div class="accordion examen-accordion mb-3" id="examenAccordion"
+                 th:classappend="${'tipo-' + datosGenerales.tipoExamen}">
+                <div class="accordion-item examen-grupo" th:each="g, gStat : ${grupos}"
+                     th:classappend="${g.nombre == 'Antecedentes heredofamiliares'} ? 'solo-ftso04' : ''">
                     <h2 class="accordion-header" th:id="|examenGrupoHeader${gStat.index}|">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                                 th:attr="data-bs-target='#examenGrupoBody' + ${gStat.index}, aria-controls='examenGrupoBody' + ${gStat.index}"
                                 aria-expanded="false">
                             <span th:text="${g.nombre}">Grupo</span>
+                            <span class="solo-ftso17 ms-1" th:if="${g.nombre == 'Antecedentes personales no patológicos'}">"Inmunizaciones"</span>
                             <span class="badge examen-grupo-badge ms-2 d-none">0</span>
                         </button>
                     </h2>
                     <div class="accordion-collapse collapse" th:id="|examenGrupoBody${gStat.index}|"
                          th:attr="aria-labelledby='examenGrupoHeader' + ${gStat.index}" data-bs-parent="#examenAccordion">
-                        <div class="accordion-body">
-                            <ul class="nav nav-tabs examen-tabs" role="tablist">
-                                <li class="nav-item" role="presentation" th:each="s, sStat : ${g.secciones}">
+                        <div class="accordion-body" th:with="esApp=${g.nombre == 'Antecedentes personales patológicos'},
+                                    esLista=${g.nombre == 'Antecedentes heredofamiliares' or g.nombre == 'Exploración física'},
+                                    conResumen=${esApp or esLista},
+                                    activo=${conResumen} ? -1 : (${datosGenerales.tipoExamen == '2' and g.secciones[0] == 'APNP (no patológicos)'} ? 1 : 0)">
+                            <!-- Grupos con muchas pestanas (16-oct-2026): pantalla unica con un renglon por
+                                 categoria/seccion y su detalle debajo al picar el nombre. Patologicos usa las
+                                 24 categorias del FT-SO-17 (exAppResumen); heredofamiliares y exploracion,
+                                 un renglon por seccion con su estado (exListaResumen). Las pestanas siguen
+                                 en el DOM, ocultas; este enlace las muestra si hiciera falta. -->
+                            <div class="text-end mb-1" th:if="${conResumen}">
+                                <a href="#" class="fs-sm" onclick="exAppVerPestanas(this); return false;">Ver por pestañas</a>
+                            </div>
+                            <ul class="nav nav-tabs examen-tabs" role="tablist" th:classappend="${conResumen} ? 'd-none' : ''">
+                                <th:block th:each="s, sStat : ${g.secciones}">
+                                <!-- Patologicos como el FT-SO-17 (15-oct-2026): un renglon por categoria con
+                                     NEGADOS; lo pinta exAppResumen (nss-search.html) sobre los campos de las
+                                     pestanas APP de este grupo. No tiene campos propios ni va al servidor.
+                                     Va justo antes de las pestanas APP, despues de AGO, como en el formato. -->
+                                <li class="nav-item" role="presentation" th:if="${conResumen and sStat.index == 0}">
+                                    <button class="nav-link active fw-semibold" type="button" role="tab" data-bs-toggle="tab"
+                                            th:attr="data-bs-target='#examenPane' + ${gStat.index} + '_res', aria-controls='examenPane' + ${gStat.index} + '_res', data-nss=${nss}"
+                                            aria-selected="true">
+                                        <i class="ri-list-check-2 me-1"></i><th:block th:text="${esApp} ? 'Patológicos (resumen)' : 'Resumen'">Resumen</th:block>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation" th:classappend="${s == 'APNP (no patológicos)'} ? 'solo-ftso04' : ''">
                                     <button class="nav-link" type="button" role="tab" data-bs-toggle="tab"
-                                            th:classappend="${sStat.index == 0} ? ' active' : ''"
-                                            th:attr="data-bs-target='#examenPane' + ${gStat.index} + '_' + ${sStat.index}, aria-controls='examenPane' + ${gStat.index} + '_' + ${sStat.index}, aria-selected=${sStat.index == 0}, data-seccion=${s}, data-nss=${nss}, data-checked=false">
+                                            th:classappend="${sStat.index == activo} ? ' active' : ''"
+                                            th:attr="data-bs-target='#examenPane' + ${gStat.index} + '_' + ${sStat.index}, aria-controls='examenPane' + ${gStat.index} + '_' + ${sStat.index}, aria-selected=${sStat.index == activo}, data-seccion=${s}, data-nss=${nss}, data-checked=false">
                                         <i class="ri-checkbox-blank-circle-line examen-tab-check me-1"
                                            title="Marcar seccion como revisada" onclick="toggleTabCheck(this, event);"></i>
                                         <span th:text="${s}">Seccion</span>
                                     </button>
                                 </li>
+                                </th:block>
                             </ul>
                             <div class="tab-content examen-tab-content">
+                                <div class="tab-pane fade show active" th:if="${conResumen}"
+                                     th:id="|examenPane${gStat.index}_res|" th:attr="data-resumen=${esApp} ? 'app' : 'lista'">
+                                    <div class="text-muted fs-sm py-2">Selecciona esta pestaña para cargarla.</div>
+                                </div>
                                 <div class="tab-pane fade" th:each="s, sStat : ${g.secciones}"
-                                     th:classappend="${sStat.index == 0} ? ' show active' : ''"
+                                     th:classappend="${sStat.index == activo} ? ' show active' : ''"
                                      th:id="|examenPane${gStat.index}_${sStat.index}|"
                                      th:attr="data-seccion=${s}">
                                     <div class="text-muted fs-sm py-2">Selecciona esta pestaña para cargarla.</div>

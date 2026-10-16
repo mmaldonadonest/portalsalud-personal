@@ -50,6 +50,13 @@ public final class ValidadorNss {
     static final String AVISO_NEGATIVO = "negativo: entra tal cual; revisar (en el Excel viejo suele ser "
             + "una formula sin fechas, -3 dias x pago 60%)";
 
+    static final String AVISO_INTERNA = "incapacidad interna sin este dato: entra (no aplica a internas)";
+
+    /** AREA y RAMO de incapacidades: obligatorios en IMSS, opcionales en INTERNA (ver validar()). */
+    private boolean opcionalSiInterna(CampoNss c) {
+        return layout == LayoutNss.INCAPACIDADES && ("AREA".equals(c.columna()) || "RAMO".equals(c.columna()));
+    }
+
     // STRICT: sin esto "31/02/2026" se "ajustaba" en silencio a 28/02 (visto en la prueba del 10-oct)
     private static final List<DateTimeFormatter> FORMATOS_FECHA = List.of(
             DateTimeFormatter.ISO_LOCAL_DATE,                 // lo que entrega LectorXlsx
@@ -86,6 +93,9 @@ public final class ValidadorNss {
             for (CampoNss c : l.campos()) {
                 Integer p = c.encabezadosAceptados().stream().map(e -> posicion.get(CatalogosNss.clave(e)))
                         .filter(java.util.Objects::nonNull).findFirst().orElse(null);
+                if (p == null && c.puedeFaltar()) {
+                    continue;   // columna nueva que una version anterior de la plantilla no trae: entra vacia
+                }
                 if (p == null) {
                     completo = false;
                     break;
@@ -105,6 +115,7 @@ public final class ValidadorNss {
         StringBuilder sb = new StringBuilder();
         for (LayoutNss l : LayoutNss.values()) {
             List<String> faltan = l.campos().stream()
+                    .filter(c -> !c.puedeFaltar())
                     .filter(c -> c.encabezadosAceptados().stream().noneMatch(e -> claves.contains(CatalogosNss.clave(e))))
                     .map(CampoNss::encabezado).toList();
             sb.append("\n    ").append(l.hoja()).append(": faltan ").append(faltan);
@@ -121,6 +132,8 @@ public final class ValidadorNss {
         List<Error> errores = new ArrayList<>();
         List<Error> avisos = new ArrayList<>();
         List<String> marcadas = new ArrayList<>();   // campos MARCA en 1, en el orden del layout
+        // Obligatorios vacios que dependen del RUBRO (se lee despues en el renglon): se deciden al final
+        List<CampoNss> pendientesInterna = new ArrayList<>();
         for (Map.Entry<CampoNss, Integer> e : indices.entrySet()) {
             CampoNss c = e.getKey();
             String crudo = fila.valor(e.getValue());
@@ -136,7 +149,9 @@ public final class ValidadorNss {
                 continue;
             }
             if (v.isEmpty()) {
-                if (c.obligatorio()) {
+                if (c.obligatorio() && opcionalSiInterna(c)) {
+                    pendientesInterna.add(c);
+                } else if (c.obligatorio()) {
                     errores.add(new Error(fila.numero(), c.encabezado(), "", "es obligatorio"));
                 }
                 continue;
@@ -152,8 +167,24 @@ public final class ValidadorNss {
                 if (c.negativoConAviso() && valor instanceof BigDecimal n && n.signum() < 0) {
                     avisos.add(new Error(fila.numero(), c.encabezado(), v, AVISO_NEGATIVO));
                 }
+                // Variante conocida del catalogo (OFTALMOLOGICA -> OFTALMICO): entra con el valor oficial
+                if (c.tipo() == CampoNss.Tipo.CATALOGO && valor != null
+                        && !CatalogosNss.clave(v).equals(CatalogosNss.clave(valor.toString()))) {
+                    avisos.add(new Error(fila.numero(), c.encabezado(), v, "se guardo como " + valor));
+                }
             } catch (IllegalArgumentException ex) {
                 errores.add(new Error(fila.numero(), c.encabezado(), v, ex.getMessage()));
+            }
+        }
+        // Incapacidad INTERNA sin AREA o RAMO (14-oct-2026): en los Excel de servicio medico las internas
+        // van en hoja aparte, sin ramo (EG/MAT/RT es del IMSS) y con "departamento" en lugar de area. Se
+        // prevee desde el codigo: entran y queda AVISO en el .errores.csv para medirlo. IMSS: sigue error.
+        boolean interna = "INTERNA".equals(valores.get("RUBRO"));
+        for (CampoNss c : pendientesInterna) {
+            if (interna) {
+                avisos.add(new Error(fila.numero(), c.encabezado(), "", AVISO_INTERNA));
+            } else {
+                errores.add(new Error(fila.numero(), c.encabezado(), "", "es obligatorio"));
             }
         }
         // Regla entre columnas: una incapacidad del IMSS siempre trae folio (en 2026, el 100%)
