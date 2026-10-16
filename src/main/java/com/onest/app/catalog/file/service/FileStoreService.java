@@ -27,6 +27,9 @@ public class FileStoreService {
     private static final long MAX_BYTES = 25L * 1024 * 1024;
     // Alineado con architecture-contract.json > filesystemRules.allowedMimeTypes
     private static final Set<String> ALLOWED_EXT = Set.of("pdf", "png", "jpg", "jpeg", "docx");
+    // Laboratorio, Historico E.M. y notas: solo PDF, como uploadFile.php del legacy (16-oct-2026).
+    // Las evidencias de consultas y accidentes siguen aceptando imagen y Word.
+    private static final Set<String> TIPOS_SOLO_PDF = Set.of("laboratorio", "examen_medico", "nota_medica", "nota_incapacidad");
 
     private final FsFileRepository repository;
     private final StorageProvider storage;
@@ -57,6 +60,9 @@ public class FileStoreService {
             if (!ALLOWED_EXT.contains(extension)) {
                 throw new IllegalArgumentException("Tipo de archivo no permitido: " + originalName);
             }
+            if (TIPOS_SOLO_PDF.contains(relacion.trim()) && !"pdf".equals(extension)) {
+                throw new IllegalArgumentException("Aquí solo se aceptan archivos PDF: " + originalName);
+            }
             String mime = file.getContentType() != null ? file.getContentType() : mimeForExt(extension);
             byte[] bytes;
             try {
@@ -82,15 +88,28 @@ public class FileStoreService {
         return repository.listByNssAndType(nss, type);
     }
 
-    public boolean delete(long id) {
-        Optional<String> storagePath = repository.findStoragePathById(id);
-        int rows = repository.deleteById(id);
-        storagePath.ifPresent(storage::delete);
-        return rows > 0;
+    /**
+     * El archivo es del NSS del expediente abierto (16-oct-2026). Antes bastaba el id: cambiando el
+     * numero en la direccion se abria o borraba el archivo de otro empleado (el legacy igual).
+     * Un archivo sin NSS (no tiene dueño) se permite para no romper adjuntos viejos.
+     */
+    private boolean esDelNss(long id, String nss) {
+        String pedido = nss == null ? "" : nss.trim();
+        return !pedido.isEmpty() && repository.findNssActivo(id)
+                .map(dueno -> dueno.isEmpty() || dueno.equals(pedido))
+                .orElse(false);
     }
 
-    /** Lee el binario desde el filesystem para servirlo (descarga/inline). */
-    public Optional<MedFileContent> get(long id) {
+    /** Borrado logico: el archivo deja de verse pero se conserva (ver FsFileRepository.markDeleted). */
+    public boolean delete(long id, String nss) {
+        return esDelNss(id, nss) && repository.markDeleted(id, usuarioActual()) > 0;
+    }
+
+    /** Lee el binario desde el filesystem para servirlo (descarga/inline), solo si es del NSS. */
+    public Optional<MedFileContent> get(long id, String nss) {
+        if (!esDelNss(id, nss)) {
+            return Optional.empty();
+        }
         return repository.findLocation(id)
                 .map(loc -> new MedFileContent(loc.name(), loc.mimeType(), storage.read(loc.storagePath())));
     }

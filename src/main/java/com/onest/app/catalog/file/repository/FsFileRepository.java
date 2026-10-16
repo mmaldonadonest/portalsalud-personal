@@ -88,6 +88,15 @@ public class FsFileRepository {
         return count != null && count > 0;
     }
 
+    /** NSS dueño de un archivo activo ("" si no tiene); vacio si no existe o esta borrado. */
+    public Optional<String> findNssActivo(long id) {
+        List<String> list = jdbc.query(
+                "SELECT NSS FROM SERV_MED_FS_FILE WHERE ID = ? AND STATUS = 'ACTIVE'",
+                (rs, i) -> rs.getString("NSS") == null ? "" : rs.getString("NSS").trim(),
+                id);
+        return list.stream().findFirst();
+    }
+
     /** Ubicacion (nombre + mime + ruta) para descargar un archivo activo. */
     public Optional<StoredFileLocation> findLocation(long id) {
         List<StoredFileLocation> list = jdbc.query(
@@ -124,13 +133,21 @@ public class FsFileRepository {
         }
         return jdbc.query(
                 "SELECT ID, ORIGINAL_NAME, SIZE_BYTES, DATE_UPLOAD, MIME_TYPE FROM SERV_MED_FS_FILE "
-                        + "WHERE NSS = ? AND FILE_TYPE = ? AND STATUS = 'ACTIVE' ORDER BY ID DESC",
+                        // por fecha de subida: los migrados del legacy no entraron en orden de fecha
+                        + "WHERE NSS = ? AND FILE_TYPE = ? AND STATUS = 'ACTIVE' ORDER BY DATE_UPLOAD DESC NULLS LAST, ID DESC",
                 META_MAPPER,
                 nss.trim(), fileType);
     }
 
-    public int deleteById(long id) {
-        return jdbc.update("DELETE FROM SERV_MED_FS_FILE WHERE ID = ?", id);
+    /**
+     * Borrado LOGICO (16-oct-2026, decision del usuario: son documentos del expediente medico).
+     * La fila queda con STATUS='DELETED' (permitido por SERV_MED_CK_FS_FILE_STATUS) y el binario se
+     * queda en disco; todas las lecturas filtran STATUS='ACTIVE', asi que deja de verse y de
+     * descargarse. Se recupera con un UPDATE de STATUS a 'ACTIVE'.
+     */
+    public int markDeleted(long id, String usuario) {
+        return jdbc.update("UPDATE SERV_MED_FS_FILE SET STATUS = 'DELETED', UPDATED_AT = SYSTIMESTAMP, UPDATED_BY = ? "
+                + "WHERE ID = ? AND STATUS = 'ACTIVE'", usuario, id);
     }
 
     private static final RowMapper<MedFileMeta> META_MAPPER = (rs, i) -> new MedFileMeta(

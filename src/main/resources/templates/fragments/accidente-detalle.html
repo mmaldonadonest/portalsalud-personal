@@ -100,9 +100,9 @@
                 </span>
                 <span class="d-flex gap-2">
                     <a class="btn btn-sm btn-outline-primary" target="_blank" title="Descargar"
-                       th:href="@{'/api/nss/consulta/file/' + ${e.id}}"><i class="ri-download-2-line"></i></a>
+                       th:href="@{'/api/nss/consulta/file/' + ${e.id}(nss=${nss})}"><i class="ri-download-2-line"></i></a>
                     <button type="button" class="btn btn-sm btn-outline-danger" title="Borrar"
-                            th:attr="data-id=${e.id}, data-accidente-regid=${accidenteRegId}"
+                            th:attr="data-id=${e.id}, data-accidente-regid=${accidenteRegId}, data-nss=${nss}, data-nombre=${e.name}"
                             onclick="borrarEvidenciaAccidente(this);"><i class="ri-delete-bin-line"></i></button>
                 </span>
             </li>

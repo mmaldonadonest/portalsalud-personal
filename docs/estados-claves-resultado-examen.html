@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claves del resultado del examen</title>
+<style>
+  body { margin: 0; background: #fff; color: #000; font: 15px/1.5 Arial, Helvetica, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 24px 16px 40px; }
+  h1 { font-size: 1.3rem; margin: 0 0 4px; }
+  h2 { font-size: 1.05rem; margin: 26px 0 8px; }
+  p.sub { color: #444; margin: 0 0 16px; }
+  table { border-collapse: collapse; width: 100%; background: #fff; color: #000; }
+  th, td { border: 1px solid #000; padding: 6px 10px; text-align: left; vertical-align: top; background: #fff; color: #000; }
+  th { font-weight: bold; }
+  td.clave { text-align: center; font-weight: bold; width: 70px; }
+  ol li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Claves del resultado del examen médico</h1>
+  <p class="sub">Equivalencia entre la tabla de estatus de Servicio Médico, el Portal Salud y los formatos EMLE · 16-oct-2026</p>
+
+  <table>
+    <tr>
+      <th>Clave</th>
+      <th>Estatus (tabla de Servicio Médico)</th>
+      <th>Portal Salud</th>
+      <th>Cómo aparece en los formatos EMLE</th>
+    </tr>
+    <tr>
+      <td class="clave">15</td>
+      <td>APTO</td>
+      <td>Apto</td>
+      <td>APTO 15 (los 7 formatos)</td>
+    </tr>
+    <tr>
+      <td class="clave">30</td>
+      <td>NO APTO</td>
+      <td>No apto</td>
+      <td>CLAVE 30 (los 7 formatos)</td>
+    </tr>
+    <tr>
+      <td class="clave">45</td>
+      <td>CONDICIONADO</td>
+      <td>Apto condicionado</td>
+      <td>APTO 45 (FT-SO-04, 13, 17); APTO 1945 (FT-SO-16, 18); APTO CONDICIONADO 45 (FT-SO-19, 20)</td>
+    </tr>
+    <tr>
+      <td class="clave">60</td>
+      <td>INCLUSIÓN</td>
+      <td>Apto restringido (en OCR: Apto inclusión)</td>
+      <td>CLAVE 60 (los 7 formatos)</td>
+    </tr>
+  </table>
+
+  <h2>Confirmado</h2>
+  <ol>
+    <li>CLAVE 30 = No apto y CLAVE 60 = Inclusión.</li>
+    <li>APTO 45 = Condicionado; «APTO 1945» (FT-SO-16 y 18) es error del formato.</li>
+    <li>La clave no se imprime ni se muestra en el portal: se queda el texto actual del dictamen.</li>
+  </ol>
+
+  <h2>Pendiente de confirmar con Servicio Médico</h2>
+  <ol start="4">
+    <li>¿«Apto restringido» (texto al pie de los formatos) e «Inclusión» son el mismo estatus?</li>
+  </ol>
+</main>
+</body>
+</html>

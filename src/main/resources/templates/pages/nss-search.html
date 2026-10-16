@@ -778,26 +778,69 @@
 
             window.guardarDatosGeneralesExamen = function (btn) {
                 guardarRegistro(btn, { formId: 'datosGeneralesExamenForm', savePath: 'api/nss/examen/datos-generales/save', fileInputId: '__none__', label: 'datos generales del examen', resultElId: 'datosGeneralesExamenResult',
-                    // la etiqueta del tipo en el encabezado del modulo refleja lo guardado (15-oct-2026)
+                    // al guardar, la etiqueta pierde el "(sin guardar)" (15-oct-2026)
                     onSuccess: function () {
                         var sel = document.getElementById('examenTipo');
-                        var tag = document.getElementById('examenTipoTag');
-                        if (!sel || !tag) { return; }
-                        var sinTipo = !sel.value;
-                        tag.textContent = sinTipo ? 'Sin tipo de examen' : sel.options[sel.selectedIndex].text;
-                        tag.className = 'badge fs-6 px-3 py-2 examen-tipo-tag tipo-' + sel.value;
-                        // Periodico oculta heredofamiliares y APNP (examen-shell.html, .solo-ftso04);
-                        // si la pestana activa quedo oculta, se pasa a la primera visible del grupo
-                        var acordeon = document.getElementById('examenAccordion');
-                        if (!acordeon) { return; }
-                        acordeon.className = acordeon.className.replace(/\btipo-\S*/g, '').trim() + ' tipo-' + sel.value;
-                        acordeon.querySelectorAll('.examen-tabs').forEach(function (ul) {
-                            var activa = ul.querySelector('.nav-link.active');
-                            if (!activa || !activa.closest('.solo-ftso04') || sel.value !== '2') { return; }
-                            var visible = [].find.call(ul.querySelectorAll('.nav-item'), function (li) { return !li.classList.contains('solo-ftso04'); });
-                            if (visible) { bootstrap.Tab.getOrCreateInstance(visible.querySelector('.nav-link')).show(); }
-                        });
+                        if (sel) { exAplicarTipo(sel.value, true); }
                     } });
+            };
+
+            // Acomoda el modulo al formato del tipo (16-oct-2026): al ELEGIR el tipo (vista previa,
+            // "(sin guardar)") y al guardarlo. Cada tipo ve lo de su formato (VisibilidadTipo.java,
+            // clases "ocultar-en-N"); si la pestana activa quedo oculta pasa a la primera visible y
+            // los resumenes por seccion se repintan. Deja un log en la consola para validar.
+            window.exAplicarTipo = function (valor, guardado) {
+                var sel = document.getElementById('examenTipo');
+                var tag = document.getElementById('examenTipoTag');
+                if (!sel || !tag) { return; }
+                var sinTipo = !valor;
+                var nombre = sinTipo ? 'Sin tipo de examen' : sel.options[sel.selectedIndex].text;
+                tag.textContent = nombre + (guardado ? '' : ' (sin guardar)');
+                // aviso: Admision (1) es el examen inicial y se captura en su propio menu
+                var aviso = document.getElementById('examenAvisoInicial');
+                if (aviso) { aviso.classList.toggle('d-none', valor !== '1'); }
+                tag.className = 'badge fs-6 px-3 py-2 examen-tipo-tag tipo-' + valor;
+                var fmt = document.getElementById('examenFormatoTag');
+                if (fmt) {
+                    var mapa = {};
+                    (fmt.getAttribute('data-formatos') || '').split(',').forEach(function (p) { var kv = p.split('='); mapa[kv[0]] = kv[1]; });
+                    fmt.textContent = mapa[valor] || '';
+                    fmt.classList.toggle('d-none', sinTipo);
+                }
+                var acordeon = document.getElementById('examenAccordion');
+                if (!acordeon) { return; }
+                acordeon.className = acordeon.className.replace(/\btipo-\S*/g, '').trim() + ' tipo-' + valor;
+                var extra = document.getElementById('examenExtraAccordion');
+                if (extra) { extra.className = extra.className.replace(/\btipo-\S*/g, '').trim() + ' tipo-' + valor; }
+                acordeon.querySelectorAll('.examen-tabs').forEach(function (ul) {
+                    var activa = ul.querySelector('.nav-link.active');
+                    if (!activa || !exOcultoTipo(activa)) { return; }
+                    var visible = [].find.call(ul.querySelectorAll('.nav-item'), function (li) { return !exOcultoTipo(li); });
+                    if (visible) { bootstrap.Tab.getOrCreateInstance(visible.querySelector('.nav-link')).show(); }
+                });
+                acordeon.querySelectorAll('.tab-pane[data-resumen="lista"]').forEach(function (p) {
+                    if (p.querySelector('.exapp-lista')) { exListaResumen(p); }
+                });
+                var visibles = function (raiz) {
+                    return raiz ? [].filter.call(raiz.querySelectorAll(':scope > .accordion-item'), function (g) { return getComputedStyle(g).display !== 'none'; })
+                        .map(function (g) { return g.querySelector('.accordion-button').textContent.trim().replace(/\s+/g, ' '); }) : [];
+                };
+                console.info('[examen] tipo ' + (valor || '(vacío)') + ' «' + nombre + '» ' + (fmt ? fmt.textContent : '')
+                        + (guardado ? ' (guardado)' : ' (sin guardar)') + '\n  grupos: ' + visibles(acordeon).join(' | ')
+                        + '\n  otros datos: ' + visibles(extra).join(' | '));
+            };
+
+            // " FT-SO-xx" del tipo actual (examen-shell.html, #examenFormatoTag) o "" sin tipo
+            window.exFormatoActual = function () {
+                var fmt = document.getElementById('examenFormatoTag');
+                return fmt && !fmt.classList.contains('d-none') && fmt.textContent.trim() ? ' ' + fmt.textContent.trim() : '';
+            };
+
+            // true si el elemento (o su grupo/seccion) no va en el tipo de examen actual
+            window.exOcultoTipo = function (el) {
+                var acordeon = document.getElementById('examenAccordion');
+                var m = acordeon ? /(?:^|\s)tipo-(\S*)/.exec(acordeon.className) : null;
+                return !!(el && m && el.closest('.ocultar-en-' + m[1]));
             };
 
             // ===== Examen medico inicial (fragments/examen-inicial-shell.html) =====
@@ -1961,13 +2004,18 @@
                 var id = btn.getAttribute('data-id');
                 var nss = btn.getAttribute('data-nss') || (input.value || '').trim();
                 var tipo = btn.getAttribute('data-tipo');
+                // Confirmar como el legacy (Swal). El borrado es logico: deja de verse pero se conserva
+                var nombre = btn.getAttribute('data-nombre') || 'este archivo';
+                if (!window.confirm('¿Borrar «' + nombre + '»? Dejará de verse en el expediente.')) {
+                    return;
+                }
                 var headers = {};
                 var csrf = form.querySelector('input[type="hidden"][name]');
                 if (csrf) {
                     headers['X-CSRF-TOKEN'] = csrf.value;
                 }
                 try {
-                    var response = await fetch(contextPath + 'api/nss/consulta/file/' + encodeURIComponent(id) + '/delete', {
+                    var response = await fetch(contextPath + 'api/nss/consulta/file/' + encodeURIComponent(id) + '/delete?nss=' + encodeURIComponent(nss), {
                         method: 'POST', headers: headers
                     });
                     if (response.ok) {
@@ -2232,7 +2280,7 @@
                         + '</div>';
                 });
                 pane.innerHTML = '<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">'
-                    + '<span class="fs-sm text-muted">Como el formato FT-SO-17: «NEGADOS» en lo que no aplique; marca Sí solo donde haya antecedente.</span>'
+                    + '<span class="fs-sm text-muted">Como el formato' + exFormatoActual() + ': «NEGADOS» en lo que no aplique; marca Sí solo donde haya antecedente.</span>'
                     + '<button type="button" class="btn btn-sm btn-outline-success" onclick="exAppTodoNormal(this)"><i class="ri-check-double-line me-1"></i>Todo normal</button></div>'
                     + '<div class="exapp-lista">' + filas.join('') + '</div>';
                 if (detIdx !== null) {
@@ -2454,7 +2502,7 @@
                     } catch (e) { /* las que falten se piden una por una */ }
                     for (var i = 0; i < faltan.length; i++) { await cargarPaneExamen(faltan[i]); }
                 }
-                var filas = panes.map(function (p) {
+                var filas = panes.filter(function (p) { return !exOcultoTipo(p); }).map(function (p) {
                     var sec = p.querySelector('.exsec');
                     var normal = sec ? sec.querySelector('.card-header [onclick^="exSecTodoNormal"]') : null;
                     var nombre = p.getAttribute('data-seccion');
@@ -2466,7 +2514,7 @@
                         + (normal ? '<button type="button" class="btn btn-sm btn-outline-success exlista-ok" title="Todo normal en esta sección" onclick="exListaNormal(this)"><i class="ri-check-line"></i></button>' : '<span></span>')
                         + '</div>';
                 });
-                var todos = panes.some(function (p) { return p.querySelector('.card-header [onclick^="exSecTodoNormal"]'); });
+                var todos = panes.some(function (p) { return !exOcultoTipo(p) && p.querySelector('.card-header [onclick^="exSecTodoNormal"]'); });
                 pane.innerHTML = '<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">'
                     + '<span class="fs-sm text-muted">Pica el nombre para capturar la sección; la palomita aplica «Todo normal» en lo vacío.</span>'
                     + (todos ? '<button type="button" class="btn btn-sm btn-outline-success" onclick="exListaTodoNormal(this)"><i class="ri-check-double-line me-1"></i>Todo normal</button>' : '')
@@ -2720,7 +2768,8 @@
                 // cualquier guardado tras "Abrir todo", incluso cambiar la firma.
                 var diagEl = document.getElementById('examenDiagnostico');
                 var dictamenEl = document.querySelector('select[name="SERV_MED_RESULTADO_EXAMEN.DICTAMEN"]');
-                if (diagEl && !diagEl.value.trim() && dictamenEl && dictamenEl.value) {
+                // FT-SO-19 no trae Diagnostico: en ese tipo no se exige (VisibilidadTipo)
+                if (diagEl && !exOcultoTipo(diagEl) && !diagEl.value.trim() && dictamenEl && dictamenEl.value) {
                     pintarResultadoInline(document.getElementById('examenGuardarResult'),
                             'Para guardar un dictamen selecciona al menos un diagnóstico del catálogo ICD (Cierre → Diagnóstico → Buscar diagnóstico).', true);
                     // Llevar al usuario al campo: abrir el grupo y la pestana de Diagnostico, y
@@ -2953,13 +3002,18 @@
             window.borrarEvidenciaAccidente = async function (btn) {
                 var id = btn.getAttribute('data-id');
                 var regId = btn.getAttribute('data-accidente-regid');
+                var nssEv = btn.getAttribute('data-nss') || (input.value || '').trim();
+                var nombreEv = btn.getAttribute('data-nombre') || 'esta evidencia';
+                if (!window.confirm('¿Borrar «' + nombreEv + '»? Dejará de verse en el expediente.')) {
+                    return;
+                }
                 var headers = {};
                 var csrf = form.querySelector('input[type="hidden"][name]');
                 if (csrf) {
                     headers['X-CSRF-TOKEN'] = csrf.value;
                 }
                 try {
-                    var response = await fetch(contextPath + 'api/nss/consulta/file/' + encodeURIComponent(id) + '/delete', {
+                    var response = await fetch(contextPath + 'api/nss/consulta/file/' + encodeURIComponent(id) + '/delete?nss=' + encodeURIComponent(nssEv), {
                         method: 'POST', headers: headers
                     });
                     if (response.ok) {

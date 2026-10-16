@@ -49,9 +49,15 @@ public class DatosGeneralesExamenService {
         Map<String, String> m = new LinkedHashMap<>();
         m.put("1", "Admisión");
         m.put("2", "Periódico");
-        m.put("3", "Cambio de rol");
+        // "Cambio de puesto" como el FT-SO-16 (el legacy decia "Cambio de rol"; mismo codigo 3)
+        m.put("3", "Cambio de puesto");
         m.put("4", "Post incapacidad");
         m.put("5", "Especial");
+        // 16-oct-2026: los formatos EMLE que no tenian tipo. Codigos nuevos (el legacy llegaba a 5);
+        // el WS no los ve, viven en el tag tipoExamenInputO. Que ve cada uno: VisibilidadTipo.
+        m.put("6", "Egreso");
+        m.put("7", "Inicial mantenimiento");
+        m.put("8", "Periódico mantenimiento");
         TIPOS = Collections.unmodifiableMap(m);
     }
 
@@ -89,6 +95,21 @@ public class DatosGeneralesExamenService {
     @Transactional
     public void guardar(String nss, Map<String, String> campos) {
         String limpio = normalizeNss(nss);
+        // Admision (1) es el examen inicial: se captura en su modulo (16-oct-2026). Desde el
+        // Examen medico solo se conserva si el NSS ya lo tenia; no se cambia otro examen a Admision.
+        if ("1".equals(limpio(campos.get("tipoExamen"))) && !"1".equals(limpio(cargar(limpio).tipoExamen()))) {
+            throw new IllegalArgumentException("Admisión es el examen inicial: se captura en el menú «Examen médico inicial»");
+        }
+        guardarCampos(limpio, campos);
+    }
+
+    /** Lo usa el modulo Examen medico inicial al finalizar: ahi SI nace el tipo Admision. */
+    @Transactional
+    public void guardarDesdeInicial(String nss, Map<String, String> campos) {
+        guardarCampos(normalizeNss(nss), campos);
+    }
+
+    private void guardarCampos(String limpio, Map<String, String> campos) {
         String tipo = limpio(campos.get("tipoExamen"));
         if (!tipo.isEmpty() && !TIPOS.containsKey(tipo)) {
             throw new IllegalArgumentException("Tipo de examen no válido");

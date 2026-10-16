@@ -24,6 +24,9 @@ docs/script-prod/verificacion
 docs/script-prod/acentos_verif
 /excel-loader/target/
 
+# Archivos de bloqueo que crea Excel mientras un .xlsx esta abierto
+~$*
+
 # Bitacoras locales y cache de Python
 /logs/
 __pycache__/

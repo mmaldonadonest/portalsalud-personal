@@ -116,6 +116,11 @@ public class ExamenService {
         return new Campo(tag, l, "DATE", false, tag);
     }
 
+    /** Campo que solo existe en SERV_MED_TAG con el control indicado (SINO, OPCION, AREA, DATE...). */
+    private static Campo tagCampo(String tipo, String tag, String l) {
+        return new Campo(tag, l, tipo, false, tag);
+    }
+
     /** Prefijo de las claves de formulario que van a SERV_MED_TAG y no al WS. */
     private static final String PREFIJO_TAG = "TAG.";
     private static final String GRUPO_TAG_FISICO = "EXAMEN_FISICO";
@@ -133,6 +138,48 @@ public class ExamenService {
                 text("edad_inicio_laboral", "Edad al iniciar a laborar"),
                 text("cantidad_trabajos", "¿Cuántos trabajos ha tenido?"),
                 sinoTexto("pension", "Pensión IMSS o trámite pendiente (ST2/ST3/ST4/ST7/ST9)"))));
+
+        // ---- Bloques propios de los formatos EMLE (16-oct-2026). Sin tabla en el WS: todo en
+        // SERV_MED_TAG (prefijo EXM_). Que tipo ve cada uno: VisibilidadTipo. ----
+        // FT-SO-17 / 18 / 20: antecedentes laborales del periodico; turno, antiguedad y motivo de
+        // salida solo los pide el FT-SO-18 (egreso)
+        CATALOGO.put("Puesto inicial y actual", new Seccion("SERV_MED_EXM_LABORAL", List.of(
+                tagSolo("EXM_PUESTO_INICIAL", "Puesto inicial"),
+                tagSolo("EXM_PUESTO_ACTUAL", "Puesto actual"),
+                tagSolo("EXM_TURNO_SALIDA", "Turno"),
+                tagSolo("EXM_ANTIGUEDAD", "Antigüedad"),
+                tagSolo("EXM_MOTIVO_SALIDA", "Motivo de salida"))));
+        // FT-SO-19 / 20: trabajos de riesgo del personal de mantenimiento
+        CATALOGO.put("Antecedentes laborales específicos", new Seccion("SERV_MED_EXM_ESPECIFICOS", List.of(
+                tagCampo("SINO", "EXM_ESP_ALTURA", "Trabajo en altura"),
+                tagCampo("SINO", "EXM_ESP_CALIENTE", "Trabajo en caliente"),
+                tagCampo("SINO", "EXM_ESP_CONFINADOS", "Espacios confinados"),
+                tagCampo("SINO", "EXM_ESP_CERTIFICADO", "¿Está certificado en trabajo de...?"),
+                tagCampo("SINO", "EXM_ESP_EXAMEN_ANIO", "¿Aprobó el examen médico hace menos de un año?"),
+                tagCampo("SINO", "EXM_ESP_MEDICAMENTOS", "¿Ha tomado medicamentos en las últimas 24 h?"),
+                tagSolo("EXM_ESP_MEDICAMENTOS_CUALES", "¿Cuáles medicamentos?"),
+                tagCampo("SINO", "EXM_ESP_EPILEPSIA", "¿Sufre de epilepsia, mareos o vértigo?"),
+                tagCampo("SINO", "EXM_ESP_AEROFOBIA", "¿Miedo a las alturas (aerofobia)?"),
+                tagCampo("SINO", "EXM_ESP_ASMA", "¿Sufre de asma, alergias o hiperactividad bronquial?"),
+                tagCampo("SINO", "EXM_ESP_PULMONAR_CARDIACA", "¿Padece alguna enfermedad pulmonar o cardiaca?"),
+                tagCampo("SINO", "EXM_ESP_CLAUSTROFOBIA", "¿Miedo a áreas cerradas (claustrofobia)?"))));
+        // FT-SO-16: en lugar de antecedentes laborales
+        CATALOGO.put("Cambio de puesto", new Seccion("SERV_MED_EXM_CAMBIO_PUESTO", List.of(
+                tagSolo("EXM_PUESTO_ANTERIOR", "Puesto anterior"),
+                tagCampo("DATE", "EXM_FECHA_ING_ANTERIOR", "Fecha de ingreso (puesto anterior)"),
+                tagCampo("AREA", "EXM_MOTIVO_CAMBIO", "Motivo del cambio"),
+                tagSolo("EXM_CAMBIO_PUESTO_ACTUAL", "Puesto actual"),
+                tagCampo("DATE", "EXM_FECHA_ING_ACTUAL", "Fecha de ingreso (puesto actual)"))));
+        // FT-SO-13: la incapacidad que origina el examen. Dias, ramo, tipo y fechas se precargan de
+        // la ultima incapacidad del NSS (PrecargaFormato); diagnostico y tratamiento los escribe el medico
+        CATALOGO.put("Antecedentes de la incapacidad", new Seccion("SERV_MED_EXM_INCAPACIDAD", List.of(
+                tagCampo("AREA", "EXM_INC_DIAGNOSTICO", "Diagnóstico"),
+                tagSolo("EXM_INC_DIAS", "Días de incapacidad"),
+                tagCampo("OPCION", "EXM_INC_RAMO", "Ramo del seguro"),
+                tagCampo("OPCION", "EXM_INC_TIPO", "Tipo de incapacidad"),
+                tagCampo("DATE", "EXM_INC_INICIO", "Fecha de inicio"),
+                tagCampo("DATE", "EXM_INC_TERMINO", "Fecha de término"),
+                tagCampo("AREA", "EXM_INC_TRATAMIENTO", "Tratamiento"))));
 
         // ---- Antecedentes heredofamiliares (Slice 1): Si/No + observaciones ----
         CATALOGO.put("Neurología", new Seccion("NEUROLOGIA", List.of(
@@ -424,7 +471,13 @@ public class ExamenService {
     // Los nombres de grupo los compara examen-shell.html: si cambian, cambiarlos tambien alla.
     private static final List<Map.Entry<String, List<String>>> GRUPOS = List.of(
             Map.entry("Antecedentes laborales", List.of(
-                    "Antecedentes laborales (resumen)")),
+                    "Antecedentes laborales (resumen)", "Puesto inicial y actual")),
+            Map.entry("Antecedentes laborales específicos", List.of(
+                    "Antecedentes laborales específicos")),
+            Map.entry("Cambio de puesto", List.of(
+                    "Cambio de puesto")),
+            Map.entry("Antecedentes de la incapacidad", List.of(
+                    "Antecedentes de la incapacidad")),
             Map.entry("Antecedentes heredofamiliares", List.of(
                     "Neurología", "Cardiopatía", "Neumopatía", "Toxicológico", "Nefropatías",
                     "Endocrinas", "Obesidad", "Mentales", "Generales", "Otras",
@@ -825,7 +878,13 @@ public class ExamenService {
             if (tipo != null && (tipo.isBlank() || "0".equals(tipo.trim()))) {
                 tipo = null;
             }
-            String json = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(data);
+            // 16-oct-2026: la foto lleva tambien los tags del catalogo (lentes, pension, bloques de
+            // los formatos EMLE...). El tag se reescribe al cambiar, asi que el historico es el unico
+            // lugar donde queda el valor de cada examen cerrado.
+            Map<String, String> foto = new LinkedHashMap<>(data);
+            leerTags(nss).forEach((k, v) -> foto.put(PREFIJO_TAG + k, v));
+            foto.put(PREFIJO_TAG + "tipoExamenInputO", tipo == null ? "" : tipo);
+            String json = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(foto);
             String usuario = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() == null
                     ? "SISTEMA" : org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
             historico.registrar(nss, origen, tipo, dictamen, usuario, json);

@@ -517,7 +517,7 @@ public class ExamenInicialService {
         }
         String firmaFinal = firma != null && !firma.isBlank() ? firma : null;
         // El tag de tipo se escribe ANTES del guardado para que la foto del historico lo lleve
-        datosGeneralesExamenService.guardar(limpio, Map.of("tipoExamen", TIPO_ADMISION,
+        datosGeneralesExamenService.guardarDesdeInicial(limpio, Map.of("tipoExamen", TIPO_ADMISION,
                 "spo2", b.getOrDefault("spo2", ""), "cintura", b.getOrDefault("cintura", ""), "cadera", b.getOrDefault("cadera", "")));
         String proceso = examenService.guardar(limpio, camposWs, firmaFinal, ExamenHistoricoRepository.ORIGEN_INICIAL);
 

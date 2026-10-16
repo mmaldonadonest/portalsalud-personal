@@ -8,7 +8,7 @@
 <div th:fragment="seccion" class="card bg-light mb-3 exsec" th:attr="data-seccion=${seccion}"
      th:with="conAyuda=${conAyuda == true},
               conObs=${!#lists.isEmpty(items.?[type == 'SINO' and obsName != null])},
-              modoNormal=${conAyuda} ? 'okno' : (${conObs} ? (${seccion == 'Obesidad' or seccion == 'Otras'} ? 'sino' : 'negados') : (${#strings.startsWith(seccion, 'APP:')} ? 'sino' : ''))">
+              modoNormal=${conAyuda} ? 'okno' : (${conObs} ? (${seccion == 'Obesidad' or seccion == 'Otras'} ? 'sino' : 'negados') : (${#strings.startsWith(seccion, 'APP:') or seccion == 'Antecedentes laborales específicos'} ? 'sino' : ''))">
     <!-- "Todo normal" (15-oct-2026, FT-SO-17 periodico / FT-SO-04): exploracion = OK con el texto del
          formato en lo vacio; antecedentes = No con "NEGADOS" en la observacion. No pisa lo capturado. -->
     <div class="card-header py-2 d-flex justify-content-between align-items-center">
@@ -122,14 +122,16 @@
             <!-- la pregunta de pension (SINO_TEXTO) es larga: va a todo el ancho -->
             <div th:each="it : ${items}" th:unless="${it.type == 'OCULTO'}"
                  th:class="${it.type == 'SINO_TEXTO'} ? 'col-12' : 'col-md-6'"
-                 th:classappend="${it.fieldName == 'SERV_MED_ANT_GIN_OBSTETRICOS.FUP'} ? 'solo-ftso04' : ''">
+                 th:classappend="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).clases(it.fieldName)}">
                 <label class="form-label mb-1" th:text="${it.label}">Campo</label>
 
                 <!-- OPCION (13-oct-2026): una opcion entre botones, mismos valores que el select del PHP
                      (formsEFis/EFis.html) y los chips del examen inicial. Clic en la activa la desmarca. -->
                 <div th:if="${it.type == 'OPCION'}"
                      th:with="campo=${#strings.substringAfter(it.fieldName, '.')},
-                              opciones=${campo == 'ECTOMORFICO' ? {'Ectomórfica':'Ectomórfica (delgado)','Mesomorfo':'Mesomorfo (musculoso)','Endomórfica':'Endomórfica (sobrepeso)'}
+                              opciones=${campo == 'EXM_INC_RAMO' ? {'EG':'EG (enfermedad general)','MAT':'MAT (maternidad)','RT':'RT (riesgo de trabajo)','ENLACE':'Enlace'}
+                                       : campo == 'EXM_INC_TIPO' ? {'IMSS':'IMSS','INTERNA':'Interna'}
+                                       : campo == 'ECTOMORFICO' ? {'Ectomórfica':'Ectomórfica (delgado)','Mesomorfo':'Mesomorfo (musculoso)','Endomórfica':'Endomórfica (sobrepeso)'}
                                        : campo == 'SERENIDAD' ? {'serenidad':'Serenidad','interés':'Interés','entusiasta':'Entusiasta','antagónico':'Antagónico','enojo':'Enojo'}
                                        : campo == 'HIPOCRITA' ? {'normal':'Normal','hipocrática':'Hipocrática','ictérica':'Ictérica','anémica':'Anémica','tiroidea':'Tiroidea'}
                                        : {'normal':'Normal','parkinson':'Parkinson','hemipléjico':'Hemipléjico','Atáxica':'Atáxica','hemiparesia':'Hemiparesia'}}">
@@ -206,6 +208,11 @@
                     <option value="apto_condicionado" th:selected="${it.value == 'apto_condicionado'}">Apto condicionado</option>
                     <option value="apto_restringido" th:selected="${it.value == 'apto_restringido'}">Apto restringido</option>
                 </select>
+                <!-- Examen inicial (tipo 1): dictamen de solo lectura; el CSS de examen-shell.html bloquea el
+                     select con la clase tipo-1 del acordeon y el servidor rechaza el cambio (16-oct-2026) -->
+                <div th:if="${it.type == 'RESULTADO'}" class="aviso-dictamen-inicial fs-sm mt-1">
+                    <i class="ri-lock-line"></i> Examen inicial: el dictamen es de solo lectura (se definió al finalizar el examen inicial).
+                </div>
             </div>
         </div>
     </div>

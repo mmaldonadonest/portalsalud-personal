@@ -38,6 +38,7 @@ public class ExamenController {
     private final NssSearchService nssSearchService;
     private final ExamenDocumentoService examenDocumentoService;
     private final org.thymeleaf.spring6.SpringTemplateEngine templateEngine;
+    private final com.onest.app.catalog.examen.service.PrecargaFormato precarga;
 
     public ExamenController(
             ExamenService examenService,
@@ -47,7 +48,8 @@ public class ExamenController {
             RestriccionService restriccionService,
             NssSearchService nssSearchService,
             ExamenDocumentoService examenDocumentoService,
-            org.thymeleaf.spring6.SpringTemplateEngine templateEngine) {
+            org.thymeleaf.spring6.SpringTemplateEngine templateEngine,
+            com.onest.app.catalog.examen.service.PrecargaFormato precarga) {
         this.examenService = examenService;
         this.contactoEmergenciaService = contactoEmergenciaService;
         this.diagnosticoSecundarioService = diagnosticoSecundarioService;
@@ -56,6 +58,7 @@ public class ExamenController {
         this.nssSearchService = nssSearchService;
         this.examenDocumentoService = examenDocumentoService;
         this.templateEngine = templateEngine;
+        this.precarga = precarga;
     }
 
     /**
@@ -67,12 +70,15 @@ public class ExamenController {
     @GetMapping(path = "/examen/imprimir", produces = MediaType.TEXT_HTML_VALUE)
     @Auditado(modulo = "Examenes", accion = "export", entidad = "Expediente impreso", registro = "nss")
     public String imprimir(@RequestParam("nss") String nss,
-                           @RequestParam(name = "auto", required = false) String auto, Model model) {
+                           @RequestParam(name = "auto", required = false) String auto,
+                           @RequestParam(name = "tipo", required = false) String tipo, Model model) {
         String nssLimpio = nss == null ? "" : nss.trim();
         if (nssLimpio.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "nss es obligatorio");
         }
-        model.addAttribute("d", examenDocumentoService.armar(nssLimpio));
+        // ?tipo=N: vista previa del impreso como si fuera de ese tipo de examen (solo lectura)
+        model.addAttribute("d", examenDocumentoService.armar(nssLimpio,
+                tipo != null && datosGeneralesExamenService.tipos().containsKey(tipo.trim()) ? tipo.trim() : null));
         model.addAttribute("auto", auto != null && !auto.isBlank() && !"0".equals(auto));
         return "pages/examen-documento";
     }
@@ -91,6 +97,11 @@ public class ExamenController {
             model.addAttribute("diagnosticosSecundarios", diagnosticoSecundarioService.cargar(nss));
             model.addAttribute("datosGenerales", datosGeneralesExamenService.cargar(nss));
             model.addAttribute("tiposExamen", datosGeneralesExamenService.tipos());
+            // formato EMLE de cada tipo, para mostrarlo junto al tipo (y cambiarlo en vivo al guardar otro tipo)
+            Map<String, String> formatos = new LinkedHashMap<>();
+            datosGeneralesExamenService.tipos().keySet().forEach(t -> formatos.put(t,
+                    com.onest.app.catalog.examen.service.ExamenDocumentoService.claveFormato(t)));
+            model.addAttribute("formatosExamen", formatos);
             model.addAttribute("catalogoRestricciones", restriccionService.catalogo());
             model.addAttribute("restricciones", restriccionService.byNss(nss));
             model.addAttribute("firmaGuardada", examenService.firmaGuardada(nss));
@@ -111,7 +122,8 @@ public class ExamenController {
             Model model) {
         try {
             model.addAttribute("seccion", seccion);
-            java.util.List<com.onest.app.catalog.examen.dto.ExamItem> items = examenService.itemsDeSeccion(seccion, nss);
+            java.util.List<com.onest.app.catalog.examen.dto.ExamItem> items =
+                    precarga.aplicar(seccion, examenService.itemsDeSeccion(seccion, nss), nss);
             model.addAttribute("items", items);
             model.addAttribute("valores", valores(items));
             // ayudas del formato EMLE (FT-SO-17 / FT-SO-04) para la exploracion
@@ -143,11 +155,12 @@ public class ExamenController {
         Map<String, String> html = new LinkedHashMap<>();
         for (Map.Entry<String, java.util.List<com.onest.app.catalog.examen.dto.ExamItem>> e : examenService.itemsDeTodas(nss).entrySet()) {
             org.thymeleaf.context.Context ctx = new org.thymeleaf.context.Context(new java.util.Locale("es", "MX"));
+            java.util.List<com.onest.app.catalog.examen.dto.ExamItem> items = precarga.aplicar(e.getKey(), e.getValue(), nss);
             ctx.setVariable("seccion", e.getKey());
-            ctx.setVariable("items", e.getValue());
-            ctx.setVariable("valores", valores(e.getValue()));
+            ctx.setVariable("items", items);
+            ctx.setVariable("valores", valores(items));
             ctx.setVariable("ayudas", com.onest.app.catalog.examen.service.AyudasFormato.AYUDAS);
-            ctx.setVariable("conAyuda", com.onest.app.catalog.examen.service.AyudasFormato.alguno(e.getValue()));
+            ctx.setVariable("conAyuda", com.onest.app.catalog.examen.service.AyudasFormato.alguno(items));
             html.put(e.getKey(), templateEngine.process("fragments/examen-seccion", java.util.Set.of("seccion"), ctx));
         }
         return html;
@@ -173,6 +186,15 @@ public class ExamenController {
                     campos.put(key, (values == null || values.isEmpty()) ? "" : values.get(0));
                 }
             });
+            // Examen inicial (tipo 1 Admision): el dictamen se definio al finalizarlo y OCR ya lo recibio;
+            // desde aqui es de solo lectura (16-oct-2026). Si lo piden, se cambia esta regla.
+            String dictamenNuevo = campos.get("SERV_MED_RESULTADO_EXAMEN.DICTAMEN");
+            if (dictamenNuevo != null && "1".equals(datosGeneralesExamenService.cargar(nss).tipoExamen())) {
+                String vigente = examenService.dictamenVigente(nss);
+                if (!dictamenNuevo.trim().equalsIgnoreCase(vigente == null ? "" : vigente.trim())) {
+                    throw new IllegalArgumentException("El dictamen del examen inicial es de solo lectura: se definió al finalizar el examen inicial.");
+                }
+            }
             String proceso = examenService.guardar(nss, campos, firma);
             return (proceso == null || proceso.isBlank()) ? "Examen guardado." : proceso;
         } catch (IllegalArgumentException ex) {

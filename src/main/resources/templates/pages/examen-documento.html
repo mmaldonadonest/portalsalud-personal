@@ -59,6 +59,8 @@
                navegadores (un div con break-after dentro de una celda, no) */
             table.print-doc > tbody > tr.hoja { break-after: page; page-break-after: always; }
             table.print-doc > tbody > tr.hoja:last-child { break-after: auto; page-break-after: auto; }
+            /* hoja que el formato del tipo de examen no pide (VisibilidadTipo): no se imprime */
+            tr.hoja.oculta { display: none !important; }
             html, body { margin: 0; padding: 0; }
             body.container { max-width: none; width: auto; padding: 0 12mm; border: 0 !important; }
             table.print-doc { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -512,6 +514,7 @@
         </div>
 
     </div>
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Contactos de emergencia', d.v('TIPO_CODIGO'))}">
     <hr>
     <h6>Contacto de emergencias</h6>
     <div class="table-responsive">
@@ -554,6 +557,8 @@
             </tbody>
         </table>
     </div>
+</th:block>
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Antecedentes laborales (resumen)', d.v('TIPO_CODIGO'))}">
     <hr>
     <h6>Antecedentes Laborales</h6>
     <hr>
@@ -572,6 +577,8 @@
         </tr>
     </table>
 
+</th:block>
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Trabajos previos', d.v('TIPO_CODIGO'))}">
     <h6>Detalles de Trabajos Anteriores</h6>
     <table class="table table-bordered table-sm">
         <tr>
@@ -635,8 +642,60 @@
             <td>[[${d.v('observaciones4')}]]</td>
         </tr>
     </table>
+</th:block>
+
+    <!-- Bloques propios de cada formato EMLE (16-oct-2026, tags EXM_*; VisibilidadTipo decide cual sale) -->
+    <th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Antecedentes de la incapacidad', d.v('TIPO_CODIGO'))}">
+    <hr>
+    <h6>Antecedentes de la incapacidad</h6>
+    <table class="table table-bordered table-sm">
+        <tr><th style="width:30%">Diagnóstico</th><td colspan="3">[[${d.v('EXM_INC_DIAGNOSTICO')}]]</td></tr>
+        <tr><th>Días de incapacidad</th><td>[[${d.v('EXM_INC_DIAS')}]]</td><th>Ramo del seguro</th><td>[[${d.v('EXM_INC_RAMO')}]]</td></tr>
+        <tr><th>Tipo de incapacidad</th><td>[[${d.v('EXM_INC_TIPO')}]]</td><th>Fechas</th><td>[[${d.v('EXM_INC_INICIO')}]] al [[${d.v('EXM_INC_TERMINO')}]]</td></tr>
+        <tr><th>Tratamiento</th><td colspan="3">[[${d.v('EXM_INC_TRATAMIENTO')}]]</td></tr>
+    </table>
+    </th:block>
+    <th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Cambio de puesto', d.v('TIPO_CODIGO'))}">
+    <hr>
+    <h6>Cambio de puesto</h6>
+    <table class="table table-bordered table-sm">
+        <tr><th style="width:30%">Puesto anterior</th><td>[[${d.v('EXM_PUESTO_ANTERIOR')}]]</td><th>Fecha de ingreso</th><td>[[${d.v('EXM_FECHA_ING_ANTERIOR')}]]</td></tr>
+        <tr><th>Puesto actual</th><td>[[${d.v('EXM_CAMBIO_PUESTO_ACTUAL')}]]</td><th>Fecha de ingreso</th><td>[[${d.v('EXM_FECHA_ING_ACTUAL')}]]</td></tr>
+        <tr><th>Motivo del cambio</th><td colspan="3">[[${d.v('EXM_MOTIVO_CAMBIO')}]]</td></tr>
+    </table>
+    </th:block>
+    <th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Puesto inicial y actual', d.v('TIPO_CODIGO'))}">
+    <hr>
+    <h6>Antecedentes Laborales</h6>
+    <table class="table table-bordered table-sm">
+        <tr><th style="width:30%">Puesto inicial</th><td>[[${d.v('EXM_PUESTO_INICIAL')}]]</td></tr>
+        <tr><th>Puesto actual</th><td>[[${d.v('EXM_PUESTO_ACTUAL')}]]</td></tr>
+        <th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('TAG.EXM_MOTIVO_SALIDA', d.v('TIPO_CODIGO'))}">
+        <tr><th>Turno</th><td>[[${d.v('EXM_TURNO_SALIDA')}]]</td></tr>
+        <tr><th>Antigüedad</th><td>[[${d.v('EXM_ANTIGUEDAD')}]]</td></tr>
+        <tr><th>Motivo de salida</th><td>[[${d.v('EXM_MOTIVO_SALIDA')}]]</td></tr>
+        </th:block>
+    </table>
+    </th:block>
+    <th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Antecedentes laborales específicos', d.v('TIPO_CODIGO'))}">
+    <hr>
+    <h6>Antecedentes laborales específicos</h6>
+    <table class="table table-bordered table-sm">
+        <tr><th>Trabajo en altura</th><td>[[${d.siNo('EXM_ESP_ALTURA')}]]</td><th>Trabajo en caliente</th><td>[[${d.siNo('EXM_ESP_CALIENTE')}]]</td><th>Espacios confinados</th><td>[[${d.siNo('EXM_ESP_CONFINADOS')}]]</td></tr>
+    </table>
+    <table class="table table-bordered table-sm">
+        <tr><td>¿Está certificado en trabajo de...?</td><td style="width:12%">[[${d.siNo('EXM_ESP_CERTIFICADO')}]]</td></tr>
+        <tr><td>¿Aprobó el examen médico hace menos de un año?</td><td>[[${d.siNo('EXM_ESP_EXAMEN_ANIO')}]]</td></tr>
+        <tr><td>¿Ha tomado medicamentos en las últimas 24 h? ¿Cuáles? [[${d.v('EXM_ESP_MEDICAMENTOS_CUALES')}]]</td><td>[[${d.siNo('EXM_ESP_MEDICAMENTOS')}]]</td></tr>
+        <tr><td>¿Sufre de epilepsia, mareos o vértigo?</td><td>[[${d.siNo('EXM_ESP_EPILEPSIA')}]]</td></tr>
+        <tr><td>¿Miedo a las alturas (aerofobia)?</td><td>[[${d.siNo('EXM_ESP_AEROFOBIA')}]]</td></tr>
+        <tr><td>¿Sufre de asma, alergias o hiperactividad bronquial?</td><td>[[${d.siNo('EXM_ESP_ASMA')}]]</td></tr>
+        <tr><td>¿Padece alguna enfermedad pulmonar o cardiaca?</td><td>[[${d.siNo('EXM_ESP_PULMONAR_CARDIACA')}]]</td></tr>
+        <tr><td>¿Miedo a áreas cerradas (claustrofobia)?</td><td>[[${d.siNo('EXM_ESP_CLAUSTROFOBIA')}]]</td></tr>
+    </table>
+    </th:block>
 </div></td></tr>
-<tr class="hoja"><td><div class="row hoja-row">
+<tr class="hoja" th:classappend="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Antecedentes heredofamiliares', d.v('TIPO_CODIGO'))} ? 'oculta' : ''"><td><div class="row hoja-row">
 
     <div class="col-12" style="">
         <div class="row">
@@ -908,7 +967,7 @@
             </table>
 	</div>
 </div></td></tr>
-<tr class="hoja"><td><div class="row hoja-row">
+<tr class="hoja" th:classappend="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Antecedentes heredofamiliares|APNP (no patológicos)|Antecedentes personales no patológicos', d.v('TIPO_CODIGO'))} ? 'oculta' : ''"><td><div class="row hoja-row">
         <div class="col-12" style="">
             <div class="row">
                 <div class="navbar-brand col-3 " href="#">
@@ -951,6 +1010,7 @@
 
             </div>
         </div>
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Antecedentes heredofamiliares', d.v('TIPO_CODIGO'))}">
         <div class="col-6">
             <h6>Generales</h6>
             <table class="table table-bordered table-sm">
@@ -991,6 +1051,8 @@
                 </tr>
             </table>
         </div>
+</th:block>
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('APNP (no patológicos)', d.v('TIPO_CODIGO'))}">
         <div class="col-12">
             <hr>
             <h6>Antecedentes personales no Patológicos</h6>
@@ -1109,6 +1171,8 @@
 
         </div>
 
+</th:block>
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Antecedentes personales no patológicos', d.v('TIPO_CODIGO'))}">
         <div class="col-12">
             <h6>Inmunizaciones</h6>
             <table class="table table-bordered table-sm">
@@ -1158,6 +1222,7 @@
                 </tr>
             </table>
 	</div>
+</th:block>
 </div></td></tr>
 <tr class="hoja"><td><div class="row hoja-row">
 
@@ -1231,12 +1296,12 @@
                     <td>[[${d.negado('G')}]]</td>
                 </tr>
                 <tr>
-                    <td>A (Abortos)</td>
-                    <td>[[${d.negado('A')}]]</td>
-                </tr>
-                <tr>
                     <td>P (Partos)</td>
                     <td>[[${d.negado('P')}]]</td>
+                </tr>
+                <tr>
+                    <td>A (Abortos)</td>
+                    <td>[[${d.negado('A')}]]</td>
                 </tr>
                 <tr>
                     <td>C (Cesáreas)</td>
@@ -1254,12 +1319,13 @@
                     <td>Infecciones Repetitivas</td>
                     <td>[[${d.negado('INFECC_REP')}]]</td>
                 </tr>
-                <tr>
-                    <td>Fecha de Última Consulta Ginecológica</td>
+                <tr th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('SERV_MED_ANT_GIN_OBSTETRICOS.FUP', d.v('TIPO_CODIGO'))}">
+                    <td>FUP (Fecha del Último Parto)</td>
                     <td>[[${d.negado('FUP')}]]</td>
                 </tr>
             </table>
         </div>
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Antecedentes personales patológicos', d.v('TIPO_CODIGO'))}">
         <div class="col-12">
             <h6>Antecedentes Personales Patológicos</h6>
             <table class="table table-bordered table-sm">
@@ -1388,8 +1454,9 @@
             </table>
 
 	</div>
+</th:block>
 </div></td></tr>
-<tr class="hoja"><td><div class="row hoja-row">
+<tr class="hoja" th:classappend="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Antecedentes personales patológicos|Padecimiento actual|Interrogatorio por aparatos y sistemas', d.v('TIPO_CODIGO'))} ? 'oculta' : ''"><td><div class="row hoja-row">
 
         <div class="col-12" style="">
             <div class="row">
@@ -1825,6 +1892,7 @@
                 </tr>
             </table>
         </div>
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Cráneo|Agudeza visual', d.v('TIPO_CODIGO'))}">
         <hr>
         <div class="col-12">
             <h6>Cráneo</h6>
@@ -1893,9 +1961,11 @@
                     <td>Visión cercana sin lentes</td>
                     <td>[[${d.v('ODEXFISINPCERCIZQ')}]]</td>
                 </tr>
-	    </table> 
+	    </table>
+        </div>
+</th:block>
 </div></td></tr>
-<tr class="hoja"><td><div class="row hoja-row">
+<tr class="hoja" th:classappend="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Nariz|Columna vertebral|Boca|Oídos|Tórax|Columna (movilidad)|Abdomen', d.v('TIPO_CODIGO'))} ? 'oculta' : ''"><td><div class="row hoja-row">
             <div class="col-12" style="">
                 <div class="row">
                     <div class="navbar-brand col-3 " href="#">
@@ -2083,7 +2153,7 @@
                 </tr>
 	    </table>
 </div></td></tr>
-<tr class="hoja"><td><div class="row hoja-row">
+<tr class="hoja" th:classappend="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Genitales|Urinario|Extremidades|Piel|Cuello', d.v('TIPO_CODIGO'))} ? 'oculta' : ''"><td><div class="row hoja-row">
             <div class="col-12" style="">
                 <div class="row">
                     <div class="navbar-brand col-3 " href="#">
@@ -2272,6 +2342,7 @@
 
             </div>
         </div>
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Dientes', d.v('TIPO_CODIGO'))}">
         <div class="col-6">
             <h6>Dientes</h6>
             <table class="table table-bordered table-sm">
@@ -2418,10 +2489,12 @@
                 </tr>
             </table>
         </div>
+</th:block>
         <div class="col-12">
             <hr>
         </div>
         <div class="col-6">
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Estudios realizados y resultados', d.v('TIPO_CODIGO'))}">
             <h6>Resultados de Estudios Realizados</h6>
             <table class="table table-bordered table-sm">
                 <tr>
@@ -2432,6 +2505,8 @@
                 </tr>
             </table>
 
+</th:block>
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Diagnóstico', d.v('TIPO_CODIGO'))}">
             <h6>Diagnóstico</h6>
             <table class="table table-bordered table-sm">
                 <tr>
@@ -2443,8 +2518,10 @@
             </table>
 
 
+</th:block>
         </div>
         <div class="col-6">
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Plan o terapéutica empleada', d.v('TIPO_CODIGO'))}">
             <h6>Plan de Terapia</h6>
             <table class="table table-bordered table-sm">
                 <tr>
@@ -2454,6 +2531,7 @@
                     <td>[[${d.v('OBSERVACIONES32')}]]</td>
                 </tr>
             </table>
+</th:block>
             <h6>Resultado de Examen</h6>
             <!-- AJUSTE MANUAL (3-oct-2026): renglon Dictamen (de las banderas APTO/NO_APTO/...) separado de
                  las observaciones; el PHP mezclaba ambos en OBSERVACIONES. Si se regenera, volver a aplicar. -->

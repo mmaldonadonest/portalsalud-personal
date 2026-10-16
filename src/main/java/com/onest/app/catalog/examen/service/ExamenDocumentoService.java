@@ -81,6 +81,12 @@ public class ExamenDocumentoService {
             return describirDiente(v(var));
         }
 
+        /** Si/No de los tags EXM_* de los formatos (1/0); vacio si no se capturo. */
+        public String siNo(String var) {
+            String s = v(var).trim();
+            return "1".equals(s) ? "Sí" : "0".equals(s) ? "No" : s;
+        }
+
         public String getFirmaTrabajador() {
             return firmaTrabajador;
         }
@@ -153,20 +159,32 @@ public class ExamenDocumentoService {
             "14 de septiembre de 2026", "05", "FT-SO-04", "04", VIGENCIA);
 
     /** Tipo de examen (codigo del tag tipoExamenInputO) -> formato. Sin formato propio: FT-SO-04. */
+    // 6-8 (16-oct-2026): filas 1-4 de FT-SO-18/19/20; el motivo de 19 y 20 es el de su hoja 1
     static final Map<String, Encabezado> ENCABEZADOS = Map.of(
             "1", FT_SO_04,
             // FT-SO-17: el Excel decia "septiembre de 2024"; corregido a 2026 como los demas (decision 15-oct-2026)
             "2", new Encabezado("EXAMEN MÉDICO PERIÓDICO", "14 de septiembre de 2026", "06", "FT-SO-17", "05", VIGENCIA),
             "3", new Encabezado("EXAMEN MÉDICO CAMBIO DE PUESTO", "14 de septiembre de 2026", "06", "FT-SO-16", "05", VIGENCIA),
-            "4", new Encabezado("EXAMEN MÉDICO POST INCAPACIDAD", "14 de septiembre de 2026", "06", "FT-SO-13", "05", VIGENCIA));
+            "4", new Encabezado("EXAMEN MÉDICO POST INCAPACIDAD", "14 de septiembre de 2026", "06", "FT-SO-13", "05", VIGENCIA),
+            "6", new Encabezado("EXAMEN MÉDICO EGRESO", "14 de septiembre de 2026", "06", "FT-SO-18", "05", VIGENCIA),
+            "7", new Encabezado("EXAMEN MÉDICO INICIAL \"MANTENIMIENTO\"", "14 de septiembre de 2026", "06", "FT-SO-19", "05",
+                    "Modificación del formato y actualización por vigencia"),
+            "8", new Encabezado("EXAMEN MÉDICO PERIÓDICO \"MANTENIMIENTO\"", "14 de septiembre de 2026", "06", "FT-SO-20", "05",
+                    "Modificación del formato y actualización por vigencia"));
+
+    /** Clave del formato EMLE que se trabaja para el tipo (la misma que imprime el encabezado). */
+    public static String claveFormato(String tipoExamen) {
+        return encabezado(tipoExamen).clave();
+    }
 
     static Encabezado encabezado(String tipoExamen) {
         return ENCABEZADOS.getOrDefault(tipoExamen == null ? "" : tipoExamen.trim(), FT_SO_04);
     }
 
     private static final Map<String, String> TIPO_EXAMEN = Map.of(
-            "0", "No seleccionado", "1", "Admisión", "2", "Périodico", "3", "Cambio de rol",
-            "4", "Post incapacidad", "5", "Especial");
+            "0", "No seleccionado", "1", "Admisión", "2", "Périodico", "3", "Cambio de puesto",
+            "4", "Post incapacidad", "5", "Especial", "6", "Egreso", "7", "Inicial mantenimiento",
+            "8", "Periódico mantenimiento");
 
     private final ExamenClient client;
     private final NssSearchService nssSearchService;
@@ -231,6 +249,11 @@ public class ExamenDocumentoService {
     }
 
     public Documento armar(String nss) {
+        return armar(nss, null);
+    }
+
+    /** Con tipoForzado (1-8) se arma como si el examen fuera de ese tipo: vista previa del impreso. */
+    public Documento armar(String nss, String tipoForzado) {
         String nssLimpio = nss.trim();
         Map<String, String> data = client.getExamenData(nssLimpio);
         EmpleadoDto emp = nssSearchService.findByNss(nssLimpio).map(r -> r.empleado()).orElse(null);
@@ -278,6 +301,17 @@ public class ExamenDocumentoService {
             edad = String.valueOf(emp.edad());
         }
         v.put("edad", edad);
+        // Impreso por tipo (16-oct-2026): el codigo crudo decide que secciones salen
+        // (VisibilidadTipo) y los bloques propios de cada formato viven en tags EXM_*
+        if (tipoForzado != null) {
+            v.put("tipoExamenInputO", tipoForzado);
+        }
+        v.put("TIPO_CODIGO", limpio(v.get("tipoExamenInputO")));
+        for (Map.Entry<String, String> e : tagValues.entrySet()) {
+            if (e.getKey() != null && e.getKey().startsWith("EXM_")) {
+                v.put(e.getKey(), e.getValue() == null ? "" : e.getValue().trim());
+            }
+        }
         // Encabezado de calidad segun el tipo de examen (codigo crudo, antes de pasarlo a texto)
         Encabezado enc = encabezado(limpio(v.get("tipoExamenInputO")));
         v.put("ENC_TITULO", enc.titulo());

@@ -45,7 +45,9 @@ public class FileStoreController {
     /** Sube uno o mas PDF asociados a una consulta (relacion = idArchivoRel). */
     @PostMapping(path = "/api/nss/consulta/file", produces = "text/plain;charset=UTF-8")
     @ResponseBody
-    @Auditado(modulo = "Consultas", accion = "create", entidad = "Archivo adjunto", registro = "nss", detalle = {"relacion"})
+    // "Archivos del expediente" y no "Consultas" (16-oct-2026): este alta la usan tambien Laboratorio,
+    // Historico E.M. y las notas; la relacion (tipo o id de consulta) va en el detalle
+    @Auditado(modulo = "Archivos del expediente", accion = "create", entidad = "Archivo adjunto", registro = "nss", detalle = {"relacion"})
     public String upload(
             @RequestParam("file") MultipartFile[] file,
             @RequestParam("nss") String nss,
@@ -58,10 +60,13 @@ public class FileStoreController {
         }
     }
 
-    /** Descarga/visualiza un adjunto por id. */
+    /**
+     * Descarga/visualiza un adjunto por id. El NSS del expediente abierto es obligatorio y debe ser
+     * el dueño del archivo; si no lo es se responde 404, igual que si no existiera (no revela ids).
+     */
     @GetMapping("/api/nss/consulta/file/{id}")
-    public ResponseEntity<byte[]> download(@PathVariable long id) {
-        return fileStoreService.get(id)
+    public ResponseEntity<byte[]> download(@PathVariable long id, @RequestParam("nss") String nss) {
+        return fileStoreService.get(id, nss)
                 .map(f -> ResponseEntity.ok()
                         .contentType(parseMime(f.mimeType()))
                         .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + safe(f.name()) + "\"")
@@ -122,9 +127,12 @@ public class FileStoreController {
     /** Borra un adjunto por id (erasedocksLAB del legacy). */
     @PostMapping(path = "/api/nss/consulta/file/{id}/delete", produces = "text/plain;charset=UTF-8")
     @ResponseBody
-    @Auditado(modulo = "Consultas", accion = "delete", entidad = "Archivo adjunto", registro = "id")
-    public String delete(@PathVariable long id) {
-        return fileStoreService.delete(id) ? "eliminado" : "no encontrado";
+    @Auditado(modulo = "Archivos del expediente", accion = "delete", entidad = "Archivo adjunto", registro = "id")
+    public String delete(@PathVariable long id, @RequestParam("nss") String nss) {
+        if (!fileStoreService.delete(id, nss)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "no encontrado");
+        }
+        return "eliminado";
     }
 
     private static MediaType parseMime(String mime) {
