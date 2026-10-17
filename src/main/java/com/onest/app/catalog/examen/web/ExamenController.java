@@ -102,6 +102,11 @@ public class ExamenController {
             datosGeneralesExamenService.tipos().keySet().forEach(t -> formatos.put(t,
                     com.onest.app.catalog.examen.service.ExamenDocumentoService.claveFormato(t)));
             model.addAttribute("formatosExamen", formatos);
+            // AGENCIA de los formatos EMLE (16-oct-2026): igual que el examen inicial, la de la base es
+            // de solo lectura; sin ella, GLI predeterminada u "Otro" especificando (tag AGENCIAEXAMEN)
+            model.addAttribute("agenciaBase", examenDocumentoService.agenciaDeBase(nss));
+            model.addAttribute("agenciaElegida", examenDocumentoService.agenciaCapturada(nss));
+            model.addAttribute("agenciaPredeterminada", ExamenDocumentoService.AGENCIA_PREDETERMINADA);
             model.addAttribute("catalogoRestricciones", restriccionService.catalogo());
             model.addAttribute("restricciones", restriccionService.byNss(nss));
             model.addAttribute("firmaGuardada", examenService.firmaGuardada(nss));

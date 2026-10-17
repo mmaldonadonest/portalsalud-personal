@@ -214,8 +214,8 @@ public class ExamenDocumentoService {
     /**
      * AGENCIA del FT-SO-04 rev. 05: no se captura (decision 15-oct-2026), es por empleado.
      * Agencia de la solicitud de OCR > BIO_EMPLEADO.SOCIEDAD (GLI, ORLAMEX...) > vacio.
-     * Sin el predeterminado del formato ("Grupo Logistico Integral SAPI de CV"): ~21 mil activos
-     * tienen SOCIEDAD vacia y saldrian como GLI sin serlo; el usuario prefirio vacio por ahora.
+     * Aqui sin el predeterminado del formato; el impreso SI lo aplica al final (16-oct-2026: el
+     * usuario decidio apegarse al layout, antes salia vacio): empleado > elegida > GLI.
      * NO es la empresa del WS (EmpleadoDto.nombreEmpresa: "Onest Mexico" para todos).
      * La usan la pantalla del examen inicial y el impreso, para que digan lo mismo.
      */
@@ -237,6 +237,20 @@ public class ExamenDocumentoService {
     public String agenciaConCaptura(String nss, String agenciaSolicitud) {
         String deBase = agencia(nss, agenciaSolicitud);
         return deBase.isEmpty() ? agenciaCapturada(nss) : deBase;
+    }
+
+    /**
+     * Agencia de la base (solicitud de OCR > BIO_EMPLEADO.SOCIEDAD) sin pasar la solicitud: la usa el
+     * modulo Examen medico (16-oct-2026), que tambien pide AGENCIA en los FT-SO-13/16/17/18/19/20.
+     */
+    public String agenciaDeBase(String nss) {
+        String agenciaSolicitud = null;
+        try {
+            agenciaSolicitud = solicitudes.ultimaPorNss(nss).map(com.onest.app.integration.ocr.SolicitudExamen::agencia).orElse(null);
+        } catch (RuntimeException ex) {
+            // sin tabla de solicitudes: se queda con el biometrico
+        }
+        return agencia(nss, agenciaSolicitud);
     }
 
     /** Ultima agencia elegida en un examen para el NSS (tag), o vacio. */
@@ -361,7 +375,11 @@ public class ExamenDocumentoService {
         }
         String agenciaSolicitud = solicitud == null ? null : solicitud.agencia();
         String agenciaBase = agencia(nssLimpio, agenciaSolicitud);
-        v.put("AGENCIA", agenciaBase.isEmpty() ? limpio(tagValues.get(TAG_AGENCIA)) : agenciaBase);
+        // Los 7 formatos EMLE: "Texto predeterminado Grupo Logistico Integral SAPI de CV" (16-oct-2026,
+        // decision del usuario: se apega al layout). Orden: la del empleado > la elegida > GLI.
+        String agenciaElegida = limpio(tagValues.get(TAG_AGENCIA));
+        v.put("AGENCIA", !agenciaBase.isEmpty() ? agenciaBase
+                : (!agenciaElegida.isEmpty() ? agenciaElegida : AGENCIA_PREDETERMINADA));
         // Ficha del FT-SO-17 (15-oct-2026): escolaridad y profesion del candidato de la solicitud de
         // OCR; del empleado, escolaridad y departamento del biometrico. Fecha de realizacion = la del
         // ultimo examen registrado en el historico del portal.

@@ -119,6 +119,16 @@ public class DatosGeneralesExamenService {
         repository.upsert(limpio, SPO2, limpio(campos.get("spo2")), GRUPO_FISICO, usuario);
         repository.upsert(limpio, CINTURA, limpio(campos.get("cintura")), GRUPO_FISICO, usuario);
         repository.upsert(limpio, CADERA, limpio(campos.get("cadera")), GRUPO_FISICO, usuario);
+        // AGENCIA (16-oct-2026): solo llega cuando la base no la trae (la pantalla no pinta el selector
+        // en otro caso). Mismo tag y grupo que el examen inicial; vacia no se guarda para no borrar la
+        // que eligio el inicial.
+        String agencia = limpio(campos.get("agenciaExamen"));
+        if (agencia.length() > 100) {
+            throw new IllegalArgumentException("La agencia excede 100 caracteres");
+        }
+        if (!agencia.isEmpty()) {
+            repository.upsert(limpio, ExamenDocumentoService.TAG_AGENCIA, agencia, GRUPO_PERMISO, usuario);
+        }
     }
 
     private static String limpio(String v) {

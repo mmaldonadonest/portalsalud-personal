@@ -57,6 +57,10 @@
                     .exapp-btns .btn { min-width: 44px; padding: 2px 8px; font-size: .85rem; color: #111; }
                     .exapp-btns .btn.activo-no { background: #2B9138; border-color: #2B9138; color: #fff; }
                     .exapp-btns .btn.activo-si { background: #B42318; border-color: #B42318; color: #fff; }
+                    /* Agencia en Datos generales: mismos botones que el examen inicial */
+                    .exagencia .exini-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+                    .exagencia .exini-chips .btn { color: #111; font-size: .85rem; }
+                    .exagencia .exini-chips .btn.activo { background: #0057A8; border-color: #0057A8; color: #fff; }
                     /* Cada tipo ve solo lo que pide su formato EMLE (VisibilidadTipo.java, 16-oct-2026):
                        grupos, secciones y campos llevan "ocultar-en-N"; se ocultan sin quitarlos del DOM,
                        para no perder lo capturado si el medico cambia el tipo */
@@ -237,6 +241,25 @@
                                                     th:selected="${t.key == datosGenerales.tipoExamen}">Admisión</option>
                                         </th:block>
                                     </select>
+                                </div>
+                                <!-- AGENCIA (16-oct-2026), como piden los FT-SO-04/13/16/17/18/19/20 junto a la
+                                     fecha del examen: "Texto predeterminado Grupo Logistico Integral SAPI de CV y
+                                     opcion para otro y poder especificar". Igual que el examen inicial: si la base
+                                     la trae es de solo lectura; si no, GLI u "Otro" (tag AGENCIAEXAMEN al guardar). -->
+                                <div class="col-md-8">
+                                    <label class="form-label mb-1 fs-sm">Agencia</label>
+                                    <div th:if="${!#strings.isEmpty(agenciaBase)}" class="form-control form-control-sm bg-light" th:text="${agenciaBase}">GLI</div>
+                                    <div th:if="${#strings.isEmpty(agenciaBase)}" class="exini-agencia exagencia"
+                                         th:with="pre=${agenciaPredeterminada}, eleg=${#strings.isEmpty(agenciaElegida)} ? ${agenciaPredeterminada} : ${agenciaElegida}, esOtro=${eleg != pre}"
+                                         th:attr="data-pre=${pre}">
+                                        <input type="hidden" name="agenciaExamen" th:value="${eleg}">
+                                        <div class="exini-chips">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" th:classappend="${!esOtro} ? 'activo' : ''" th:text="${pre}" onclick="exIniAgencia(this, 'pre');">GLI</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" th:classappend="${esOtro} ? 'activo' : ''" onclick="exIniAgencia(this, 'otro');">Otro</button>
+                                        </div>
+                                        <input type="text" class="form-control form-control-sm mt-1" maxlength="100" placeholder="Especifica la agencia"
+                                               th:value="${esOtro} ? ${eleg} : ''" th:hidden="${!esOtro}" oninput="exIniAgencia(this, 'texto');">
+                                    </div>
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label mb-1 fs-sm" for="examenSpo2">SpO2 (%)</label>
