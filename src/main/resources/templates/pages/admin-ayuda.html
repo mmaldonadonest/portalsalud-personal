@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: adminContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Ayuda (artículos) | Portal Salud Personal</title>
+</head>
+<body>
+
+<th:block id="pageStyles">
+    <style>
+        #artCuerpo { font-family: Consolas, "Cascadia Mono", monospace; font-size: .85rem; min-height: 260px; }
+        .vista-previa { border: 1px solid #E1E6EB; border-radius: 8px; padding: 10px 14px; background: #F8FAFC; font-size: .9rem; min-height: 120px; }
+        .vista-previa h3, .vista-previa h4 { font-size: 1rem; color: #003E75; margin: 10px 0 4px; }
+    </style>
+</th:block>
+
+<!-- Administracion de los articulos de ayuda (rol ADMIN). AyudaAdminController. -->
+<th:block th:fragment="adminContent">
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/home}" href="/home">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Ayuda (artículos)</li>
+            </ol>
+            <h4 class="main-title mb-0">Artículos de ayuda</h4>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <span class="badge" th:classappend="${buscadorActivo} ? 'bg-success' : 'bg-secondary'"
+                  th:text="${buscadorActivo} ? 'Buscador Meilisearch activo' : 'Buscador: Oracle (Meilisearch no disponible)'">buscador</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="reindexar(this);"><i class="ri-refresh-line me-1"></i>Reindexar</button>
+            <button type="button" class="btn btn-sm btn-primary" onclick="editar(null);"><i class="ri-add-line me-1"></i>Nuevo artículo</button>
+        </div>
+    </div>
+    <div id="adminResult" class="fs-sm mb-2"></div>
+
+    <div class="card card-one mb-3">
+        <div class="card-header"><h6 class="card-title mb-0">Artículos <span class="text-muted fw-normal fs-sm" th:text="'(' + ${#lists.size(articulos)} + ')'">(0)</span></h6></div>
+        <div class="card-body">
+            <div class="text-muted fs-sm" th:if="${#lists.isEmpty(articulos)}">Sin artículos. Falta aplicar <code>db/sql/app_domain/ayuda.sql</code> en la base del portal (este aviso solo lo ve el admin).</div>
+            <div class="table-responsive" th:unless="${#lists.isEmpty(articulos)}">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead><tr><th>Tema</th><th>Título</th><th>Pregunta</th><th>Orden</th><th>Activo</th><th>Actualizado</th><th></th></tr></thead>
+                    <tbody>
+                        <tr th:each="a : ${articulos}" th:attr="data-id=${a.id}">
+                            <td class="text-nowrap fs-sm" th:text="${nombresModulo.get(a.modulo) ?: a.modulo}">tema</td>
+                            <td th:text="${a.titulo}">título</td>
+                            <td class="fs-sm text-muted" th:text="${a.pregunta}">pregunta</td>
+                            <td th:text="${a.orden}">100</td>
+                            <td><span class="badge" th:classappend="${a.activo} ? 'bg-success' : 'bg-secondary'" th:text="${a.activo} ? 'Sí' : 'No'">Sí</span></td>
+                            <td class="fs-xs text-muted text-nowrap"><span th:text="${a.updatedAt == null} ? '' : ${#temporals.format(a.updatedAt, 'dd/MM HH:mm')}">fecha</span> <span th:text="${a.updatedBy}">quien</span></td>
+                            <td class="text-nowrap text-end">
+                                <button type="button" class="btn btn-xs btn-outline-primary" th:attr="data-id=${a.id}" onclick="editar(this.dataset.id);">Editar</button>
+                                <button type="button" class="btn btn-xs btn-outline-secondary" th:attr="data-id=${a.id}, data-activo=${a.activo}"
+                                        onclick="activar(this.dataset.id, this.dataset.activo !== 'true', this);" th:text="${a.activo} ? 'Desactivar' : 'Activar'">Desactivar</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card-one">
+        <div class="card-header"><h6 class="card-title mb-0">Preguntas sin respuesta o que no sirvieron <span class="text-muted fw-normal fs-sm">(lo que falta documentar)</span></h6></div>
+        <div class="card-body">
+            <div class="text-muted fs-sm" th:if="${#lists.isEmpty(sinRespuesta)}">Nada pendiente.</div>
+            <div class="table-responsive" th:unless="${#lists.isEmpty(sinRespuesta)}">
+                <table class="table table-sm align-middle mb-0">
+                    <thead><tr><th>Fecha</th><th>Usuario</th><th>Pregunta</th><th>Resultados</th><th>¿Sirvió?</th><th></th></tr></thead>
+                    <tbody>
+                        <tr th:each="p : ${sinRespuesta}">
+                            <td class="text-nowrap fs-sm" th:text="${#temporals.format(p.createdAt, 'dd/MM HH:mm')}">fecha</td>
+                            <td class="fs-sm" th:text="${p.usuario}">usuario</td>
+                            <td th:text="${p.pregunta}">pregunta</td>
+                            <td th:text="${p.resultados}">0</td>
+                            <td th:text="${p.util == null} ? '—' : (${p.util == 'S'} ? 'Sí' : 'No')">—</td>
+                            <td class="text-end"><button type="button" class="btn btn-xs btn-outline-primary" th:attr="data-q=${p.pregunta}" onclick="editar(null, this.dataset.q);">Documentar</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Editor -->
+    <div class="modal fade" id="artModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title" id="artTitulo">Artículo</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="artId">
+                    <div class="row g-2">
+                        <div class="col-md-8"><label class="form-label fs-xs text-muted mb-1">Título</label><input class="form-control form-control-sm" id="artTituloInput" maxlength="200"></div>
+                        <div class="col-md-4"><label class="form-label fs-xs text-muted mb-1">Tema (módulo)</label>
+                            <select class="form-select form-select-sm" id="artModulo">
+                                <option th:each="m : ${nombresModulo}" th:value="${m.key}" th:text="${m.value}">tema</option>
+                            </select></div>
+                        <div class="col-md-8"><label class="form-label fs-xs text-muted mb-1">Pregunta (como la diría el usuario)</label><input class="form-control form-control-sm" id="artPregunta" maxlength="400"></div>
+                        <div class="col-md-2"><label class="form-label fs-xs text-muted mb-1">Orden</label><input type="number" class="form-control form-control-sm" id="artOrden" value="100"></div>
+                        <div class="col-md-2"><label class="form-label fs-xs text-muted mb-1">Activo</label><select class="form-select form-select-sm" id="artActivo"><option value="true">Sí</option><option value="false">No</option></select></div>
+                        <div class="col-md-8"><label class="form-label fs-xs text-muted mb-1">Palabras clave y sinónimos (separados por coma)</label><input class="form-control form-control-sm" id="artPalabras" maxlength="1000"></div>
+                        <div class="col-md-4"><label class="form-label fs-xs text-muted mb-1">Ruta del botón "Abrir" (opcional, p. ej. <code>examen-inicial/bandeja</code>)</label><input class="form-control form-control-sm" id="artEnlace" maxlength="300"></div>
+                        <div class="col-md-6"><label class="form-label fs-xs text-muted mb-1">Contenido (Markdown: # títulos, **negritas**, - listas, [texto](ruta), | tablas |)</label>
+                            <textarea class="form-control" id="artCuerpo" oninput="previsualizar();"></textarea></div>
+                        <div class="col-md-6"><label class="form-label fs-xs text-muted mb-1">Vista previa</label><div class="vista-previa" id="artPreview"></div></div>
+                    </div>
+                    <div id="artResult" class="fs-sm mt-2"></div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="guardar(this);">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block id="pageScripts">
+    <script>
+        (function () {
+            function csrf() {
+                var h = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+                var t = document.querySelector('meta[name="_csrf"]');
+                var n = document.querySelector('meta[name="_csrf_header"]');
+                if (t && n) { h[n.content] = t.content; }
+                return h;
+            }
+            function val(id) { return document.getElementById(id).value; }
+            function set(id, v) { document.getElementById(id).value = v == null ? '' : v; }
+            function msg(el, texto, error) { el.textContent = texto; el.className = 'fs-sm mt-2 ' + (error ? 'text-danger' : 'text-success'); }
+
+            // Vista previa: misma conversion que el servidor, version minima en JS (solo para ver mientras se escribe)
+            window.previsualizar = function () {
+                var md = val('artCuerpo');
+                var esc = md.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                var html = esc
+                    .replace(/^### (.*)$/gm, '<h5>$1</h5>').replace(/^## (.*)$/gm, '<h4>$1</h4>').replace(/^# (.*)$/gm, '<h3>$1</h3>')
+                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code>$1</code>')
+                    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="#">$1</a>')
+                    .replace(/^(?:- |\* )(.*)$/gm, '<li>$1</li>').replace(/^\d+\. (.*)$/gm, '<li>$1</li>')
+                    .replace(/^\|[\s|:-]+\|$/gm, '').replace(/^\|(.*)\|$/gm, function (m, c) { return '<tr><td>' + c.split('|').join('</td><td>') + '</td></tr>'; })
+                    .replace(/\n{2,}/g, '<br><br>').replace(/\n/g, '<br>');
+                document.getElementById('artPreview').innerHTML = html;
+            };
+
+            window.editar = async function (id, preguntaSugerida) {
+                var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('artModal'));
+                document.getElementById('artResult').textContent = '';
+                if (id) {
+                    var r = await fetch(contextPath + 'api/admin/ayuda/articulos/' + id, { headers: { 'Accept': 'application/json' } });
+                    var a = await r.json();
+                    set('artId', a.id); set('artTituloInput', a.titulo); set('artModulo', a.modulo); set('artPregunta', a.pregunta);
+                    set('artOrden', a.orden); set('artActivo', String(a.activo)); set('artPalabras', a.palabrasClave); set('artEnlace', a.enlace); set('artCuerpo', a.cuerpo);
+                    document.getElementById('artTitulo').textContent = 'Editar: ' + a.titulo;
+                } else {
+                    ['artId', 'artTituloInput', 'artPalabras', 'artEnlace', 'artCuerpo'].forEach(function (i) { set(i, ''); });
+                    set('artPregunta', preguntaSugerida || ''); set('artModulo', 'GENERAL'); set('artOrden', 100); set('artActivo', 'true');
+                    document.getElementById('artTitulo').textContent = 'Nuevo artículo';
+                }
+                previsualizar();
+                modal.show();
+            };
+
+            window.guardar = async function (btn) {
+                btn.disabled = true;
+                var out = document.getElementById('artResult');
+                var cuerpo = {
+                    id: val('artId') ? parseInt(val('artId'), 10) : null, titulo: val('artTituloInput'), modulo: val('artModulo'),
+                    pregunta: val('artPregunta'), orden: parseInt(val('artOrden') || '100', 10), activo: val('artActivo') === 'true',
+                    palabrasClave: val('artPalabras'), enlace: val('artEnlace'), cuerpo: val('artCuerpo')
+                };
+                try {
+                    var r = await fetch(contextPath + 'api/admin/ayuda/articulos', { method: 'POST', headers: csrf(), body: JSON.stringify(cuerpo) });
+                    if (!r.ok) { var e = await r.json().catch(function () { return {}; }); throw new Error(e.message || e.error || ('HTTP ' + r.status)); }
+                    msg(out, 'Guardado. Recargando…', false);
+                    setTimeout(function () { window.location.reload(); }, 600);
+                } catch (err) {
+                    msg(out, 'No se guardó: ' + err.message, true);
+                    btn.disabled = false;
+                }
+            };
+
+            window.activar = async function (id, activo, btn) {
+                btn.disabled = true;
+                try {
+                    var r = await fetch(contextPath + 'api/admin/ayuda/articulos/' + id + '/activar', { method: 'POST', headers: csrf(), body: JSON.stringify({ activo: activo }) });
+                    msg(document.getElementById('adminResult'), await r.text(), !r.ok);
+                    if (r.ok) { setTimeout(function () { window.location.reload(); }, 400); }
+                } finally { btn.disabled = false; }
+            };
+
+            window.reindexar = async function (btn) {
+                btn.disabled = true;
+                try {
+                    var r = await fetch(contextPath + 'api/admin/ayuda/reindexar', { method: 'POST', headers: csrf() });
+                    msg(document.getElementById('adminResult'), await r.text(), !r.ok);
+                } finally { btn.disabled = false; }
+            };
+        })();
+    </script>
+</th:block>
+</body>
+</html>

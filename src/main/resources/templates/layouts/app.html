@@ -53,5 +53,7 @@
     <th:block th:replace="~{fragments/footer :: footer}"></th:block>
 </div>
 <th:block th:replace="~{fragments/scripts :: appScripts(${pageScripts})}"></th:block>
+<!-- Chat de ayuda (boton "?" del header). Va despues de los scripts porque usa bootstrap.Offcanvas. -->
+<th:block th:if="${ayudaVisible}" th:replace="~{fragments/ayuda-panel :: panel}"></th:block>
 </body>
 </html>

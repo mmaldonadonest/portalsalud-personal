@@ -41,8 +41,13 @@
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <div class="col-md-8">
                     <label class="form-label" for="nssInput">NSS</label>
-                    <input id="nssInput" name="nss" type="text" class="form-control"
-                           placeholder="Ej. 30048315698" th:value="${nssQuery}" required>
+                    <div class="position-relative">
+                        <input id="nssInput" name="nss" type="text" class="form-control pe-5"
+                               placeholder="Ej. 30048315698" th:value="${nssQuery}" required>
+                        <!-- Limpiar: solo se ve con texto; deja la pantalla lista para otra busqueda -->
+                        <button id="nssClear" type="button" class="btn-close position-absolute top-50 end-0 translate-middle-y me-3"
+                                style="font-size: .7rem; display: none;" aria-label="Limpiar" title="Limpiar"></button>
+                    </div>
                 </div>
                 <div class="col-md-4">
                     <button class="btn btn-primary" type="submit">Buscar</button>
@@ -82,6 +87,29 @@
 
             if (!form || !status || !result || !input) {
                 return;
+            }
+
+            // Boton "x" del campo NSS: vacia el campo y lo que dejo la busqueda anterior (ficha,
+            // modulos del menu lateral y el modulo abierto), para no confundir a quien busca a otra
+            // persona con los datos de la anterior todavia en pantalla.
+            var limpiar = document.getElementById('nssClear');
+            function mostrarLimpiar() {
+                if (limpiar) { limpiar.style.display = input.value ? '' : 'none'; }
+            }
+            if (limpiar) {
+                input.addEventListener('input', mostrarLimpiar);
+                limpiar.addEventListener('click', function () {
+                    input.value = '';
+                    mostrarLimpiar();
+                    status.textContent = 'Ingresa un NSS para consultar.';
+                    result.innerHTML = '';
+                    result.style.display = 'none';
+                    resetSidebarModules();
+                    var mc = document.getElementById('moduleContent');
+                    if (mc) { mc.innerHTML = ''; }
+                    input.focus();
+                });
+                mostrarLimpiar();   // si la pagina llego con ?nss=..., ya hay texto
             }
 
             // Sesion/CSRF expirada: cualquier POST AJAX que devuelva 401/403 (tipico
@@ -148,6 +176,13 @@
                     if (mc) { mc.innerHTML = ''; }
                     if (document.getElementById('nssEmpleadoMarker')) {
                         loadSidebarModules(nss);
+                        // ?abrir=examen-inicial (enlace de la campanita / solicitud OCR): abrir el
+                        // modulo directo, una sola vez por carga de pagina.
+                        var abrir = new URLSearchParams(window.location.search).get('abrir');
+                        if (abrir === 'examen-inicial' && !window.__nssAbrirHecho) {
+                            window.__nssAbrirHecho = true;
+                            loadModuleView('api/nss/examen-inicial', nss);
+                        }
                     }
                 } catch (error) {
                     status.textContent = 'Error de red al consultar: ' + error;
@@ -240,6 +275,10 @@
                         if (document.getElementById('firmaCanvas')) {
                             initSignaturePad();
                         }
+                        // Examen inicial: autoguardado, stepper y teclado (ver exIniInit).
+                        if (document.getElementById('exIni')) {
+                            exIniInit();
+                        }
                     } else {
                         mc.innerHTML = '<div class="alert alert-danger mb-0">Error al cargar el modulo (HTTP ' + response.status + ').</div>';
                     }
@@ -291,6 +330,10 @@
                 }
                 if (action === 'examen') {
                     loadModuleView('api/nss/examen', nss);
+                    return;
+                }
+                if (action === 'examen-inicial') {
+                    loadModuleView('api/nss/examen-inicial', nss);
                     return;
                 }
                 if (action === 'antidoping') {
@@ -567,14 +610,33 @@
                 // AQUI en el clic (window.open tras un await lo bloquea el navegador) y se navega
                 // al documento con ?auto=1 solo si el guardado fue exitoso; si falla, se cierra.
                 var firmaEl = formEl.querySelector('#firma');
-                var urlDocumento = (typeof opts.documentoUrl === 'function' && firmaEl && firmaEl.value)
+                // Por omision "firmado" = hay trazo nuevo en el recuadro. Un modulo puede
+                // ampliarlo con opts.firmado(formEl): el examen inicial lo hace porque su
+                // firma puede venir ya almacenada del WS y el trabajador no vuelve a firmar,
+                // y sin eso el expediente no se abria nunca en ese caso.
+                var firmado = (typeof opts.firmado === 'function')
+                        ? !!opts.firmado(formEl)
+                        : !!(firmaEl && firmaEl.value);
+                var urlDocumento = (typeof opts.documentoUrl === 'function' && firmado)
                         ? opts.documentoUrl(formEl) : null;
                 var ventanaDoc = null;
+                // La pestana se abre AQUI, en el clic: abrirla despues del await la bloquea el
+                // navegador (probado 3-oct: el guardado del examen inicial tarda mas que la
+                // ventana de gracia de Chrome). opts.abrirAlTerminar solo cambia el contenido
+                // provisional: una pantalla de carga con el estilo del portal en vez del texto
+                // plano, y el documento se carga en cuanto el guardado termina.
                 if (urlDocumento) {
                     try {
                         ventanaDoc = window.open('', '_blank');
                         if (ventanaDoc) {
-                            ventanaDoc.document.write('<p style="font:14px system-ui;padding:24px">Guardando y generando el documento para imprimir…</p>');
+                            ventanaDoc.document.write(opts.abrirAlTerminar
+                                ? '<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Generando documento</title></head>'
+                                  + '<body style="margin:0;font:16px system-ui,sans-serif;background:#F8FAFC;color:#20252B;display:flex;align-items:center;justify-content:center;height:100vh">'
+                                  + '<div style="text-align:center"><div style="width:46px;height:46px;border:5px solid #E1E6EB;border-top-color:#0057A8;border-radius:50%;margin:0 auto 18px;animation:g 1s linear infinite"></div>'
+                                  + '<div style="font-weight:600;color:#003E75;font-size:18px">Generando el expediente para imprimir…</div>'
+                                  + '<div style="margin-top:6px;color:#667085">Esta pestaña se actualiza sola al terminar.</div></div>'
+                                  + '<style>@keyframes g{to{transform:rotate(360deg)}}</style></body></html>'
+                                : '<p style="font:14px system-ui;padding:24px">Guardando y generando el documento para imprimir…</p>');
                         }
                     } catch (e) { ventanaDoc = null; }
                 }
@@ -597,7 +659,7 @@
                     }
                 }
                 btn.disabled = true;
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Guardando...';
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> ' + (opts.textoBoton || 'Guardando...');
                 mostrarResultado('Guardando ' + opts.label + '...', false);
                 try {
                     var response = await fetch(contextPath + opts.savePath, {
@@ -627,7 +689,8 @@
                                 a.href = urlDocumento;
                                 a.target = '_blank';
                                 a.className = 'ms-2';
-                                a.innerHTML = '<i class="ri-printer-line me-1"></i>Descargar documento (PDF)';
+                                a.innerHTML = '<i class="ri-printer-line me-1"></i>' + (ventanaDoc ? 'Descargar documento (PDF)' : 'Abrir documento (PDF)');
+                                if (!ventanaDoc) { a.className = 'btn btn-sm btn-primary ms-2'; }
                                 resultEl.appendChild(a);
                             }
                         }
@@ -711,6 +774,942 @@
 
             window.guardarDiagnosticosSecundarios = function (btn) {
                 guardarRegistro(btn, { formId: 'diagnosticosSecundariosForm', savePath: 'api/nss/examen/diagnosticos-secundarios/save', fileInputId: '__none__', label: 'diagnósticos secundarios', resultElId: 'diagnosticosSecundariosResult' });
+            };
+
+            window.guardarDatosGeneralesExamen = function (btn) {
+                guardarRegistro(btn, { formId: 'datosGeneralesExamenForm', savePath: 'api/nss/examen/datos-generales/save', fileInputId: '__none__', label: 'datos generales del examen', resultElId: 'datosGeneralesExamenResult',
+                    // al guardar, la etiqueta pierde el "(sin guardar)" (15-oct-2026)
+                    onSuccess: function () {
+                        var sel = document.getElementById('examenTipo');
+                        if (sel) { exAplicarTipo(sel.value, true); }
+                    } });
+            };
+
+            // Acomoda el modulo al formato del tipo (16-oct-2026): al ELEGIR el tipo (vista previa,
+            // "(sin guardar)") y al guardarlo. Cada tipo ve lo de su formato (VisibilidadTipo.java,
+            // clases "ocultar-en-N"); si la pestana activa quedo oculta pasa a la primera visible y
+            // los resumenes por seccion se repintan. Deja un log en la consola para validar.
+            window.exAplicarTipo = function (valor, guardado) {
+                var sel = document.getElementById('examenTipo');
+                var tag = document.getElementById('examenTipoTag');
+                if (!sel || !tag) { return; }
+                var sinTipo = !valor;
+                var nombre = sinTipo ? 'Sin tipo de examen' : sel.options[sel.selectedIndex].text;
+                tag.textContent = nombre + (guardado ? '' : ' (sin guardar)');
+                // aviso: Admision (1) es el examen inicial y se captura en su propio menu
+                var aviso = document.getElementById('examenAvisoInicial');
+                if (aviso) { aviso.classList.toggle('d-none', valor !== '1'); }
+                tag.className = 'badge fs-6 px-3 py-2 examen-tipo-tag tipo-' + valor;
+                var fmt = document.getElementById('examenFormatoTag');
+                if (fmt) {
+                    var mapa = {};
+                    (fmt.getAttribute('data-formatos') || '').split(',').forEach(function (p) { var kv = p.split('='); mapa[kv[0]] = kv[1]; });
+                    fmt.textContent = mapa[valor] || '';
+                    fmt.classList.toggle('d-none', sinTipo);
+                }
+                var acordeon = document.getElementById('examenAccordion');
+                if (!acordeon) { return; }
+                acordeon.className = acordeon.className.replace(/\btipo-\S*/g, '').trim() + ' tipo-' + valor;
+                var extra = document.getElementById('examenExtraAccordion');
+                if (extra) { extra.className = extra.className.replace(/\btipo-\S*/g, '').trim() + ' tipo-' + valor; }
+                acordeon.querySelectorAll('.examen-tabs').forEach(function (ul) {
+                    var activa = ul.querySelector('.nav-link.active');
+                    if (!activa || !exOcultoTipo(activa)) { return; }
+                    var visible = [].find.call(ul.querySelectorAll('.nav-item'), function (li) { return !exOcultoTipo(li); });
+                    if (visible) { bootstrap.Tab.getOrCreateInstance(visible.querySelector('.nav-link')).show(); }
+                });
+                acordeon.querySelectorAll('.tab-pane[data-resumen="lista"]').forEach(function (p) {
+                    if (p.querySelector('.exapp-lista')) { exListaResumen(p); }
+                });
+                var visibles = function (raiz) {
+                    return raiz ? [].filter.call(raiz.querySelectorAll(':scope > .accordion-item'), function (g) { return getComputedStyle(g).display !== 'none'; })
+                        .map(function (g) { return g.querySelector('.accordion-button').textContent.trim().replace(/\s+/g, ' '); }) : [];
+                };
+                console.info('[examen] tipo ' + (valor || '(vacío)') + ' «' + nombre + '» ' + (fmt ? fmt.textContent : '')
+                        + (guardado ? ' (guardado)' : ' (sin guardar)') + '\n  grupos: ' + visibles(acordeon).join(' | ')
+                        + '\n  otros datos: ' + visibles(extra).join(' | '));
+            };
+
+            // " FT-SO-xx" del tipo actual (examen-shell.html, #examenFormatoTag) o "" sin tipo
+            window.exFormatoActual = function () {
+                var fmt = document.getElementById('examenFormatoTag');
+                return fmt && !fmt.classList.contains('d-none') && fmt.textContent.trim() ? ' ' + fmt.textContent.trim() : '';
+            };
+
+            // true si el elemento (o su grupo/seccion) no va en el tipo de examen actual
+            window.exOcultoTipo = function (el) {
+                var acordeon = document.getElementById('examenAccordion');
+                var m = acordeon ? /(?:^|\s)tipo-(\S*)/.exec(acordeon.className) : null;
+                return !!(el && m && el.closest('.ocultar-en-' + m[1]));
+            };
+
+            // ===== Examen medico inicial (fragments/examen-inicial-shell.html) =====
+            // Asistente por hojas con borrador que se guarda solo: cada cambio en la hoja activa
+            // dispara un autoguardado (debounce) a /api/nss/examen-inicial/borrador con los campos
+            // de ESA hoja; el servidor los funde con el borrador existente. Nada viaja al WS hasta
+            // "Finalizar". Todo cuelga de window.* porque el fragmento se inyecta con innerHTML.
+            var exIniTimer = null;
+            var exIniPendiente = false;
+
+            function exIniRoot() {
+                return document.getElementById('exIni');
+            }
+
+            function exIniHojaActiva() {
+                var root = exIniRoot();
+                return root ? parseInt(root.getAttribute('data-hoja'), 10) || 1 : 1;
+            }
+
+            function exIniCamposDe(section) {
+                var datos = {};
+                section.querySelectorAll('input[name], select[name], textarea[name]').forEach(function (el) {
+                    if (el.type === 'hidden' && (el.name === 'nss' || el.name === 'hoja' || el.name === 'firma')) {
+                        return;
+                    }
+                    datos[el.name] = el.value;
+                });
+                return datos;
+            }
+
+            function exIniMarcarGuardado(texto, esError) {
+                var el = document.getElementById('exIniGuardado');
+                if (!el) {
+                    return;
+                }
+                el.textContent = texto;
+                el.classList.toggle('err', !!esError);
+            }
+
+            // Boton "Abrir examen inicial" del aviso de solicitud OCR pendiente (fragments/nss-result.html).
+            // loadModuleView es local a este closure, por eso el puente.
+            window.abrirExamenInicialPrueba = function (nss) {
+                loadModuleView('api/nss/examen-inicial', nss);
+            };
+
+            // Mascara de telefono a 10 digitos: en pantalla "55 1234 5678"; lo que se guarda es
+            // el hidden hermano (name=contactoEmertelefonoN) con los digitos de corrido.
+            window.exIniMascaraTel = function (inp) {
+                var d = inp.value.replace(/[^0-9]/g, '').slice(0, 10);
+                var out = d;
+                if (d.length > 6) { out = d.slice(0, 2) + ' ' + d.slice(2, 6) + ' ' + d.slice(6); }
+                else if (d.length > 2) { out = d.slice(0, 2) + ' ' + d.slice(2); }
+                inp.value = out;
+                var hidden = inp.previousElementSibling;
+                while (hidden && hidden.type !== 'hidden') { hidden = hidden.previousElementSibling; }
+                if (hidden && hidden.value !== d) {
+                    hidden.value = d;
+                    hidden.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            };
+
+            window.exIniInit = function () {
+                var root = exIniRoot();
+                var formEl = document.getElementById('exIniForm');
+                if (!root || !formEl) {
+                    return;
+                }
+                // Cualquier cambio en la hoja activa programa un autoguardado. 'input' cubre
+                // texto mientras se escribe; 'change' cubre selects, fechas y los Si/No (que
+                // disparan change a mano en exIniSino).
+                ['input', 'change'].forEach(function (evt) {
+                    formEl.addEventListener(evt, function (e) {
+                        if (e.target && e.target.name) {
+                            // observacion que faltaba (Si sin observacion): se quita el rojo al escribir
+                            if (e.target.classList.contains('is-invalid') && e.target.dataset.tipo !== 'OKNO' && e.target.value.trim()) {
+                                e.target.classList.remove('is-invalid');
+                            }
+                            exIniProgramarAutosave();
+                            // el switch "Todo normal" del bloque refleja el estado real
+                            exIniRefrescarSwitches();
+                        }
+                    });
+                });
+                exIniRefrescarSwitches();
+                // odontograma por caras: se pinta desde el texto guardado
+                root.querySelectorAll('.exini-odonto .diente').forEach(exIniPintarDiente);
+                // Enter en un campo de texto pasa al siguiente campo en vez de no hacer nada
+                // (comodidad heredada de Excel: Enter = siguiente celda).
+                formEl.addEventListener('keydown', function (e) {
+                    if (e.key !== 'Enter' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON') {
+                        return;
+                    }
+                    e.preventDefault();
+                    var focusables = Array.prototype.slice.call(formEl.querySelectorAll('section:not([hidden]) input:not([type=hidden]), section:not([hidden]) select, section:not([hidden]) textarea, section:not([hidden]) .exini-sino'));
+                    var i = focusables.indexOf(e.target);
+                    if (i >= 0 && i + 1 < focusables.length) {
+                        focusables[i + 1].focus();
+                    }
+                });
+                exIniPintarNav();
+            };
+
+            function exIniProgramarAutosave() {
+                exIniPendiente = true;
+                exIniMarcarGuardado('Cambios sin guardar…', false);
+                if (exIniTimer) {
+                    clearTimeout(exIniTimer);
+                }
+                exIniTimer = setTimeout(function () { exIniAutosave(); }, 1200);
+            }
+
+            // Los autoguardados van en fila (exIniCola): el que sale al dejar una hoja y el que
+            // programa la hoja nueva no deben viajar en paralelo, o el servidor fusiona sobre un
+            // borrador viejo. Los datos se toman al momento de encolar (no al enviar).
+            var exIniCola = Promise.resolve();
+            window.exIniAutosave = function (hojaForzada) {
+                var root = exIniRoot();
+                if (!root) {
+                    return exIniCola;
+                }
+                if (exIniTimer) {
+                    clearTimeout(exIniTimer);
+                    exIniTimer = null;
+                }
+                var hoja = hojaForzada || exIniHojaActiva();
+                var section = root.querySelector('section.exini-hoja[data-hoja="' + hoja + '"]');
+                if (!section) {
+                    return exIniCola;
+                }
+                var cuerpo = JSON.stringify({ nss: root.getAttribute('data-nss'), hoja: hoja, datos: exIniCamposDe(section) });
+                exIniCola = exIniCola.then(function () { return exIniEnviarBorrador(cuerpo); });
+                return exIniCola;
+            };
+
+            async function exIniEnviarBorrador(cuerpo) {
+                var t = document.querySelector('meta[name="_csrf"]');
+                var h = document.querySelector('meta[name="_csrf_header"]');
+                var headers = { 'Content-Type': 'application/json', 'Accept': 'text/plain' };
+                if (t && h) { headers[h.content] = t.content; }
+                try {
+                    var response = await fetch(contextPath + 'api/nss/examen-inicial/borrador', {
+                        method: 'POST', headers: headers,
+                        body: cuerpo
+                    });
+                    var txt = await response.text();
+                    if (response.ok) {
+                        exIniPendiente = false;
+                        exIniMarcarGuardado('Guardado ' + txt, false);
+                        exIniPintarStepper();
+                    } else {
+                        exIniMarcarGuardado('No se pudo guardar el borrador (HTTP ' + response.status + '): ' + txt, true);
+                    }
+                } catch (error) {
+                    exIniMarcarGuardado('Sin conexión: el borrador no se guardó', true);
+                }
+            }
+
+            // n = numero de hoja, o delta (+1/-1) si relativo=true.
+            window.exIniIr = function (n, relativo) {
+                var root = exIniRoot();
+                if (!root) {
+                    return;
+                }
+                var total = parseInt(root.getAttribute('data-total-hojas'), 10) || 10;
+                var actual = exIniHojaActiva();
+                var destino = relativo ? actual + n : n;
+                if (destino < 1 || destino > total || destino === actual) {
+                    return;
+                }
+                // La hoja que se abandona se guarda ya (sin esperar el debounce)
+                if (exIniPendiente) {
+                    exIniAutosave(actual);
+                }
+                root.querySelectorAll('section.exini-hoja').forEach(function (s) {
+                    s.hidden = parseInt(s.getAttribute('data-hoja'), 10) !== destino;
+                });
+                root.setAttribute('data-hoja', String(destino));
+                var hojaInput = document.getElementById('exIniHoja');
+                if (hojaInput) {
+                    hojaInput.value = String(destino);
+                }
+                exIniPintarNav();
+                // Recordar en que hoja se quedo (aunque no haya cambios): se manda la hoja
+                // destino con sus campos tal cual estan.
+                exIniAutosave(destino);
+                root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                var primero = root.querySelector('section.exini-hoja[data-hoja="' + destino + '"] input:not([type=hidden]), section.exini-hoja[data-hoja="' + destino + '"] .exini-sino');
+                if (primero) {
+                    setTimeout(function () { primero.focus(); }, 300);
+                }
+            };
+
+            function exIniPintarNav() {
+                var root = exIniRoot();
+                if (!root) {
+                    return;
+                }
+                var total = parseInt(root.getAttribute('data-total-hojas'), 10) || 10;
+                var actual = exIniHojaActiva();
+                var pos = document.getElementById('exIniPos');
+                if (pos) { pos.textContent = 'Hoja ' + actual + ' de ' + total; }
+                var prev = document.getElementById('exIniPrev');
+                var next = document.getElementById('exIniNext');
+                if (prev) { prev.disabled = actual <= 1; }
+                if (next) { next.disabled = actual >= total; }
+                root.querySelectorAll('#exIniStepper button[data-ir]').forEach(function (b) {
+                    b.classList.toggle('activa', parseInt(b.getAttribute('data-ir'), 10) === actual);
+                });
+            }
+
+            // Barra de avance de cada hoja del stepper, calculada en el navegador con lo que hay
+            // en pantalla (el servidor la calcula igual al recargar).
+            function exIniPintarStepper() {
+                var root = exIniRoot();
+                if (!root) {
+                    return;
+                }
+                root.querySelectorAll('section.exini-hoja').forEach(function (s) {
+                    var n = parseInt(s.getAttribute('data-hoja'), 10);
+                    var campos = s.querySelectorAll('input[name]:not([type=hidden]), select[name], textarea[name], input[type=hidden][name]:not([name=nss]):not([name=hoja]):not([name=firma])');
+                    var llenos = 0;
+                    campos.forEach(function (el) { if (el.value && String(el.value).trim() !== '') { llenos++; } });
+                    var btn = root.querySelector('#exIniStepper button[data-ir="' + n + '"]');
+                    if (btn) {
+                        var bar = btn.querySelector('.p span');
+                        if (bar) { bar.style.width = (campos.length ? Math.round(100 * llenos / campos.length) : 0) + '%'; }
+                        btn.classList.toggle('completa', campos.length > 0 && llenos === campos.length);
+                    }
+                });
+            }
+
+            // Si/No como botones: el valor vive en el hidden; S/N por teclado sobre el grupo.
+            // `valor` es '1' (Si) o '0' (No); lo que se GUARDA sale de data-si/data-no del grupo
+            // (default 1/0; orientacion en Exploracion fisica guarda "Sí"/"No" porque el WS lo
+            // tiene como texto y el impreso lo pinta literal).
+            function exIniValoresSino(grupo) {
+                return { si: grupo.getAttribute('data-si') || '1', no: grupo.getAttribute('data-no') || '0' };
+            }
+
+            function exIniPintarSino(grupo) {
+                var v = exIniValoresSino(grupo);
+                var hidden = grupo.querySelector('input[type=hidden]');
+                var botones = grupo.querySelectorAll('button');
+                botones[0].classList.toggle('activo-si', hidden.value === v.si);
+                botones[1].classList.toggle('activo-no', hidden.value === v.no);
+            }
+
+            window.exIniSino = function (btn, valor) {
+                var grupo = btn.closest('.exini-sino');
+                if (!grupo) {
+                    return;
+                }
+                var v = exIniValoresSino(grupo);
+                var hidden = grupo.querySelector('input[type=hidden]');
+                var nuevo = valor === '1' ? v.si : v.no;
+                // segundo clic en el mismo = sin contestar
+                hidden.value = hidden.value === nuevo ? '' : nuevo;
+                exIniPintarSino(grupo);
+                var fila = grupo.closest('.exini-fila');
+                var obs = fila ? fila.querySelector('input[type=text]') : null;
+                // FT-SO-04: "NEGADOS" es la observacion predeterminada SOLO del No. Con Si se
+                // limpia para escribir el antecedente; al volver a No (heredofamiliares) regresa.
+                var bloque = grupo.closest('.exini-bloque');
+                var sw = bloque ? bloque.querySelector('.exini-switch input[data-modo="negados"]') : null;
+                if (obs && hidden.value === v.si && /NEGAD/i.test(obs.value)) {
+                    obs.value = '';
+                } else if (obs && sw && hidden.value === v.no && obs.value.trim() === '') {
+                    obs.value = 'NEGADOS';
+                }
+                hidden.dispatchEvent(new Event('change', { bubbles: true }));
+                // Con Si, llevar el cursor a las observaciones de esa fila
+                if (hidden.value === v.si && obs) {
+                    obs.focus();
+                }
+            };
+
+            // Chips de UNA opcion (constitucion, emocional, fascies, marcha): el texto literal
+            // del legacy va al hidden; clic en la activa la desmarca.
+            window.exIniChip = function (btn) {
+                var grupo = btn.closest('.exini-chips');
+                var hidden = grupo.querySelector('input[type=hidden]');
+                var val = btn.getAttribute('data-val');
+                hidden.value = hidden.value === val ? '' : val;
+                grupo.querySelectorAll('button').forEach(function (b) {
+                    b.classList.toggle('activo', b.getAttribute('data-val') === hidden.value);
+                });
+                hidden.dispatchEvent(new Event('change', { bubbles: true }));
+            };
+
+            // Inmunizaciones: Todo Si / Todo No sobre las 7 vacunas (no toca COVID ni las fechas)
+            window.exSecTodasVacunas = function (btn, valor) {
+                var card = btn.closest('.exsec');
+                card.querySelectorAll('.exinm .exini-chips').forEach(function (grupo) {
+                    var hidden = grupo.querySelector('input[type=hidden]');
+                    if (!hidden) { return; }
+                    hidden.value = valor;
+                    grupo.querySelectorAll('button').forEach(function (b) {
+                        b.classList.toggle('activo', b.getAttribute('data-val') === valor);
+                    });
+                    hidden.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+            };
+
+            // No / Si + detalle (pension, examen-seccion.html :: sinoTexto). El hidden lleva "NO",
+            // el detalle escrito o "SI"; clic en el boton activo lo deja sin contestar.
+            window.exSinoTexto = function (btn) {
+                var cont = btn.closest('.exsino-txt');
+                var hidden = cont.querySelector('input[type=hidden]');
+                var det = cont.querySelector('input[type=text]');
+                var modo = btn.classList.contains('activo') ? '' : btn.getAttribute('data-val');
+                cont.querySelectorAll('.exini-chips button').forEach(function (b) {
+                    b.classList.toggle('activo', b.getAttribute('data-val') === modo);
+                });
+                if (modo === 'si') {
+                    det.disabled = false;
+                    hidden.value = det.value.trim() || 'SI';
+                    det.focus();
+                } else {
+                    det.value = '';
+                    det.disabled = true;
+                    hidden.value = modo === 'no' ? 'NO' : '';
+                }
+                hidden.dispatchEvent(new Event('change', { bubbles: true }));
+            };
+
+            window.exSinoTextoDetalle = function (det) {
+                var hidden = det.closest('.exsino-txt').querySelector('input[type=hidden]');
+                hidden.value = det.value.trim() || 'SI';
+                hidden.dispatchEvent(new Event('change', { bubbles: true }));
+            };
+
+            // OK / NO del FT-SO-04 rev. 05: el valor es el texto del input. OK = texto del formato
+            // (data-normal); NO = hallazgo escrito (en los de dos opciones arranca con data-alterno).
+            // "Normal" (lo que ponia el "Todo normal" anterior) y "20/20" (agudeza visual) cuentan como OK.
+            function exIniOkNoEsOk(fila, valor) {
+                var v = (valor || '').trim().toUpperCase();
+                return v !== '' && (v === (fila.getAttribute('data-normal') || '').toUpperCase() || v === 'NORMAL' || v === '20/20');
+            }
+
+            function exIniOkNoPintar(fila) {
+                var inp = fila.querySelector('input[data-tipo="OKNO"]');
+                var b = fila.querySelectorAll('.exini-okno-btns button');
+                var v = inp.value.trim();
+                var ok = exIniOkNoEsOk(fila, v);
+                var pide = fila.classList.contains('pide-hallazgo');
+                var alterno = (fila.getAttribute('data-alterno') || '').toUpperCase();
+                b[0].classList.toggle('activo-ok', ok);
+                // NO solo cuando consta: se eligio en esta captura (pide) o empieza con la otra opcion
+                // ("PRESENTES ..."). Un texto viejo del PHP ("Simetricos") no se marca ni OK ni NO.
+                b[1].classList.toggle('activo-hallazgo', !ok && (pide || (alterno !== '' && v.toUpperCase().indexOf(alterno) === 0)));
+                // NO sin escribir el hallazgo: se marca en rojo (vacio no se guarda como normal)
+                inp.classList.toggle('is-invalid', pide && v === '');
+            }
+
+            window.exIniOkNo = function (btn, ok) {
+                var fila = btn.closest('.exini-okno');
+                var inp = fila.querySelector('input[data-tipo="OKNO"]');
+                var normal = fila.getAttribute('data-normal') || '';
+                var alterno = fila.getAttribute('data-alterno') || '';
+                var esOk = exIniOkNoEsOk(fila, inp.value);
+                // NO activo = lo que se ve en el boton (un texto viejo sin marca no cuenta: no se borra)
+                var esNo = fila.querySelectorAll('.exini-okno-btns button')[1].classList.contains('activo-hallazgo');
+                fila.classList.remove('pide-hallazgo');
+                if (ok) {
+                    // segundo clic en el activo = sin contestar, como Si/No
+                    inp.value = esOk ? '' : normal;
+                } else if (esNo) {
+                    inp.value = '';
+                } else {
+                    fila.classList.add('pide-hallazgo');
+                    // un texto previo que no es el normal (p.ej. del PHP) se conserva como hallazgo
+                    if (esOk || !inp.value.trim()) {
+                        inp.value = alterno ? alterno + ' ' : '';
+                    }
+                    inp.focus();
+                    inp.setSelectionRange(inp.value.length, inp.value.length);
+                }
+                exIniOkNoPintar(fila);
+                inp.dispatchEvent(new Event('change', { bubbles: true }));
+            };
+
+            window.exIniOkNoEscribe = function (inp) {
+                var fila = inp.closest('.exini-okno');
+                if (exIniOkNoEsOk(fila, inp.value)) { fila.classList.remove('pide-hallazgo'); }
+                else if (inp.value.trim() !== '') { fila.classList.add('pide-hallazgo'); }
+                exIniOkNoPintar(fila);
+            };
+
+            // Modulo Examen medico (examen-seccion.html, 15-oct-2026, FT-SO-17): "Todo normal" por
+            // seccion. okno = OK con el texto del formato; negados = No + "NEGADOS"; sino = No.
+            // Solo llena lo vacio: no pisa un hallazgo ni un Si capturado.
+            window.exSecTodoNormal = function (btn) {
+                var card = btn.closest('.exsec');
+                var modo = btn.getAttribute('data-modo');
+                if (modo === 'okno') {
+                    exIniAplicarNormal(card, 'okno');
+                    return;
+                }
+                card.querySelectorAll('select[name]').forEach(function (sel) {
+                    if (sel.value !== '') { return; }
+                    sel.value = '0';
+                    var obs = sel.parentElement.querySelector('input[type=text]');
+                    if (modo === 'negados' && obs && !obs.value.trim()) { obs.value = 'NEGADOS'; }
+                });
+                if (modo === 'negados') {
+                    // los No que ya estaban, sin observacion, tambien llevan NEGADOS (como el formato)
+                    card.querySelectorAll('select[name]').forEach(function (sel) {
+                        var obs = sel.parentElement.querySelector('input[type=text]');
+                        if (sel.value === '0' && obs && !obs.value.trim()) { obs.value = 'NEGADOS'; }
+                    });
+                }
+                exSecPintarSino(card);
+            };
+
+            // Si/No con botones (16-oct-2026, examen-seccion.html): el select oculto sigue siendo el
+            // valor (lo usan Todo normal, NEGADOS, el resumen de patologicos y el guardado); los
+            // botones solo lo cambian y se repintan desde el. Clic en el activo = sin contestar.
+            window.exSecSinoBtn = function (btn) {
+                var cont = btn.closest('.exsino');
+                var sel = cont.querySelector('select');
+                var v = btn.getAttribute('data-val');
+                sel.value = sel.value === v ? '' : v;
+                sel.dispatchEvent(new Event('change', { bubbles: true }));
+                exSecPintarSino(cont);
+                var obs = cont.querySelector('input[type=text]');
+                if (sel.value === '1' && obs) { obs.focus(); }
+            };
+
+            window.exSecPintarSino = function (raiz) {
+                var conts = raiz.classList && raiz.classList.contains('exsino') ? [raiz] : raiz.querySelectorAll('.exsino');
+                Array.prototype.forEach.call(conts, function (c) {
+                    var s = c.querySelector('select');
+                    var b = c.querySelectorAll('.exsec-sino-btns button');
+                    if (!s || b.length < 2) { return; }
+                    b[0].classList.toggle('activo-si', s.value === '1');
+                    b[1].classList.toggle('activo-no', s.value !== '' && s.value !== '1');
+                });
+                // odontograma (Dientes): se colorea desde el texto de cada DIENTE_nn al mostrarse
+                if (raiz.querySelectorAll) { raiz.querySelectorAll('.exini-odonto .diente').forEach(exIniPintarDiente); }
+            };
+
+            // "NEGADOS" solo acompana al No: con Si se borra para escribir el antecedente
+            window.exSecSino = function (sel) {
+                var obs = sel.parentElement.querySelector('input[type=text]');
+                if (!obs) { return; }
+                // "NEGADOS" y el "Interrogado/Negado" que escribia el PHP
+                if (sel.value === '1' && /NEGAD/i.test(obs.value)) {
+                    obs.value = '';
+                    obs.focus();
+                } else if (sel.value === '1') {
+                    obs.focus();
+                }
+            };
+
+            // Agencia (FT-SO-04 rev. 05) cuando la base no la trae: predeterminado del formato u
+            // "Otro" especificando. El valor que se guarda vive en el hidden agenciaExamen.
+            window.exIniAgencia = function (el, modo) {
+                var box = el.closest('.exini-agencia');
+                var hid = box.querySelector('input[name="agenciaExamen"]');
+                var txt = box.querySelector('input[type=text]');
+                var botones = box.querySelectorAll('.exini-chips button');
+                if (modo === 'pre') {
+                    txt.hidden = true;
+                    hid.value = box.getAttribute('data-pre');
+                } else if (modo === 'otro') {
+                    txt.hidden = false;
+                    hid.value = txt.value.trim();
+                    txt.focus();
+                } else {
+                    hid.value = txt.value.trim();
+                }
+                botones[0].classList.toggle('activo', txt.hidden);
+                botones[1].classList.toggle('activo', !txt.hidden);
+                txt.classList.toggle('is-invalid', !txt.hidden && !txt.value.trim());
+                hid.dispatchEvent(new Event('change', { bubbles: true }));
+            };
+
+            // Odontograma: pincel (hallazgo elegido) + clic por diente. El estado vive en el
+            // hidden del diente (C/A/E/P/X o vacio = sano); clic con el mismo hallazgo lo quita.
+            var exIniPincelEstado = '';
+
+            window.exIniPincelSel = function (btn) {
+                exIniPincelEstado = btn.getAttribute('data-estado') || '';
+                btn.closest('.exini-pincel').querySelectorAll('button').forEach(function (b) {
+                    b.classList.toggle('activo', b === btn);
+                });
+            };
+
+            // Diente por caras (FT-SO-04 rev. 05). Texto en la columna DIENTE_nn:
+            //   "X" / "P" (o "C"/"A"/"E" del sistema anterior) = diente completo;
+            //   "C:O,M A:D" = hallazgo por caras (O oclusal, V vestibular, L lingual/palatino, M mesial, D distal);
+            //   cualquier otra palabra = nota vieja, se conserva al final tal cual.
+            var EXINI_CARAS = ['O', 'V', 'L', 'M', 'D'];
+            var EXINI_NOMBRE = { C: 'caries', A: 'amalgama', E: 'endodoncia', P: 'prótesis', X: 'ausente',
+                O: 'oclusal', V: 'vestibular', L: 'lingual/palatino', M: 'mesial', D: 'distal' };
+
+            function exIniLeerDiente(valor) {
+                var d = { completo: '', caras: {}, extra: [] };
+                (valor || '').trim().split(/\s+/).forEach(function (t) {
+                    if (!t) { return; }
+                    var m = /^([CAE]):([OVLMD](?:,[OVLMD])*)$/i.exec(t);
+                    if (m) {
+                        m[2].toUpperCase().split(',').forEach(function (c) { d.caras[c] = m[1].toUpperCase(); });
+                    } else if (/^[CAEPX]$/i.test(t)) {
+                        d.completo = t.toUpperCase();
+                    } else {
+                        d.extra.push(t);
+                    }
+                });
+                return d;
+            }
+
+            function exIniEscribirDiente(d) {
+                var partes = d.completo ? [d.completo] : [];
+                ['C', 'A', 'E'].forEach(function (h) {
+                    var cs = EXINI_CARAS.filter(function (c) { return d.caras[c] === h; });
+                    if (cs.length) { partes.push(h + ':' + cs.join(',')); }
+                });
+                return partes.concat(d.extra).join(' ');
+            }
+
+            window.exIniPintarDiente = function (div) {
+                var hidden = div.querySelector('input[type=hidden]');
+                var d = exIniLeerDiente(hidden.value);
+                // C/A/E del sistema anterior (diente completo): se pintan en las 5 caras
+                var todo = /^[CAE]$/.test(d.completo) ? d.completo : '';
+                div.querySelectorAll('.cara').forEach(function (p) {
+                    var h = todo || d.caras[p.getAttribute('data-cara')] || '';
+                    p.classList.remove('f-C', 'f-A', 'f-E');
+                    if (h) { p.classList.add('f-' + h); }
+                });
+                div.classList.toggle('d-P', d.completo === 'P');
+                div.classList.toggle('d-X', d.completo === 'X');
+                div.classList.toggle('d-otro', d.extra.length > 0);
+                div.querySelector('.est').textContent = d.completo === 'P' || d.completo === 'X' ? d.completo : (d.extra.length ? '·' : '');
+                var desc = [];
+                if (d.completo) { desc.push(EXINI_NOMBRE[d.completo] + (todo ? ' (diente completo)' : '')); }
+                ['C', 'A', 'E'].forEach(function (h) {
+                    var cs = EXINI_CARAS.filter(function (c) { return d.caras[c] === h; });
+                    if (cs.length) { desc.push(EXINI_NOMBRE[h] + ': ' + cs.map(function (c) { return EXINI_NOMBRE[c]; }).join(', ')); }
+                });
+                if (d.extra.length) { desc.push('nota anterior: ' + d.extra.join(' ')); }
+                div.title = 'Diente ' + div.getAttribute('data-diente') + ': ' + (desc.length ? desc.join('; ') : 'sano');
+            };
+
+            window.exIniDiente = function (div, ev) {
+                var hidden = div.querySelector('input[type=hidden]');
+                var d = exIniLeerDiente(hidden.value);
+                var caraEl = ev && ev.target && ev.target.closest ? ev.target.closest('.cara') : null;
+                var cara = caraEl ? caraEl.getAttribute('data-cara') : '';
+                var p = exIniPincelEstado;
+                if (p === 'P' || p === 'X') {
+                    // diente completo: segundo clic lo quita; al marcarlo se borran las caras
+                    d.completo = d.completo === p ? '' : p;
+                    if (d.completo) { d.caras = {}; }
+                } else if (p) {
+                    if (!cara) { return; }   // C/A/E van por cara
+                    if (d.completo === 'P' || d.completo === 'X') { d.completo = ''; }
+                    if (/^[CAE]$/.test(d.completo)) {
+                        // diente completo del sistema anterior: pasa a sus 5 caras para poder editar una
+                        EXINI_CARAS.forEach(function (c) { d.caras[c] = d.completo; });
+                        d.completo = '';
+                    }
+                    d.caras[cara] = d.caras[cara] === p ? undefined : p;
+                } else {
+                    // Sano: en una cara la limpia; fuera de las caras limpia el diente (las notas viejas se quedan)
+                    if (/^[CAE]$/.test(d.completo) && cara) {
+                        EXINI_CARAS.forEach(function (c) { d.caras[c] = d.completo; });
+                    }
+                    d.completo = '';
+                    if (cara) { d.caras[cara] = undefined; } else { d.caras = {}; }
+                }
+                hidden.value = exIniEscribirDiente(d);
+                exIniPintarDiente(div);
+                hidden.dispatchEvent(new Event('change', { bubbles: true }));
+            };
+
+            // IMC = peso / talla^2, calculado al escribir peso o talla (talla en m; si capturan
+            // cm, >3, se convierte). Se puede corregir a mano despues.
+            window.exIniImc = function (inp) {
+                var cont = inp.closest('.exini-vitales');
+                if (!cont) {
+                    return;
+                }
+                var peso = parseFloat((cont.querySelector('input[name$=".PESO"]') || {}).value);
+                var talla = parseFloat((cont.querySelector('input[name$=".TALLA"]') || {}).value);
+                var imc = cont.querySelector('input[name$=".IMC"]');
+                if (!imc || !(peso > 0) || !(talla > 0)) {
+                    return;
+                }
+                if (talla > 3) { talla = talla / 100; }
+                imc.value = (peso / (talla * talla)).toFixed(1);
+            };
+
+            window.exIniTecla = function (grupo, e) {
+                var k = (e.key || '').toLowerCase();
+                var botones = grupo.querySelectorAll('button');
+                if (k === 's' || k === '1') { e.preventDefault(); exIniSino(botones[0], '1'); }
+                else if (k === 'n' || k === '0') { e.preventDefault(); exIniSino(botones[1], '0'); }
+                else if (k === 'enter') {
+                    // Enter: siguiente grupo Si/No de la misma hoja (Tab ya lo hace solo)
+                    e.preventDefault();
+                    var todos = Array.prototype.slice.call(grupo.closest('section').querySelectorAll('.exini-sino'));
+                    var i = todos.indexOf(grupo);
+                    if (i >= 0 && i + 1 < todos.length) { todos[i + 1].focus(); }
+                }
+            };
+
+            // "Todo normal" como switch en la banda de cada bloque. ENCENDER aplica lo normal al
+            // bloque completo (sino: todo No y observaciones en blanco; texto: todo "Normal";
+            // exploracion: Si/serenidad/normal solo en lo sin contestar, sin tocar signos
+            // vitales). APAGAR limpia el bloque (sin contestar / vacio). Tras cualquier cambio
+            // el switch se recalcula para reflejar si el bloque sigue "todo normal" o no.
+            function exIniAplicarNormal(bloque, modo) {
+                var cambiados = 0;
+                if (modo === 'si') {
+                    // sub-grupos de exploracion general (actitud, orientacion, lenguaje): lo normal es Si
+                    bloque.querySelectorAll('.exini-sino').forEach(function (g) {
+                        var hidden = g.querySelector('input[type=hidden]');
+                        var si = exIniValoresSino(g).si;
+                        if (hidden.value !== si) { hidden.value = si; exIniPintarSino(g); cambiados++; }
+                    });
+                } else if (modo === 'sino' || modo === 'negados') {
+                    // negados (heredofamiliares): el FT-SO-04 trae "NEGADOS" como observacion predeterminada
+                    var obsNormal = modo === 'negados' ? 'NEGADOS' : '';
+                    bloque.querySelectorAll('.exini-sino').forEach(function (g) {
+                        var hidden = g.querySelector('input[type=hidden]');
+                        var fila = g.closest('.exini-fila');
+                        var obs = fila ? fila.querySelector('input[type=text]') : null;
+                        if (obs && obs.value !== obsNormal) { obs.value = obsNormal; cambiados++; }
+                        var no = exIniValoresSino(g).no;
+                        if (hidden.value !== no) { hidden.value = no; exIniPintarSino(g); cambiados++; }
+                    });
+                } else if (modo === 'okno') {
+                    // solo lo vacio: un NO con hallazgo escrito no se pisa
+                    bloque.querySelectorAll('.exini-okno').forEach(function (fila) {
+                        var inp = fila.querySelector('input[data-tipo="OKNO"]');
+                        if (inp.value.trim() === '') {
+                            fila.classList.remove('pide-hallazgo');
+                            inp.value = fila.getAttribute('data-normal');
+                            exIniOkNoPintar(fila);
+                            cambiados++;
+                        }
+                    });
+                    bloque.querySelectorAll('.exini-chips[data-normal]').forEach(function (g) {
+                        if (g.querySelector('input[type=hidden]').value) { return; }
+                        var pref = g.querySelector('button[data-val="' + g.getAttribute('data-normal') + '"]');
+                        if (pref) { exIniChip(pref); cambiados++; }
+                    });
+                } else if (modo === 'exploracion') {
+                    bloque.querySelectorAll('.exini-sino').forEach(function (g) {
+                        var hidden = g.querySelector('input[type=hidden]');
+                        if (!hidden.value) { hidden.value = exIniValoresSino(g).si; exIniPintarSino(g); cambiados++; }
+                    });
+                    bloque.querySelectorAll('.exini-chips').forEach(function (g) {
+                        var hidden = g.querySelector('input[type=hidden]');
+                        if (hidden.value) { return; }
+                        var pref = g.querySelector('button[data-val="normal"], button[data-val="serenidad"]');
+                        if (pref) { exIniChip(pref); cambiados++; }
+                    });
+                } else {
+                    bloque.querySelectorAll('input[data-tipo="TEXT"]').forEach(function (inp) {
+                        if (inp.value.trim() !== 'Normal') { inp.value = 'Normal'; cambiados++; }
+                    });
+                }
+                return cambiados;
+            }
+
+            function exIniLimpiarBloque(bloque, modo) {
+                bloque.querySelectorAll('.exini-sino').forEach(function (g) {
+                    var hidden = g.querySelector('input[type=hidden]');
+                    hidden.value = '';
+                    exIniPintarSino(g);
+                    var fila = g.closest('.exini-fila');
+                    var obs = fila ? fila.querySelector('input[type=text]') : null;
+                    if (obs) { obs.value = ''; }
+                });
+                if (modo === 'exploracion') {
+                    bloque.querySelectorAll('.exini-chips').forEach(function (g) {
+                        g.querySelector('input[type=hidden]').value = '';
+                        g.querySelectorAll('button').forEach(function (b) { b.classList.remove('activo'); });
+                    });
+                } else if (modo === 'texto') {
+                    bloque.querySelectorAll('input[data-tipo="TEXT"]').forEach(function (inp) { inp.value = ''; });
+                } else if (modo === 'okno') {
+                    bloque.querySelectorAll('.exini-okno').forEach(function (fila) {
+                        fila.classList.remove('pide-hallazgo');
+                        fila.querySelector('input[data-tipo="OKNO"]').value = '';
+                        exIniOkNoPintar(fila);
+                    });
+                    bloque.querySelectorAll('.exini-chips[data-normal]').forEach(function (g) {
+                        g.querySelector('input[type=hidden]').value = '';
+                        g.querySelectorAll('button').forEach(function (b) { b.classList.remove('activo'); });
+                    });
+                }
+            }
+
+            // true si el bloque esta "todo normal" segun su modo
+            function exIniEsNormal(bloque, modo) {
+                var ok = true;
+                if (modo === 'si') {
+                    bloque.querySelectorAll('.exini-sino').forEach(function (g) {
+                        if (g.querySelector('input[type=hidden]').value !== exIniValoresSino(g).si) { ok = false; }
+                    });
+                } else if (modo === 'sino' || modo === 'negados') {
+                    bloque.querySelectorAll('.exini-sino').forEach(function (g) {
+                        if (g.querySelector('input[type=hidden]').value !== exIniValoresSino(g).no) { ok = false; }
+                        var fila = g.closest('.exini-fila');
+                        var obs = fila ? fila.querySelector('input[type=text]') : null;
+                        if (modo === 'negados' && obs && obs.value.trim().toUpperCase() !== 'NEGADOS') { ok = false; }
+                    });
+                } else if (modo === 'okno') {
+                    bloque.querySelectorAll('.exini-okno').forEach(function (fila) {
+                        if (!exIniOkNoEsOk(fila, fila.querySelector('input[data-tipo="OKNO"]').value)) { ok = false; }
+                    });
+                    bloque.querySelectorAll('.exini-chips[data-normal]').forEach(function (g) {
+                        if (g.querySelector('input[type=hidden]').value.toUpperCase() !== g.getAttribute('data-normal').toUpperCase()) { ok = false; }
+                    });
+                } else if (modo === 'exploracion') {
+                    bloque.querySelectorAll('.exini-sino').forEach(function (g) {
+                        if (g.querySelector('input[type=hidden]').value !== exIniValoresSino(g).si) { ok = false; }
+                    });
+                    bloque.querySelectorAll('.exini-chips').forEach(function (g) {
+                        var v = g.querySelector('input[type=hidden]').value;
+                        var tieneNormal = !!g.querySelector('button[data-val="normal"], button[data-val="serenidad"]');
+                        if (tieneNormal && v !== 'normal' && v !== 'serenidad') { ok = false; }
+                    });
+                } else {
+                    bloque.querySelectorAll('input[data-tipo="TEXT"]').forEach(function (inp) {
+                        if (inp.value.trim() !== 'Normal') { ok = false; }
+                    });
+                }
+                return ok;
+            }
+
+            window.exIniRefrescarSwitches = function () {
+                var root = exIniRoot();
+                if (!root) { return; }
+                root.querySelectorAll('.exini-switch input[type=checkbox]').forEach(function (sw) {
+                    var bloque = sw.closest('.exini-grupo') || sw.closest('.exini-bloque');
+                    if (bloque) { sw.checked = exIniEsNormal(bloque, sw.getAttribute('data-modo')); }
+                });
+            };
+
+            window.exIniSwitchNormal = function (sw) {
+                // un switch dentro de un sub-grupo (Actitud, Orientacion, Lenguaje) solo manda ahi
+                var bloque = sw.closest('.exini-grupo') || sw.closest('.exini-bloque');
+                if (!bloque) { return; }
+                var modo = sw.getAttribute('data-modo');
+                if (sw.checked) {
+                    exIniAplicarNormal(bloque, modo);
+                } else {
+                    exIniLimpiarBloque(bloque, modo);
+                }
+                exIniProgramarAutosave();
+                // el estado real lo dice exIniEsNormal (en exploracion puede quedar incompleto), y
+                // el switch del bloque padre / de los sub-grupos se recalcula a la vez
+                exIniRefrescarSwitches();
+            };
+
+            // "Tomar examen": la solicitud OCR estaba asignada a otro usuario; se reasigna al de
+            // la sesion y se recarga el shell para que desaparezca el aviso y Finalizar funcione.
+            window.exIniTomar = async function (btn) {
+                var id = btn.getAttribute('data-id');
+                if (!window.confirm('¿Tomar este examen? Quien lo tenía asignado dejará de poder finalizarlo.')) {
+                    return;
+                }
+                btn.disabled = true;
+                try {
+                    var h = {};
+                    var t = document.querySelector('meta[name="_csrf"]');
+                    var n = document.querySelector('meta[name="_csrf_header"]');
+                    if (t && n) { h[n.content] = t.content; }
+                    var r = await fetch(contextPath + 'api/examen-inicial/bandeja/' + id + '/tomar', { method: 'POST', headers: h });
+                    if (!r.ok) { throw new Error(await r.text()); }
+                    loadModuleView('api/nss/examen-inicial', exIniRoot().getAttribute('data-nss'));
+                } catch (err) {
+                    btn.disabled = false;
+                    window.alert('No se pudo tomar el examen: ' + (err && err.message ? err.message : err));
+                }
+            };
+
+            // Finalizar: manda el formulario COMPLETO (las 10 hojas, no solo la activa) para que
+            // nada quede fuera del borrador, y el servidor reparte al WS + tags. Con firma, se
+            // abre el expediente impreso (mismo mecanismo que guardarExamen, via guardarRegistro).
+            window.exIniFinalizar = function (btn) {
+                var diag = document.getElementById('examenDiagnostico');
+                var dictamen = document.querySelector('#exIniForm [name="SERV_MED_RESULTADO_EXAMEN.DICTAMEN"]');
+                var resultEl = document.getElementById('exIniResult');
+                if (dictamen && !dictamen.value) {
+                    pintarResultadoInline(resultEl, 'Selecciona el resultado del examen antes de finalizar.', true);
+                    // el dictamen es un hidden con botones al lado: llevar la vista ahi
+                    var grupoDictamen = dictamen.closest('.exini-dictamen');
+                    (grupoDictamen || dictamen).scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
+                if (diag && !diag.value.trim()) {
+                    pintarResultadoInline(resultEl, 'Captura el diagnóstico desde el catálogo ICD antes de finalizar.', true);
+                    var buscador = document.getElementById('examenIcdConsult');
+                    if (buscador) { buscador.focus(); }
+                    return;
+                }
+                // Antecedente en Si sin observacion (heredofamiliares, patologicos): solo AVISO. El
+                // FT-SO-04 no la hace obligatoria (decision 15-oct-2026); el medico decide si sigue.
+                // Si no sigue, se lleva al primer renglon pendiente.
+                var pendientes = [];
+                document.querySelectorAll('#exIniForm section[data-hoja="3"] .exini-sino, #exIniForm section[data-hoja="5"] .exini-sino').forEach(function (g) {
+                    var fila = g.closest('.exini-fila');
+                    var obs = fila ? fila.querySelector('input[type=text]') : null;
+                    var esSi = g.querySelector('input[type=hidden]').value === exIniValoresSino(g).si;
+                    if (obs) { obs.classList.toggle('is-invalid', esSi && !obs.value.trim()); }
+                    if (obs && esSi && !obs.value.trim()) { pendientes.push(fila); }
+                });
+                var nombres = pendientes.map(function (f) { return f.querySelector('.lbl').textContent.trim(); });
+                if (pendientes.length && !window.confirm('Hay ' + pendientes.length + ' antecedente(s) en Sí sin observación:\n\n'
+                        + nombres.join(', ') + '\n\n¿Finalizar de todos modos?\n(Cancelar te lleva a escribirlas.)')) {
+                    pintarResultadoInline(resultEl, 'Antecedentes en Sí sin observación (' + pendientes.length + '): ' + nombres.join(', ') + '.', true);
+                    var hojaSec = pendientes[0].closest('section.exini-hoja');
+                    var irBtn = hojaSec ? document.querySelector('#exIniStepper button[data-ir="' + hojaSec.getAttribute('data-hoja') + '"]') : null;
+                    if (irBtn) { irBtn.click(); }
+                    setTimeout(function () { pendientes[0].querySelector('input[type=text]').focus(); }, 300);
+                    return;
+                }
+                // Confirmacion segun el dictamen: que queda registrado y que sigue
+                var etiquetas = { apto: 'APTO', no_apto: 'NO APTO', apto_condicionado: 'APTO CONDICIONADO', apto_restringido: 'APTO RESTRINGIDO' };
+                var msg = '¿Finalizar el examen inicial con dictamen ' + (etiquetas[dictamen.value] || dictamen.value) + '?\n\n';
+                if (dictamen.value === 'no_apto') {
+                    msg += 'La persona quedará registrada como NO APTA para ingreso. Para cambiarlo habrá que aplicarle un nuevo examen inicial.';
+                } else if (dictamen.value === 'apto_condicionado') {
+                    msg += 'Quedará registrada como apta con condición. Recuerda dejar la condición en Carta compromiso / Restricciones médicas.';
+                } else if (dictamen.value === 'apto_restringido') {
+                    msg += 'Quedará registrada como apta con restricción. Recuerda capturar la restricción en Restricciones médicas.';
+                } else {
+                    msg += 'Quedará registrada como apta para ingreso.';
+                }
+                msg += '\n\nSe guarda como examen de Admisión y se abre el expediente para imprimir.';
+                if (exIniRoot().getAttribute('data-tiene-inicial') === 'true') {
+                    msg += '\nEsta persona ya tenía un examen inicial: el nuevo lo reemplaza.';
+                }
+                if (!window.confirm(msg)) {
+                    return;
+                }
+                var nss = exIniRoot().getAttribute('data-nss');
+                guardarRegistro(btn, {
+                    formId: 'exIniForm',
+                    savePath: 'api/nss/examen-inicial/finalizar',
+                    fileInputId: '__none__',
+                    label: 'examen inicial',
+                    resultElId: 'exIniResult',
+                    // Mismo criterio que guardarExamen: trazo nuevo, o firma ya almacenada
+                    // en el WS junto con el dictamen. El dictamen ya se validó arriba, así
+                    // que llegados aquí siempre tiene valor.
+                    firmado: function (formEl) {
+                        var firmaEl = formEl.querySelector('#firma');
+                        if (firmaEl && firmaEl.value) { return true; }
+                        var canvasFirma = document.getElementById('firmaCanvas');
+                        return !!(canvasFirma && canvasFirma.dataset.firmaGuardada);
+                    },
+                    documentoUrl: function () {
+                        return contextPath + 'api/nss/examen/imprimir?nss=' + encodeURIComponent(nss) + '&auto=1';
+                    },
+                    abrirAlTerminar: true,
+                    textoBoton: 'Finalizando y generando el documento…',
+                    onSuccess: function () {
+                        exIniMarcarGuardado('Examen finalizado', false);
+                        var fin = document.getElementById('exIniFinalizarBtn');
+                        if (fin) { fin.disabled = true; }
+                    }
+                });
             };
 
             // Advierte (sin bloquear) si el folio capturado ya existe para el NSS en pantalla.
@@ -907,6 +1906,51 @@
                 }
             }
 
+            // Limites del servidor: FileStoreService.MAX_BYTES (por archivo) y
+            // spring.servlet.multipart.max-request-size (por subida). Se revisan al elegir para no
+            // esperar a que una subida grande falle al final.
+            var MAX_ARCHIVO = 25 * 1024 * 1024;
+            var MAX_SUBIDA = 50 * 1024 * 1024;
+
+            function problemaDeTamano(files) {
+                var total = 0;
+                for (var i = 0; i < files.length; i++) {
+                    if (files[i].size > MAX_ARCHIVO) {
+                        return '"' + files[i].name + '" pesa ' + (files[i].size / 1048576).toFixed(1)
+                            + ' MB; el máximo es 25 MB por archivo.';
+                    }
+                    total += files[i].size;
+                }
+                return total > MAX_SUBIDA
+                    ? 'Los archivos elegidos suman ' + (total / 1048576).toFixed(1) + ' MB; súbelos en partes (máximo 50 MB por subida).'
+                    : null;
+            }
+
+            // El selector de archivos del navegador no permite quitar lo elegido por error: el boton
+            // "Quitar" aparece solo cuando hay algo elegido.
+            window.alElegirArchivos = function (fileInput) {
+                var quitar = document.getElementById('archivoQuitar');
+                var hay = fileInput.files && fileInput.files.length > 0;
+                if (quitar) {
+                    quitar.classList.toggle('d-none', !hay);
+                }
+                var resultEl = document.getElementById('archivoSubirResult');
+                var problema = hay ? problemaDeTamano(fileInput.files) : null;
+                if (problema) {
+                    pintarResultadoInline(resultEl, problema, true);
+                } else if (resultEl) {
+                    resultEl.innerHTML = '';   // sin mensaje viejo de una eleccion anterior
+                }
+            };
+
+            window.quitarSeleccionArchivos = function () {
+                var fileInput = document.getElementById('archivoFiles');
+                if (fileInput) {
+                    fileInput.value = '';
+                    window.alElegirArchivos(fileInput);
+                }
+            };
+
             window.subirArchivo = async function (btn) {
                 var nss = btn.getAttribute('data-nss') || (input.value || '').trim();
                 var tipo = btn.getAttribute('data-tipo');
@@ -914,6 +1958,11 @@
                 var fileInput = document.getElementById('archivoFiles');
                 if (!fileInput || !fileInput.files || !fileInput.files.length) {
                     pintarResultadoInline(resultEl, 'Selecciona al menos un PDF.', true);
+                    return;
+                }
+                var problema = problemaDeTamano(fileInput.files);
+                if (problema) {
+                    pintarResultadoInline(resultEl, problema, true);
                     return;
                 }
                 var fd = new FormData();
@@ -955,13 +2004,18 @@
                 var id = btn.getAttribute('data-id');
                 var nss = btn.getAttribute('data-nss') || (input.value || '').trim();
                 var tipo = btn.getAttribute('data-tipo');
+                // Confirmar como el legacy (Swal). El borrado es logico: deja de verse pero se conserva
+                var nombre = btn.getAttribute('data-nombre') || 'este archivo';
+                if (!window.confirm('¿Borrar «' + nombre + '»? Dejará de verse en el expediente.')) {
+                    return;
+                }
                 var headers = {};
                 var csrf = form.querySelector('input[type="hidden"][name]');
                 if (csrf) {
                     headers['X-CSRF-TOKEN'] = csrf.value;
                 }
                 try {
-                    var response = await fetch(contextPath + 'api/nss/consulta/file/' + encodeURIComponent(id) + '/delete', {
+                    var response = await fetch(contextPath + 'api/nss/consulta/file/' + encodeURIComponent(id) + '/delete?nss=' + encodeURIComponent(nss), {
                         method: 'POST', headers: headers
                     });
                     if (response.ok) {
@@ -1088,9 +2142,457 @@
                 actualizarBadgeGrupoExamen(tab.closest('.examen-grupo'));
             };
 
+            // ===== Patologicos (resumen) del FT-SO-17 (15-oct-2026) =====
+            // Un renglon por categoria del formato con NEGADOS predeterminado. No tiene campos
+            // propios: escribe en los de las pestanas APP del grupo (mismo guardado de siempre).
+            // Campo terminado en "." = todas las preguntas Si/No de esa seccion.
+            // En pares, como los renglones del Excel (columna izquierda | columna derecha): la
+            // cuadricula de dos columnas se llena por renglon y queda igual que el formato.
+            var APP_RESUMEN = [
+                ['Enf. congénitas', ['SERV_MED_ANT_PER_PATOLOGICOS.ENF_CONGENITAS']],
+                ['Nefropatías', ['SERV_MED_RENAL.']],
+                ['Enf. propias de la infancia', ['SERV_MED_ANT_PER_PATOLOGICOS.ENF_PROP_INF']],
+                ['Genital', ['SERV_MED_ANT_PER_PATOLOGICOS.GENITAL']],
+                ['Sistema nervioso', ['SERV_MED_SIST_NERVIOSO.']],
+                ['Musculoesquelético', ['SERV_MED_MUS_ESQUELETICO.']],
+                ['Sistema óptico', ['SERV_MED_OFTALMOLOGICO.']],
+                ['Dermatopatías', ['SERV_MED_ANT_PER_PATOLOGICOS.DERMATOPATIAS']],
+                ['Sistema auditivo', ['SERV_MED_ANT_PER_PATOLOGICOS.SIST_AUDITIVO']],
+                ['Hematopatías', ['TAG.APPHEMATOPATIAS']],
+                ['Sistema olfatorio', ['SERV_MED_ANT_PER_PATOLOGICOS.SIS_OLFATIVO']],
+                ['Alergias', ['SERV_MED_TOXI_NO_PATO.ALERGIAS']],
+                ['Cardiopatías', ['SERV_MED_CARDIO_NO_PATO.']],
+                ['Transfusionales', ['TAG.APPTRANSFUSIONALES']],
+                ['Digestivo', ['SERV_MED_DIGESTIVO.']],
+                ['Quirúrgicos', ['TAG.APPQUIRURGICOS']],
+                ['Neumopatías', ['SERV_MED_ANT_PER_PATOLOGICOS.RESPIRATORIO']],
+                ['Traumáticos', ['SERV_MED_ANT_PER_PATOLOGICOS.TRAUMATICOS']],
+                ['Endocrinas', ['SERV_MED_ENDOCRI_NO_PATO.']],
+                ['Toxicológicos', ['SERV_MED_TOXI_NO_PATO.DROGAS']],
+                ['Tabaquismo', ['SERV_MED_TOXI_NO_PATO.TABAQUISMO']],
+                ['Alcoholismo', ['SERV_MED_TOXI_NO_PATO.ALCOHOLISMO']],
+                ['Tatuajes', ['SERV_MED_TOXI_NO_PATO.TATUAJES']],
+                ['Perforaciones', ['SERV_MED_TOXI_NO_PATO.PERFORACIONES']],
+                // FT-SO-04: "¿Algun trastorno que repercuta en la manipulacion de cargas?" (el nombre
+                // de la columna trae un espacio al final, asi lo arma el catalogo)
+                ['Manipulación de cargas', ['SERV_MED_TOXI_NO_PATO.ALT_CARGA ']]
+            ];
+
+            function appCampos(grupo, specs) {
+                var r = { selects: [], textos: [] };
+                specs.forEach(function (s) {
+                    if (s.charAt(s.length - 1) === '.') {
+                        grupo.querySelectorAll('select[name^="' + s + '"]').forEach(function (el) { r.selects.push(el); });
+                        return;
+                    }
+                    var el = grupo.querySelector('[name="' + s + '"]');
+                    if (el && el.tagName === 'SELECT') { r.selects.push(el); } else if (el) { r.textos.push(el); }
+                });
+                return r;
+            }
+
+            function appObs(sel) {
+                return sel.parentElement ? sel.parentElement.querySelector('input[type=text]') : null;
+            }
+
+            function appEstado(c) {
+                var e = [];
+                c.selects.forEach(function (s) { e.push(s.value === '1' ? 'si' : s.value === '0' ? 'no' : ''); });
+                c.textos.forEach(function (t) {
+                    var v = t.value.trim();
+                    e.push(!v ? '' : /^(NEGADOS?|NO)$/i.test(v) ? 'no' : 'si');
+                });
+                if (e.indexOf('si') >= 0) { return 'si'; }
+                return e.length && e.every(function (x) { return x === 'no'; }) ? 'no' : '';
+            }
+
+            function appEtiqueta(sel) {
+                var col = sel.closest('.col-md-6');
+                var l = col ? col.querySelector('label') : null;
+                return l ? l.textContent.trim() : sel.name;
+            }
+
+            // Renglon por categoria. La observacion se puede escribir cuando la categoria es UNA
+            // pregunta con observacion o un tag; si agrupa varias preguntas, se resume y su nombre
+            // abre el detalle debajo del renglon (exAppDetalle) para marcar cuales.
+            async function exAppResumen(pane) {
+                var grupo = pane.closest('.accordion-body');
+                var detAbierto = pane.querySelector('.exapp-det');
+                var detIdx = detAbierto ? detAbierto.dataset.i : null;
+                appDetalleCerrar(pane);
+                var appPanes = Array.prototype.slice.call(grupo.querySelectorAll('.tab-pane[data-seccion^="APP:"]'));
+                var faltan = appPanes.filter(function (p) { return p.dataset.loaded !== 'true'; });
+                if (faltan.length) {
+                    pane.innerHTML = '<div class="text-muted fs-sm py-2"><span class="spinner-border spinner-border-sm me-1"></span> Cargando antecedentes...</div>';
+                    try {
+                        var body = new URLSearchParams();
+                        body.append('nss', (input.value || '').trim());
+                        var csrf = form.querySelector('input[type="hidden"][name]');
+                        if (csrf && csrf.name) { body.append(csrf.name, csrf.value); }
+                        var resp = await fetch(contextPath + 'api/nss/examen/secciones', { method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' }, body: body.toString() });
+                        if (resp.ok) {
+                            var htmls = await resp.json();
+                            faltan.forEach(function (p) {
+                                var h = htmls[p.getAttribute('data-seccion')];
+                                if (h) { p.innerHTML = h; p.dataset.loaded = 'true'; }
+                            });
+                        }
+                    } catch (e) { /* abajo se avisa si algo no cargo */ }
+                    for (var i = 0; i < faltan.length; i++) { await cargarPaneExamen(faltan[i]); }
+                }
+                var filas = APP_RESUMEN.map(function (cat, i) {
+                    var c = appCampos(grupo, cat[1]);
+                    var est = appEstado(c);
+                    var editable = (c.selects.length === 1 && appObs(c.selects[0])) || (c.selects.length === 0 && c.textos.length === 1);
+                    var obs = '';
+                    if (c.selects.length === 1 && appObs(c.selects[0])) { obs = appObs(c.selects[0]).value; }
+                    else if (c.textos.length === 1 && !c.selects.length) { obs = c.textos[0].value; }
+                    else if (est === 'no') { obs = 'NEGADOS'; }
+                    else if (est === 'si' && c.selects.length > 1) {
+                        obs = c.selects.filter(function (s) { return s.value === '1'; }).map(function (s) {
+                            var o = appObs(s);
+                            return appEtiqueta(s) + (o && o.value.trim() && !/NEGAD/i.test(o.value) ? ' (' + o.value.trim() + ')' : '');
+                        }).join(', ');
+                    }
+                    var varias = c.selects.length > 1;
+                    var sinCampos = !c.selects.length && !c.textos.length;
+                    var esc = function (s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); };
+                    // Dos columnas como el FT-SO-17 (16-oct-2026): con No + NEGADOS la observacion es una
+                    // nota corta en el mismo renglon; la caja solo aparece con Si o con texto propio.
+                    var conCaja = editable && (est === 'si' || (obs.trim() !== '' && !/^NEGAD/i.test(obs.trim())));
+                    var nota = conCaja ? ''
+                        : editable ? (est === 'no' ? (obs.trim() || 'NEGADOS') : '')
+                        : (obs || (varias ? 'Varias preguntas' : '—'));
+                    return '<div class="exapp-fila" data-i="' + i + '">'
+                        // varias preguntas: el nombre lleva a su pestana (la nota se recorta en pantallas angostas)
+                        + (varias
+                            ? '<a href="#" class="lbl" title="Ver / ocultar el detalle" onclick="exAppDetalle(this); return false;">' + cat[0] + ' <i class="ri-arrow-down-s-line"></i></a>'
+                            : '<span class="lbl">' + cat[0] + '</span>')
+                        + '<span class="nota" title="' + esc(nota) + '">' + esc(nota) + '</span>'
+                        + '<div class="btn-group exapp-btns" role="group">'
+                        + '<button type="button" class="btn btn-outline-secondary' + (est === 'no' ? ' activo-no' : '') + '" onclick="exAppMarcar(this, \'no\')"' + (sinCampos ? ' disabled' : '') + '>No</button>'
+                        + '<button type="button" class="btn btn-outline-secondary' + (est === 'si' ? ' activo-si' : '') + '" onclick="exAppMarcar(this, \'si\')"' + (sinCampos ? ' disabled' : '') + '>Sí</button>'
+                        + '</div>'
+                        + (conCaja
+                            ? '<input type="text" class="form-control form-control-sm obs" placeholder="Describe el antecedente" value="' + esc(obs) + '" oninput="exAppObs(this)">'
+                            : '')
+                        + '</div>';
+                });
+                pane.innerHTML = '<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">'
+                    + '<span class="fs-sm text-muted">Como el formato' + exFormatoActual() + ': «NEGADOS» en lo que no aplique; marca Sí solo donde haya antecedente.</span>'
+                    + '<button type="button" class="btn btn-sm btn-outline-success" onclick="exAppTodoNormal(this)"><i class="ri-check-double-line me-1"></i>Todo normal</button></div>'
+                    + '<div class="exapp-lista">' + filas.join('') + '</div>';
+                if (detIdx !== null) {
+                    var a = pane.querySelector('.exapp-fila[data-i="' + detIdx + '"] a.lbl');
+                    if (a) { exAppDetalle(a, true); }
+                }
+            }
+
+            // Detalle en linea (16-oct-2026): la seccion APP real se MUEVE debajo del renglon (no se
+            // copia: duplicaria los campos al guardar) y al cerrar regresa a su pestana oculta.
+            function appDetalleCerrar(pane) {
+                pane.querySelectorAll('.exapp-det').forEach(function (caja) {
+                    var origen = document.getElementById(caja.dataset.origen);
+                    var sec = caja.querySelector('.exsec');
+                    if (origen && sec) { origen.appendChild(sec); }
+                    caja.remove();
+                });
+                pane.querySelectorAll('.exapp-fila.abierta').forEach(function (f) { f.classList.remove('abierta'); });
+            }
+
+            function appCat(el) {
+                var fila = el.closest('.exapp-fila');
+                var grupo = el.closest('.accordion-body');
+                return { fila: fila, grupo: grupo, c: appCampos(grupo, APP_RESUMEN[parseInt(fila.dataset.i, 10)][1]) };
+            }
+
+            function appNo(c) {
+                c.selects.forEach(function (s) {
+                    s.value = '0';
+                    var o = appObs(s);
+                    if (o && (!o.value.trim() || /NEGAD/i.test(o.value))) { o.value = 'NEGADOS'; }
+                });
+                c.textos.forEach(function (t) { t.value = 'NEGADOS'; });
+            }
+
+            window.exAppMarcar = function (btn, valor) {
+                var x = appCat(btn);
+                if (valor === 'no') {
+                    appNo(x.c);
+                } else if (x.c.selects.length > 1) {
+                    exAppDetalle(btn, true);   // varias preguntas: el medico marca cuales en el detalle
+                    return;
+                } else {
+                    x.c.selects.forEach(function (s) {
+                        s.value = '1';
+                        var o = appObs(s);
+                        if (o && /NEGAD/i.test(o.value)) { o.value = ''; }
+                    });
+                    x.c.textos.forEach(function (t) { if (/^(NEGADOS?|NO)$/i.test(t.value.trim())) { t.value = ''; } });
+                }
+                var pane = x.fila.closest('.tab-pane');
+                var i = x.fila.dataset.i;
+                exAppResumen(pane).then(function () {
+                    var inp = pane.querySelector('.exapp-fila[data-i="' + i + '"] input');
+                    if (valor === 'si' && inp) { inp.focus(); }
+                });
+            };
+
+            window.exAppObs = function (inp) {
+                var x = appCat(inp);
+                if (x.c.selects.length === 1 && appObs(x.c.selects[0])) { appObs(x.c.selects[0]).value = inp.value; }
+                else if (x.c.textos.length === 1) { x.c.textos[0].value = inp.value; }
+                // los botones reflejan lo escrito (un antecedente escrito en un tag = Si)
+                var est = appEstado(x.c);
+                var b = x.fila.querySelectorAll('.exapp-btns button');
+                b[0].classList.toggle('activo-no', est === 'no');
+                b[1].classList.toggle('activo-si', est === 'si');
+            };
+
+            window.exAppDetalle = function (el, soloAbrir) {
+                var x = appCat(el);
+                var pane = x.fila.closest('.tab-pane');
+                var abierta = pane.querySelector('.exapp-det');
+                if (abierta && abierta.dataset.i === x.fila.dataset.i) {
+                    if (!soloAbrir) { appDetalleCerrar(pane); }
+                    return;
+                }
+                appDetalleCerrar(pane);
+                var primero = x.c.selects[0];
+                var sec = primero ? primero.closest('.exsec') : null;
+                var origen = sec ? sec.closest('.tab-pane') : null;
+                if (!sec || !origen) { return; }
+                var caja = document.createElement('div');
+                caja.className = 'exapp-det';
+                caja.dataset.i = x.fila.dataset.i;
+                caja.dataset.origen = origen.id;
+                caja.appendChild(sec);
+                // en dos columnas se abre debajo del PAR de renglones, a todo el ancho
+                var lista = x.fila.parentElement;
+                var filas = Array.prototype.filter.call(lista.children, function (n) { return n.classList.contains('exapp-fila'); });
+                var idx = filas.indexOf(x.fila);
+                var cols = getComputedStyle(lista).gridTemplateColumns.split(' ').length;
+                var ancla = cols > 1 && idx % 2 === 0 && filas[idx + 1] ? filas[idx + 1] : x.fila;
+                ancla.after(caja);
+                x.fila.classList.add('abierta');
+                exSecPintarSino(caja);
+                caja.scrollIntoView({ block: 'nearest' });
+            };
+
+            // Cambio de Si/No dentro de un detalle abierto: el renglon del resumen se actualiza
+            var exAppTimer = null;
+            document.addEventListener('change', function (e) {
+                if (e.target.tagName !== 'SELECT' || !e.target.closest('.exapp-det')) { return; }
+                var pane = e.target.closest('.tab-pane[data-resumen="app"]');
+                clearTimeout(exAppTimer);
+                exAppTimer = setTimeout(function () { if (pane) { exAppResumen(pane); } }, 150);
+            });
+
+            // Regreso a las pestanas (por si alguna captura no cabe en el resumen) y vuelta al resumen
+            window.exAppVerPestanas = function (a) {
+                var body = a.closest('.accordion-body');
+                var ul = body.querySelector('.examen-tabs');
+                var resumen = body.querySelector('.tab-pane[data-resumen]');
+                if (resumen) { appDetalleCerrar(resumen); }
+                var verTabs = ul.classList.contains('d-none');
+                ul.classList.toggle('d-none', !verTabs);
+                a.textContent = verTabs ? 'Ver resumen' : 'Ver por pestañas';
+                if (!verTabs && resumen) {
+                    var b = ul.querySelector('[data-bs-target="#' + resumen.id + '"]');
+                    if (b) { bootstrap.Tab.getOrCreateInstance(b).show(); }
+                }
+            };
+
+            window.exAppTodoNormal = function (btn) {
+                var pane = btn.closest('.tab-pane');
+                var grupo = pane.closest('.accordion-body');
+                APP_RESUMEN.forEach(function (cat) {
+                    var c = appCampos(grupo, cat[1]);
+                    if (appEstado(c) === '') { appNo(c); }   // solo lo que no tiene respuesta
+                });
+                exAppResumen(pane);
+            };
+
+
+            // ===== Resumen por seccion (16-oct-2026): heredofamiliares y exploracion fisica =====
+            // Un renglon por seccion del grupo con su estado; el nombre abre la seccion real debajo
+            // (se MUEVE, como en patologicos) y el boton de palomita aplica su "Todo normal".
+            function exListaEstado(sec) {
+                var dientes = sec.querySelectorAll('.exini-odonto input[type=hidden]');
+                if (dientes.length) {
+                    var con = Array.prototype.filter.call(dientes, function (h) { return h.value.trim() !== ''; }).length;
+                    return con ? { texto: con + (con === 1 ? ' diente' : ' dientes') + ' con hallazgo' } : { texto: 'Sin hallazgos' };
+                }
+                var tot = 0, llenos = 0, hall = [], conSino = false;
+                var etiqueta = function (el) {
+                    var col = el.closest('.col-md-6, .col-12, .celda');
+                    var l = col ? col.querySelector('label, .lbl') : null;
+                    return l ? l.textContent.trim() : '';
+                };
+                sec.querySelectorAll('.exsino select').forEach(function (s) {
+                    tot++; conSino = true;
+                    if (s.value !== '') { llenos++; }
+                    if (s.value === '1') {
+                        var o = s.parentElement.querySelector('input[type=text]');
+                        var ov = o ? o.value.trim() : '';
+                        hall.push(etiqueta(s) + (ov && !/NEGAD/i.test(ov) ? ' (' + ov + ')' : ''));
+                    }
+                });
+                sec.querySelectorAll('.exini-okno').forEach(function (fila) {
+                    var inp = fila.querySelector('input[type=text]');
+                    if (!inp) { return; }
+                    tot++;
+                    var v = inp.value.trim();
+                    if (v) { llenos++; if (!exIniOkNoEsOk(fila, v)) { hall.push(etiqueta(fila) + ': ' + v); } }
+                });
+                sec.querySelectorAll('.exini-chips input[type=hidden]').forEach(function (h) {
+                    tot++; if (h.value.trim()) { llenos++; }
+                });
+                sec.querySelectorAll('input[type=text][name], input[type=number][name], input[type=date][name], textarea[name]').forEach(function (el) {
+                    if (el.closest('.exsino, .exini-okno')) { return; }
+                    tot++; if (el.value.trim()) { llenos++; }
+                });
+                if (hall.length) { return { texto: (conSino ? 'Sí: ' : 'Hallazgos: ') + hall.join(', '), hallazgo: true }; }
+                if (!tot) { return { texto: '—' }; }
+                if (llenos === tot) { return { texto: conSino ? 'NEGADOS' : 'Normal' }; }
+                return { texto: llenos ? llenos + ' de ' + tot + ' capturados' : 'Sin capturar' };
+            }
+
+            function exListaSeccion(fila) {
+                var pane = fila.closest('.tab-pane');
+                var caja = pane.querySelector('.exapp-det[data-origen="' + fila.dataset.sec + '"]');
+                var origen = document.getElementById(fila.dataset.sec);
+                return (caja && caja.querySelector('.exsec')) || (origen && origen.querySelector('.exsec'));
+            }
+
+            function exListaPintarFila(fila) {
+                var sec = exListaSeccion(fila);
+                var nota = fila.querySelector('.nota');
+                if (!sec || !nota) { return; }
+                var e = exListaEstado(sec);
+                nota.textContent = e.texto;
+                nota.title = e.texto;
+                nota.classList.toggle('hallazgo', !!e.hallazgo);
+            }
+
+            async function exListaResumen(pane) {
+                var grupo = pane.closest('.accordion-body');
+                var detAbierto = pane.querySelector('.exapp-det');
+                var detSec = detAbierto ? detAbierto.dataset.origen : null;
+                appDetalleCerrar(pane);
+                var panes = Array.prototype.slice.call(grupo.querySelectorAll('.tab-pane[data-seccion]'));
+                var faltan = panes.filter(function (p) { return p.dataset.loaded !== 'true'; });
+                if (faltan.length) {
+                    pane.innerHTML = '<div class="text-muted fs-sm py-2"><span class="spinner-border spinner-border-sm me-1"></span> Cargando secciones...</div>';
+                    try {
+                        var body = new URLSearchParams();
+                        body.append('nss', (input.value || '').trim());
+                        var csrf = form.querySelector('input[type="hidden"][name]');
+                        if (csrf && csrf.name) { body.append(csrf.name, csrf.value); }
+                        var resp = await fetch(contextPath + 'api/nss/examen/secciones', { method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' }, body: body.toString() });
+                        if (resp.ok) {
+                            var htmls = await resp.json();
+                            faltan.forEach(function (p) {
+                                var h = htmls[p.getAttribute('data-seccion')];
+                                if (h) { p.innerHTML = h; p.dataset.loaded = 'true'; }
+                            });
+                        }
+                    } catch (e) { /* las que falten se piden una por una */ }
+                    for (var i = 0; i < faltan.length; i++) { await cargarPaneExamen(faltan[i]); }
+                }
+                var filas = panes.filter(function (p) { return !exOcultoTipo(p); }).map(function (p) {
+                    var sec = p.querySelector('.exsec');
+                    var normal = sec ? sec.querySelector('.card-header [onclick^="exSecTodoNormal"]') : null;
+                    var nombre = p.getAttribute('data-seccion');
+                    // como lo llama el examen inicial: el grupo ya se llama "Exploracion fisica"
+                    if (nombre === 'Exploración física') { nombre = 'Signos vitales y exploración general'; }
+                    return '<div class="exapp-fila" data-sec="' + p.id + '">'
+                        + '<a href="#" class="lbl" title="Ver / ocultar la sección" onclick="exListaDetalle(this); return false;">' + nombre + ' <i class="ri-arrow-down-s-line"></i></a>'
+                        + '<span class="nota"></span>'
+                        + (normal ? '<button type="button" class="btn btn-sm btn-outline-success exlista-ok" title="Todo normal en esta sección" onclick="exListaNormal(this)"><i class="ri-check-line"></i></button>' : '<span></span>')
+                        + '</div>';
+                });
+                var todos = panes.some(function (p) { return !exOcultoTipo(p) && p.querySelector('.card-header [onclick^="exSecTodoNormal"]'); });
+                pane.innerHTML = '<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">'
+                    + '<span class="fs-sm text-muted">Pica el nombre para capturar la sección; la palomita aplica «Todo normal» en lo vacío.</span>'
+                    + (todos ? '<button type="button" class="btn btn-sm btn-outline-success" onclick="exListaTodoNormal(this)"><i class="ri-check-double-line me-1"></i>Todo normal</button>' : '')
+                    + '</div><div class="exapp-lista">' + filas.join('') + '</div>';
+                pane.querySelectorAll('.exapp-fila').forEach(exListaPintarFila);
+                if (detSec) {
+                    var a = pane.querySelector('.exapp-fila[data-sec="' + detSec + '"] a.lbl');
+                    if (a) { exListaDetalle(a, true); }
+                }
+            }
+
+            window.exListaDetalle = function (el, soloAbrir) {
+                var fila = el.closest('.exapp-fila');
+                var pane = fila.closest('.tab-pane');
+                var abierta = pane.querySelector('.exapp-det');
+                if (abierta && abierta.dataset.origen === fila.dataset.sec) {
+                    if (!soloAbrir) { appDetalleCerrar(pane); exListaPintarFila(fila); }
+                    return;
+                }
+                appDetalleCerrar(pane);
+                var origen = document.getElementById(fila.dataset.sec);
+                var sec = origen ? origen.querySelector('.exsec') : null;
+                if (!sec) { return; }
+                var caja = document.createElement('div');
+                caja.className = 'exapp-det';
+                caja.dataset.origen = origen.id;
+                caja.appendChild(sec);
+                var lista = fila.parentElement;
+                var filas = Array.prototype.filter.call(lista.children, function (n) { return n.classList.contains('exapp-fila'); });
+                var idx = filas.indexOf(fila);
+                var cols = getComputedStyle(lista).gridTemplateColumns.split(' ').length;
+                var ancla = cols > 1 && idx % 2 === 0 && filas[idx + 1] ? filas[idx + 1] : fila;
+                ancla.after(caja);
+                fila.classList.add('abierta');
+                exSecPintarSino(caja);
+                caja.scrollIntoView({ block: 'nearest' });
+            };
+
+            window.exListaNormal = function (btn) {
+                var fila = btn.closest('.exapp-fila');
+                var sec = exListaSeccion(fila);
+                var b = sec ? sec.querySelector('.card-header [onclick^="exSecTodoNormal"]') : null;
+                if (b) { exSecTodoNormal(b); }
+                exListaPintarFila(fila);
+            };
+
+            window.exListaTodoNormal = function (btn) {
+                btn.closest('.tab-pane').querySelectorAll('.exlista-ok').forEach(function (b) { exListaNormal(b); });
+            };
+
+            // Captura dentro de un detalle abierto: solo se repinta su renglon (sin mover nada,
+            // para no quitarle el foco al campo que se esta llenando). Los botones OK/NO, chips y
+            // Si/No cambian valores por JS, por eso tambien se repinta despues de cada clic.
+            function exListaTrasCaptura(e, diferido) {
+                var caja = e.target.closest ? e.target.closest('.exapp-det') : null;
+                var pane = caja ? caja.closest('.tab-pane[data-resumen="lista"]') : null;
+                if (!pane) { return; }
+                var pintar = function () {
+                    var fila = pane.querySelector('.exapp-fila[data-sec="' + caja.dataset.origen + '"]');
+                    if (fila) { exListaPintarFila(fila); }
+                };
+                if (diferido) { setTimeout(pintar, 0); } else { pintar(); }
+            }
+            document.addEventListener('change', function (e) { exListaTrasCaptura(e, false); });
+            document.addEventListener('input', function (e) { exListaTrasCaptura(e, false); });
+            document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('button')) { exListaTrasCaptura(e, true); } });
+
             // Carga el formulario de una seccion dentro de su tab-pane (una sola vez -
             // si ya tiene data-loaded="true" no vuelve a pedirlo al servidor).
             async function cargarPaneExamen(pane) {
+                if (pane && pane.dataset.resumen === 'app') {
+                    await exAppResumen(pane);   // se repinta cada vez que se muestra: refleja lo de las pestanas
+                    return;
+                }
+                if (pane && pane.dataset.resumen === 'lista') {
+                    await exListaResumen(pane);
+                    return;
+                }
                 if (!pane || pane.dataset.loaded === 'true' || pane.dataset.loading === 'true') {
                     return;
                 }
@@ -1137,6 +2639,10 @@
                     if (!e.target.closest('#examenAccordion')) {
                         return;
                     }
+                    // al abrir un grupo, Bootstrap cierra el que estaba abierto arriba y todo sube: sin
+                    // esto el grupo recien abierto quedaba fuera de pantalla (casi en la firma)
+                    var grupoAbierto = e.target.closest('.examen-grupo');
+                    if (grupoAbierto && e.target.parentElement === grupoAbierto) { grupoAbierto.scrollIntoView({ block: 'start' }); }
                     cargarPaneExamen(e.target.querySelector('.examen-tab-content .tab-pane.active'));
                 });
                 // Cambios de tab subsecuentes (clic del usuario).
@@ -1145,7 +2651,10 @@
                         return;
                     }
                     var target = e.target.getAttribute('data-bs-target');
-                    cargarPaneExamen(target ? document.querySelector(target) : null);
+                    var paneTab = target ? document.querySelector(target) : null;
+                    // el resumen de patologicos cambia los select de las pestanas APP sin tocar sus
+                    // botones: al mostrar una pestana se repintan desde el select
+                    cargarPaneExamen(paneTab).then(function () { if (paneTab) { exSecPintarSino(paneTab); } });
                 });
             }
 
@@ -1191,6 +2700,11 @@
                         await cargarPaneExamen(panes[i]);
                     }
                 }
+                // el resumen de patologicos no viene del servidor: se pinta sobre lo ya cargado
+                var resumenes = acordeon.querySelectorAll('.tab-pane[data-resumen="app"]');
+                for (var r = 0; r < resumenes.length; r++) { await exAppResumen(resumenes[r]); }
+                var listas = acordeon.querySelectorAll('.tab-pane[data-resumen="lista"]');
+                for (var q = 0; q < listas.length; q++) { await exListaResumen(listas[q]); }
                 if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ri-folder-open-line me-1"></i>Abrir todo'; }
             };
 
@@ -1254,7 +2768,8 @@
                 // cualquier guardado tras "Abrir todo", incluso cambiar la firma.
                 var diagEl = document.getElementById('examenDiagnostico');
                 var dictamenEl = document.querySelector('select[name="SERV_MED_RESULTADO_EXAMEN.DICTAMEN"]');
-                if (diagEl && !diagEl.value.trim() && dictamenEl && dictamenEl.value) {
+                // FT-SO-19 no trae Diagnostico: en ese tipo no se exige (VisibilidadTipo)
+                if (diagEl && !exOcultoTipo(diagEl) && !diagEl.value.trim() && dictamenEl && dictamenEl.value) {
                     pintarResultadoInline(document.getElementById('examenGuardarResult'),
                             'Para guardar un dictamen selecciona al menos un diagnóstico del catálogo ICD (Cierre → Diagnóstico → Buscar diagnóstico).', true);
                     // Llevar al usuario al campo: abrir el grupo y la pestana de Diagnostico, y
@@ -1365,6 +2880,16 @@
                         if (ventanaDoc) { ventanaDoc.close(); }
                         mostrarResultadoExamen(response.ok ? ('Examen: ' + txt)
                                 : ('Error al guardar (HTTP ' + response.status + '): ' + txt), !response.ok);
+                        // Guardado sin firmar en este momento (16-oct-2026): no se abre pestana sola,
+                        // pero queda a la mano el expediente con lo recien guardado
+                        if (response.ok && resultEl) {
+                            var aImp = document.createElement('a');
+                            aImp.href = urlDocumento;
+                            aImp.target = '_blank';
+                            aImp.className = 'ms-2';
+                            aImp.innerHTML = '<i class="ri-printer-line me-1"></i>Imprimir expediente';
+                            resultEl.appendChild(aImp);
+                        }
                     }
                 } catch (error) {
                     if (ventanaDoc) { ventanaDoc.close(); }
@@ -1477,13 +3002,18 @@
             window.borrarEvidenciaAccidente = async function (btn) {
                 var id = btn.getAttribute('data-id');
                 var regId = btn.getAttribute('data-accidente-regid');
+                var nssEv = btn.getAttribute('data-nss') || (input.value || '').trim();
+                var nombreEv = btn.getAttribute('data-nombre') || 'esta evidencia';
+                if (!window.confirm('¿Borrar «' + nombreEv + '»? Dejará de verse en el expediente.')) {
+                    return;
+                }
                 var headers = {};
                 var csrf = form.querySelector('input[type="hidden"][name]');
                 if (csrf) {
                     headers['X-CSRF-TOKEN'] = csrf.value;
                 }
                 try {
-                    var response = await fetch(contextPath + 'api/nss/consulta/file/' + encodeURIComponent(id) + '/delete', {
+                    var response = await fetch(contextPath + 'api/nss/consulta/file/' + encodeURIComponent(id) + '/delete?nss=' + encodeURIComponent(nssEv), {
                         method: 'POST', headers: headers
                     });
                     if (response.ok) {

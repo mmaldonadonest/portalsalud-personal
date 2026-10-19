@@ -13,6 +13,9 @@
       AJUSTE MANUAL (13-sep-2026, unico): margenes fijos del consentimiento reducidos
       (150px->40px, hr 350px->80px, 130px->20px) para que la hoja 2 no salga en blanco como en
       el PHP. Si se regenera la plantilla, volver a aplicar.
+      AJUSTE MANUAL (02-oct-2026): renglones Cintura y Cadera en la tabla de Exploracion Fisica
+      (nuevos en la rev. 04 del FT-SO-04, el PHP no los tenia; valores de SERV_MED_TAG via
+      ExamenDocumentoService). Si se regenera, volver a aplicar.
     -->
     <link rel="stylesheet" th:href="@{/theme/assets/css/style.min.css}" href="/theme/assets/css/style.min.css">
     <style>
@@ -56,6 +59,8 @@
                navegadores (un div con break-after dentro de una celda, no) */
             table.print-doc > tbody > tr.hoja { break-after: page; page-break-after: always; }
             table.print-doc > tbody > tr.hoja:last-child { break-after: auto; page-break-after: auto; }
+            /* hoja que el formato del tipo de examen no pide (VisibilidadTipo): no se imprime */
+            tr.hoja.oculta { display: none !important; }
             html, body { margin: 0; padding: 0; }
             body.container { max-width: none; width: auto; padding: 0 12mm; border: 0 !important; }
             table.print-doc { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -109,19 +114,19 @@
                         </td>
                     </tr>
                     <tr class="">
-                        <td>F. Implementación: 10 DE ENERO DEL 2023</td>
-                        <td>Revisión: 03</td>
+                        <td>F. Implementación: 18 de septiembre de 2024</td>
+                        <td>Revisión: 04</td>
 
 
                     </tr>
                     <td>Clave de control: FT-SO-11</td>
-                    <td>Reemplaza a: 02</td>
+                    <td>Reemplaza a: 03</td>
                     <tr>
 
                     </tr>
                     <tr class="">
 
-                        <td>Motivo del cambio: Revisión por vigencia.</td>
+                        <td>Motivo del cambio: Actualización de logo</td>
                         <td></td>
 
                     </tr>
@@ -131,7 +136,9 @@
     </div>
     <div class="row mt-3 ">
         <div class="col-4">
-            <p  style="font-size: 13px;">Agencia: <b>[[${d.v('empresa')}]]</b></p>
+            <!-- 15-oct-2026: el PHP llenaba "Agencia" con la empresa del WS ("Onest Mexico" para todos);
+                 ahora es la agencia real (solicitud OCR > BIO_EMPLEADO.SOCIEDAD > vacio) -->
+            <p  style="font-size: 13px;">Agencia: <b>[[${d.v('AGENCIA')}]]</b></p>
         </div>
         <div class="col-4">
             <p  style="font-size: 13px;">Departamento: [[${d.v('cuenta')}]]</p>
@@ -153,6 +160,10 @@
         </p>
         <p style="font-size: 11px;">
             Esto será realizado por personal altamente calificado y profesional.
+        </p>
+        <!-- 16-oct-2026: parrafo del FT-SO-11 rev. 04 que el PHP no imprimia -->
+        <p style="font-size: 11px;">
+            En caso de una evaluación especial, solo se tomarán las muestras biológicas necesarias para su obtención entre ellas aire espirado, sangre, orina etcétera.
         </p>
     </div>
     <hr style="margin-top: 80px;">
@@ -191,19 +202,20 @@
                         </td>
                     </tr>
                     <tr class="">
-                        <td>F. Implementación: 18 DE OCTUBRE DE 2022</td>
-                        <td>Revisión: 01</td>
+                        <!-- FT-SO-32 rev. 03 (pie del Word de calidad: "REV-03, ultima actualizacion 14/10/2026") -->
+                        <td>F. Implementación: 14 de octubre de 2026</td>
+                        <td>Revisión: 03</td>
 
 
                     </tr>
                     <td>Clave de control: FT-SO-32</td>
-                    <td>Reemplaza a: 00</td>
+                    <td>Reemplaza a: 02</td>
                     <tr>
 
                     </tr>
                     <tr class="">
 
-                        <td>Motivo del cambio: Actualización por vigencia.</td>
+                        <td>Motivo del cambio: Actualización por vigencia</td>
                         <td></td>
 
                     </tr>
@@ -215,7 +227,7 @@
         <center>
             <h6>AVISO DE PRIVACIDAD</h6>
         </center>
-        <p style="font-size: 11px;">SALUD OCUPACIONAL DE GRUPO LOGISTICO INTEGRAL, mejor conocido como ONEST LOGISTICS, con domicilio en calle
+        <p style="font-size: 11px;">SALUD OCUPACIONAL DE GRUPO LOGISTICO INTEGRAL, mejor conocido como ONEST SMARTLOGISTICS, con domicilio en calle
             Autopista México Querétaro Km 34.5 Nave 5, colonia San Isidro, ciudad Cuautitlán Izcalli, municipio o delegación Cuautitlán Izcalli,
             c.p. 54730, en la entidad de Estado de México, país México, y portal de internet https://www.onestlogistics.com, es el responsable del
             uso y protección de sus datos personales, y al respecto le informamos lo siguiente:</p>
@@ -232,10 +244,11 @@
         <p style="font-size: 11px;">
             Sí consiento que mis datos personales se utilicen para los siguientes fines:
             <br>
-            <b>[*]Obtener muestras biológicas en los casos que sean necesarios para evaluar las aptitudes médicas o para algún tamizaje
-                de diagnóstico.</b><br>
-            <b>[*]Conocer los datos de índole médico para evaluar el estado de salud para ingresar, cambiar de puesto, ascender, de
-                manera periódica o concluir su relación laboral.</b>
+            <!-- FT-SO-32 rev. 03: casillas vacias, las marca el titular a mano (antes salian marcadas [*]) -->
+            <b>[ ] Obtener muestras biológicas en los casos que sean necesarios para evaluar las aptitudes médicas o para algún tamizaje
+                de diagnóstico</b><br>
+            <b>[ ] Conocer los datos de índole médico para evaluar el estado de salud para ingresar, cambiar de puesto, ascender, de
+                manera periódica o concluir su relación laboral</b>
         </p>
         <p style="font-size: 11px;">
             La negativa para el uso de sus datos personales para estas finalidades no podrá ser un motivo para que le neguemos los servicios y
@@ -260,8 +273,9 @@
         <p style="font-size: 11px;">
             Con relación a las transferencias que requieren de su consentimiento, por favor indique a continuación si nos lo otorga:
         </p>
-        <b class="form-check-label" style="font-size: 11px;" for="exampleCheck1">[*]Sí otorgo mi consentimiento para las siguientes transferencias de mis datos personales: P&G, Unilever de México, Inditex
+        <b class="form-check-label" style="font-size: 11px;" for="exampleCheck1">[ ] Sí otorgo mi consentimiento para las siguientes transferencias de mis datos personales: P&G, Unilever de México, Inditex
             y Otros clientes.</b>
+        <p style="font-size: 11px; margin-top: 10px;">Nombre y firma del titular: ________________________________________</p>
         <p style="font-size: 11px;">
             ¿Cómo puede acceder, rectificar o cancelar sus datos personales, u oponerse a su uso?
         </p>
@@ -291,25 +305,27 @@
                     <thead>
                     </thead>
                     <tbody>
+                        <!-- Hoja 2 del AVISO DE PRIVACIDAD: lleva el encabezado del FT-SO-32. En el PHP
+                             tenia por error el del examen (FT-SO-04); corregido 15-oct-2026. -->
                         <tr>
                             <td colspan="2">
-                                <center>EXAMEN MEDICO LABORAL</center>
+                                <center>AVISO DE PRIVACIDAD</center>
                             </td>
                         </tr>
                         <tr class="">
-                            <td>F. Implementación: 10 DE ENERO DEL 2023</td>
+                            <td>F. Implementación: 14 de octubre de 2026</td>
                             <td>Revisión: 03</td>
 
 
                         </tr>
-                        <td>Clave de control: FT-SO-04</td>
+                        <td>Clave de control: FT-SO-32</td>
                         <td>Reemplaza a: 02</td>
                         <tr>
 
                         </tr>
                         <tr class="">
 
-                            <td>Motivo del cambio: Actualización por vigencia.</td>
+                            <td>Motivo del cambio: Actualización por vigencia</td>
                             <td></td>
 
                         </tr>
@@ -342,7 +358,7 @@
 
         </p>
         <p style="font-size: 11px;">
-            b) ¿Qué información y/o documentación deberá contener la solicitud? Solicitud puntual
+            b) ¿Qué información y/o documentación deberá contener la solicitud? Solicitud puntual,
         </p>
         <p style="font-size: 11px;">
             c) ¿En cuántos días le daremos respuesta a su solicitud? 72 horas hábiles
@@ -362,12 +378,12 @@
         <p style="font-size: 11px;">El procedimiento a través del cual se llevarán a cabo las notificaciones sobre cambios o actualizaciones al presente aviso de privacidad
             es el siguiente:
         </p>
-        <p style="font-size: 11px;">Por medio de cartel en el consultorio médico Su consentimiento para el tratamiento de sus datos personal</p>
-        <b class="form-check-label" style="font-size: 11px;" for="exampleCheck2">[*]Sí consiento que mis datos personales sean tratados de conformidad con los términos y condiciones informados en el
-	    presente aviso de privacidad.</b>
+        <p style="font-size: 11px;">Por medio de cartel en el consultorio médico Su consentimiento para el tratamiento de sus datos personales.</p>
+        <b class="form-check-label" style="font-size: 11px;" for="exampleCheck2">Sí consiento que mis datos personales sean tratados de conformidad con los términos y condiciones informados en el
+	    presente aviso de privacidad. [ ]</b>
 <br/><br/>
         <center>
-            <h6>Nombre y firma</h6>
+            <h6>Nombre y firma del titular</h6>
             <img th:if="${d.firmaTrabajador != null}" th:src="${d.firmaTrabajador}" class="img-fluid" width="50px" alt=""><br>
             <p  style="font-size: 12px;font-weight:bold" >[[${d.v('apellidoP')}]] [[${d.v('apellidoM')}]] [[${d.v('nombre')}]]</p>
         </center>
@@ -387,23 +403,23 @@
                 <tbody>
                     <tr>
                         <td colspan="2">
-                            <center>EXAMEN MEDICO LABORAL</center>
+                            <center>[[${d.v('ENC_TITULO')}]]</center>
                         </td>
                     </tr>
                     <tr class="">
-                        <td>F. Implementación: 10 DE ENERO DEL 2023</td>
-                        <td>Revisión: 03</td>
+                        <td>F. Implementación: [[${d.v('ENC_IMPLEMENTACION')}]]</td>
+                        <td>Revisión: [[${d.v('ENC_REVISION')}]]</td>
 
 
                     </tr>
-                    <td>Clave de control: FT-SO-04</td>
-                    <td>Reemplaza a: 02</td>
+                    <td>Clave de control: [[${d.v('ENC_CLAVE')}]]</td>
+                    <td>Reemplaza a: [[${d.v('ENC_REEMPLAZA')}]]</td>
                     <tr>
 
                     </tr>
                     <tr class="">
 
-                        <td>Motivo del cambio: Actualización por vigencia.</td>
+                        <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
                         <td>Hoja 1 de 5</td>
 
                     </tr>
@@ -419,94 +435,90 @@
 
     <div class="col-12">
         <h6>Información Personal</h6>
+        <!-- Orden de la ficha de identificacion del FT-SO-17 (15-oct-2026); agencia, cuenta y RFC
+             al final porque el formato no los pide pero sirven para identificar. Sin el renglon
+             "Completo" que venia del PHP. -->
         <div class="row">
             <div class="col-6">
                 <table class="table table-bordered table-sm">
                     <tr>
-                        <th></th>
-                        <th></th>
+                        <td>Fecha de realización del examen</td>
+                        <td>[[${d.v('FECHA_EXAMEN')}]]</td>
                     </tr>
                     <tr>
                         <td>Nombre</td>
-                        <td>[[${d.v('nombre')}]]</td>
+                        <td>[[${d.v('nombre')}]] [[${d.v('apellidoP')}]] [[${d.v('apellidoM')}]]</td>
                     </tr>
                     <tr>
-                        <td>Apellido Paterno</td>
-                        <td>[[${d.v('apellidoP')}]]</td>
-                    </tr>
-                    <tr>
-                        <td>Apellido Materno</td>
-                        <td>[[${d.v('apellidoM')}]]</td>
-                    </tr>
-                    <tr>
-                        <td>RFC</td>
-                        <td>[[${d.v('RFC')}]]</td>
-                    </tr>
-                    <tr>
-                        <td>NSS</td>
-                        <td>[[${d.v('NSS')}]]</td>
+                        <td>Edad</td>
+                        <td>[[${d.v('edad')}]]</td>
                     </tr>
                     <tr>
                         <td>Sexo</td>
                         <td>[[${d.v('sexo')}]]</td>
                     </tr>
                     <tr>
-                        <td>Cuenta</td>
-                        <td>[[${d.v('cuenta')}]]</td>
+                        <td>Núm. IMSS</td>
+                        <td>[[${d.v('NSS')}]]</td>
                     </tr>
                     <tr>
-                        <td>Empresa</td>
-                        <td>[[${d.v('empresa')}]]</td>
+                        <td>Fecha de nacimiento</td>
+                        <td>[[${d.v('fechaNacimiento')}]]</td>
                     </tr>
                     <tr>
-                        <td>Puesto</td>
-                        <td>[[${d.v('puesto')}]]</td>
+                        <td>Estado civil</td>
+                        <td>[[${d.v('edoCivil')}]]</td>
                     </tr>
-
+                    <tr>
+                        <td>Escolaridad</td>
+                        <td>[[${d.v('ESCOLARIDAD')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>Profesión u oficio</td>
+                        <td>[[${d.v('PROFESION')}]]</td>
+                    </tr>
                 </table>
             </div>
             <div class="col-6">
                 <table class="table table-bordered table-sm">
                     <tr>
-                        <th></th>
-                        <th></th>
-                    <tr>
-                        <td>Edad</td>
-                        <td>[[${d.v('edad')}]]</td>
-                    </tr>
-                    <tr>
-                        <td>Fecha de Nacimiento</td>
-                        <td>[[${d.v('fechaNacimiento')}]]</td>
-                    </tr>
-                    <tr>
-                        <td>Estado Civil</td>
-                        <td>[[${d.v('edoCivil')}]]</td>
-                    </tr>
-                    <tr>
-                        <td>Dirección</td>
+                        <td>Domicilio</td>
                         <td>[[${d.v('direccion')}]]</td>
                     </tr>
                     <tr>
-                        <td>Teléfono Celular</td>
-                        <td>[[${d.v('telefono')}]]</td>
+                        <td>Teléfono</td>
+                        <td>[[${d.v('telefono')}]] [[${d.v('telefonoF')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>Departamento</td>
+                        <td>[[${d.v('DEPARTAMENTO')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>Puesto</td>
+                        <td>[[${d.v('puesto')}]]</td>
                     </tr>
                     <tr>
                         <td>Turno</td>
                         <td>[[${d.v('turno')}]]</td>
                     </tr>
                     <tr>
-                        <td>Teléfono Fijo</td>
-                        <td>[[${d.v('telefonoF')}]]</td>
+                        <td>Agencia</td>
+                        <td>[[${d.v('AGENCIA')}]]</td>
                     </tr>
                     <tr>
-                        <td>Completo</td>
-                        <td>[[${d.v('check')}]]</td>
+                        <td>Cuenta</td>
+                        <td>[[${d.v('cuenta')}]]</td>
+                    </tr>
+                    <tr>
+                        <td>RFC</td>
+                        <td>[[${d.v('RFC')}]]</td>
                     </tr>
                 </table>
             </div>
         </div>
 
     </div>
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Contactos de emergencia', d.v('TIPO_CODIGO'))}">
     <hr>
     <h6>Contacto de emergencias</h6>
     <div class="table-responsive">
@@ -549,6 +561,8 @@
             </tbody>
         </table>
     </div>
+</th:block>
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Antecedentes laborales (resumen)', d.v('TIPO_CODIGO'))}">
     <hr>
     <h6>Antecedentes Laborales</h6>
     <hr>
@@ -567,6 +581,8 @@
         </tr>
     </table>
 
+</th:block>
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Trabajos previos', d.v('TIPO_CODIGO'))}">
     <h6>Detalles de Trabajos Anteriores</h6>
     <table class="table table-bordered table-sm">
         <tr>
@@ -630,8 +646,60 @@
             <td>[[${d.v('observaciones4')}]]</td>
         </tr>
     </table>
+</th:block>
+
+    <!-- Bloques propios de cada formato EMLE (16-oct-2026, tags EXM_*; VisibilidadTipo decide cual sale) -->
+    <th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Antecedentes de la incapacidad', d.v('TIPO_CODIGO'))}">
+    <hr>
+    <h6>Antecedentes de la incapacidad</h6>
+    <table class="table table-bordered table-sm">
+        <tr><th style="width:30%">Diagnóstico</th><td colspan="3">[[${d.v('EXM_INC_DIAGNOSTICO')}]]</td></tr>
+        <tr><th>Días de incapacidad</th><td>[[${d.v('EXM_INC_DIAS')}]]</td><th>Ramo del seguro</th><td>[[${d.v('EXM_INC_RAMO')}]]</td></tr>
+        <tr><th>Tipo de incapacidad</th><td>[[${d.v('EXM_INC_TIPO')}]]</td><th>Fechas</th><td>[[${d.v('EXM_INC_INICIO')}]] al [[${d.v('EXM_INC_TERMINO')}]]</td></tr>
+        <tr><th>Tratamiento</th><td colspan="3">[[${d.v('EXM_INC_TRATAMIENTO')}]]</td></tr>
+    </table>
+    </th:block>
+    <th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Cambio de puesto', d.v('TIPO_CODIGO'))}">
+    <hr>
+    <h6>Cambio de puesto</h6>
+    <table class="table table-bordered table-sm">
+        <tr><th style="width:30%">Puesto anterior</th><td>[[${d.v('EXM_PUESTO_ANTERIOR')}]]</td><th>Fecha de ingreso</th><td>[[${d.v('EXM_FECHA_ING_ANTERIOR')}]]</td></tr>
+        <tr><th>Puesto actual</th><td>[[${d.v('EXM_CAMBIO_PUESTO_ACTUAL')}]]</td><th>Fecha de ingreso</th><td>[[${d.v('EXM_FECHA_ING_ACTUAL')}]]</td></tr>
+        <tr><th>Motivo del cambio</th><td colspan="3">[[${d.v('EXM_MOTIVO_CAMBIO')}]]</td></tr>
+    </table>
+    </th:block>
+    <th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Puesto inicial y actual', d.v('TIPO_CODIGO'))}">
+    <hr>
+    <h6>Antecedentes Laborales</h6>
+    <table class="table table-bordered table-sm">
+        <tr><th style="width:30%">Puesto inicial</th><td>[[${d.v('EXM_PUESTO_INICIAL')}]]</td></tr>
+        <tr><th>Puesto actual</th><td>[[${d.v('EXM_PUESTO_ACTUAL')}]]</td></tr>
+        <th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('TAG.EXM_MOTIVO_SALIDA', d.v('TIPO_CODIGO'))}">
+        <tr><th>Turno</th><td>[[${d.v('EXM_TURNO_SALIDA')}]]</td></tr>
+        <tr><th>Antigüedad</th><td>[[${d.v('EXM_ANTIGUEDAD')}]]</td></tr>
+        <tr><th>Motivo de salida</th><td>[[${d.v('EXM_MOTIVO_SALIDA')}]]</td></tr>
+        </th:block>
+    </table>
+    </th:block>
+    <th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Antecedentes laborales específicos', d.v('TIPO_CODIGO'))}">
+    <hr>
+    <h6>Antecedentes laborales específicos</h6>
+    <table class="table table-bordered table-sm">
+        <tr><th>Trabajo en altura</th><td>[[${d.siNo('EXM_ESP_ALTURA')}]]</td><th>Trabajo en caliente</th><td>[[${d.siNo('EXM_ESP_CALIENTE')}]]</td><th>Espacios confinados</th><td>[[${d.siNo('EXM_ESP_CONFINADOS')}]]</td></tr>
+    </table>
+    <table class="table table-bordered table-sm">
+        <tr><td>¿Está certificado en trabajo de...?</td><td style="width:12%">[[${d.siNo('EXM_ESP_CERTIFICADO')}]]</td></tr>
+        <tr><td>¿Aprobó el examen médico hace menos de un año?</td><td>[[${d.siNo('EXM_ESP_EXAMEN_ANIO')}]]</td></tr>
+        <tr><td>¿Ha tomado medicamentos en las últimas 24 h? ¿Cuáles? [[${d.v('EXM_ESP_MEDICAMENTOS_CUALES')}]]</td><td>[[${d.siNo('EXM_ESP_MEDICAMENTOS')}]]</td></tr>
+        <tr><td>¿Sufre de epilepsia, mareos o vértigo?</td><td>[[${d.siNo('EXM_ESP_EPILEPSIA')}]]</td></tr>
+        <tr><td>¿Miedo a las alturas (aerofobia)?</td><td>[[${d.siNo('EXM_ESP_AEROFOBIA')}]]</td></tr>
+        <tr><td>¿Sufre de asma, alergias o hiperactividad bronquial?</td><td>[[${d.siNo('EXM_ESP_ASMA')}]]</td></tr>
+        <tr><td>¿Padece alguna enfermedad pulmonar o cardiaca?</td><td>[[${d.siNo('EXM_ESP_PULMONAR_CARDIACA')}]]</td></tr>
+        <tr><td>¿Miedo a áreas cerradas (claustrofobia)?</td><td>[[${d.siNo('EXM_ESP_CLAUSTROFOBIA')}]]</td></tr>
+    </table>
+    </th:block>
 </div></td></tr>
-<tr class="hoja"><td><div class="row hoja-row">
+<tr class="hoja" th:classappend="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Antecedentes heredofamiliares', d.v('TIPO_CODIGO'))} ? 'oculta' : ''"><td><div class="row hoja-row">
 
     <div class="col-12" style="">
         <div class="row">
@@ -646,23 +714,23 @@
                     <tbody>
                         <tr>
                             <td colspan="2">
-                                <center>EXAMEN MEDICO LABORAL</center>
+                                <center>[[${d.v('ENC_TITULO')}]]</center>
                             </td>
                         </tr>
                         <tr class="">
-                            <td>F. Implementación: 10 DE ENERO DEL 2023</td>
-                            <td>Revisión: 03</td>
+                            <td>F. Implementación: [[${d.v('ENC_IMPLEMENTACION')}]]</td>
+                            <td>Revisión: [[${d.v('ENC_REVISION')}]]</td>
 
 
                         </tr>
-                        <td>Clave de control: FT-SO-04</td>
-                        <td>Reemplaza a: 02</td>
+                        <td>Clave de control: [[${d.v('ENC_CLAVE')}]]</td>
+                        <td>Reemplaza a: [[${d.v('ENC_REEMPLAZA')}]]</td>
                         <tr>
 
                         </tr>
                         <tr class="">
 
-                            <td>Motivo del cambio: Actualización por vigencia.</td>
+                            <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
                             <td>Hoja 1 de 5</td>
 
                         </tr>
@@ -903,7 +971,7 @@
             </table>
 	</div>
 </div></td></tr>
-<tr class="hoja"><td><div class="row hoja-row">
+<tr class="hoja" th:classappend="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Antecedentes heredofamiliares|APNP (no patológicos)|Antecedentes personales no patológicos', d.v('TIPO_CODIGO'))} ? 'oculta' : ''"><td><div class="row hoja-row">
         <div class="col-12" style="">
             <div class="row">
                 <div class="navbar-brand col-3 " href="#">
@@ -917,23 +985,23 @@
                         <tbody>
                             <tr>
                                 <td colspan="2">
-                                    <center>EXAMEN MEDICO LABORAL</center>
+                                    <center>[[${d.v('ENC_TITULO')}]]</center>
                                 </td>
                             </tr>
                             <tr class="">
-                                <td>F. Implementación: 10 DE ENERO DEL 2023</td>
-                                <td>Revisión: 03</td>
+                                <td>F. Implementación: [[${d.v('ENC_IMPLEMENTACION')}]]</td>
+                                <td>Revisión: [[${d.v('ENC_REVISION')}]]</td>
 
 
                             </tr>
-                            <td>Clave de control: FT-SO-04</td>
-                            <td>Reemplaza a: 02</td>
+                            <td>Clave de control: [[${d.v('ENC_CLAVE')}]]</td>
+                            <td>Reemplaza a: [[${d.v('ENC_REEMPLAZA')}]]</td>
                             <tr>
 
                             </tr>
                             <tr class="">
 
-                                <td>Motivo del cambio: Actualización por vigencia.</td>
+                                <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
                                 <td>Hoja 2 de 5</td>
 
                             </tr>
@@ -946,6 +1014,7 @@
 
             </div>
         </div>
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Antecedentes heredofamiliares', d.v('TIPO_CODIGO'))}">
         <div class="col-6">
             <h6>Generales</h6>
             <table class="table table-bordered table-sm">
@@ -986,6 +1055,8 @@
                 </tr>
             </table>
         </div>
+</th:block>
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('APNP (no patológicos)', d.v('TIPO_CODIGO'))}">
         <div class="col-12">
             <hr>
             <h6>Antecedentes personales no Patológicos</h6>
@@ -1104,6 +1175,8 @@
 
         </div>
 
+</th:block>
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Antecedentes personales no patológicos', d.v('TIPO_CODIGO'))}">
         <div class="col-12">
             <h6>Inmunizaciones</h6>
             <table class="table table-bordered table-sm">
@@ -1153,6 +1226,7 @@
                 </tr>
             </table>
 	</div>
+</th:block>
 </div></td></tr>
 <tr class="hoja"><td><div class="row hoja-row">
 
@@ -1169,23 +1243,23 @@
                         <tbody>
                             <tr>
                                 <td colspan="2">
-                                    <center>EXAMEN MEDICO LABORAL</center>
+                                    <center>[[${d.v('ENC_TITULO')}]]</center>
                                 </td>
                             </tr>
                             <tr class="">
-                                <td>F. Implementación: 10 DE ENERO DEL 2023</td>
-                                <td>Revisión: 03</td>
+                                <td>F. Implementación: [[${d.v('ENC_IMPLEMENTACION')}]]</td>
+                                <td>Revisión: [[${d.v('ENC_REVISION')}]]</td>
 
 
                             </tr>
-                            <td>Clave de control: FT-SO-04</td>
-                            <td>Reemplaza a: 02</td>
+                            <td>Clave de control: [[${d.v('ENC_CLAVE')}]]</td>
+                            <td>Reemplaza a: [[${d.v('ENC_REEMPLAZA')}]]</td>
                             <tr>
 
                             </tr>
                             <tr class="">
 
-                                <td>Motivo del cambio: Actualización por vigencia.</td>
+                                <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
                                 <td>Hoja 2 de 5</td>
 
                             </tr>
@@ -1226,12 +1300,12 @@
                     <td>[[${d.negado('G')}]]</td>
                 </tr>
                 <tr>
-                    <td>A (Abortos)</td>
-                    <td>[[${d.negado('A')}]]</td>
-                </tr>
-                <tr>
                     <td>P (Partos)</td>
                     <td>[[${d.negado('P')}]]</td>
+                </tr>
+                <tr>
+                    <td>A (Abortos)</td>
+                    <td>[[${d.negado('A')}]]</td>
                 </tr>
                 <tr>
                     <td>C (Cesáreas)</td>
@@ -1249,12 +1323,13 @@
                     <td>Infecciones Repetitivas</td>
                     <td>[[${d.negado('INFECC_REP')}]]</td>
                 </tr>
-                <tr>
-                    <td>Fecha de Última Consulta Ginecológica</td>
+                <tr th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('SERV_MED_ANT_GIN_OBSTETRICOS.FUP', d.v('TIPO_CODIGO'))}">
+                    <td>FUP (Fecha del Último Parto)</td>
                     <td>[[${d.negado('FUP')}]]</td>
                 </tr>
             </table>
         </div>
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Antecedentes personales patológicos', d.v('TIPO_CODIGO'))}">
         <div class="col-12">
             <h6>Antecedentes Personales Patológicos</h6>
             <table class="table table-bordered table-sm">
@@ -1383,8 +1458,9 @@
             </table>
 
 	</div>
+</th:block>
 </div></td></tr>
-<tr class="hoja"><td><div class="row hoja-row">
+<tr class="hoja" th:classappend="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Antecedentes personales patológicos|Padecimiento actual|Interrogatorio por aparatos y sistemas', d.v('TIPO_CODIGO'))} ? 'oculta' : ''"><td><div class="row hoja-row">
 
         <div class="col-12" style="">
             <div class="row">
@@ -1399,23 +1475,23 @@
                         <tbody>
                             <tr>
                                 <td colspan="2">
-                                    <center>EXAMEN MEDICO LABORAL</center>
+                                    <center>[[${d.v('ENC_TITULO')}]]</center>
                                 </td>
                             </tr>
                             <tr class="">
-                                <td>F. Implementación: 10 DE ENERO DEL 2023</td>
-                                <td>Revisión: 03</td>
+                                <td>F. Implementación: [[${d.v('ENC_IMPLEMENTACION')}]]</td>
+                                <td>Revisión: [[${d.v('ENC_REVISION')}]]</td>
 
 
                             </tr>
-                            <td>Clave de control: FT-SO-04</td>
-                            <td>Reemplaza a: 02</td>
+                            <td>Clave de control: [[${d.v('ENC_CLAVE')}]]</td>
+                            <td>Reemplaza a: [[${d.v('ENC_REEMPLAZA')}]]</td>
                             <tr>
 
                             </tr>
                             <tr class="">
 
-                                <td>Motivo del cambio: Actualización por vigencia.</td>
+                                <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
                                 <td>Hoja 3 de 5</td>
 
                             </tr>
@@ -1674,23 +1750,23 @@
                         <tbody>
                             <tr>
                                 <td colspan="2">
-                                    <center>EXAMEN MEDICO LABORAL</center>
+                                    <center>[[${d.v('ENC_TITULO')}]]</center>
                                 </td>
                             </tr>
                             <tr class="">
-                                <td>F. Implementación: 10 DE ENERO DEL 2023</td>
-                                <td>Revisión: 03</td>
+                                <td>F. Implementación: [[${d.v('ENC_IMPLEMENTACION')}]]</td>
+                                <td>Revisión: [[${d.v('ENC_REVISION')}]]</td>
 
 
                             </tr>
-                            <td>Clave de control: FT-SO-04</td>
-                            <td>Reemplaza a: 02</td>
+                            <td>Clave de control: [[${d.v('ENC_CLAVE')}]]</td>
+                            <td>Reemplaza a: [[${d.v('ENC_REEMPLAZA')}]]</td>
                             <tr>
 
                             </tr>
                             <tr class="">
 
-                                <td>Motivo del cambio: Actualización por vigencia.</td>
+                                <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
                                 <td>Hoja 3 de 5</td>
 
                             </tr>
@@ -1745,6 +1821,14 @@
                 <tr>
                     <td>STPO2</td>
                     <td>[[${d.v('STPO2')}]]%</td>
+                </tr>
+                <tr>
+                    <td>Cintura</td>
+                    <td>[[${d.v('CINTURA')}]] cm</td>
+                </tr>
+                <tr>
+                    <td>Cadera</td>
+                    <td>[[${d.v('CADERA')}]] cm</td>
                 </tr>
                 <tr>
                     <td>Constitución</td>
@@ -1812,6 +1896,7 @@
                 </tr>
             </table>
         </div>
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Cráneo|Agudeza visual', d.v('TIPO_CODIGO'))}">
         <hr>
         <div class="col-12">
             <h6>Cráneo</h6>
@@ -1849,19 +1934,19 @@
                     <th class="table-primary">Valor</th>
                 </tr>
                 <tr>
-                    <td>OD (Ojo Derecho)</td>
+                    <td>OD sin lentes (SL)</td>
                     <td>[[${d.v('OD')}]]</td>
                 </tr>
                 <tr>
-                    <td>Lente (Ojo Derecho)</td>
+                    <td>OD con lentes (CL)</td>
                     <td>[[${d.v('LENTEOJODERECHOEXP')}]]</td>
                 </tr>
                 <tr>
-                    <td>OIZ (Ojo Izquierdo)</td>
+                    <td>OIZ sin lentes (SL)</td>
                     <td>[[${d.v('OIZ')}]]</td>
                 </tr>
                 <tr>
-                    <td>Lente (Ojo Izquierdo)</td>
+                    <td>OIZ con lentes (CL)</td>
                     <td>[[${d.v('LENTEOJOIZQUIERDOEXP')}]]</td>
                 </tr>
                 <tr>
@@ -1880,9 +1965,11 @@
                     <td>Visión cercana sin lentes</td>
                     <td>[[${d.v('ODEXFISINPCERCIZQ')}]]</td>
                 </tr>
-	    </table> 
+	    </table>
+        </div>
+</th:block>
 </div></td></tr>
-<tr class="hoja"><td><div class="row hoja-row">
+<tr class="hoja" th:classappend="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Nariz|Columna vertebral|Boca|Oídos|Tórax|Columna (movilidad)|Abdomen', d.v('TIPO_CODIGO'))} ? 'oculta' : ''"><td><div class="row hoja-row">
             <div class="col-12" style="">
                 <div class="row">
                     <div class="navbar-brand col-3 " href="#">
@@ -1896,23 +1983,23 @@
                             <tbody>
                                 <tr>
                                     <td colspan="2">
-                                        <center>EXAMEN MEDICO LABORAL</center>
+                                        <center>[[${d.v('ENC_TITULO')}]]</center>
                                     </td>
                                 </tr>
                                 <tr class="">
-                                    <td>F. Implementación: 10 DE ENERO DEL 2023</td>
-                                    <td>Revisión: 03</td>
+                                    <td>F. Implementación: [[${d.v('ENC_IMPLEMENTACION')}]]</td>
+                                    <td>Revisión: [[${d.v('ENC_REVISION')}]]</td>
 
 
                                 </tr>
-                                <td>Clave de control: FT-SO-04</td>
-                                <td>Reemplaza a: 02</td>
+                                <td>Clave de control: [[${d.v('ENC_CLAVE')}]]</td>
+                                <td>Reemplaza a: [[${d.v('ENC_REEMPLAZA')}]]</td>
                                 <tr>
 
                                 </tr>
                                 <tr class="">
 
-                                    <td>Motivo del cambio: Actualización por vigencia.</td>
+                                    <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
                                     <td>Hoja 4 de 5</td>
 
                                 </tr>
@@ -2070,7 +2157,7 @@
                 </tr>
 	    </table>
 </div></td></tr>
-<tr class="hoja"><td><div class="row hoja-row">
+<tr class="hoja" th:classappend="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Genitales|Urinario|Extremidades|Piel|Cuello', d.v('TIPO_CODIGO'))} ? 'oculta' : ''"><td><div class="row hoja-row">
             <div class="col-12" style="">
                 <div class="row">
                     <div class="navbar-brand col-3 " href="#">
@@ -2084,23 +2171,23 @@
                             <tbody>
                                 <tr>
                                     <td colspan="2">
-                                        <center>EXAMEN MEDICO LABORAL</center>
+                                        <center>[[${d.v('ENC_TITULO')}]]</center>
                                     </td>
                                 </tr>
                                 <tr class="">
-                                    <td>F. Implementación: 10 DE ENERO DEL 2023</td>
-                                    <td>Revisión: 03</td>
+                                    <td>F. Implementación: [[${d.v('ENC_IMPLEMENTACION')}]]</td>
+                                    <td>Revisión: [[${d.v('ENC_REVISION')}]]</td>
 
 
                                 </tr>
-                                <td>Clave de control: FT-SO-04</td>
-                                <td>Reemplaza a: 02</td>
+                                <td>Clave de control: [[${d.v('ENC_CLAVE')}]]</td>
+                                <td>Reemplaza a: [[${d.v('ENC_REEMPLAZA')}]]</td>
                                 <tr>
 
                                 </tr>
                                 <tr class="">
 
-                                    <td>Motivo del cambio: Actualización por vigencia.</td>
+                                    <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
                                     <td>Hoja 4 de 5</td>
 
                                 </tr>
@@ -2230,23 +2317,23 @@
                         <tbody>
                             <tr>
                                 <td colspan="2">
-                                    <center>EXAMEN MEDICO LABORAL</center>
+                                    <center>[[${d.v('ENC_TITULO')}]]</center>
                                 </td>
                             </tr>
                             <tr class="">
-                                <td>F. Implementación: 10 DE ENERO DEL 2023</td>
-                                <td>Revisión: 03</td>
+                                <td>F. Implementación: [[${d.v('ENC_IMPLEMENTACION')}]]</td>
+                                <td>Revisión: [[${d.v('ENC_REVISION')}]]</td>
 
 
                             </tr>
-                            <td>Clave de control: FT-SO-04</td>
-                            <td>Reemplaza a: 02</td>
+                            <td>Clave de control: [[${d.v('ENC_CLAVE')}]]</td>
+                            <td>Reemplaza a: [[${d.v('ENC_REEMPLAZA')}]]</td>
                             <tr>
 
                             </tr>
                             <tr class="">
 
-                                <td>Motivo del cambio: Actualización por vigencia.</td>
+                                <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
                                 <td>Hoja 5 de 5</td>
 
                             </tr>
@@ -2259,6 +2346,7 @@
 
             </div>
         </div>
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Dientes', d.v('TIPO_CODIGO'))}">
         <div class="col-6">
             <h6>Dientes</h6>
             <table class="table table-bordered table-sm">
@@ -2405,10 +2493,12 @@
                 </tr>
             </table>
         </div>
+</th:block>
         <div class="col-12">
             <hr>
         </div>
         <div class="col-6">
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Estudios realizados y resultados', d.v('TIPO_CODIGO'))}">
             <h6>Resultados de Estudios Realizados</h6>
             <table class="table table-bordered table-sm">
                 <tr>
@@ -2419,6 +2509,8 @@
                 </tr>
             </table>
 
+</th:block>
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Diagnóstico', d.v('TIPO_CODIGO'))}">
             <h6>Diagnóstico</h6>
             <table class="table table-bordered table-sm">
                 <tr>
@@ -2430,8 +2522,10 @@
             </table>
 
 
+</th:block>
         </div>
         <div class="col-6">
+<th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Plan o terapéutica empleada', d.v('TIPO_CODIGO'))}">
             <h6>Plan de Terapia</h6>
             <table class="table table-bordered table-sm">
                 <tr>
@@ -2441,8 +2535,17 @@
                     <td>[[${d.v('OBSERVACIONES32')}]]</td>
                 </tr>
             </table>
+</th:block>
             <h6>Resultado de Examen</h6>
+            <!-- AJUSTE MANUAL (3-oct-2026): renglon Dictamen (de las banderas APTO/NO_APTO/...) separado de
+                 las observaciones; el PHP mezclaba ambos en OBSERVACIONES. Si se regenera, volver a aplicar. -->
             <table class="table table-bordered table-sm">
+                <tr>
+                    <th class="table-primary">Dictamen</th>
+                </tr>
+                <tr>
+                    <td style="font-weight:bold;">[[${d.v('DICTAMEN')}]]</td>
+                </tr>
                 <tr>
                     <th class="table-primary">Observaciones</th>
                 </tr>

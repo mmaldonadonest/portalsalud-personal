@@ -1,0 +1,23 @@
+Tú — QA
+2. Correr en QA (10.249.249.3:1523/orclpdb):
+C:\miguel\portalsalud-personal\src\main\resources\db\sql\app_domain\integracion-ocr.sql
+3. Armar y desplegar WAR de QA: mvn -Pqa -DskipTests package
+4. Entregar a OCR las llaves de QA, de:
+C:\miguel\portalsalud-personal\config\produccion\portal-salud-qa.local.properties
+5. Recibir de OCR: URL del webhook QA + IPs. Pedir firewall QA.
+6. Poner IPs de OCR en nginx QA (te paso el bloque).
+7. Prueba punta a punta con OCR.
+
+Tú — Producción
+8. Correr en BIOMETRICO@PDBPRD:
+C:\miguel\portalsalud-personal\docs\script-prod\integracion-ocr-01-ddl.sql
+9. mvn -Pprod -DskipTests package ? desplegar C:\miguel\portalsalud-personal\target\portal-salud-0.0.1-SNAPSHOT.war
+10. Entregar a OCR las llaves de prod, de:
+C:\miguel\portalsalud-personal\config\produccion\portal-salud.local.properties
+11. URL webhook prod + firewall + nginx prod.
+12. Prueba con candidato real.
+
+Cierre
+13. git push origin main
+
+Los archivos de los pasos 2 y 8 existirán cuando termine el paso 1.

@@ -2,11 +2,32 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <body>
 <!--
-  Una seccion del examen (U07). type = SINO | TEXT | DATE. Pre-cargada.
+  Una seccion del examen (U07). type = SINO | TEXT | DATE | AREA | RESULTADO | OPCION | OCULTO. Pre-cargada.
   name = clave punteada (p.ej. NEUROLOGIA.AVC) para el futuro guardado completo.
 -->
-<div th:fragment="seccion" class="card bg-light mb-3 exsec" th:attr="data-seccion=${seccion}">
-    <div class="card-header py-2"><strong th:text="${seccion}">Seccion</strong></div>
+<div th:fragment="seccion" class="card bg-light mb-3 exsec" th:attr="data-seccion=${seccion}"
+     th:with="conAyuda=${conAyuda == true},
+              conObs=${!#lists.isEmpty(items.?[type == 'SINO' and obsName != null])},
+              modoNormal=${conAyuda} ? 'okno' : (${conObs} ? (${seccion == 'Obesidad' or seccion == 'Otras'} ? 'sino' : 'negados') : (${#strings.startsWith(seccion, 'APP:') or seccion == 'Antecedentes laborales específicos'} ? 'sino' : ''))">
+    <!-- "Todo normal" (15-oct-2026, FT-SO-17 periodico / FT-SO-04): exploracion = OK con el texto del
+         formato en lo vacio; antecedentes = No con "NEGADOS" en la observacion. No pisa lo capturado. -->
+    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+        <strong th:text="${seccion}">Seccion</strong>
+        <button type="button" class="btn btn-sm btn-outline-success" th:if="${!#strings.isEmpty(modoNormal)}"
+                th:attr="data-modo=${modoNormal}" onclick="exSecTodoNormal(this);"
+                th:title="${modoNormal == 'okno'} ? 'OK con el texto del formato en lo que esté vacío' : (${modoNormal == 'negados'} ? 'No con observación NEGADOS en lo que esté vacío' : 'No en lo que esté vacío')">
+            <i class="ri-check-double-line me-1"></i>Todo normal
+        </button>
+        <!-- Inmunizaciones (16-oct-2026): marca las 7 vacunas de un jalon; COVID no (va por dosis) -->
+        <div class="d-flex gap-2" th:if="${seccion == 'Inmunizaciones'}">
+            <button type="button" class="btn btn-sm btn-outline-success" onclick="exSecTodasVacunas(this, '1');">
+                <i class="ri-check-double-line me-1"></i>Todo Sí
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" style="color: #111;" onclick="exSecTodasVacunas(this, '0');">
+                <i class="ri-close-line me-1"></i>Todo No
+            </button>
+        </div>
+    </div>
     <div class="card-body">
         <div th:if="${seccion == 'Diagnóstico'}" class="mb-3">
             <label class="form-label" for="examenIcdConsult">Buscar diagnóstico (obligatorio, catálogo ICD/CIE)</label>
@@ -22,22 +43,154 @@
             </div>
             <div id="examenIcdResult" class="mt-2"></div>
         </div>
-        <div class="row g-3">
-            <div class="col-md-6" th:each="it : ${items}">
+        <!-- OCULTO: columnas que el PHP nunca lleno (MESOMORFO, INTERES...). No se muestran, pero
+             viajan con su valor para que guardar no borre lo que hubiera. -->
+        <input th:each="it : ${items}" th:if="${it.type == 'OCULTO'}" type="hidden"
+               th:name="${it.fieldName}" th:value="${it.value}">
+        <style>
+            .exsec .exini-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+            .exsec .exini-chips .btn { color: #111; font-size: .85rem; }
+            .exsec .exini-chips .btn.activo { background: #0057A8; border-color: #0057A8; color: #fff; }
+            .exsec .exini-okno { display: flex; gap: 6px; align-items: center; }
+            .exsec .exini-okno-btns .btn { min-width: 44px; padding: 3px 8px; font-size: .85rem; color: #111; }
+            .exsec .exini-okno-btns .btn.activo-ok { background: #2B9138; border-color: #2B9138; color: #fff; }
+            .exsec .exini-okno-btns .btn.activo-hallazgo { background: #B42318; border-color: #B42318; color: #fff; }
+            .exsec .exini-okno input.is-invalid { border-color: #B42318; }
+            .exsec .exsec-sino-btns .btn { min-width: 44px; color: #111; }
+            .exsec .exsec-sino-btns .btn.activo-si { background: #B42318; border-color: #B42318; color: #fff; }
+            .exsec .exsec-sino-btns .btn.activo-no { background: #2B9138; border-color: #2B9138; color: #fff; }
+        </style>
+        <!-- Inmunizaciones como la cuadricula del FT-SO-17 (16-oct-2026): dos renglones de vacunas
+             Si/No, fecha junto a influenza y COVID-19 por dosis. Un valor que no sea de los botones
+             (dosis 4-6 o capturas raras del PHP) se ve como boton propio y se conserva al guardar. -->
+        <th:block th:if="${seccion == 'Inmunizaciones'}">
+            <!-- Cuadricula sin scroll horizontal (16-oct-2026): caben tantas columnas como permita el
+                 ancho del panel (4 en pantalla completa, menos si es angosto) sin que las celdas se
+                 encimen. Celda = etiqueta + botones; la fecha de influenza va al final. -->
+            <style>
+                .exinm { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px 12px; margin-bottom: 1rem; }
+                .exinm .celda { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; }
+                .exinm .lbl { font-weight: 600; flex: 1; white-space: nowrap; }
+                .exinm .exini-chips { flex-wrap: nowrap; }
+                .exinm .exini-chips .btn { min-width: 40px; }
+                .exinm input[type=date] { flex: 1; min-width: 120px; }
+            </style>
+            <div class="exinm">
+                <th:block th:each="f : ${ {'BLG','DPT','SR','INFLUENZA','SABIN','HEPATITIS_B','TD'} }">
+                  <div class="celda" th:each="it : ${items}" th:if="${it.fieldName == 'SERV_MED_INMUNIZACIONES.' + f}">
+                    <span class="lbl" th:text="${it.label}">Vacuna</span>
+                    <div class="exini-chips">
+                        <input type="hidden" th:name="${it.fieldName}" th:value="${it.value}">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-val="1"
+                                th:classappend="${it.value == '1'} ? 'activo' : ''" onclick="exIniChip(this);">Sí</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-val="0"
+                                th:classappend="${it.value == '0'} ? 'activo' : ''" onclick="exIniChip(this);">No</button>
+                    </div>
+                    <small th:if="${!#strings.isEmpty(it.value) and it.value != '0' and it.value != '1'}"
+                           class="text-muted" th:text="|(antes: ${it.value})|"></small>
+                  </div>
+                </th:block>
+                <div class="celda" th:each="it : ${items}" th:if="${it.fieldName == 'TAG.fechaINFLUEN'}">
+                    <span class="lbl" style="flex: 0 0 auto;" title="Fecha de la vacuna de influenza">Fecha</span>
+                    <input type="date" class="form-control form-control-sm" th:name="${it.fieldName}" th:value="${it.value}">
+                </div>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-7" th:each="it : ${items}" th:if="${it.type == 'DOSIS'}">
+                    <label class="form-label mb-1" th:text="${it.label}">COVID-19 (dosis)</label>
+                    <div class="exini-chips">
+                        <input type="hidden" th:name="${it.fieldName}" th:value="${it.value}">
+                        <button type="button" th:each="o : ${ {{'0','Ninguna'},{'1','1'},{'2','2'},{'3','3'}} }"
+                                class="btn btn-sm btn-outline-secondary" th:classappend="${it.value == o[0]} ? 'activo' : ''"
+                                th:attr="data-val=${o[0]}" th:text="${o[1]}" onclick="exIniChip(this);">dosis</button>
+                        <button type="button" th:if="${!#strings.isEmpty(it.value) and !#lists.contains({'0','1','2','3'}, it.value)}"
+                                class="btn btn-sm btn-outline-secondary activo" th:attr="data-val=${it.value}"
+                                th:text="|${it.value} (capturado antes)|" onclick="exIniChip(this);">otro</button>
+                    </div>
+                </div>
+                <div class="col-md-5" th:each="it : ${items}" th:if="${it.fieldName == 'SERV_MED_INMUNIZACIONES.FECHA'}">
+                    <label class="form-label mb-1" th:text="${it.label}">Fecha COVID</label>
+                    <input type="date" class="form-control form-control-sm" th:name="${it.fieldName}" th:value="${it.value}">
+                </div>
+            </div>
+        </th:block>
+        <!-- Dientes: el mismo odontograma por caras del examen inicial (16-oct-2026) -->
+        <th:block th:if="${seccion == 'Dientes'}">
+            <div th:replace="~{fragments/examen-seccion :: odontograma(${valores})}"></div>
+        </th:block>
+        <div class="row g-3" th:unless="${seccion == 'Inmunizaciones' or seccion == 'Dientes'}">
+            <!-- la pregunta de pension (SINO_TEXTO) es larga: va a todo el ancho -->
+            <div th:each="it : ${items}" th:unless="${it.type == 'OCULTO'}"
+                 th:class="${it.type == 'SINO_TEXTO'} ? 'col-12' : 'col-md-6'"
+                 th:classappend="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).clases(it.fieldName)}">
                 <label class="form-label mb-1" th:text="${it.label}">Campo</label>
 
-                <div th:if="${it.type == 'SINO'}" class="d-flex gap-2">
-                    <select class="form-select form-select-sm" style="max-width: 110px;" th:name="${it.fieldName}">
+                <!-- OPCION (13-oct-2026): una opcion entre botones, mismos valores que el select del PHP
+                     (formsEFis/EFis.html) y los chips del examen inicial. Clic en la activa la desmarca. -->
+                <div th:if="${it.type == 'OPCION'}"
+                     th:with="campo=${#strings.substringAfter(it.fieldName, '.')},
+                              opciones=${campo == 'EXM_INC_RAMO' ? {'EG':'EG (enfermedad general)','MAT':'MAT (maternidad)','RT':'RT (riesgo de trabajo)','ENLACE':'Enlace'}
+                                       : campo == 'EXM_INC_TIPO' ? {'IMSS':'IMSS','INTERNA':'Interna'}
+                                       : campo == 'ECTOMORFICO' ? {'Ectomórfica':'Ectomórfica (delgado)','Mesomorfo':'Mesomorfo (musculoso)','Endomórfica':'Endomórfica (sobrepeso)'}
+                                       : campo == 'SERENIDAD' ? {'serenidad':'Serenidad','interés':'Interés','entusiasta':'Entusiasta','antagónico':'Antagónico','enojo':'Enojo'}
+                                       : campo == 'HIPOCRITA' ? {'normal':'Normal','hipocrática':'Hipocrática','ictérica':'Ictérica','anémica':'Anémica','tiroidea':'Tiroidea'}
+                                       : {'normal':'Normal','parkinson':'Parkinson','hemipléjico':'Hemipléjico','Atáxica':'Atáxica','hemiparesia':'Hemiparesia'}}">
+                    <div class="exini-chips">
+                        <input type="hidden" th:name="${it.fieldName}" th:value="${it.value}">
+                        <button type="button" th:each="o : ${opciones}" class="btn btn-sm btn-outline-secondary"
+                                th:classappend="${it.value == o.key} ? 'activo' : ''"
+                                th:attr="data-val=${o.key}" th:text="${o.value}" onclick="exIniChip(this);">opción</button>
+                    </div>
+                    <!-- Lo capturado antes como texto libre y que no es una de las opciones: se ve y se
+                         conserva hasta que se elija otra -->
+                    <small class="text-muted" th:if="${it.value != null and !#strings.isEmpty(it.value) and !opciones.containsKey(it.value)}"
+                           th:text="|Capturado antes: ${it.value}|">Capturado antes</small>
+                </div>
+
+                <!-- Si/No con botones (16-oct-2026); el select oculto conserva el valor y lo que ya
+                     dependia de el (exSecSinoBtn / exSecPintarSino en nss-search.html) -->
+                <div th:if="${it.type == 'SINO'}" class="d-flex gap-2 align-items-center exsino">
+                    <select class="d-none" th:name="${it.fieldName}" onchange="exSecSino(this);" tabindex="-1" aria-hidden="true">
                         <option value="" th:selected="${it.value == null or it.value == ''}">-</option>
                         <option value="1" th:selected="${it.value == '1'}">Si</option>
                         <option value="0" th:selected="${it.value != null and it.value != '' and it.value != '1'}">No</option>
                     </select>
+                    <div class="btn-group exsec-sino-btns" role="group" th:attr="aria-label=${it.label}">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-val="1"
+                                th:classappend="${it.value == '1'} ? 'activo-si' : ''" onclick="exSecSinoBtn(this);">Sí</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-val="0"
+                                th:classappend="${it.value != null and it.value != '' and it.value != '1'} ? 'activo-no' : ''" onclick="exSecSinoBtn(this);">No</button>
+                    </div>
                     <input th:if="${it.obsName != null}" type="text" class="form-control form-control-sm"
                            placeholder="Observaciones" th:name="${it.obsName}" th:value="${it.obsValue}">
                 </div>
 
-                <input th:if="${it.type == 'TEXT'}" type="text" class="form-control form-control-sm"
-                       th:name="${it.fieldName}" th:value="${it.value}">
+                <!-- Exploracion con ayuda del formato (mismo control que el examen inicial: exIniOkNo) -->
+                <th:block th:if="${it.type == 'TEXT'}" th:with="ay=${ayudas != null ? ayudas[it.fieldName] : null}">
+                    <div th:if="${ay != null and ay.modo != 'OPCIONES'}" class="exini-okno"
+                         th:with="val=${it.value ?: ''}, ok=${#strings.equalsIgnoreCase(#strings.trim(it.value ?: ''), ay.normal) or #strings.equalsIgnoreCase(#strings.trim(it.value ?: ''), 'Normal') or #strings.trim(it.value ?: '') == '20/20'}"
+                         th:attr="data-normal=${ay.normal}, data-alterno=${ay.alterno}">
+                        <div class="btn-group exini-okno-btns" role="group" th:attr="aria-label=${it.label}">
+                            <button type="button" class="btn btn-outline-secondary" th:classappend="${ok} ? 'activo-ok' : ''" onclick="exIniOkNo(this, true);">OK</button>
+                            <button type="button" class="btn btn-outline-secondary" th:classappend="${!ok and ay.modo == 'DOS' and #strings.startsWith(#strings.toUpperCase(val), ay.alterno)} ? 'activo-hallazgo' : ''" onclick="exIniOkNo(this, false);">NO</button>
+                        </div>
+                        <input type="text" class="form-control form-control-sm" data-tipo="OKNO" th:name="${it.fieldName}" th:value="${val}"
+                               th:placeholder="${ay.modo == 'DOS'} ? (${ay.normal} + ' / ' + ${ay.alterno}) : ${ay.normal}"
+                               oninput="exIniOkNoEscribe(this);">
+                    </div>
+                    <div th:if="${ay != null and ay.modo == 'OPCIONES'}" class="exini-chips" th:attr="data-normal=${ay.normal}">
+                        <input type="hidden" th:name="${it.fieldName}" th:value="${it.value}">
+                        <button type="button" th:each="o : ${ay.opciones}" class="btn btn-sm btn-outline-secondary"
+                                th:classappend="${#strings.equalsIgnoreCase(#strings.trim(it.value ?: ''), o) or (o == ay.normal and #strings.equalsIgnoreCase(#strings.trim(it.value ?: ''), 'OK'))} ? 'activo' : ''"
+                                th:attr="data-val=${o}" th:text="${#strings.capitalize(#strings.toLowerCase(o))}" onclick="exIniChip(this);">opción</button>
+                    </div>
+                    <input th:if="${ay == null}" type="text" class="form-control form-control-sm"
+                           th:name="${it.fieldName}" th:value="${it.value}">
+                </th:block>
+
+                <th:block th:if="${it.type == 'SINO_TEXTO'}">
+                    <div th:replace="~{fragments/examen-seccion :: sinoTexto(${it})}"></div>
+                </th:block>
 
                 <input th:if="${it.type == 'DATE'}" type="date" class="form-control form-control-sm"
                        th:name="${it.fieldName}" th:value="${it.value}">
@@ -55,8 +208,133 @@
                     <option value="apto_condicionado" th:selected="${it.value == 'apto_condicionado'}">Apto condicionado</option>
                     <option value="apto_restringido" th:selected="${it.value == 'apto_restringido'}">Apto restringido</option>
                 </select>
+                <!-- Examen inicial (tipo 1): dictamen de solo lectura; el CSS de examen-shell.html bloquea el
+                     select con la clase tipo-1 del acordeon y el servidor rechaza el cambio (16-oct-2026) -->
+                <div th:if="${it.type == 'RESULTADO'}" class="aviso-dictamen-inicial fs-sm mt-1">
+                    <i class="ri-lock-line"></i> Examen inicial: el dictamen es de solo lectura (se definió al finalizar el examen inicial).
+                </div>
             </div>
         </div>
+    </div>
+</div>
+<!--
+  SINO_TEXTO (16-oct-2026, pension): No / Si + detalle en un solo campo de texto. Lo que el PHP
+  dejo escrito se interpreta: variantes de "no" -> No; "true" (stub del PHP) o vacio -> sin
+  contestar; cualquier otro texto -> Si con ese texto como detalle. El hidden conserva el valor
+  original hasta que se toca un boton o el detalle (exSinoTexto en nss-search.html).
+  Tambien lo usa examen-inicial-shell.html.
+-->
+<div th:fragment="sinoTexto(it)" class="exsino-txt d-flex gap-2 align-items-center"
+     th:with="raw=${it.value ?: ''},
+              up=${#strings.toUpperCase(#strings.trim(raw))},
+              esNo=${up matches '^(NO|NO APLICA|NO NINGUNA|NEGAD[OA]S?|NAGADO|NEG|NEGATIVO|NINGUN[OA]|NIGUNO|NINUNO|N/?A|NPO|SDPA|SIN OBSERVACIONES|INTERROGADO Y NEGADOS?|INT/NEG)$'},
+              sinDato=${up == '' or up == 'TRUE'},
+              esSi=${!esNo and !sinDato}">
+    <input type="hidden" th:name="${it.fieldName}" th:value="${raw}">
+    <div class="exini-chips" style="flex-wrap: nowrap;">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-val="no"
+                th:classappend="${esNo} ? 'activo' : ''" onclick="exSinoTexto(this);">No</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-val="si"
+                th:classappend="${esSi} ? 'activo' : ''" onclick="exSinoTexto(this);">Sí</button>
+    </div>
+    <input type="text" class="form-control form-control-sm" placeholder="¿Cuál? (ST2, ST7, RT1, pensión...)"
+           th:value="${esSi and up != 'SI'} ? ${raw} : ''" th:disabled="${!esSi}" oninput="exSinoTextoDetalle(this);">
+</div>
+<!--
+  Odontograma por caras (FT-SO-04 rev. 05), compartido por el examen inicial y el modulo Examen
+  medico (16-oct-2026). valores = mapa nombre de campo -> texto de la columna DIENTE_nn. El JS
+  (exIniPincelSel / exIniDiente / exIniPintarDiente) vive en nss-search.html.
+-->
+<div th:fragment="odontograma(valores)" class="exodonto" th:with="pd='SERV_MED_DIENTES.DIENTE_'">
+    <style>
+            /* Odontograma: pincel + 32 dientes como botones de color */
+            .exini-pincel { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin-bottom: 10px; }
+            .exini-pincel .lbl { font-size: .95rem; color: #111; margin-right: 4px; }
+            .exini-pincel .btn { border: 2px solid #D0D5DD; background: #fff; color: #111; font-size: .88rem; }
+            .exini-pincel .btn.activo { border-color: #111; box-shadow: 0 0 0 2px #111 inset; font-weight: 700; }
+            .exini-pincel .ayuda { flex-basis: 100%; font-size: .85rem; color: #111; text-align: center; }
+            /* Odontograma: 16 columnas fijas por arcada (+ linea media), se encoge al ancho
+               disponible; cada diente es una silueta SVG coloreada por hallazgo */
+            .exini-odonto { display: flex; flex-direction: column; gap: 6px; max-width: 880px; margin: 0 auto; }
+            .exini-odonto .arcada { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)) 6px repeat(8, minmax(0, 1fr)); gap: 3px; align-items: end; }
+            .exini-odonto .linea { width: 2px; background: #003E75; justify-self: center; height: 100%; }
+            .exini-odonto .diente { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; user-select: none; padding: 3px 0; border-radius: 6px; border: 1px solid #E1E6EB; background: #FAFBFC; }
+            .exini-odonto .diente:hover { background: #EAF3FA; border-color: #0057A8; }
+            .exini-odonto .diente svg { width: 100%; max-width: 50px; height: auto; display: block; }
+            .exini-odonto .diente svg path { fill: #fff; stroke: #98A2B3; stroke-width: 2; }
+            .exini-odonto .diente .num { font-size: .78rem; color: #111; font-weight: 600; line-height: 1; margin-bottom: 2px; }
+            .exini-odonto .diente .est { position: absolute; left: 0; right: 0; text-align: center; font-size: 1rem; font-weight: 800; line-height: 1; pointer-events: none; }
+            /* la arcada superior va volteada: raices arriba, corona hacia la linea de oclusion */
+            .exini-odonto .arcada.superior { align-items: start; }
+            .exini-odonto .arcada.superior .diente { flex-direction: column-reverse; }
+            .exini-odonto .arcada.superior .diente .num { margin: 2px 0 0; }
+            /* 5 caras por diente (FT-SO-04 rev. 05): cada cara se pinta con su hallazgo */
+            .exini-odonto .diente svg .cara { fill: #fff; stroke: #98A2B3; stroke-width: 1.5; cursor: pointer; }
+            .exini-odonto .diente svg .cara:hover { stroke: #003E75; stroke-width: 2.5; }
+            .exini-odonto .diente svg .tache { fill: none; stroke: none; stroke-width: 3; pointer-events: none; }
+            .exini-odonto .diente svg .cara.f-C { fill: #F97066; stroke: #B42318; }
+            .exini-odonto .diente svg .cara.f-A { fill: #98A2B3; stroke: #344054; }
+            .exini-odonto .diente svg .cara.f-E { fill: #9B8AFB; stroke: #5925DC; }
+            .exini-odonto .diente.d-P svg .cara { fill: #D1E9FF; stroke: #0057A8; }
+            .exini-odonto .diente.d-X svg .cara { fill: #F2F4F7; stroke: #98A2B3; }
+            .exini-odonto .diente.d-X svg .tache { stroke: #111; }
+            .exini-odonto .diente .est { position: static; font-size: .75rem; min-height: .9rem; }
+            .exini-odonto .diente.d-otro { border-color: #8a5300; background: #FFF7E6; }
+            .d-C { background: #FEE4E2; border-color: #B42318; color: #B42318; }
+            .d-A { background: #E4E7EC; border-color: #475467; color: #344054; }
+            .d-E { background: #EBE9FE; border-color: #6938EF; color: #5925DC; }
+            .d-P { background: #D1E9FF; border-color: #0057A8; color: #0057A8; }
+            .d-X { background: #111; border-color: #111; color: #fff; }
+            .exini-odonto .diente.d-P .est { color: #0057A8; }
+            .exini-odonto .diente.d-X { background: #FAFBFC; border-color: #111; color: #111; }
+            .exini-odonto .diente.d-X .num { text-decoration: line-through; }
+            .exini-odonto .diente.d-otro .est { color: #8a5300; }
+            .exini-leyenda { margin-top: 8px; padding: 6px 10px; font-size: .9rem; color: #111; background: #FFF7E6; border-left: 4px solid #8a5300; }
+            .exini-leyenda strong { color: #8a5300; }
+    </style>
+    <div class="exini-pincel" id="exIniPincel">
+        <span class="lbl">Hallazgo:</span>
+        <button type="button" class="btn btn-sm activo" data-estado="" onclick="exIniPincelSel(this);">Sano</button>
+        <button type="button" class="btn btn-sm d-C" data-estado="C" onclick="exIniPincelSel(this);"><b>C</b> Caries</button>
+        <button type="button" class="btn btn-sm d-A" data-estado="A" onclick="exIniPincelSel(this);"><b>A</b> Amalgama</button>
+        <button type="button" class="btn btn-sm d-E" data-estado="E" onclick="exIniPincelSel(this);"><b>E</b> Endodoncia</button>
+        <button type="button" class="btn btn-sm d-P" data-estado="P" onclick="exIniPincelSel(this);"><b>P</b> Prótesis</button>
+        <button type="button" class="btn btn-sm d-X" data-estado="X" onclick="exIniPincelSel(this);"><b>X</b> Ausente</button>
+        <span class="ayuda">C, A y E se marcan por cara: elige el hallazgo y da clic en la cara del diente. P y X marcan el diente completo. Clic de nuevo con el mismo hallazgo lo quita; «Sano» borra.</span>
+    </div>
+    <!--
+      FT-SO-04 rev. 05 (15-oct-2026): cada diente es el circulo de 5 caras del formato
+      (centro = oclusal/incisal, arriba/abajo = vestibular o lingual/palatino segun la
+      arcada, lados = mesial hacia la linea media y distal hacia afuera). Se guarda en
+      la MISMA columna de siempre (VARCHAR2(100)), como texto: "C:O,M A:D" = caries en
+      oclusal y mesial, amalgama en distal; "X"/"P" = diente completo. Lo que no se
+      entiende (notas del sistema anterior) se conserva tal cual al final.
+      Lo pinta exIniPintarDiente (nss-search.html) al abrir y en cada clic.
+    -->
+    <div class="exini-odonto">
+        <div class="arcada" th:classappend="${arcada.key == 0} ? 'superior' : 'inferior'" th:each="arcada : ${ {0: {18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28}, 1: {48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38}} }">
+            <th:block th:each="n, st : ${arcada.value}"
+                      th:with="fn=${pd + n}, val=${#strings.trim(valores.get(fn) ?: '')}, q=${n / 10}, mDer=${q == 1 or q == 4}">
+                <div class="linea" th:if="${st.index == 8}"></div>
+                <div class="diente" th:attr="data-diente=${n}" onclick="exIniDiente(this, event);">
+                    <input type="hidden" th:name="${fn}" th:value="${val}">
+                    <span class="num" th:text="${n}">11</span>
+                    <svg viewBox="0 0 40 40" aria-hidden="true">
+                        <path class="cara" th:attr="data-cara=${q <= 2} ? 'V' : 'L'" d="M7.27 7.27 A18 18 0 0 1 32.73 7.27 L24.95 15.05 A7 7 0 0 0 15.05 15.05 Z"/>
+                        <path class="cara" th:attr="data-cara=${mDer} ? 'M' : 'D'" d="M32.73 7.27 A18 18 0 0 1 32.73 32.73 L24.95 24.95 A7 7 0 0 0 24.95 15.05 Z"/>
+                        <path class="cara" th:attr="data-cara=${q <= 2} ? 'L' : 'V'" d="M32.73 32.73 A18 18 0 0 1 7.27 32.73 L15.05 24.95 A7 7 0 0 0 24.95 24.95 Z"/>
+                        <path class="cara" th:attr="data-cara=${mDer} ? 'D' : 'M'" d="M7.27 32.73 A18 18 0 0 1 7.27 7.27 L15.05 15.05 A7 7 0 0 0 15.05 24.95 Z"/>
+                        <circle class="cara" data-cara="O" cx="20" cy="20" r="7"/>
+                        <path class="tache" d="M6 6 L34 34 M34 6 L6 34"/>
+                    </svg>
+                    <span class="est"></span>
+                </div>
+            </th:block>
+        </div>
+    </div>
+    <div class="exini-leyenda">
+        <strong>C</strong> caries · <strong>A</strong> amalgama · <strong>E</strong> endodoncia (por cara) · <strong>P</strong> prótesis · <strong>X</strong> ausente (diente completo) ·
+        centro = oclusal, arriba/abajo = vestibular y lingual/palatino, lados = mesial (hacia el centro) y distal · <strong>·</strong> = nota del sistema anterior (pasa el cursor para leerla)
     </div>
 </div>
 </body>

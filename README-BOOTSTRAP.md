@@ -18,7 +18,6 @@ Este bootstrap crea una base técnica reusable para proyectos enterprise con:
 - Auditoría
 - Menú dinámico por rol
 - Jobs programados (Quartz)
-- Envío de correos
 - Push desktop y mobile
 - Gestión de archivos (metadata en BD + binario en filesystem)
 
@@ -31,7 +30,6 @@ Este bootstrap crea una base técnica reusable para proyectos enterprise con:
 - JDK 21 instalado y configurado en `JAVA_HOME`
 - Maven 3.9+
 - Oracle 21c disponible
-- Acceso a SMTP (para módulo mail)
 - (Opcional) credenciales FCM/APNs para push mobile
 
 Verificar instalación:
@@ -55,7 +53,6 @@ src/main/java/<basePackage>/
   auth/
   notification/
   job/
-  mail/
   file/
   controller/
   service/
@@ -97,7 +94,6 @@ Este proyecto usa Maven como estándar de build y dependencias.
 - `spring-boot-starter-validation`
 - `spring-boot-starter-security`
 - `spring-boot-starter-actuator`
-- `spring-boot-starter-mail`
 - `spring-boot-starter-quartz`
 - `ojdbc11`
 - `spring-boot-starter-test` (test)
@@ -116,7 +112,6 @@ Definir por ambiente:
 
 - Datasource Oracle (`jdbc:oracle:thin:@//host:port/service`)
 - JPA/Hibernate (`ddl-auto: none`, dialect Oracle)
-- Mail SMTP
 - Rutas filesystem para archivos
 - Config de Quartz
 - Config de seguridad y sesiones
@@ -191,7 +186,6 @@ Retención sugerida: 365 días (ajustable por política).
 
 Casos base sugeridos:
 
-- Reintento de correos
 - Reintento de push
 - Reconciliación de archivos huérfanos
 - Verificación de checksums
@@ -206,16 +200,7 @@ Buenas prácticas:
 
 ---
 
-## 11) Servicio de correos
-
-- SMTP + plantillas Thymeleaf
-- Envío asíncrono
-- Reintentos con backoff
-- Estado de entrega (pendiente/enviado/error)
-
----
-
-## 12) Push notifications (desktop + mobile)
+## 11) Push notifications (desktop + mobile)
 
 - Desktop: Web Push (VAPID/FCM)
 - Android: FCM
@@ -226,7 +211,7 @@ Buenas prácticas:
 
 ---
 
-## 13) Gestión de archivos (BD + filesystem)
+## 12) Gestión de archivos (BD + filesystem)
 
 ### Modelo
 
@@ -253,7 +238,7 @@ Buenas prácticas:
 
 ---
 
-## 14) Comandos Maven útiles
+## 13) Comandos Maven útiles
 
 Compilar + test:
 
@@ -275,7 +260,7 @@ mvn clean package -DskipTests
 
 ---
 
-## 15) Checklist de aceptación
+## 14) Checklist de aceptación
 
 - [ ] Build exitoso con Java 21 y Maven
 - [ ] Conexión Oracle 21c correcta
@@ -285,14 +270,13 @@ mvn clean package -DskipTests
 - [ ] Menú dinámico por rol visible
 - [ ] Auditoría registrando eventos clave
 - [ ] Jobs Quartz ejecutándose
-- [ ] Correo funcional
 - [ ] Push desktop/mobile configurado
 - [ ] Gestión de archivos BD+filesystem funcional
 - [ ] Layout Thymeleaf (header/sidebar/footer) responsive
 
 ---
 
-## 16) Convenciones recomendadas
+## 15) Convenciones recomendadas
 
 - Branching: `feature/*`, `fix/*`, `hotfix/*`
 - Commits: Conventional Commits (`feat:`, `fix:`, `chore:`)
@@ -301,7 +285,7 @@ mvn clean package -DskipTests
 
 ---
 
-## 17) No objetivos de este bootstrap
+## 16) No objetivos de este bootstrap
 
 - No incluye lógica de negocio del dominio final
 - No incluye integraciones propietarias específicas
@@ -309,7 +293,7 @@ mvn clean package -DskipTests
 
 ---
 
-## 18) Siguiente paso sugerido
+## 17) Siguiente paso sugerido
 
 Crear un módulo `home` + `auth` + `menu` + `file` mínimo funcional y dejar pipeline CI ejecutando:
 

@@ -42,17 +42,29 @@ public class AnalisisFiltroController {
      */
     @GetMapping("/filtros")
     public FiltrosDto filtros() {
+        List<CuentaOpcionDto> cuentas = cuentas(predioService);
+        return new FiltrosDto(predios(predioService, cuentas), cuentas);
+    }
+
+    /** Cuentas reales con su predio ("Sin asignar" si no tienen). */
+    static List<CuentaOpcionDto> cuentas(PredioService predioService) {
+        return predioService.listarCuentaPredio().stream()
+                .map(c -> new CuentaOpcionDto(
+                        c.cuentaNombre(),
+                        c.tienePredioAsignado() ? c.predioNombre() : DashboardPredioFiltro.SIN_ASIGNAR))
+                .toList();
+    }
+
+    /**
+     * Nombres de predio para un select de filtro. Lo comparten Analisis y el Inicio
+     * (DashboardPredioController) para que los dos ofrezcan exactamente las mismas opciones.
+     */
+    static List<String> predios(PredioService predioService, List<CuentaOpcionDto> cuentas) {
         List<String> predios = new ArrayList<>(predioService.listarPredios().stream()
                 .map(p -> p.nombre())
                 .filter(n -> n != null && !n.isBlank())
                 .sorted(String::compareToIgnoreCase)
                 .toList());
-
-        List<CuentaOpcionDto> cuentas = predioService.listarCuentaPredio().stream()
-                .map(c -> new CuentaOpcionDto(
-                        c.cuentaNombre(),
-                        c.tienePredioAsignado() ? c.predioNombre() : DashboardPredioFiltro.SIN_ASIGNAR))
-                .toList();
 
         // "Sin asignar" es filtrable a proposito: con 190+ cuentas por mapear es el corte que
         // deja ver cuanto falta por capturar en /admin/predios.
@@ -61,8 +73,7 @@ public class AnalisisFiltroController {
         if (hayPendientes) {
             predios.add(DashboardPredioFiltro.SIN_ASIGNAR);
         }
-
-        return new FiltrosDto(predios, cuentas);
+        return predios;
     }
 
     public record FiltrosDto(List<String> predios, List<CuentaOpcionDto> cuentas) {

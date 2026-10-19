@@ -13,9 +13,15 @@ import com.onest.app.catalog.dashboard.service.DashboardAntidopingService;
 import com.onest.app.catalog.dashboard.service.DashboardConsultaService;
 import com.onest.app.catalog.dashboard.service.DashboardExamenService;
 import com.onest.app.catalog.dashboard.service.DashboardIncapacidadesService;
+import com.onest.app.catalog.dashboard.service.DashboardConsumoService;
 import com.onest.app.catalog.dashboard.service.DashboardMaternidadService;
 import com.onest.app.catalog.dashboard.service.DashboardMusculoesqueleticoService;
 import com.onest.app.catalog.dashboard.service.DashboardResumenGeneralService;
+import com.onest.app.catalog.dashboard.repository.VistaFuentesRepository;
+import com.onest.app.catalog.dashboard.service.FechaFiltro;
+import java.time.LocalDate;
+import java.util.Map;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -40,6 +46,9 @@ public class DashboardController {
     private final DashboardResumenGeneralService resumenGeneralService;
     private final DashboardMaternidadService maternidadService;
     private final DashboardMusculoesqueleticoService musculoesqueleticoService;
+    private final DashboardConsumoService consumoService;
+    // Solo existe con portal.historico.fuente=VISTA
+    private final ObjectProvider<VistaFuentesRepository> vistaFuentes;
 
     public DashboardController(
             DashboardIncapacidadesService incapacidadesService,
@@ -49,7 +58,10 @@ public class DashboardController {
             DashboardExamenService examenService,
             DashboardResumenGeneralService resumenGeneralService,
             DashboardMaternidadService maternidadService,
-            DashboardMusculoesqueleticoService musculoesqueleticoService) {
+            DashboardMusculoesqueleticoService musculoesqueleticoService,
+            DashboardConsumoService consumoService,
+            ObjectProvider<VistaFuentesRepository> vistaFuentes) {
+        this.vistaFuentes = vistaFuentes;
         this.incapacidadesService = incapacidadesService;
         this.accidentesService = accidentesService;
         this.consultaService = consultaService;
@@ -58,6 +70,28 @@ public class DashboardController {
         this.resumenGeneralService = resumenGeneralService;
         this.maternidadService = maternidadService;
         this.musculoesqueleticoService = musculoesqueleticoService;
+        this.consumoService = consumoService;
+    }
+
+    /**
+     * De donde sale cada cifra del home: registros del portal y del Excel por familia, en el mismo
+     * rango. Sin el interruptor VISTA no hay columna FUENTE y se responde {@code disponible=false}
+     * (200, no 404): el home simplemente no pinta el desglose.
+     */
+    @GetMapping("/fuentes")
+    public Map<String, Object> fuentes(
+            @RequestParam("fechaInicial") String fechaInicial,
+            @RequestParam("fechaFinal") String fechaFinal,
+            @RequestParam(name = "predio", required = false) String predio) {
+        VistaFuentesRepository repo = vistaFuentes.getIfAvailable();
+        if (repo == null) {
+            return Map.of("disponible", false);
+        }
+        LocalDate desde = FechaFiltro.aFecha(fechaInicial)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "fechaInicial invalida"));
+        LocalDate hasta = FechaFiltro.aFecha(fechaFinal)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "fechaFinal invalida"));
+        return Map.of("disponible", true, "familias", repo.porFamiliaYFuente(desde, hasta, predio));
     }
 
     /** KPIs de incapacidades en un rango de fechas (ISO yyyy-MM-dd, igual que el reporte existente). */
@@ -169,6 +203,24 @@ public class DashboardController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }
     }
+    /**
+     * Consumo de medicamentos en un rango de fechas.
+     *
+     * <p>No lleva {@code cuenta}: los Excel de consumibles no registran a que cuenta se cargo el
+     * medicamento, solo al predio. Aceptar el parametro y no usarlo seria peor que no tenerlo.
+     */
+    @GetMapping("/consumo")
+    public com.onest.app.catalog.dashboard.dto.DashboardConsumoDto consumo(
+            @RequestParam("fechaInicial") String fechaInicial,
+            @RequestParam("fechaFinal") String fechaFinal,
+            @RequestParam(name = "predio", required = false) String predio) {
+        try {
+            return consumoService.resumen(fechaInicial, fechaFinal, predio);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        }
+    }
+
     /** Lesiones musculoesqueleticas (consultas con clave CIE-10 M/S/T) en un rango de fechas. */
     @GetMapping("/musculoesqueleticas")
     public DashboardMusculoesqueleticoDto musculoesqueleticas(

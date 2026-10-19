@@ -272,6 +272,29 @@
                 document.getElementById(id).innerHTML = '<p class="vacio mb-0">' + texto + '</p>';
             }
 
+            /**
+             * Obliga a las seis graficas a medir otra vez su contenedor.
+             *
+             * <p>ApexCharts toma el ancho y el alto del div en el instante del render(). Las seis
+             * se pintan dentro de un await, o sea despues de que el navegador ya hizo layout, pero
+             * ese layout todavia puede no ser el definitivo: las tarjetas estan en un grid cuyo
+             * ancho depende del sidebar del tema. Cuando la medicion sale en cero el SVG se dibuja
+             * de 0 px y la tarjeta se ve vacia aunque los datos ya esten ahi.
+             *
+             * <p>Se noto el 30-sep-2026 porque las graficas aparecian al abrir las devtools: eso
+             * cambia el viewport y dispara el resize de window, que es justo lo que ApexCharts
+             * escucha para volver a medir. Aqui se manda ese mismo evento a proposito, en el
+             * frame siguiente para que el layout ya este asentado.
+             *
+             * <p>Es barato y no tiene efecto cuando la medicion salio bien: ApexCharts compara
+             * contra el tamano actual y no redibuja si no cambio.
+             */
+            function reajustarGraficas() {
+                requestAnimationFrame(function () {
+                    window.dispatchEvent(new Event('resize'));
+                });
+            }
+
             function predioSel() { return document.getElementById('fPredio').value; }
 
             function calcularRango() {
@@ -402,6 +425,7 @@
 
                     ultimoExport = { predio: predio, consultas: consultas, incap: incap, accid: accid, examen: examen };
                     estado.textContent = 'Actualizado.';
+                    reajustarGraficas();
                 } catch (e) {
                     console.error('[analisis-predio] error en cargar():', e);
                     estado.textContent = 'Error de red: ' + e.message;

@@ -13,7 +13,8 @@
         </div>
         <div class="card-body">
 
-            <div th:if="${#lists.isEmpty(incapacidades)}" class="alert alert-warning mb-0" role="alert">
+            <div th:if="${#lists.isEmpty(incapacidades)}" class="alert alert-warning mb-0" role="alert"
+                 th:text="${conHistorico} ? 'No hay incapacidades capturadas en el portal para este NSS (revisa el histórico abajo).' : 'No se encontraron incapacidades para este NSS.'">
                 No se encontraron incapacidades para este NSS.
             </div>
 
@@ -84,6 +85,70 @@
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <!--
+      Histórico del Excel (layout 5 por NSS), solo con portal.historico.fuente=VISTA. Solo lectura:
+      no se edita, no se firma, no genera PDF. Va en tarjeta aparte para que buscar/exportar/filtros
+      (que trabajan sobre la tabla de su tarjeta) no mezclen lo capturado con lo histórico.
+    -->
+    <div th:if="${conHistorico}" class="card card-one mt-3">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h6 class="card-title mb-0">Incapacidades anteriores <span class="badge bg-secondary ms-1">Histórico Excel</span></h6>
+            <span class="text-muted fs-12">Cargadas de los reportes del servicio médico · solo lectura</span>
+        </div>
+        <div class="card-body">
+            <div th:if="${historicoError}" class="alert alert-warning mb-0" role="alert">
+                No se pudo consultar el histórico en este momento. Lo capturado en el portal sí está completo arriba.
+            </div>
+            <div th:if="${historicoError == null and #lists.isEmpty(historico)}" class="text-muted mb-0">
+                Este NSS no tiene incapacidades en el histórico de Excel.
+            </div>
+            <div th:unless="${historicoError != null or #lists.isEmpty(historico)}"
+                 th:with="ramoLabels=${ {'EG':'Enfermedad General','MAT':'Maternidad','RT1':'RT1','RT2':'RT2','profesional':'Enfermedad profesional'} },
+                          rubroLabels=${ {'IMSS':'IMSS','INTERNA':'Interna'} }">
+                <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+                    <input type="text" class="form-control form-control-sm" style="max-width: 260px;"
+                           placeholder="Buscar..." aria-label="Buscar en el histórico"
+                           oninput="filtrarConsultas(this);">
+                    <button type="button" class="btn btn-sm btn-success" onclick="exportarConsultasExcel(this);">
+                        <i class="ri-file-excel-2-line me-1"></i> Exportar a Excel
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" data-export-name="incapacidades-historico">
+                        <thead class="thead-onest">
+                            <tr>
+                                <th>Inicio</th>
+                                <th>Término</th>
+                                <th>Folio</th>
+                                <th>Rubro</th>
+                                <th>Ramo</th>
+                                <th>Tipo</th>
+                                <th>Días</th>
+                                <th>Costo</th>
+                                <th>Predio</th>
+                                <th>Diagnóstico</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="h : ${historico}">
+                                <td th:text="${h.inicio != null ? #temporals.format(h.inicio, 'dd/MM/yyyy') : '-'}">-</td>
+                                <td th:text="${h.termino != null ? #temporals.format(h.termino, 'dd/MM/yyyy') : '-'}">-</td>
+                                <td th:text="${h.folio ?: '-'}">-</td>
+                                <td th:text="${rubroLabels.get(h.rubro) ?: (h.rubro ?: '-')}">-</td>
+                                <td th:text="${ramoLabels.get(h.ramo) ?: (h.ramo ?: '-')}">-</td>
+                                <td th:text="${h.tipo ?: '-'}">-</td>
+                                <td th:text="${h.dias ?: '-'}">-</td>
+                                <td th:text="${h.costo != null ? '$' + #numbers.formatDecimal(h.costo, 1, 'COMMA', 2, 'POINT') : '-'}">-</td>
+                                <td th:text="${h.predio ?: '-'}">-</td>
+                                <td th:text="${h.diagnostico ?: '-'}">-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 

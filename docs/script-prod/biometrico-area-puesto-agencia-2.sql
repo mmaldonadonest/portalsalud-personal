@@ -1,0 +1,42 @@
+-- =============================================================================
+-- Segunda vuelta: confirmar de donde salen AGENCIA y AREA, y los 4,333 puestos huerfanos.
+-- SOLO LECTURA. Base: BIOMETRICO (PDBPRD o QA).
+-- =============================================================================
+SET LINESIZE 200
+SET PAGESIZE 200
+
+-- 1) AGENCIA por catalogo: BIO_AGENCIA (38) contra empleados activos
+SELECT a.AGENCIA_ID, a.AGENCIA_NOMBRE, a.AGENCIA_RAZONSOCIAL, COUNT(d.EMP_NSS) empleados_activos
+  FROM BIO_AGENCIA a
+  LEFT JOIN BIO_DATOS_LABORALES_EMPLEADOS c ON c.AGENCIA_ID = a.AGENCIA_ID
+  LEFT JOIN BIO_EMPLEADO d ON d.EMP_NSS = c.EMP_NSS AND d.EMP_STATUS = 1
+ GROUP BY a.AGENCIA_ID, a.AGENCIA_NOMBRE, a.AGENCIA_RAZONSOCIAL
+ ORDER BY empleados_activos DESC;
+
+-- 2) SOCIEDAD de BIO_EMPLEADO: el Excel dice "GLI / ORLAMEX / VALLE LERMA / ONEST", que suena a razon social
+SELECT d.ID_SOCIEDAD, d.SOCIEDAD, COUNT(*) empleados_activos
+  FROM BIO_EMPLEADO d
+ WHERE d.EMP_STATUS = 1
+ GROUP BY d.ID_SOCIEDAD, d.SOCIEDAD
+ ORDER BY 3 DESC;
+
+-- 3) AREA: los dos catalogos chicos y la columna DIVISION de los datos laborales
+SELECT 'AREA' origen, a.* FROM AREA a;
+SELECT 'CATALOGOS_AREAS' origen, c.* FROM CATALOGOS_AREAS c;
+SELECT c.DIVISION, COUNT(*) empleados_activos
+  FROM BIO_DATOS_LABORALES_EMPLEADOS c JOIN BIO_EMPLEADO d ON d.EMP_NSS = c.EMP_NSS AND d.EMP_STATUS = 1
+ GROUP BY c.DIVISION ORDER BY 2 DESC;
+SELECT c.ID_CATEGORIA, COUNT(*) empleados_activos
+  FROM BIO_DATOS_LABORALES_EMPLEADOS c JOIN BIO_EMPLEADO d ON d.EMP_NSS = c.EMP_NSS AND d.EMP_STATUS = 1
+ GROUP BY c.ID_CATEGORIA ORDER BY 2 DESC;
+
+-- 4) Los 4,333 con ID_PUESTO que no esta en BIOMETRICO_PUESTO: ¿estan en BIOMETRICO_PUESTOS_SAP?
+SELECT column_name, data_type FROM user_tab_columns WHERE table_name = 'BIOMETRICO_PUESTOS_SAP' ORDER BY column_id;
+SELECT * FROM (
+  SELECT c.ID_PUESTO, COUNT(*) empleados
+    FROM BIO_EMPLEADO d
+    JOIN BIO_DATOS_LABORALES_EMPLEADOS c ON c.EMP_NSS = d.EMP_NSS
+    LEFT JOIN BIOMETRICO_PUESTO p ON p.PUESTO_ID = c.ID_PUESTO
+   WHERE d.EMP_STATUS = 1 AND c.ID_PUESTO IS NOT NULL AND c.ID_PUESTO <> 0 AND p.PUESTO_ID IS NULL
+   GROUP BY c.ID_PUESTO ORDER BY 2 DESC
+) WHERE ROWNUM <= 20;

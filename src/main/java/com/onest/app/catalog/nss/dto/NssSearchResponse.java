@@ -16,14 +16,27 @@ public record NssSearchResponse(
         String tipo,
         EmpleadoDto empleado,
         CandidatoDto candidato,
-        List<EmpleadoDto> asociaciones
+        List<EmpleadoDto> asociaciones,
+        /** Solicitud de examen inicial de OCR ligada al NSS (viva o la ultima), o null. */
+        com.onest.app.integration.ocr.SolicitudExamen solicitudOcr,
+        /** true cuando la persona NO esta en el biometrico y la ficha se armo con la solicitud de OCR. */
+        boolean candidatoOcr
 ) {
 
     public static NssSearchResponse empleado(EmpleadoDto empleado, List<EmpleadoDto> asociaciones) {
-        return new NssSearchResponse("EMPLEADO", empleado, null, asociaciones);
+        return new NssSearchResponse("EMPLEADO", empleado, null, asociaciones, null, false);
     }
 
     public static NssSearchResponse candidato(CandidatoDto candidato) {
-        return new NssSearchResponse("CANDIDATO", null, candidato, List.of());
+        return new NssSearchResponse("CANDIDATO", null, candidato, List.of(), null, false);
+    }
+
+    /** Candidato que solo existe en la solicitud de OCR: se presenta como ficha (tipo EMPLEADO) para abrir los modulos. */
+    public static NssSearchResponse candidatoOcr(EmpleadoDto ficha, com.onest.app.integration.ocr.SolicitudExamen solicitud) {
+        return new NssSearchResponse("EMPLEADO", ficha, null, List.of(ficha), solicitud, true);
+    }
+
+    public NssSearchResponse conSolicitud(com.onest.app.integration.ocr.SolicitudExamen solicitud) {
+        return new NssSearchResponse(tipo, empleado, candidato, asociaciones, solicitud, candidatoOcr);
     }
 }

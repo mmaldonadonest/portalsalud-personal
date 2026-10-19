@@ -20,6 +20,8 @@ public record BiowsAccidenteAltaRequest(
         @JsonProperty("COSTO") BigDecimal costo,
         @JsonProperty("OBSERVACIONES") String observaciones,
         @JsonProperty("USUARIO_ID") String usuarioId,
-        @JsonProperty("NOMBRE_USUARIO") String nombreUsuario
+        @JsonProperty("NOMBRE_USUARIO") String nombreUsuario,
+        // Solo lo lee Servcio/accidente_v2 (docs/ords-accidentes-v2.sql); numero JSON, null = no capturado
+        @JsonProperty("DIAS") Integer dias
 ) {
 }

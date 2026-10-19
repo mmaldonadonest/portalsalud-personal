@@ -71,7 +71,7 @@ public class PortalPrincipalResolver {
         String avatar = Optional.ofNullable(email)
                 .flatMap(intranetUserClient::avatarUrlPorEmail)
                 .orElse(AvatarDefaults.DEFAULT_AVATAR);
-        return new PortalUserPrincipal(localId, usuario, displayName, avatar, null, authorities);
+        return new PortalUserPrincipal(localId, usuario, displayName, avatar, null, authorities, email);
     }
 
     /**

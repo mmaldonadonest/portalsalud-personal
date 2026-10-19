@@ -3,6 +3,7 @@ package com.onest.app.catalog.examen.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onest.app.catalog.examen.client.ExamenClient;
+import com.onest.app.catalog.examen.repository.FichaBiometricoRepository;
 import com.onest.app.catalog.nss.dto.EmpleadoDto;
 import com.onest.app.catalog.nss.service.NssSearchService;
 import com.onest.app.catalog.pretest.repository.MedTagRepository;
@@ -77,7 +78,13 @@ public class ExamenDocumentoService {
 
         /** {@code evaluarCondicionDental()}. */
         public String diente(String var) {
-            return DIENTES.getOrDefault(v(var).trim(), "Diente sano");
+            return describirDiente(v(var));
+        }
+
+        /** Si/No de los tags EXM_* de los formatos (1/0); vacio si no se capturo. */
+        public String siNo(String var) {
+            String s = v(var).trim();
+            return "1".equals(s) ? "Sí" : "0".equals(s) ? "No" : s;
         }
 
         public String getFirmaTrabajador() {
@@ -89,7 +96,7 @@ public class ExamenDocumentoService {
         }
 
         /** Mismo criterio que el PHP: strtolower + lista fija; empty("0") tambien es true en PHP. */
-        private static boolean esRelleno(String s) {
+        static boolean esRelleno(String s) {
             String t = s == null ? "" : s.trim().toLowerCase(Locale.ROOT);
             return t.isEmpty() || t.equals("0") || t.equals("sin observación") || t.equals("sin observacion")
                     || t.equals("sin obs") || t.equals("vacio") || t.equals("sin observaciones");
@@ -105,23 +112,162 @@ public class ExamenDocumentoService {
             Map.entry("E", "Endodoncia"), Map.entry("D", "Desgaste dental"),
             Map.entry("ATM", "Articulación temporomandibular"), Map.entry("Sx", "Síntomas"), Map.entry("Tx", "Tratamiento"));
 
+    private static final Map<String, String> CARAS = Map.of(
+            "O", "oclusal", "V", "vestibular", "L", "lingual/palatino", "M", "mesial", "D", "distal");
+    private static final java.util.regex.Pattern POR_CARA =
+            java.util.regex.Pattern.compile("(?i)^([CAE]):([OVLMD](?:,[OVLMD])*)$");
+
+    /**
+     * Texto del impreso para un diente. Desde el FT-SO-04 rev. 05 (15-oct-2026) el examen inicial
+     * guarda por caras en la misma columna: "C:O,M A:D" -> "Caries dental (oclusal, mesial);
+     * AMALGAMA (distal)". Un codigo suelto (del PHP o "X"/"P") se traduce con DIENTES; lo que no
+     * se reconoce se imprime tal cual. Vacio = "Diente sano".
+     */
+    static String describirDiente(String valor) {
+        String t = valor == null ? "" : valor.trim();
+        if (t.isEmpty()) {
+            return "Diente sano";
+        }
+        List<String> partes = new java.util.ArrayList<>();
+        for (String token : t.split("\\s+")) {
+            java.util.regex.Matcher m = POR_CARA.matcher(token);
+            if (m.matches()) {
+                List<String> caras = new java.util.ArrayList<>();
+                for (String c : m.group(2).toUpperCase(Locale.ROOT).split(",")) {
+                    caras.add(CARAS.get(c));
+                }
+                partes.add(DIENTES.get(m.group(1).toUpperCase(Locale.ROOT)) + " (" + String.join(", ", caras) + ")");
+            } else if ("X".equalsIgnoreCase(token)) {
+                partes.add("Ausente");
+            } else {
+                partes.add(DIENTES.getOrDefault(token, token));
+            }
+        }
+        return String.join("; ", partes);
+    }
+
+    /**
+     * Encabezado de calidad de cada formato EMLE (docs/formatosnuevos/reformatosdeexamenmedicoparaemle,
+     * filas 1-4 de cada Excel, 15-oct-2026). Calidad pide que cada tipo de examen imprima SU encabezado.
+     */
+    public record Encabezado(String titulo, String implementacion, String revision, String clave,
+                             String reemplaza, String motivo) {
+    }
+
+    private static final String VIGENCIA = "Actualización por vigencia";
+    private static final Encabezado FT_SO_04 = new Encabezado("EXAMEN MÉDICO INICIAL",
+            "14 de septiembre de 2026", "05", "FT-SO-04", "04", VIGENCIA);
+
+    /** Tipo de examen (codigo del tag tipoExamenInputO) -> formato. Sin formato propio: FT-SO-04. */
+    // 6-8 (16-oct-2026): filas 1-4 de FT-SO-18/19/20; el motivo de 19 y 20 es el de su hoja 1
+    static final Map<String, Encabezado> ENCABEZADOS = Map.of(
+            "1", FT_SO_04,
+            // FT-SO-17: el Excel decia "septiembre de 2024"; corregido a 2026 como los demas (decision 15-oct-2026)
+            "2", new Encabezado("EXAMEN MÉDICO PERIÓDICO", "14 de septiembre de 2026", "06", "FT-SO-17", "05", VIGENCIA),
+            "3", new Encabezado("EXAMEN MÉDICO CAMBIO DE PUESTO", "14 de septiembre de 2026", "06", "FT-SO-16", "05", VIGENCIA),
+            "4", new Encabezado("EXAMEN MÉDICO POST INCAPACIDAD", "14 de septiembre de 2026", "06", "FT-SO-13", "05", VIGENCIA),
+            "6", new Encabezado("EXAMEN MÉDICO EGRESO", "14 de septiembre de 2026", "06", "FT-SO-18", "05", VIGENCIA),
+            "7", new Encabezado("EXAMEN MÉDICO INICIAL \"MANTENIMIENTO\"", "14 de septiembre de 2026", "06", "FT-SO-19", "05",
+                    "Modificación del formato y actualización por vigencia"),
+            "8", new Encabezado("EXAMEN MÉDICO PERIÓDICO \"MANTENIMIENTO\"", "14 de septiembre de 2026", "06", "FT-SO-20", "05",
+                    "Modificación del formato y actualización por vigencia"));
+
+    /** Clave del formato EMLE que se trabaja para el tipo (la misma que imprime el encabezado). */
+    public static String claveFormato(String tipoExamen) {
+        return encabezado(tipoExamen).clave();
+    }
+
+    static Encabezado encabezado(String tipoExamen) {
+        return ENCABEZADOS.getOrDefault(tipoExamen == null ? "" : tipoExamen.trim(), FT_SO_04);
+    }
+
     private static final Map<String, String> TIPO_EXAMEN = Map.of(
-            "0", "No seleccionado", "1", "Admisión", "2", "Périodico", "3", "Cambio de rol",
-            "4", "Post incapacidad", "5", "Especial");
+            "0", "No seleccionado", "1", "Admisión", "2", "Périodico", "3", "Cambio de puesto",
+            "4", "Post incapacidad", "5", "Especial", "6", "Egreso", "7", "Inicial mantenimiento",
+            "8", "Periódico mantenimiento");
 
     private final ExamenClient client;
     private final NssSearchService nssSearchService;
     private final MedTagRepository tags;
     private final List<Campo> campos;
 
-    public ExamenDocumentoService(ExamenClient client, NssSearchService nssSearchService, MedTagRepository tags) {
+    private final com.onest.app.integration.ocr.SolicitudExamenRepository solicitudes;
+    private final com.onest.app.catalog.examen.repository.SociedadEmpleadoRepository sociedades;
+    private final FichaBiometricoRepository fichaBiometrico;
+    private final com.onest.app.catalog.examen.repository.ExamenHistoricoRepository historico;
+
+    public ExamenDocumentoService(ExamenClient client, NssSearchService nssSearchService, MedTagRepository tags,
+                                  com.onest.app.integration.ocr.SolicitudExamenRepository solicitudes,
+                                  com.onest.app.catalog.examen.repository.SociedadEmpleadoRepository sociedades,
+                                  FichaBiometricoRepository fichaBiometrico,
+                                  com.onest.app.catalog.examen.repository.ExamenHistoricoRepository historico) {
         this.client = client;
         this.nssSearchService = nssSearchService;
         this.tags = tags;
+        this.solicitudes = solicitudes;
+        this.sociedades = sociedades;
+        this.fichaBiometrico = fichaBiometrico;
+        this.historico = historico;
         this.campos = cargarCampos();
     }
 
+    /**
+     * AGENCIA del FT-SO-04 rev. 05: no se captura (decision 15-oct-2026), es por empleado.
+     * Agencia de la solicitud de OCR > BIO_EMPLEADO.SOCIEDAD (GLI, ORLAMEX...) > vacio.
+     * Aqui sin el predeterminado del formato; el impreso SI lo aplica al final (16-oct-2026: el
+     * usuario decidio apegarse al layout, antes salia vacio): empleado > elegida > GLI.
+     * NO es la empresa del WS (EmpleadoDto.nombreEmpresa: "Onest Mexico" para todos).
+     * La usan la pantalla del examen inicial y el impreso, para que digan lo mismo.
+     */
+    public String agencia(String nss, String agenciaSolicitud) {
+        if (agenciaSolicitud != null && !agenciaSolicitud.isBlank()) {
+            return agenciaSolicitud.trim();
+        }
+        return sociedades.sociedad(nss).orElse("");
+    }
+
+    /**
+     * Cuando la base no trae agencia, el medico la elige en el examen inicial: predeterminado
+     * del FT-SO-04 o "Otro" especificando (el texto del formato). Se guarda en este tag.
+     */
+    public static final String TAG_AGENCIA = "AGENCIAEXAMEN";
+    public static final String AGENCIA_PREDETERMINADA = "Grupo Logístico Integral SAPI de CV";
+
+    /** Agencia de la base y, si no hay, la que se eligio en el examen (tag); vacio si ninguna. */
+    public String agenciaConCaptura(String nss, String agenciaSolicitud) {
+        String deBase = agencia(nss, agenciaSolicitud);
+        return deBase.isEmpty() ? agenciaCapturada(nss) : deBase;
+    }
+
+    /**
+     * Agencia de la base (solicitud de OCR > BIO_EMPLEADO.SOCIEDAD) sin pasar la solicitud: la usa el
+     * modulo Examen medico (16-oct-2026), que tambien pide AGENCIA en los FT-SO-13/16/17/18/19/20.
+     */
+    public String agenciaDeBase(String nss) {
+        String agenciaSolicitud = null;
+        try {
+            agenciaSolicitud = solicitudes.ultimaPorNss(nss).map(com.onest.app.integration.ocr.SolicitudExamen::agencia).orElse(null);
+        } catch (RuntimeException ex) {
+            // sin tabla de solicitudes: se queda con el biometrico
+        }
+        return agencia(nss, agenciaSolicitud);
+    }
+
+    /** Ultima agencia elegida en un examen para el NSS (tag), o vacio. */
+    public String agenciaCapturada(String nss) {
+        try {
+            return limpio(tags.latestByNssAndTypePrefix(nss, TAG_AGENCIA).get(TAG_AGENCIA));
+        } catch (RuntimeException ex) {
+            return "";
+        }
+    }
+
     public Documento armar(String nss) {
+        return armar(nss, null);
+    }
+
+    /** Con tipoForzado (1-8) se arma como si el examen fuera de ese tipo: vista previa del impreso. */
+    public Documento armar(String nss, String tipoForzado) {
         String nssLimpio = nss.trim();
         Map<String, String> data = client.getExamenData(nssLimpio);
         EmpleadoDto emp = nssSearchService.findByNss(nssLimpio).map(r -> r.empleado()).orElse(null);
@@ -162,16 +308,98 @@ public class ExamenDocumentoService {
         }
 
         // --- lo que el PHP hace con codigo, no con asignaciones
-        v.put("edad", edadDesdeRfc(v.get("rfc"), emp));
+        // Edad: el PHP la sacaba del RFC. Un candidato de OCR puede no traer RFC pero si fecha de
+        // nacimiento (EmpleadoDto.edad ya viene calculada desde la solicitud).
+        String edad = edadDesdeRfc(v.get("rfc"), emp);
+        if (edad.isEmpty() && emp != null && emp.edad() != null) {
+            edad = String.valueOf(emp.edad());
+        }
+        v.put("edad", edad);
+        // Impreso por tipo (16-oct-2026): el codigo crudo decide que secciones salen
+        // (VisibilidadTipo) y los bloques propios de cada formato viven en tags EXM_*
+        if (tipoForzado != null) {
+            v.put("tipoExamenInputO", tipoForzado);
+        }
+        v.put("TIPO_CODIGO", limpio(v.get("tipoExamenInputO")));
+        for (Map.Entry<String, String> e : tagValues.entrySet()) {
+            if (e.getKey() != null && e.getKey().startsWith("EXM_")) {
+                v.put(e.getKey(), e.getValue() == null ? "" : e.getValue().trim());
+            }
+        }
+        // Encabezado de calidad segun el tipo de examen (codigo crudo, antes de pasarlo a texto)
+        Encabezado enc = encabezado(limpio(v.get("tipoExamenInputO")));
+        v.put("ENC_TITULO", enc.titulo());
+        v.put("ENC_IMPLEMENTACION", enc.implementacion());
+        v.put("ENC_REVISION", enc.revision());
+        v.put("ENC_CLAVE", enc.clave());
+        v.put("ENC_REEMPLAZA", enc.reemplaza());
+        v.put("ENC_MOTIVO", enc.motivo());
         v.put("tipoExamenInputO", TIPO_EXAMEN.getOrDefault(limpio(v.get("tipoExamenInputO")), limpio(v.get("tipoExamenInputO"))));
-        v.put("OBSERVACIONESRESEXAM1", switch (limpio(data.get("SERV_MED_RESULTADO_EXAMEN.OBSERVACIONES"))) {
+        // Dictamen: el PHP lo guardaba como codigo 1-4 en OBSERVACIONES; el portal (ambos modulos)
+        // lo guarda en las 4 banderas APTO/NO_APTO/APTO_CONDICIONADO/APTO_RESTRINGIDO y usa
+        // OBSERVACIONES como texto libre. Se imprimen por separado: DICTAMEN (banderas, con
+        // respaldo al codigo viejo para lo migrado) y las observaciones reales (3-oct-2026).
+        String obsRes = limpio(data.get("SERV_MED_RESULTADO_EXAMEN.OBSERVACIONES"));
+        String dictamen = "";
+        if ("1".equals(limpio(data.get("SERV_MED_RESULTADO_EXAMEN.APTO")))) {
+            dictamen = "Apto";
+        } else if ("1".equals(limpio(data.get("SERV_MED_RESULTADO_EXAMEN.NO_APTO")))) {
+            dictamen = "No apto";
+        } else if ("1".equals(limpio(data.get("SERV_MED_RESULTADO_EXAMEN.APTO_CONDICIONADO")))) {
+            dictamen = "Apto condicionado";
+        } else if ("1".equals(limpio(data.get("SERV_MED_RESULTADO_EXAMEN.APTO_RESTRINGIDO")))) {
+            dictamen = "Apto restringido";
+        }
+        String dictamenCodigo = switch (obsRes) {
             case "4", "no_apto" -> "No apto";
             case "1", "apto" -> "Apto";
             case "2", "apto_condicionado" -> "Apto condicionado";
             case "3", "apto_restringido" -> "Apto restringido";
             default -> "";
-        });
+        };
+        v.put("DICTAMEN", dictamen.isEmpty() ? dictamenCodigo : dictamen);
+        // observaciones reales: solo si no son el codigo viejo ni relleno del WS
+        v.put("OBSERVACIONESRESEXAM1", dictamenCodigo.isEmpty() && !Documento.esRelleno(obsRes) ? obsRes : "");
         v.put("ROMBERGEXFIS", esCero(tagValues.get("ROMBERGEXFIS")) ? "Negativo" : "Positivo");
+        // Agudeza CON lentes (CL) del FT-SO-04 (15-oct-2026): el tag guarda la medida ("20/20",
+        // "SDPA"...). El PHP la convertia a Si/No (0 -> No, cualquier otra cosa -> Si) y se perdia
+        // la medida; aqui se imprime tal cual.
+        for (String lente : List.of("LENTEOJODERECHOEXP", "LENTEOJOIZQUIERDOEXP")) {
+            v.put(lente, limpio(tagValues.get(lente)));
+        }
+        com.onest.app.integration.ocr.SolicitudExamen solicitud = null;
+        try {
+            solicitud = solicitudes.ultimaPorNss(nssLimpio).orElse(null);
+        } catch (RuntimeException ex) {
+            // sin tabla de solicitudes: se queda con el biometrico o el predeterminado
+        }
+        String agenciaSolicitud = solicitud == null ? null : solicitud.agencia();
+        String agenciaBase = agencia(nssLimpio, agenciaSolicitud);
+        // Los 7 formatos EMLE: "Texto predeterminado Grupo Logistico Integral SAPI de CV" (16-oct-2026,
+        // decision del usuario: se apega al layout). Orden: la del empleado > la elegida > GLI.
+        String agenciaElegida = limpio(tagValues.get(TAG_AGENCIA));
+        v.put("AGENCIA", !agenciaBase.isEmpty() ? agenciaBase
+                : (!agenciaElegida.isEmpty() ? agenciaElegida : AGENCIA_PREDETERMINADA));
+        // Ficha del FT-SO-17 (15-oct-2026): escolaridad y profesion del candidato de la solicitud de
+        // OCR; del empleado, escolaridad y departamento del biometrico. Fecha de realizacion = la del
+        // ultimo examen registrado en el historico del portal.
+        FichaBiometricoRepository.Extra extra = fichaBiometrico.extra(nssLimpio);
+        String escolaridadOcr = solicitud == null ? "" : limpio(solicitud.escolaridad());
+        v.put("ESCOLARIDAD", escolaridadOcr.isEmpty() ? extra.escolaridad() : escolaridadOcr);
+        v.put("PROFESION", solicitud == null ? "" : limpio(solicitud.profesionOficio()));
+        v.put("DEPARTAMENTO", extra.departamento());
+        String fechaExamen = "";
+        try {
+            fechaExamen = historico.ultimo(nssLimpio)
+                    .map(r -> r.fechaExamen().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))).orElse("");
+        } catch (RuntimeException ex) {
+            // sin historico: la fecha queda vacia
+        }
+        v.put("FECHA_EXAMEN", fechaExamen);
+        // --- rev. 04 del FT-SO-04 (sep-2024): cintura y cadera no existian en el PHP ni en el
+        // JSON de campos; se capturan en Datos generales del examen (SERV_MED_TAG)
+        v.put("CINTURA", limpio(tagValues.get(DatosGeneralesExamenService.CINTURA)));
+        v.put("CADERA", limpio(tagValues.get(DatosGeneralesExamenService.CADERA)));
         // el PHP imprime el "0" del WS tal cual cuando no hay fecha; se conserva
         String firma = data.get("SERV_MED_RESULTADO_EXAMEN.FIRMA_DIGITAL");
         String firmaTrabajador = firma != null && firma.startsWith("data:image") ? firma : null;

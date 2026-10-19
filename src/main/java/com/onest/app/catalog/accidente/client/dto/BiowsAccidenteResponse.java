@@ -24,7 +24,9 @@ public record BiowsAccidenteResponse(
             @JsonProperty("status_calificacion") String statusCalificacion,
             @JsonProperty("costo") String costo,
             @JsonProperty("observaciones") String observaciones,
-            @JsonProperty("usuario") String usuario
+            @JsonProperty("usuario") String usuario,
+            // Solo lo devuelve Servcio/consulta_accidente_v2; null en los registros sin captura
+            @JsonProperty("dias") String dias
     ) {
     }
 }

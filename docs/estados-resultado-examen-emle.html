@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estados del resultado del examen</title>
+<style>
+  :root { --tinta: #111; --gris: #667085; --borde: #D0D5DD; --azul: #0057A8; --amarillo: #FEF7C3; --rojo: #B42318; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #fff; color: var(--tinta); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 960px; margin: 0 auto; padding: 28px 16px 48px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  h2 { font-size: 1.15rem; margin: 32px 0 10px; color: var(--azul); }
+  p.sub { color: var(--gris); margin: 0 0 20px; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 4px; font-size: .95rem; }
+  th, td { border: 1px solid var(--borde); padding: 7px 10px; text-align: left; vertical-align: top; }
+  th { background: #F2F4F7; font-weight: 600; }
+  code { background: #F2F4F7; padding: 1px 5px; border-radius: 4px; font-size: .9em; }
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: .85rem; font-weight: 600; background: #EAF3FA; color: var(--azul); white-space: nowrap; }
+  .duda { background: var(--amarillo); }
+  .err { color: var(--rojo); font-weight: 600; }
+  ol li { margin-bottom: 8px; }
+  .nota { color: var(--gris); font-size: .9rem; }
+  .scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Estados del resultado del examen médico</h1>
+  <p class="sub">Comparación entre lo que maneja hoy el Portal Salud y lo que piden los formatos EMLE (rev. 05/06, septiembre 2026). Para validar con Servicio Médico · 16-oct-2026.</p>
+
+  <h2>1. Estados que maneja hoy el portal</h2>
+  <p>Vienen del sistema anterior (PHP). El médico elige uno en «Resultado del examen».</p>
+  <table>
+    <tr><th>Estado</th><th>Clave interna</th></tr>
+    <tr><td>Apto</td><td><code>apto</code></td></tr>
+    <tr><td>No apto</td><td><code>no_apto</code></td></tr>
+    <tr><td>Apto condicionado</td><td><code>apto_condicionado</code></td></tr>
+    <tr><td>Apto restringido</td><td><code>apto_restringido</code></td></tr>
+  </table>
+  <p class="nota">La solicitud de OCR (examen de nuevo ingreso) usa además «Apto inclusión», que equivale a apto restringido.</p>
+
+  <h2>2. Estados que aparecen en los formatos EMLE</h2>
+  <p>Todos los formatos traen en «Resultado del examen» una fila con cuatro casillas, y debajo el texto «Si no es apto… cite las anormalidades descalificantes». Ningún formato explica qué significan los números.</p>
+  <div class="scroll">
+  <table>
+    <tr><th>Formato</th><th>Casilla 1</th><th>Casilla 2</th><th>Casilla 3</th><th>Casilla 4</th><th>Texto de abajo menciona</th></tr>
+    <tr><td><span class="tag">FT-SO-04</span> Inicial</td><td>APTO 15</td><td>APTO 45</td><td>CLAVE 60</td><td>CLAVE 30</td><td>No apto, apto condicionado, apto restringido</td></tr>
+    <tr><td><span class="tag">FT-SO-13</span> Post incapacidad</td><td>APTO 15</td><td>APTO 45</td><td>CLAVE 60</td><td>CLAVE 30</td><td>No apto, apto restringido</td></tr>
+    <tr><td><span class="tag">FT-SO-16</span> Cambio de puesto</td><td>APTO 15</td><td class="duda">APTO <span class="err">1945</span></td><td>CLAVE 60</td><td>CLAVE 30</td><td>No apto, apto restringido</td></tr>
+    <tr><td><span class="tag">FT-SO-17</span> Periódico</td><td>APTO 15</td><td>APTO 45</td><td>CLAVE 60</td><td>CLAVE 30</td><td>No apto, apto restringido</td></tr>
+    <tr><td><span class="tag">FT-SO-18</span> Egreso</td><td>APTO 15</td><td class="duda">APTO <span class="err">1945</span></td><td>CLAVE 60</td><td>CLAVE 30</td><td>No apto, apto restringido</td></tr>
+    <tr><td><span class="tag">FT-SO-19</span> Inicial mantenimiento</td><td>APTO 15</td><td class="duda">APTO CONDICIONADO 45</td><td>CLAVE 60</td><td>CLAVE 30</td><td>No apto, apto restringido</td></tr>
+    <tr><td><span class="tag">FT-SO-20</span> Periódico mantenimiento</td><td>APTO 15</td><td class="duda">APTO CONDICIONADO 45</td><td>CLAVE 60</td><td>CLAVE 30</td><td>No apto, apto restringido</td></tr>
+  </table>
+  </div>
+  <p class="nota">En amarillo, las diferencias entre formatos. «APTO 1945» parece un error de captura de «APTO 45».</p>
+
+  <h2>3. Lista única de estados encontrados</h2>
+  <table>
+    <tr><th>Estado</th><th>Dónde aparece</th><th>¿Existe hoy en el portal?</th></tr>
+    <tr><td>APTO 15</td><td>Casilla, los 7 formatos</td><td>No (el portal solo tiene «Apto», sin número)</td></tr>
+    <tr><td>APTO 45</td><td>Casilla, FT-SO-04, 13 y 17</td><td>No</td></tr>
+    <tr><td>APTO 1945</td><td>Casilla, FT-SO-16 y 18</td><td>No (probable error del formato)</td></tr>
+    <tr><td>APTO CONDICIONADO 45</td><td>Casilla, FT-SO-19 y 20</td><td>Parcial: existe «Apto condicionado», sin número</td></tr>
+    <tr><td>CLAVE 60</td><td>Casilla, los 7 formatos</td><td>No</td></tr>
+    <tr><td>CLAVE 30</td><td>Casilla, los 7 formatos</td><td>No</td></tr>
+    <tr><td>NO APTO</td><td>Solo en el texto de abajo, los 7 formatos</td><td>Sí</td></tr>
+    <tr><td>APTO RESTRINGIDO</td><td>Solo en el texto de abajo, los 7 formatos</td><td>Sí</td></tr>
+    <tr><td>APTO CONDICIONADO</td><td>Solo en el texto de abajo del FT-SO-04</td><td>Sí</td></tr>
+  </table>
+
+  <h2>4. Preguntas para Servicio Médico</h2>
+  <ol>
+    <li>¿Qué significan los números <strong>15, 45, 60 y 30</strong>? (¿días de vigencia, claves de un catálogo, otra cosa?)</li>
+    <li>¿«<strong>CLAVE 60</strong>» y «<strong>CLAVE 30</strong>» son tipos de <em>no apto</em>, o son otro resultado?</li>
+    <li>¿«APTO 45» y «APTO CONDICIONADO 45» son el mismo estado? ¿«APTO 1945» es un error del formato?</li>
+    <li>«<strong>Apto restringido</strong>» y «<strong>No apto</strong>» se mencionan en el texto pero no tienen casilla: ¿cómo se marcan en papel?</li>
+    <li>En el portal, ¿estas cuatro casillas <strong>reemplazan</strong> a los 4 estados actuales, o se capturan <strong>además</strong> del dictamen (apto / no apto / condicionado / restringido)?</li>
+  </ol>
+  <p class="nota">Mientras no se defina, el portal sigue con sus 4 estados. Cambiarlos afecta el dictamen del expediente, las gráficas de aptos / no aptos y el impreso.</p>
+</main>
+</body>
+</html>

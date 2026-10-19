@@ -25,11 +25,14 @@ public class ViewModelAdvice {
 
     private final PermissionService permissionService;
     private final String permissionsSource;
+    private final com.onest.app.integration.intranet.IntranetUserClient intranetUserClient;
 
     public ViewModelAdvice(PermissionService permissionService,
-                           @Value("${portal.permissions.source:ORDS}") String permissionsSource) {
+                           @Value("${portal.permissions.source:ORDS}") String permissionsSource,
+                           com.onest.app.integration.intranet.IntranetUserClient intranetUserClient) {
         this.permissionService = permissionService;
         this.permissionsSource = permissionsSource;
+        this.intranetUserClient = intranetUserClient;
     }
 
     @ModelAttribute
@@ -60,6 +63,8 @@ public class ViewModelAdvice {
         if (principal instanceof PortalUserPrincipal userPrincipal) {
             attributes.put("currentUserName", userPrincipal.getDisplayName());
             attributes.put("currentUserRole", extractRoleName(authentication));
+            // Un reintento por sesion si la foto fallo al entrar (ver PortalUserPrincipal)
+            userPrincipal.reintentarAvatarSiFallo(intranetUserClient::avatarUrlPorEmail);
             attributes.put("currentUserAvatar", userPrincipal.getAvatar());
             return;
         }

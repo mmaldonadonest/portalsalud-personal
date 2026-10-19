@@ -1,0 +1,32 @@
+# Buscador del centro de ayuda (Meilisearch). Un solo servicio.
+#
+# El indice es DERIVADO: el contenido vive en Oracle (SERV_MED_AYUDA_ARTICULO) y el portal lo
+# vuelca aqui al arrancar y cada vez que el admin guarda un articulo (o con "Reindexar").
+# Si este contenedor no esta, el portal sigue respondiendo con busqueda LIKE sobre Oracle.
+#
+#   docker compose up -d                  (en este directorio; lee .env, ver .env.ejemplo)
+#   curl http://127.0.0.1:7700/health     -> {"status":"available"}
+#
+# El portal llega por 127.0.0.1:7700 con la misma llave (portal.ayuda.meili.key, va en el WAR
+# con -Pqa/-Pprod desde config/produccion/*.local.properties como las llaves de OCR).
+services:
+  meilisearch:
+    image: getmeili/meilisearch:v1.12
+    container_name: portal-salud-ayuda
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?Define MEILI_MASTER_KEY en .env (16+ caracteres)}
+      MEILI_ENV: production
+      MEILI_NO_ANALYTICS: "true"
+    ports:
+      - "127.0.0.1:7700:7700"   # solo local al servidor: nadie de fuera habla con el buscador
+    volumes:
+      - meili_data:/meili_data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:7700/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  meili_data:

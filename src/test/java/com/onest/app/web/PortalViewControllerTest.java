@@ -6,7 +6,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
+import com.onest.app.audit.service.AuditoriaService;
+import com.onest.app.catalog.module.client.LocalModulePermissionClient;
 import com.onest.app.config.SecurityConfiguration;
+import com.onest.app.security.permission.PermissionService;
 import com.onest.app.security.legacy.LegacyPhpAuthenticationProvider;
 import com.onest.app.security.service.PortalUserDetailsService;
 import org.junit.jupiter.api.Test;
@@ -30,6 +33,17 @@ class PortalViewControllerTest {
     // Requerido por SecurityConfiguration (selector de estrategia de auth, U08).
     @MockBean
     private LegacyPhpAuthenticationProvider legacyPhpAuthenticationProvider;
+
+    // Requeridos por SecurityConfiguration (ClinicalAccessFilter), ViewModelAdvice y el
+    // AuditoriaInterceptor (WebMvcConfigurer, lo levanta @WebMvcTest). Sin BD: todo mock.
+    @MockBean
+    private PermissionService permissionService;
+
+    @MockBean
+    private LocalModulePermissionClient localModulePermissionClient;
+
+    @MockBean
+    private AuditoriaService auditoriaService;
 
     @Test
     void shouldRenderLoginPage() throws Exception {

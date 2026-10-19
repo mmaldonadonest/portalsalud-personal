@@ -58,7 +58,7 @@
                            th:text="'(' + ${#numbers.formatInteger(a.sizeBytes / 1024, 1)} + ' KB)'">(KB)</small>
                 </span>
                 <a class="btn btn-sm btn-outline-primary" target="_blank" title="Descargar"
-                   th:href="@{'/api/nss/consulta/file/' + ${a.id}}">
+                   th:href="@{'/api/nss/consulta/file/' + ${a.id}(nss=${nss})}">
                     <i class="ri-download-2-line"></i>
                 </a>
             </li>

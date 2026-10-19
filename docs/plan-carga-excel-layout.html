@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan de carga de Excel</title>
+<style>
+  :root{
+    --bg:#ffffff; --fg:#20252B; --muted:#667085; --line:#E1E6EB; --soft:#F8FAFC;
+    --azul:#0057A8; --azul-900:#003E75; --azul-100:#EAF3FA;
+    --ok:#2B9138; --ok-bg:#EAF7EC; --warn:#8a5300; --warn-bg:#FFF7E6; --bad:#B42318; --bad-bg:#FEF3F2;
+  }
+  /* Siempre fondo blanco: el usuario no quiere modo oscuro en los reportes */
+  html{color-scheme:light}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1000px;margin:0 auto;padding:24px 16px 60px}
+  h1{margin:0 0 4px;font-size:1.5rem;color:var(--azul-900)}
+  .sub{color:var(--muted);margin:0 0 18px}
+  h2{color:var(--azul-900);font-size:1.1rem;margin:26px 0 8px}
+  .meta{background:var(--azul-100);border-radius:10px;padding:10px 14px}
+  table{width:100%;border-collapse:collapse;font-size:.9rem}
+  th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);color:var(--muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.04em}
+  td.n{font-weight:700;text-align:center;width:36px}
+  tr.prueba td{background:var(--ok-bg)}
+  tr.grupo td{background:var(--soft);font-weight:700;color:var(--azul-900)}
+  .tag{display:inline-block;font-size:.72rem;font-weight:700;border-radius:999px;padding:1px 8px;white-space:nowrap}
+  .t-neg{background:var(--warn-bg);color:var(--warn)} .t-dev{background:var(--soft);color:var(--muted);border:1px solid var(--line)} .t-amb{background:var(--azul-100);color:var(--azul-900)} .t-usr{background:var(--bad-bg);color:var(--bad)}
+  .bloq td:first-child{color:var(--bad);font-weight:700;width:36px;text-align:center}
+  code{font-family:Consolas,monospace;font-size:.85em}
+  @media (max-width:700px){ table{font-size:.8rem} th,td{padding:5px 6px} }
+  .estado{display:inline-block;font-size:.72rem;font-weight:700;border-radius:999px;padding:1px 8px;white-space:nowrap}
+  .estado[data-estado="pendiente"]{background:#F2F4F7;color:#667085;border:1px solid var(--line)}
+  .estado[data-estado="en-curso"]{background:var(--warn-bg);color:var(--warn)}
+  .estado[data-estado="hecho"]{background:var(--ok-bg);color:var(--ok)}
+  .progreso{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:14px 0}
+  .progreso .fila{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px}
+  .progreso .pct{font-size:1.6rem;font-weight:700;color:var(--azul-900)}
+  .barra{height:14px;background:#EEF1F4;border-radius:999px;overflow:hidden;display:flex}
+  .barra .b-hecho{background:var(--ok)}
+  .barra .b-curso{background:#F2B35A}
+  .leyenda{font-size:.8rem;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Plan de carga de los Excel de Salud Ocupacional</h1>
+  <p class="sub">Actualizado 12-oct-2026 · Base de todos los scripts: BIOMETRICO de producción (portal y WS de ORDS usan la misma base)</p>
+
+  <div class="meta"><b>Meta:</b> cargar los Excel del servicio médico identificando a cada persona por <b>NSS</b>, para alimentar las gráficas de Análisis, los módulos del expediente y, si se necesita, un WS.</div>
+
+
+  <div class="progreso" data-progreso="plan">
+    <div class="fila"><b>Avance del plan de carga</b><span class="pct">0%</span></div>
+    <div class="barra"><div class="b-hecho" style="width:0%"></div><div class="b-curso" style="width:0%"></div></div>
+    <div class="leyenda"></div>
+  </div>
+
+  <h2>Dónde estamos (12-oct-2026)</h2>
+  <table>
+    <tr><th>Tema</th><th>Estado</th></tr>
+    <tr><td>Construcción</td><td><b>Terminada.</b> Tablas creadas en producción, cargador listo y probado, gráficas listas detrás del interruptor (apagado)</td></tr>
+    <tr><td>Prueba interna con volumen real</td><td><b>Hecha.</b> 14,887 renglones (de la carga vieja, NSS deducido por nombre) cargados en las tablas nuevas como lotes 2 a 6; 11 pantallas de Análisis revisadas con Playwright en el portal local: 0 errores, cifras cuadran</td></tr>
+    <tr><td>Qué ve producción</td><td><b>Nada nuevo.</b> El portal de producción corre el WAR anterior y sigue leyendo la carga vieja. Los lotes de prueba solo los ve el portal local (<code>localhost:9999</code>)</td></tr>
+    <tr><td>Vistas para las gráficas</td><td><b>Hechas (11-oct).</b> 5 vistas <code>SERV_MED_V_*</code> en producción (v3), portal + Excel en un solo lugar con "manda el portal" al leer. Las 5 pantallas de los layouts validados (Atenciones, Accidentes, Exámenes, Incapacidades, Musculoesquelético) ya leen <b>solo de las vistas</b>, sin llamar a ORDS, detrás del interruptor <code>VISTA</code> (probado en el portal local: mismas cifras, 0 errores). Producción sigue en <code>BITACORA</code>.<br><b>12-oct, vistas v4 corridas (8 VALID):</b> se agregan <code>SERV_MED_V_ANTIDOPING</code>, <code>SERV_MED_V_MATERNIDAD</code> (historial de seguimiento) y <code>SERV_MED_V_MATERNIDAD_ACTUAL</code> (último corte de cada embarazo), y <code>SERV_MED_V_EXAMEN</code> ya incluye pos incapacidad. Antidoping, Maternidad y Consumibles también leen de las vistas o de las tablas nuevas con <code>VISTA</code>. Probado en el portal local: 0 errores y las mismas cifras de antes (exámenes 5,130; antidoping 827 pruebas / 70 positivos; maternidad 29 casos / 30 seguimientos; consumo 3,554 piezas). Mientras la tabla nueva de un layout esté vacía, su vista lee la carga anterior; con el primer lote válido cambia sola</td></tr>
+    <tr><td>Layouts</td><td><b>Los 9 layouts están en el cargador</b> (12-oct): los 5 principales + 4 pos incapacidad, 7 antidoping, 8 maternidad y 9 consumibles (medicamentos y material fijo). 11 tablas <code>SERV_MED_XLS_*</code> creadas en producción. Las plantillas corregidas pasan la validación</td></tr>
+    <tr><td>Expediente por NSS (paso 10)</td><td><b>Hecho (12-oct); se ve en producción con la activación (paso 9):</b> Incapacidades, Accidentes, Consultas y Exámenes (Histórico E.M.) muestran una tarjeta "Histórico Excel" de solo lectura, solo con <code>VISTA</code> encendido. De paso se corrigió el renglón vacío con botón "Ver" en Incapacidades y Consultas cuando el NSS no tiene datos</td></tr>
+    <tr><td>Paquete para el servicio médico</td><td><b>Listo (12-oct), falta enviarlo:</b> <code>C:\miguel\portalsalud-personal\docs\paquete-servicio-medico\</code> con las 10 plantillas en blanco (sin ejemplos ni comentarios de la revisión; validadas con el cargador), la guía de captura de una página (HTML y PDF) y el cuestionario de 11 preguntas (P2, P3, P9, P10, P11d, dudas 2 y 3, pasos 6 y 11; sin fecha de corte, decisión 12-oct)</td></tr>
+    <tr><td>Lo que sigue</td><td>Enviar el paquete al servicio médico para la carga de prueba de un predio (paso 6) y la foto inicial 2025–2026 (paso 7). Commit del trabajo y WAR de producción con el interruptor apagado</td></tr>
+  </table>
+
+  <h2>Pendientes abiertos</h2>
+  <table>
+    <tr><th>#</th><th>Pendiente</th><th>Quién</th><th>Cuándo</th></tr>
+    <tr><td class="n">P1</td><td><b>Hecho 12-oct:</b> 14,887 renglones borrados con <code>C:\miguel\portalsalud-personal\docs\script-prod\excel-nss-98b-borrar-lotes-prueba-2-a-6.sql</code>; las tablas SERV_MED_XLS_* quedaron vacías para la prueba con datos reales de TOLUCA 2025. <s>Borrar los lotes de prueba 2 a 6</s> con <code>C:\miguel\portalsalud-personal\docs\script-prod\excel-nss-98-borrar-lote.sql</code> (no son datos oficiales: NSS deducido por nombre)</td><td><span class="tag t-usr">Usuario</span></td><td>Antes de la activación (paso 9); sirven mientras se prueban los módulos</td></tr>
+    <tr><td class="n">P2</td><td>Catálogo AREA: ¿se agrega "CLIENTE / EXTERNO"? Aparece en muchas atenciones de los Excel</td><td><span class="tag t-neg">Negocio</span></td><td>Antes del paso 6</td></tr>
+    <tr><td class="n">P3</td><td>Catálogo TIPO de incapacidad: ¿qué es "RI"? Solo se acepta I, S, MAT</td><td><span class="tag t-neg">Negocio</span></td><td>Antes del paso 6</td></tr>
+    <tr><td class="n">P4</td><td>Costos de accidentes NEGATIVOS en la carga vieja (fórmulas del Excel con fecha vacía: hasta −17.9 millones). Hoy se ven en la pantalla de Accidentes de producción. <b>Decisión 12-oct:</b> en el layout 6 ACCIDENTES el <b>COSTO negativo se acepta</b> y queda como <b>AVISO</b> en el reporte del predio (<code>.errores.csv</code>, columna TIPO); las gráficas lo suman. Origen comprobado: <code>MORBILIDAD 2026\M1\6 REPORTE ACCIDENTABILIDAD 2026 M1.xls</code>, hoja MACRO 1, celda FH31 = −1,162.80 (bloque IMPROCEDENTE sin fechas: −3 días × pago 60%). Los demás números (días, edad, SDI, pagos y costos de incapacidades) siguen sin aceptar negativos. <b>Confirmado 12-oct, sin límite:</b> el costo negativo se carga tal cual lo suba el servicio médico, aunque sea grande (el cuadre de los lotes de prueba muestra 72 negativos y −248.6 millones, de fórmulas viejas sin fechas; se van con P1)</td><td><span class="tag t-dev">Desarrollo</span></td><td>Se resuelve con la activación (opcional: filtrar negativos antes)</td></tr>
+    <tr><td class="n">P5</td><td><s>WAR de producción nuevo (corrige submenú del NSS, guardado del examen, menús de todos los roles).</s> <b>Desplegado 10-oct en el servidor productivo</b>, con el interruptor en <code>BITACORA</code> (las gráficas siguen con la carga por nombre). Falta el commit</td><td><span class="tag t-dev">Desarrollo</span> + <span class="tag t-usr">Usuario</span></td><td>Hecho</td></tr>
+    <tr><td class="n">P7</td><td>Borrar la auditoría de las pruebas de PDF del examen (4 renglones "Expediente impreso", 11-oct 00:16 y 00:20) con <code>C:\miguel\portalsalud-personal\docs\script-prod\limpieza-auditoria-pruebas-locales.sql</code></td><td><span class="tag t-usr">Usuario</span></td><td>Cuando se quiera</td></tr>
+    <tr><td class="n">P6</td><td>Antidoping: "Tasa de uso 3938%" en Análisis (viene de la carga vieja y de los kits capturados, no de esta carga)</td><td><span class="tag t-dev">Desarrollo</span></td><td>Revisar aparte</td></tr>
+    <tr><td class="n">P8</td><td><b>Corregido en local 11-oct (falta desplegar):</b> el home abre del 1-ene-2025 a hoy, cada tarjeta dice cuánto viene del portal y cuánto del Excel (con <code>VISTA</code>), y "Total general" pasó a "Registros totales" con la nota de qué suma.<br><b>"Las gráficas exceden los Excel"</b> (queja del viernes 9-oct, pantalla de inicio). El home abre con el periodo <b>2023 a 2026</b>, pero las vistas (11-oct) muestran que el portal casi no tiene datos (209 consultas, 296 incapacidades, 81 exámenes, 4 accidentes en total): <b>eso no explica una diferencia notable</b>. La causa está en la carga vieja por nombre, que es lo que grafica producción hoy (en QA tenía 12,570 atenciones contra 8,614 que pasaron al layout con NSS; exámenes suma 3 archivos; incapacidades cuenta renglones como episodios). No es doble conteo (traslape = 0). Se resuelve al reemplazar la carga vieja; confirmar con un cuadre por predio y mes. Corrección: periodo por defecto acotado, desglose Portal / Excel por tarjeta, revisar la tarjeta "Total general" (suma cosas distintas). <b>No se borra nada del portal</b>: son registros clínicos reales</td><td><span class="tag t-dev">Desarrollo</span></td><td>Junto con el interruptor VISTA</td></tr>
+    <tr><td class="n">P9</td><td><b>Alcance según las juntas: solo se requieren 2025 y 2026, para una auditoría.</b> Implica: (a) el servicio médico debe entregar en los layouts nuevos <b>2025 completo + 2026</b>, no solo ene–jun 2026; (b) el periodo por defecto de las gráficas y del home debe arrancar en 2025; <s>(c) definir con el servicio médico la fecha de corte por layout</s> <b>Decisión 12-oct: no hay fecha de corte</b>; todo se sube conforme llega y lo repetido entre Excel y portal lo resuelve "manda el portal" en las vistas</td><td><span class="tag t-neg">Negocio</span> + <span class="tag t-dev">Desarrollo</span></td><td>Antes del paso 7 (foto inicial)</td></tr>
+    <tr><td class="n">P11</td><td><b>Layouts corregidos del 12-oct</b> (<code>docs/09102026/corregidos/</code>). <b>Listos en el cargador:</b> 4 EXAMEN POS INCAPACIDAD (sin columnas extra de días/fechas) y 7 ANTIDOPING (solo empleados; el de candidatos va en el examen inicial). Tablas en <code>C:\miguel\portalsalud-personal\docs\script-prod\excel-nss-06-ddl-pos-antidoping.sql</code>. <b>También listos:</b> 9 CONSUMIBLES MEDICAMENTOS (se agregó la columna AÑO el 12-oct: en el Excel original el mes es un encabezado de texto y el año solo está en la celda A2) y 9 CONSUMIBLES MATERIAL FIJO (TIPO DE MATERIAL como texto libre); sin NSS y sin comparación contra el portal. Tablas en <code>C:\miguel\portalsalud-personal\docs\script-prod\excel-nss-07-ddl-consumibles.sql</code>. DDL 06 y 07 <b>corridos el 12-oct</b>. <b>8 MATERNIDAD también listo:</b> es seguimiento, el historial se guarda en la misma tabla (un renglón por caso por mes reportado; FECHA DE CORTE = mes reportado); el embarazo se identifica por NSS + FUM (o NSS + fecha probable de parto si falta la FUM); el folio no identifica el embarazo, se guarda para cruzar con incapacidades; "manda el portal" = chequeo del portal en el mismo mes. Tabla en <code>C:\miguel\portalsalud-personal\docs\script-prod\excel-nss-08-ddl-maternidad.sql</code> (<b>corrido el 12-oct</b>). Las 5 plantillas corregidas pasan la validación del cargador (12-oct, sin errores). <b>Pendientes:</b> <s>(a) La plantilla 4 trae validación de 11 caracteres en FECHA EXAMEN y FOLIO</s> <b>Resuelto:</b> la plantilla corregida solo la tiene en NSS. <s>(c) Vistas y gráficas de estos 4 layouts</s> <b>Hecho 12-oct</b> (vistas v4, probadas en local). (d) Pedir que la FUM venga siempre en maternidad: si un mes llega sin FUM y otro con FUM, el mismo embarazo queda con dos claves</td><td><span class="tag t-neg">Negocio</span> + <span class="tag t-dev">Desarrollo</span></td><td>Antes de cargar esos layouts</td></tr>
+    <tr><td class="n">P12</td><td><b>Examen pos incapacidad: folio.</b> <b>13-oct: el layout 4 ya no lleva la columna FOLIO INCAPACIDAD</b> (la quitó el usuario de la plantilla; cargador y paquete actualizados; la columna de la tabla se queda vacía, sin cambio en la base). La carga histórica va sin folio porque los Excel de 2025 no lo traen. Para el <b>portal</b> sí debe existir el campo: al capturar un examen pos incapacidad hay que registrar el <b>folio de la incapacidad</b> de la que regresa la persona (anotado por el usuario el 12-oct)</td><td><span class="tag t-dev">Desarrollo</span></td><td>Antes de que el portal capture pos incapacidad</td></tr>
+    <tr><td class="n">P10</td><td><b>Tipo de consulta: el portal y el layout usan catálogos distintos.</b> Portal: enfermedad_general, pase_salida, incidente_accidente, cronico_degenerativo, campana, entrega_incapacidad, st7, otros_consulta. Layout: ENF GRAL, SEGUIMIENTO SALUD, PASE SALIDA, RT. En la gráfica salen separados ("ENF GRAL" y "enfermedad_general"). El servicio médico define la equivalencia y se aplica en la vista <code>SERV_MED_V_ATENCION</code> (una línea). De paso: ¿las atenciones "RT" del Excel cuentan como accidente/emergencia?</td><td><span class="tag t-neg">Negocio</span></td><td>Antes de activar VISTA</td></tr>
+  </table>
+
+  <h2>Decisiones tomadas</h2>
+  <table>
+    <tr><th>Tema</th><th>Decisión</th></tr>
+    <tr><td>Dónde se guarda</td><td>Tablas nuevas con NSS, una por layout. No se toca ninguna tabla existente</td></tr>
+    <tr><td>Quién lo lee</td><td>Gráficas y módulos del portal directo; WS nuevo si otro sistema lo necesita. No se modifican WS productivos</td></tr>
+    <tr><td>Layouts principales</td><td>1 Atenciones · 2 Examen nuevo ingreso · 3 Examen periódico · 5 Incapacidades · 6 Accidentes (visto bueno 10-oct). Los archivos de <code>docs/09102026/</code> son la <b>referencia del layout</b>: de ahí solo se toman los encabezados. Lo que se cargue llegará en archivos limpios, con esos encabezados y los renglones a subir</td></tr>
+    <tr><td>Demás layouts</td><td>4 Pos incapacidad (sin columnas extra) · 7 Antidoping (solo empleados; candidatos en el examen inicial) · 8 Maternidad (historial por mes; embarazo = NSS + FUM, o NSS + FPP) · 9 Consumibles (medicamentos con columna AÑO; material fijo). En el cargador desde el 12-oct</td></tr>
+    <tr><td>Excel y portal al mismo tiempo</td><td>Cada carga compara contra el portal: <b>si el evento ya está en el portal, manda el portal</b>; la fila del Excel se guarda marcada como duplicado</td></tr>
+    <tr><td>Fecha de corte</td><td><b>No hay (decisión 12-oct).</b> Excel y portal conviven: todo se sube sobre la marcha y, si un evento está en los dos, manda el portal (las vistas lo resuelven al leer)</td></tr>
+    <tr><td>Ambiente</td><td>Directo a producción (QA no tiene los WS). Los scripts los corre el usuario</td></tr>
+    <tr><td>Carga actual por nombre</td><td>Se congela: ni se limpia ni se borra. Sirve para prellenar ene–jun, para el cuadre y como reversa. Se borra familia por familia cuando su layout esté cargado y estable</td></tr>
+    <tr><td>Columnas</td><td>Las tablas nuevas tienen las columnas fijas del layout; si el layout cambia, el cambio es mínimo y controlado</td></tr>
+  </table>
+
+  <h2>Cómo se reconoce un evento repetido</h2>
+  <table>
+    <tr><th>Layout</th><th>Llave contra el portal</th><th>Confiabilidad</th></tr>
+    <tr><td>5 Incapacidades</td><td>Folio (internas: NSS + fecha de inicio)</td><td>Alta</td></tr>
+    <tr><td>6 Accidentes</td><td>NSS + fecha del accidente</td><td>Alta</td></tr>
+    <tr><td>2 Examen nuevo ingreso</td><td>NSS + fecha del examen</td><td>Media: candidatos sin NSS en biométrico</td></tr>
+    <tr><td>3 Examen periódico</td><td>NSS + fecha del examen</td><td>Alta: son empleados con NSS</td></tr>
+    <tr><td>1 Atenciones</td><td>NSS + mismo día</td><td>Media: dos consultas el mismo día</td></tr>
+    <tr><td>4 Examen pos incapacidad</td><td>NSS + fecha del examen</td><td>Alta: son empleados con NSS</td></tr>
+    <tr><td>7 Antidoping</td><td>NSS + mismo día + tipo de prueba</td><td>Alta</td></tr>
+    <tr><td>8 Maternidad</td><td>NSS + mismo mes (seguimiento del portal)</td><td>Media: depende de que la FUM venga siempre</td></tr>
+    <tr><td>9 Consumibles</td><td>No se compara: el portal no captura consumo de medicamentos</td><td>—</td></tr>
+  </table>
+
+  <h2>Orden del plan</h2>
+  <table>
+    <tr><th>#</th><th>Paso</th><th>Quién</th><th>Listo cuando</th><th>Estado</th></tr>
+    <tr class="grupo"><td colspan="5">Antes de construir</td></tr>
+    <tr><td class="n">1</td><td>Medir el traslape ene–jun con <code>docs/script-prod/traslape-excel-vs-portal.sql</code> (solo lectura)</td><td><span class="tag t-usr">Usuario</span></td><td>Salida de los 5 bloques revisada. <b>Resultado 10-oct: sin traslape</b>, el portal tiene 0 registros ene–jun en los 4 layouts medidos</td><td><span class="estado" data-grupo="plan" data-estado="hecho">Hecho</span></td></tr>
+    <tr><td class="n">2</td><td>Aprobar los 5 layouts principales, en <code>C:\miguel\portalsalud-personal\docs\09102026\</code>:<br><code>1 ATENCIONES.xlsx</code> · <code>2 EXAMEN NUEVO INGRESO.xlsx</code> · <code>3 EXAMEN PERIODICO.xlsx</code> · <code>5 INCAPACIDADES.xlsx</code> · <code>6 ACCIDENTES.xlsx</code><br>Las columnas aún pueden ajustarse hasta la carga de prueba (paso 6)</td><td><span class="tag t-amb">Ambos</span></td><td>Encabezados aprobados. <b>Visto bueno 10-oct</b></td><td><span class="estado" data-grupo="plan" data-estado="hecho">Hecho</span></td></tr>
+    <tr class="grupo"><td colspan="5">Construcción (en producción, invisible para los usuarios)</td></tr>
+    <tr><td class="n">3</td><td>Crear las tablas nuevas con NSS con <code>docs/script-prod/excel-nss-01-ddl-tablas.sql</code> (si hay que ajustar columnas antes del paso 6, se recrean vacías con <code>excel-nss-99-reversa-tablas.sql</code>):<br><code>SERV_MED_XLS_LOTE</code> · <code>SERV_MED_XLS_ATENCION</code> · <code>SERV_MED_XLS_EXAMEN_ING</code> · <code>SERV_MED_XLS_EXAMEN_PER</code> · <code>SERV_MED_XLS_INCAPACIDAD</code> · <code>SERV_MED_XLS_ACCIDENTE</code></td><td><span class="tag t-dev">Desarrollo</span> entrega · <span class="tag t-usr">Usuario</span> corre</td><td>Tablas creadas en BIOMETRICO. <b>Creadas 10-oct en PDBPRD</b>: 6 tablas VALID, 24 índices, 6 PK, 5 FK</td><td><span class="estado" data-grupo="plan" data-estado="hecho">Hecho</span></td></tr>
+    <tr><td class="n">4</td><td>Construir la carga: valida, completa del biométrico, reemplaza por predio y mes, compara contra el portal, reporta errores y duplicados. Cada carga es un lote que se puede borrar.<br><b>10-oct:</b> programa de consola (cargador anterior adaptado, lectura por streaming para archivos grandes), modos <code>nss-validar</code> (no escribe) y <code>nss-cargar</code>. Se corre con <code>C:\miguel\portalsalud-personal\excel-loader\correr-nss-validar.bat</code> (sin base) o <code>correr-nss-prod.local.bat</code> (producción). Probado 10-oct en producción: cruce con el biométrico, carga, no recarga el mismo archivo, y borrado de lote con <code>excel-nss-98-borrar-lote.sql</code></td><td><span class="tag t-dev">Desarrollo</span></td><td>Carga lista</td><td><span class="estado" data-grupo="plan" data-estado="hecho">Hecho</span></td></tr>
+    <tr><td class="n">5</td><td>Preparar las gráficas de Análisis para leer las tablas nuevas (sin activarlas).<br><b>10-oct:</b> <code>XlsHistoricoRepository</code> para consultas, causas, musculoesquelético, exámenes (ingreso + periódico; pos incapacidad sigue en la carga vieja), incapacidades y accidentes. Personas por NSS; solo renglones VALIDO. Interruptor <code>portal.historico.fuente</code> = <code>BITACORA</code> (apagado). <b>Probado 10-oct</b> con volumen real en el portal local: 11 pantallas sin errores; además las tarjetas "Personas IMSS / internas" ya suman por NSS</td><td><span class="tag t-dev">Desarrollo</span></td><td>WAR listo, interruptor apagado</td><td><span class="estado" data-grupo="plan" data-estado="hecho">Hecho</span></td></tr>
+    <tr class="grupo"><td colspan="5">Pruebas (en producción, sin que lo vean los usuarios)</td></tr>
+    <tr class="prueba"><td class="n">6</td><td><b>Carga de prueba:</b> 1 predio, 1 mes, captura real en los layouts. Al terminar se borra su lote</td><td><span class="tag t-amb">Ambos</span></td><td>Sin errores, duplicados revisados, layouts ajustados</td><td><span class="estado" data-grupo="plan" data-estado="pendiente">Pendiente</span></td></tr>
+    <tr><td class="n">7</td><td>Foto inicial con NSS, <b>2025 completo + 2026</b> (alcance de la auditoría, P9): <b>el servicio médico captura y entrega los 5 layouts llenos</b> en archivos limpios. Es la única fuente de verdad: no se le entregan archivos prellenados.<br><b>10-oct:</b> para pruebas internas, el modo <code>nss-generar-prueba</code> del cargador arma layouts desde la carga vieja (solo lectura) y sirven para probar carga y gráficas con volumen real; esos datos se borran por lote después de probar. <b>Esperando al servicio médico</b></td><td><span class="tag t-amb">Ambos</span></td><td>2025–2026 con NSS, pasa validación</td><td><span class="estado" data-grupo="plan" data-estado="pendiente">Pendiente</span></td></tr>
+    <tr class="prueba"><td class="n">8</td><td><b>Carga completa</b> de la foto inicial y cuadre contra el resumen de cada predio</td><td><span class="tag t-amb">Ambos</span></td><td>El servicio médico aprueba las cifras</td><td><span class="estado" data-grupo="plan" data-estado="pendiente">Pendiente</span></td></tr>
+    <tr class="grupo"><td colspan="5">Activación</td></tr>
+    <tr><td class="n">9</td><td>En una sola ventana: desplegar el WAR con las gráficas de los 5 layouts leyendo las tablas nuevas. La carga por nombre se congela, no se borra (la siguen leyendo las otras familias y es la reversa)</td><td><span class="tag t-dev">Desarrollo</span> + <span class="tag t-usr">Usuario</span></td><td>Gráficas = cifras aprobadas en el paso 8</td><td><span class="estado" data-grupo="plan" data-estado="pendiente">Pendiente</span></td></tr>
+    <tr class="grupo"><td colspan="5">Después de activar</td></tr>
+    <tr><td class="n">10</td><td>Módulos del expediente, uno por uno: Incapacidades → Accidentes → Consultas → Exámenes (nuevo ingreso y periódico)</td><td><span class="tag t-dev">Desarrollo</span></td><td>Cada módulo muestra lo histórico marcado "Histórico Excel". <b>12-oct: los 4 módulos hechos y probados en local.</b> Se ven en producción al encender <code>VISTA</code> en la activación (paso 9), ya con los datos oficiales</td><td><span class="estado" data-grupo="plan" data-estado="hecho">Hecho</span></td></tr>
+    <tr><td class="n">11</td><td>Operación mensual: cada predio sube sus layouts y recibe su reporte de errores y duplicados</td><td><span class="tag t-neg">Negocio</span></td><td>Rutina comunicada</td><td><span class="estado" data-grupo="plan" data-estado="pendiente">Pendiente</span></td></tr>
+    <tr><td class="n">12</td><td><s>Fecha de corte por layout</s> <b>Descartado 12-oct:</b> no hay corte; Excel y portal conviven y todo se sube sobre la marcha ("manda el portal")</td><td><span class="tag t-neg">Negocio</span></td><td>Decisión tomada</td><td><span class="estado" data-grupo="plan" data-estado="hecho">Descartado</span></td></tr>
+    <tr><td class="n">13</td><td>Revisar los demás layouts; cada uno repite los pasos 2 a 12. <b>12-oct:</b> los 4 (pos incapacidad, antidoping, maternidad, consumibles) ya tienen plantilla corregida, tablas, cargador, vistas y gráficas; falta su carga de prueba y su foto inicial</td><td><span class="tag t-amb">Ambos</span></td><td>Layout aprobado y cargado</td><td><span class="estado" data-grupo="plan" data-estado="en-curso">En curso</span></td></tr>
+  </table>
+
+  <h2>Módulos que se benefician de la carga y la vista</h2>
+  <table>
+    <tr><th>Módulo</th><th>Layout</th><th>Qué aporta</th></tr>
+    <tr class="grupo"><td colspan="3">Gráficas de Análisis (paso 9)</td></tr>
+    <tr><td>Consultas, Causas y Musculoesquelético (grupo Morbilidad)</td><td>1 Atenciones</td><td>Atenciones de Excel y portal en las mismas gráficas</td></tr>
+    <tr><td>Exámenes</td><td>2 Examen nuevo ingreso · 3 Examen periódico</td><td>Exámenes y dictámenes de las dos fuentes</td></tr>
+    <tr><td>Incapacidades</td><td>5 Incapacidades</td><td>Episodios, días y costos de las dos fuentes</td></tr>
+    <tr><td>Accidentes</td><td>6 Accidentes</td><td>Accidentes y costos de las dos fuentes</td></tr>
+    <tr><td>Dashboard Ejecutivo y Vista por Predio</td><td>Los cinco</td><td>Reúsan los servicios anteriores</td></tr>
+    <tr class="grupo"><td colspan="3">Expediente por NSS (paso 10, uno por uno)</td></tr>
+    <tr><td>Archivo Incapacidades</td><td>5 Incapacidades</td><td>Incapacidades históricas: folio, ramo, fechas, días, costo</td></tr>
+    <tr><td>Accidentes</td><td>6 Accidentes</td><td>Accidentes históricos: fecha, tipo de riesgo, causa, calificación, costo</td></tr>
+    <tr><td>Archivo de Consultas</td><td>1 Atenciones</td><td>Atenciones históricas: fecha, ramo, causa, diagnóstico, tratamiento</td></tr>
+    <tr><td>Examen Médico / Histórico E.M</td><td>2 Examen nuevo ingreso · 3 Examen periódico</td><td>Exámenes históricos con tipo y dictamen</td></tr>
+    <tr><td>Expediente General</td><td>Los cinco</td><td>Resumen de eventos históricos por tipo</td></tr>
+    <tr class="grupo"><td colspan="3">Otros</td></tr>
+    <tr><td>Reporte de incapacidades por rango de fechas</td><td>5 Incapacidades</td><td>Incluye las históricas junto a las capturadas</td></tr>
+    <tr><td>Bandeja de examen inicial</td><td>2 Examen nuevo ingreso</td><td>Avisa si el candidato ya tuvo un examen antes</td></tr>
+    <tr><td>WS nuevo</td><td>Los cinco</td><td>Expone el histórico por NSS a otros sistemas</td></tr>
+  </table>
+  <p class="sub" style="margin-top:6px">Lo histórico se muestra marcado "Histórico Excel" y es solo lectura: no se edita, no se firma, no genera PDF. Desde el 12-oct también Antidoping, Maternidad y Consumibles (gráficas de Análisis) y el examen pos incapacidad (dentro de Exámenes) leen sus layouts a través de las vistas.</p>
+
+  <h2>Qué revisa la carga de prueba (paso 6)</h2>
+  <table>
+    <tr><th>Revisión</th><th>Se aprueba si</th></tr>
+    <tr><td>Captura</td><td>El predio llena el layout sin ayuda</td></tr>
+    <tr><td>Errores</td><td>El reporte dice qué renglón y qué corregir</td></tr>
+    <tr><td>Duplicados</td><td>Los que detecta contra el portal son de verdad el mismo evento</td></tr>
+    <tr><td>Recarga</td><td>Cargar el archivo corregido no duplica</td></tr>
+    <tr><td>Gráficas</td><td>Coinciden con el resumen del predio</td></tr>
+    <tr><td>Reversa</td><td>Borrar el lote deja las tablas como estaban</td></tr>
+  </table>
+
+  <h2>Dudas bloqueantes</h2>
+  <table class="bloq">
+    <tr><th>#</th><th>Duda</th><th>Bloquea</th></tr>
+    <tr><td>1</td><td><s>Resultado del traslape: ¿cuánto se capturó en el portal en ene–jun?</s> <b>Resuelta 10-oct:</b> nada (0 registros). La foto inicial se carga completa sin comparar; "manda el portal" aplica solo hacia adelante</td><td>—</td></tr>
+    <tr><td>2</td><td>¿El servicio médico completa el NSS de ene–jun 2026?</td><td>Paso 7</td></tr>
+    <tr><td>3</td><td>Folios duplicados en Toluca: UW713238, PG629693</td><td>Paso 8</td></tr>
+  </table>
+  <p class="sub" style="margin-top:6px">Para los layouts en revisión quedan pendientes: 39 exámenes pos incapacidad sin su incapacidad y 11 folios de maternidad sin su incapacidad (detalle en el Excel del plan).</p>
+
+  <h2>Fuera del plan</h2>
+  <table>
+    <tr><td>Limpieza de la carga vieja y apagado del PHP</td><td>Frentes aparte, con su propio avance: <code>C:\miguel\portalsalud-personal\docs\plan-limpieza-y-apagado-php.html</code></td></tr>
+    <tr><td>Años anteriores a 2025</td><td>Otra estructura; se planea aparte (la auditoría solo pide 2025 y 2026, ver P9)</td></tr>
+    <tr><td>Reportes de seguimiento (Carnet, CAPA, NOM-035)</td><td>Pospuesto el 7-oct</td></tr>
+    <tr><td>WS nuevo con el histórico por NSS</td><td>Solo si otro sistema lo pide (sale del paso 10 el 12-oct). Se haría sobre las mismas vistas <code>SERV_MED_V_*</code></td></tr>
+  </table>
+
+</div>
+
+<script>
+// El avance se calcula de los estados de la tabla: % = pasos hechos / total.
+// Para actualizarlo solo hay que cambiar data-estado de cada paso (pendiente | en-curso | hecho).
+document.querySelectorAll('[data-progreso]').forEach(function (caja) {
+  var grupo = caja.getAttribute('data-progreso');
+  var marcas = document.querySelectorAll('.estado[data-grupo="' + grupo + '"]');
+  var total = marcas.length, hechos = 0, curso = 0;
+  marcas.forEach(function (m) {
+    var e = m.getAttribute('data-estado');
+    if (e === 'hecho') hechos++; else if (e === 'en-curso') curso++;
+  });
+  var pct = total ? Math.round(hechos * 100 / total) : 0;
+  var pctCurso = total ? Math.round(curso * 100 / total) : 0;
+  caja.querySelector('.pct').textContent = pct + '%';
+  caja.querySelector('.b-hecho').style.width = pct + '%';
+  caja.querySelector('.b-curso').style.width = pctCurso + '%';
+  caja.querySelector('.leyenda').textContent =
+    hechos + ' de ' + total + ' pasos hechos · ' + curso + ' en curso · ' + (total - hechos - curso) + ' pendientes';
+});
+</script>
+</body>
+</html>

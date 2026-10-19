@@ -8,11 +8,87 @@
 -->
 <div th:fragment="shell">
     <div class="card card-one">
-        <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <h6 class="card-title mb-0">Examen medico &mdash; Antecedentes heredofamiliares</h6>
+        <!-- Encabezado en dos renglones (16-oct-2026): "Examen medico" solo arriba; abajo NSS, tipo,
+             formato EMLE y los botones Abrir todo / Imprimir -->
+        <div class="card-header d-flex flex-column align-items-stretch gap-2">
+            <h6 class="card-title mb-0">Examen médico</h6>
+            <div class="d-flex align-items-center flex-wrap gap-2">
+                <span class="badge bg-primary fs-6 px-3 py-2" th:text="'NSS ' + ${nss}">NSS</span>
+                <!-- Tipo de examen, solo informativo (15-oct-2026): decide el formato EMLE que se
+                     imprime. Se cambia en "Datos generales del examen" y esta etiqueta se actualiza
+                     al guardar (guardarDatosGeneralesExamen). -->
+                <style>
+                    /* un color por tipo de examen (codigos del legacy: 1 Admision ... 5 Especial) */
+                    .examen-tipo-tag { color: #fff; }
+                    .examen-tipo-tag.tipo-1 { background: #2B9138; }
+                    .examen-tipo-tag.tipo-2 { background: #0E7490; }
+                    .examen-tipo-tag.tipo-3 { background: #6938EF; }
+                    .examen-tipo-tag.tipo-4 { background: #B54708; }
+                    .examen-tipo-tag.tipo-5 { background: #475467; }
+                    .examen-tipo-tag.tipo-6 { background: #9E2A2B; }
+                    .examen-tipo-tag.tipo-7 { background: #1F7A5C; }
+                    .examen-tipo-tag.tipo-8 { background: #155E75; }
+                    .examen-tipo-tag.tipo- { background: #FDB022; color: #111; }
+                    /* Patologicos (resumen) FT-SO-17: dos columnas como el formato */
+                    /* maximo 2 columnas (una sola si el panel mide menos de ~510px) */
+                    .exapp-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(max(240px, calc(50% - 12px)), 1fr)); gap: 0 24px; }
+                    .exapp-fila { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 8px; align-items: center;
+                        padding: 5px 0; border-bottom: 1px dashed #eef0f3; }
+                    .exapp-fila .lbl { font-size: .92rem; color: #111; }
+                    .exapp-fila a.lbl { color: #0057A8; text-decoration: none; }
+                    .exapp-fila .nota { font-size: .8rem; color: #667085; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                    .exapp-fila .obs { grid-column: 1 / -1; }
+                    /* detalle en linea: la seccion APP real, a todo el ancho bajo su par de renglones */
+                    .exapp-det { grid-column: 1 / -1; margin: 6px 0 10px; border-left: 3px solid #0057A8; padding-left: 10px; }
+                    .exapp-det .exsec { margin-bottom: 0 !important; }
+                    /* dentro del detalle la seccion no es "tarjeta dentro de tarjeta": sin borde, fondo
+                       ni relleno propios (la barra azul ya la marca). Eran ~80px por lado de anidamiento
+                       que encogian el odontograma y los renglones en pantallas angostas (16-oct-2026) */
+                    #examenAccordion .accordion-body { padding: 12px; }
+                    .exapp-det { padding-left: 8px; }
+                    .exapp-det > .exsec { background: transparent !important; border: 0 !important; box-shadow: none; }
+                    .exapp-det > .exsec > .card-header { background: transparent; border-bottom: 0; padding-left: 0 !important; padding-right: 0 !important; }
+                    .exapp-det > .exsec > .card-body { padding: 4px 0 0; }
+                    .exapp-fila.abierta a.lbl i { display: inline-block; transform: rotate(180deg); }
+                    .exapp-fila .nota.hallazgo { color: #B42318; }
+                    .exlista-ok { padding: 1px 8px; font-size: .8rem; }
+                    /* al abrir un grupo se lleva su encabezado arriba, sin quedar bajo la barra fija */
+                    #examenAccordion .examen-grupo { scroll-margin-top: 90px; }
+                    .exapp-btns .btn { min-width: 44px; padding: 2px 8px; font-size: .85rem; color: #111; }
+                    .exapp-btns .btn.activo-no { background: #2B9138; border-color: #2B9138; color: #fff; }
+                    .exapp-btns .btn.activo-si { background: #B42318; border-color: #B42318; color: #fff; }
+                    /* Agencia en Datos generales: mismos botones que el examen inicial */
+                    .exagencia .exini-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+                    .exagencia .exini-chips .btn { color: #111; font-size: .85rem; }
+                    .exagencia .exini-chips .btn.activo { background: #0057A8; border-color: #0057A8; color: #fff; }
+                    /* Cada tipo ve solo lo que pide su formato EMLE (VisibilidadTipo.java, 16-oct-2026):
+                       grupos, secciones y campos llevan "ocultar-en-N"; se ocultan sin quitarlos del DOM,
+                       para no perder lo capturado si el medico cambia el tipo */
+                    #examenAccordion.tipo-1 .ocultar-en-1, #examenExtraAccordion.tipo-1 .ocultar-en-1 { display: none !important; }
+                    #examenAccordion.tipo-2 .ocultar-en-2, #examenExtraAccordion.tipo-2 .ocultar-en-2 { display: none !important; }
+                    #examenAccordion.tipo-3 .ocultar-en-3, #examenExtraAccordion.tipo-3 .ocultar-en-3 { display: none !important; }
+                    #examenAccordion.tipo-4 .ocultar-en-4, #examenExtraAccordion.tipo-4 .ocultar-en-4 { display: none !important; }
+                    #examenAccordion.tipo-5 .ocultar-en-5, #examenExtraAccordion.tipo-5 .ocultar-en-5 { display: none !important; }
+                    #examenAccordion.tipo-6 .ocultar-en-6, #examenExtraAccordion.tipo-6 .ocultar-en-6 { display: none !important; }
+                    #examenAccordion.tipo-7 .ocultar-en-7, #examenExtraAccordion.tipo-7 .ocultar-en-7 { display: none !important; }
+                    #examenAccordion.tipo-8 .ocultar-en-8, #examenExtraAccordion.tipo-8 .ocultar-en-8 { display: none !important; }
+                    #examenAccordion.tipo- .ocultar-en- { display: none !important; }
+                    /* examen inicial (Admision): dictamen de solo lectura */
+                    .aviso-dictamen-inicial { display: none; color: #8a5300; }
+                    #examenAccordion.tipo-1 .aviso-dictamen-inicial { display: block; }
+                    #examenAccordion.tipo-1 select[name="SERV_MED_RESULTADO_EXAMEN.DICTAMEN"] { pointer-events: none; background-color: #F2F4F7; color: #111; }
+                </style>
+                <span id="examenTipoTag" class="badge fs-6 px-3 py-2 examen-tipo-tag"
+                      th:classappend="${'tipo-' + datosGenerales.tipoExamen}"
+                      th:text="${datosGenerales.tipoExamen == ''} ? 'Sin tipo de examen' : ${tiposExamen[datosGenerales.tipoExamen]}">Periódico</span>
+                <!-- Formato EMLE que se trabaja (16-oct-2026): el mismo que imprime el encabezado del expediente -->
+                <span id="examenFormatoTag" class="badge fs-6 px-3 py-2 text-dark border" style="background: #FDE047; border-color: #CA8A04 !important; color: #111 !important; font-weight: 700;"
+                      th:classappend="${datosGenerales.tipoExamen == ''} ? 'd-none' : ''"
+                      th:attr="data-formatos=${#strings.listJoin(formatosExamen.entrySet().![key + '=' + value], ',')}"
+                      th:text="${formatosExamen.get(datosGenerales.tipoExamen)}">FT-SO-17</span>
             <!-- Mismas dos acciones que el menu "Examen medico" del PHP (Abrir / Imprimir expediente),
                  aqui en el card porque el sidebar del theme es global, no contextual por modulo. -->
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center flex-wrap gap-2 ms-auto">
                 <button type="button" class="btn btn-sm btn-outline-secondary" id="btnAbrirTodoExamen"
                         title="Expandir todos los grupos y cargar todas las secciones"
                         onclick="abrirTodoExamen(this);">
@@ -24,7 +100,7 @@
                         onclick="window.open(this.dataset.url, '_blank');">
                     <i class="ri-printer-line me-1"></i>Imprimir expediente
                 </button>
-                <span class="badge bg-primary" th:text="'NSS ' + ${nss}">NSS</span>
+            </div>
             </div>
         </div>
         <div class="card-body">
@@ -37,33 +113,65 @@
               NO borra lo que no hayas guardado. Ver cargarPaneExamen/actualizarBadgeGrupoExamen
               en nss-search.html.
             -->
-            <div class="accordion examen-accordion mb-3" id="examenAccordion">
-                <div class="accordion-item examen-grupo" th:each="g, gStat : ${grupos}">
+            <div class="accordion examen-accordion mb-3" id="examenAccordion"
+                 th:classappend="${'tipo-' + datosGenerales.tipoExamen}">
+                <div class="accordion-item examen-grupo" th:each="g, gStat : ${grupos}"
+                     th:classappend="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).clasesGrupo(g.nombre, g.secciones)}">
                     <h2 class="accordion-header" th:id="|examenGrupoHeader${gStat.index}|">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                                 th:attr="data-bs-target='#examenGrupoBody' + ${gStat.index}, aria-controls='examenGrupoBody' + ${gStat.index}"
                                 aria-expanded="false">
                             <span th:text="${g.nombre}">Grupo</span>
+                            <span class="ms-1" th:if="${g.nombre == 'Antecedentes personales no patológicos'}"
+                                  th:classappend="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).TITULO_INMUNIZACIONES}">"Inmunizaciones"</span>
                             <span class="badge examen-grupo-badge ms-2 d-none">0</span>
                         </button>
                     </h2>
                     <div class="accordion-collapse collapse" th:id="|examenGrupoBody${gStat.index}|"
                          th:attr="aria-labelledby='examenGrupoHeader' + ${gStat.index}" data-bs-parent="#examenAccordion">
-                        <div class="accordion-body">
-                            <ul class="nav nav-tabs examen-tabs" role="tablist">
-                                <li class="nav-item" role="presentation" th:each="s, sStat : ${g.secciones}">
+                        <div class="accordion-body" th:with="esApp=${g.nombre == 'Antecedentes personales patológicos'},
+                                    esLista=${g.nombre == 'Antecedentes heredofamiliares' or g.nombre == 'Exploración física'},
+                                    conResumen=${esApp or esLista},
+                                    activo=${conResumen} ? -1 : ${T(com.onest.app.catalog.examen.service.VisibilidadTipo).primeraVisible(g.secciones, datosGenerales.tipoExamen)}">
+                            <!-- Grupos con muchas pestanas (16-oct-2026): pantalla unica con un renglon por
+                                 categoria/seccion y su detalle debajo al picar el nombre. Patologicos usa las
+                                 24 categorias del FT-SO-17 (exAppResumen); heredofamiliares y exploracion,
+                                 un renglon por seccion con su estado (exListaResumen). Las pestanas siguen
+                                 en el DOM, ocultas; este enlace las muestra si hiciera falta. -->
+                            <div class="text-end mb-1" th:if="${conResumen}">
+                                <a href="#" class="fs-sm" onclick="exAppVerPestanas(this); return false;">Ver por pestañas</a>
+                            </div>
+                            <ul class="nav nav-tabs examen-tabs" role="tablist" th:classappend="${conResumen} ? 'd-none' : ''">
+                                <th:block th:each="s, sStat : ${g.secciones}">
+                                <!-- Patologicos como el FT-SO-17 (15-oct-2026): un renglon por categoria con
+                                     NEGADOS; lo pinta exAppResumen (nss-search.html) sobre los campos de las
+                                     pestanas APP de este grupo. No tiene campos propios ni va al servidor.
+                                     Va justo antes de las pestanas APP, despues de AGO, como en el formato. -->
+                                <li class="nav-item" role="presentation" th:if="${conResumen and sStat.index == 0}">
+                                    <button class="nav-link active fw-semibold" type="button" role="tab" data-bs-toggle="tab"
+                                            th:attr="data-bs-target='#examenPane' + ${gStat.index} + '_res', aria-controls='examenPane' + ${gStat.index} + '_res', data-nss=${nss}"
+                                            aria-selected="true">
+                                        <i class="ri-list-check-2 me-1"></i><th:block th:text="${esApp} ? 'Patológicos (resumen)' : 'Resumen'">Resumen</th:block>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation" th:classappend="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).clases(s)}">
                                     <button class="nav-link" type="button" role="tab" data-bs-toggle="tab"
-                                            th:classappend="${sStat.index == 0} ? ' active' : ''"
-                                            th:attr="data-bs-target='#examenPane' + ${gStat.index} + '_' + ${sStat.index}, aria-controls='examenPane' + ${gStat.index} + '_' + ${sStat.index}, aria-selected=${sStat.index == 0}, data-seccion=${s}, data-nss=${nss}, data-checked=false">
+                                            th:classappend="${sStat.index == activo} ? ' active' : ''"
+                                            th:attr="data-bs-target='#examenPane' + ${gStat.index} + '_' + ${sStat.index}, aria-controls='examenPane' + ${gStat.index} + '_' + ${sStat.index}, aria-selected=${sStat.index == activo}, data-seccion=${s}, data-nss=${nss}, data-checked=false">
                                         <i class="ri-checkbox-blank-circle-line examen-tab-check me-1"
                                            title="Marcar seccion como revisada" onclick="toggleTabCheck(this, event);"></i>
                                         <span th:text="${s}">Seccion</span>
                                     </button>
                                 </li>
+                                </th:block>
                             </ul>
                             <div class="tab-content examen-tab-content">
+                                <div class="tab-pane fade show active" th:if="${conResumen}"
+                                     th:id="|examenPane${gStat.index}_res|" th:attr="data-resumen=${esApp} ? 'app' : 'lista'">
+                                    <div class="text-muted fs-sm py-2">Selecciona esta pestaña para cargarla.</div>
+                                </div>
                                 <div class="tab-pane fade" th:each="s, sStat : ${g.secciones}"
-                                     th:classappend="${sStat.index == 0} ? ' show active' : ''"
+                                     th:classappend="${(sStat.index == activo ? 'show active ' : '') + T(com.onest.app.catalog.examen.service.VisibilidadTipo).clases(s)}"
                                      th:id="|examenPane${gStat.index}_${sStat.index}|"
                                      th:attr="data-seccion=${s}">
                                     <div class="text-muted fs-sm py-2">Selecciona esta pestaña para cargarla.</div>
@@ -83,7 +191,101 @@
               sin relacion funcional entre ellas mas alla de eso.
             -->
             <h6 class="fw-semibold mb-2">Otros datos</h6>
-            <div class="accordion examen-extra-accordion mb-3" id="examenExtraAccordion">
+            <div class="accordion examen-extra-accordion mb-3" id="examenExtraAccordion"
+                 th:classappend="${'tipo-' + datosGenerales.tipoExamen}">
+                <!--
+                  Datos generales del examen: tipo de examen (FT-SO-04/11: Admision, Periodico, Cambio
+                  de rol, Post incapacidad, Especial), SpO2, cintura y cadera (nuevos en la rev. 04).
+                  EAV via SERV_MED_TAG con los MISMOS tipos que el legacy (tipoExamenInputO, STPO2),
+                  asi el documento impreso los lee sin cambios. Form y boton propios, fuera de
+                  #examenSecciones/#trabajosPrevios para que guardarExamen() no los mande al WS.
+                  Va primero en el acordeon porque el tipo decide que formato se imprime.
+                -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="examenExtraHeaderDatos">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#examenExtraBodyDatos" aria-expanded="false" aria-controls="examenExtraBodyDatos">
+                            Datos generales del examen
+                            <span class="badge bg-light text-dark ms-2" th:if="${datosGenerales.tipoExamen != ''}"
+                                  th:text="${tiposExamen[datosGenerales.tipoExamen]}">Admisión</span>
+                            <span class="badge bg-warning text-dark ms-2" th:if="${datosGenerales.tipoExamen == ''}">Sin tipo de examen</span>
+                        </button>
+                    </h2>
+                    <div class="accordion-collapse collapse" id="examenExtraBodyDatos"
+                         aria-labelledby="examenExtraHeaderDatos" data-bs-parent="#examenExtraAccordion">
+                        <div class="accordion-body" id="datosGeneralesExamen">
+                            <form id="datosGeneralesExamenForm" class="row g-2" novalidate>
+                                <input type="hidden" name="nss" th:value="${nss}">
+                                <!-- Admision = el examen inicial FT-SO-04 (16-oct-2026): se captura en el menu
+                                     "Examen medico inicial" (asistente, OCR, candado). Aqui solo aparece si el NSS
+                                     YA tiene ese tipo, para abrir/corregir un inicial finalizado; el servidor
+                                     rechaza cambiar a Admision un examen que no lo era. -->
+                                <div class="col-12" id="examenAvisoInicial"
+                                     th:classappend="${datosGenerales.tipoExamen == '1'} ? '' : 'd-none'">
+                                    <div class="alert alert-warning py-2 px-3 mb-0 fs-sm d-flex gap-2 align-items-start">
+                                        <i class="ri-alert-line fs-5 lh-1"></i>
+                                        <span><b>Admisión es el examen inicial (FT-SO-04).</b> Los ingresos nuevos se capturan en el
+                                            menú <b>«Examen médico inicial»</b>. Aquí solo se corrige o completa un examen inicial ya
+                                            finalizado; no se puede cambiar otro tipo de examen a Admisión.</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label mb-1 fs-sm" for="examenTipo">Tipo de examen</label>
+                                    <!-- al elegir, las secciones se acomodan al formato de inmediato; se
+                                         guarda con "Guardar datos generales" -->
+                                    <select class="form-select form-select-sm" name="tipoExamen" id="examenTipo" onchange="exAplicarTipo(this.value);">
+                                        <option value="">Seleccionar...</option>
+                                        <th:block th:each="t : ${tiposExamen}">
+                                            <option th:if="${t.key != '1' or datosGenerales.tipoExamen == '1'}"
+                                                    th:value="${t.key}" th:text="${t.key == '1'} ? 'Admisión (examen inicial)' : ${t.value}"
+                                                    th:selected="${t.key == datosGenerales.tipoExamen}">Admisión</option>
+                                        </th:block>
+                                    </select>
+                                </div>
+                                <!-- AGENCIA (16-oct-2026), como piden los FT-SO-04/13/16/17/18/19/20 junto a la
+                                     fecha del examen: "Texto predeterminado Grupo Logistico Integral SAPI de CV y
+                                     opcion para otro y poder especificar". Igual que el examen inicial: si la base
+                                     la trae es de solo lectura; si no, GLI u "Otro" (tag AGENCIAEXAMEN al guardar). -->
+                                <div class="col-md-8">
+                                    <label class="form-label mb-1 fs-sm">Agencia</label>
+                                    <div th:if="${!#strings.isEmpty(agenciaBase)}" class="form-control form-control-sm bg-light" th:text="${agenciaBase}">GLI</div>
+                                    <div th:if="${#strings.isEmpty(agenciaBase)}" class="exini-agencia exagencia"
+                                         th:with="pre=${agenciaPredeterminada}, eleg=${#strings.isEmpty(agenciaElegida)} ? ${agenciaPredeterminada} : ${agenciaElegida}, esOtro=${eleg != pre}"
+                                         th:attr="data-pre=${pre}">
+                                        <input type="hidden" name="agenciaExamen" th:value="${eleg}">
+                                        <div class="exini-chips">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" th:classappend="${!esOtro} ? 'activo' : ''" th:text="${pre}" onclick="exIniAgencia(this, 'pre');">GLI</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" th:classappend="${esOtro} ? 'activo' : ''" onclick="exIniAgencia(this, 'otro');">Otro</button>
+                                        </div>
+                                        <input type="text" class="form-control form-control-sm mt-1" maxlength="100" placeholder="Especifica la agencia"
+                                               th:value="${esOtro} ? ${eleg} : ''" th:hidden="${!esOtro}" oninput="exIniAgencia(this, 'texto');">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label mb-1 fs-sm" for="examenSpo2">SpO2 (%)</label>
+                                    <input type="number" min="0" max="100" step="1" class="form-control form-control-sm"
+                                           name="spo2" id="examenSpo2" th:value="${datosGenerales.spo2}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label mb-1 fs-sm" for="examenCintura">Cintura (cm)</label>
+                                    <input type="number" min="0" step="0.1" class="form-control form-control-sm"
+                                           name="cintura" id="examenCintura" th:value="${datosGenerales.cintura}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label mb-1 fs-sm" for="examenCadera">Cadera (cm)</label>
+                                    <input type="number" min="0" step="0.1" class="form-control form-control-sm"
+                                           name="cadera" id="examenCadera" th:value="${datosGenerales.cadera}">
+                                </div>
+                                <div class="col-12 d-flex justify-content-end align-items-center gap-3">
+                                    <span id="datosGeneralesExamenResult" class="fs-sm"></span>
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="guardarDatosGeneralesExamen(this);">
+                                        <i class="ri-save-line me-1"></i> Guardar datos generales
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
                 <!--
                   Antecedentes laborales - trabajos previos (lista repetible, uno por empleo anterior).
                   Guardado CONFIRMADO 2026-08-13 contra el WS real (POST directo a /Servcio/Medico,
@@ -95,7 +297,7 @@
                   vacio, solo para trabajos nuevos capturados en esta sesion. Fuera del acordeon de
                   tabs a proposito: guardarExamen() las recolecta aparte desde #trabajosPrevios.
                 -->
-                <div class="accordion-item">
+                <div class="accordion-item" th:classappend="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).clases('Trabajos previos')}">
                     <h2 class="accordion-header" id="examenExtraHeader0">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                                 data-bs-target="#examenExtraBody0" aria-expanded="false" aria-controls="examenExtraBody0">
@@ -146,7 +348,7 @@
                   proposito, fuera del acordeon de tabs/#trabajosPrevios para que guardarExamen()
                   no los recoja por error.
                 -->
-                <div class="accordion-item">
+                <div class="accordion-item" th:classappend="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).clases('Contactos de emergencia')}">
                     <h2 class="accordion-header" id="examenExtraHeader1">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                                 data-bs-target="#examenExtraBody1" aria-expanded="false" aria-controls="examenExtraBody1">

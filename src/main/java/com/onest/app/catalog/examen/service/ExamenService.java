@@ -1,6 +1,7 @@
 package com.onest.app.catalog.examen.service;
 
 import com.onest.app.catalog.examen.client.ExamenClient;
+import com.onest.app.catalog.examen.repository.ExamenHistoricoRepository;
 import com.onest.app.catalog.pretest.repository.MedTagRepository;
 import com.onest.app.catalog.examen.dto.ExamItem;
 import com.onest.app.catalog.examen.dto.ExamenReporteDto;
@@ -24,7 +25,12 @@ import org.springframework.stereotype.Service;
 public class ExamenService {
 
     // type: SINO (Si/No + OBS opcional) | TEXT | DATE
-    private record Campo(String field, String label, String type, boolean hasObs) {
+    // tag: si no es null, el campo se lee/escribe en SERV_MED_TAG con ese TYPE (no en el WS) y
+    // field es la columna del WS que se muestra como respaldo cuando el tag esta vacio.
+    private record Campo(String field, String label, String type, boolean hasObs, String tag) {
+        Campo(String field, String label, String type, boolean hasObs) {
+            this(field, label, type, hasObs, null);
+        }
     }
 
     private record Seccion(String dataKey, List<Campo> campos) {
@@ -46,9 +52,78 @@ public class ExamenService {
         return new Campo(f, l, "DATE", false);
     }
 
+    /**
+     * DOSIS (16-oct-2026): numero de dosis, botones Ninguna/1/2/3 como el FT-SO-17. COVID es
+     * NUMBER y el PHP lo capturaba como numero; medido en prod: 3 dosis 1,417, 2 dosis 759,
+     * 4-6 dosis 121. Como Si/No, guardar convertia esas dosis en 0.
+     */
+    private static Campo dosis(String f, String l) {
+        return new Campo(f, l, "DOSIS", false);
+    }
+
+    /**
+     * SINO_TEXTO (16-oct-2026): No / Si + detalle en UN campo de texto. Pension en el PHP era texto
+     * libre; medido en prod (tag pension): ~2,470 variantes de "no" (NO, NEGADO, NINGUNO, N/A...),
+     * 740 vacios y ~35 con el tramite escrito ("ST7 CERRADO 2019"). Se guarda "NO" o el detalle
+     * (o "SI" sin detalle); lo ya capturado no se reescribe hasta que se toque.
+     */
+    private static Campo sinoTexto(String f, String l) {
+        return new Campo(f, l, "SINO_TEXTO", false);
+    }
+
     private static Campo area(String f, String l) {
         return new Campo(f, l, "AREA", false);
     }
+
+    /**
+     * OPCION (13-oct-2026): una sola opcion entre botones, como el select del PHP
+     * (formsEFis/EFis.html) y los chips del examen inicial. El texto elegido se guarda en ESA
+     * columna; las opciones viven en examen-seccion.html.
+     */
+    private static Campo opcion(String f, String l) {
+        return new Campo(f, l, "OPCION", false);
+    }
+
+    /**
+     * OCULTO: columnas que la tabla tiene pero el PHP nunca lleno (MESOMORFO, ENDOMORFICA,
+     * INTERES...): la opcion elegida se guardaba solo en la primera columna del grupo. No se
+     * muestran; viajan en un hidden con su valor para que guardar no borre lo que hubiera.
+     */
+    private static Campo oculto(String f, String l) {
+        return new Campo(f, l, "OCULTO", false);
+    }
+
+    /**
+     * Texto guardado en SERV_MED_TAG (13-oct-2026). Oidos: el PHP capturaba en los tags
+     * ODCAEINPEXP... y mandaba vacias las columnas de SERV_MED_OIDOS (su JS buscaba controles
+     * que no existen); el impreso lee los tags. Medido 13-oct: ~3,000 NSS con tag vs 11 filas
+     * con dato en SERV_MED_OIDOS. respaldo = columna del WS que se muestra si el tag esta vacio.
+     */
+    private static Campo tagTexto(String tag, String l, String respaldo) {
+        return new Campo(respaldo, l, "TEXT", false, tag);
+    }
+
+    /**
+     * Texto que solo existe en SERV_MED_TAG, sin columna del WS (15-oct-2026, FT-SO-04 rev. 05).
+     * La clave de respaldo no existe en el WS, asi que lee vacio si no hay tag.
+     */
+    private static Campo tagSolo(String tag, String l) {
+        return new Campo(tag, l, "TEXT", false, tag);
+    }
+
+    /** Fecha que solo existe en SERV_MED_TAG (como tagSolo, pero con control de fecha). */
+    private static Campo tagFecha(String tag, String l) {
+        return new Campo(tag, l, "DATE", false, tag);
+    }
+
+    /** Campo que solo existe en SERV_MED_TAG con el control indicado (SINO, OPCION, AREA, DATE...). */
+    private static Campo tagCampo(String tipo, String tag, String l) {
+        return new Campo(tag, l, tipo, false, tag);
+    }
+
+    /** Prefijo de las claves de formulario que van a SERV_MED_TAG y no al WS. */
+    private static final String PREFIJO_TAG = "TAG.";
+    private static final String GRUPO_TAG_FISICO = "EXAMEN_FISICO";
 
     private static final Map<String, Seccion> CATALOGO = new LinkedHashMap<>();
 
@@ -62,7 +137,49 @@ public class ExamenService {
         CATALOGO.put("Antecedentes laborales (resumen)", new Seccion("SERV_ANTECEDENTESLAB", List.of(
                 text("edad_inicio_laboral", "Edad al iniciar a laborar"),
                 text("cantidad_trabajos", "¿Cuántos trabajos ha tenido?"),
-                text("pension", "Pensión IMSS o trámite pendiente (ST2/ST3/ST4/ST7/ST9)"))));
+                sinoTexto("pension", "Pensión IMSS o trámite pendiente (ST2/ST3/ST4/ST7/ST9)"))));
+
+        // ---- Bloques propios de los formatos EMLE (16-oct-2026). Sin tabla en el WS: todo en
+        // SERV_MED_TAG (prefijo EXM_). Que tipo ve cada uno: VisibilidadTipo. ----
+        // FT-SO-17 / 18 / 20: antecedentes laborales del periodico; turno, antiguedad y motivo de
+        // salida solo los pide el FT-SO-18 (egreso)
+        CATALOGO.put("Puesto inicial y actual", new Seccion("SERV_MED_EXM_LABORAL", List.of(
+                tagSolo("EXM_PUESTO_INICIAL", "Puesto inicial"),
+                tagSolo("EXM_PUESTO_ACTUAL", "Puesto actual"),
+                tagSolo("EXM_TURNO_SALIDA", "Turno"),
+                tagSolo("EXM_ANTIGUEDAD", "Antigüedad"),
+                tagSolo("EXM_MOTIVO_SALIDA", "Motivo de salida"))));
+        // FT-SO-19 / 20: trabajos de riesgo del personal de mantenimiento
+        CATALOGO.put("Antecedentes laborales específicos", new Seccion("SERV_MED_EXM_ESPECIFICOS", List.of(
+                tagCampo("SINO", "EXM_ESP_ALTURA", "Trabajo en altura"),
+                tagCampo("SINO", "EXM_ESP_CALIENTE", "Trabajo en caliente"),
+                tagCampo("SINO", "EXM_ESP_CONFINADOS", "Espacios confinados"),
+                tagCampo("SINO", "EXM_ESP_CERTIFICADO", "¿Está certificado en trabajo de...?"),
+                tagCampo("SINO", "EXM_ESP_EXAMEN_ANIO", "¿Aprobó el examen médico hace menos de un año?"),
+                tagCampo("SINO", "EXM_ESP_MEDICAMENTOS", "¿Ha tomado medicamentos en las últimas 24 h?"),
+                tagSolo("EXM_ESP_MEDICAMENTOS_CUALES", "¿Cuáles medicamentos?"),
+                tagCampo("SINO", "EXM_ESP_EPILEPSIA", "¿Sufre de epilepsia, mareos o vértigo?"),
+                tagCampo("SINO", "EXM_ESP_AEROFOBIA", "¿Miedo a las alturas (aerofobia)?"),
+                tagCampo("SINO", "EXM_ESP_ASMA", "¿Sufre de asma, alergias o hiperactividad bronquial?"),
+                tagCampo("SINO", "EXM_ESP_PULMONAR_CARDIACA", "¿Padece alguna enfermedad pulmonar o cardiaca?"),
+                tagCampo("SINO", "EXM_ESP_CLAUSTROFOBIA", "¿Miedo a áreas cerradas (claustrofobia)?"))));
+        // FT-SO-16: en lugar de antecedentes laborales
+        CATALOGO.put("Cambio de puesto", new Seccion("SERV_MED_EXM_CAMBIO_PUESTO", List.of(
+                tagSolo("EXM_PUESTO_ANTERIOR", "Puesto anterior"),
+                tagCampo("DATE", "EXM_FECHA_ING_ANTERIOR", "Fecha de ingreso (puesto anterior)"),
+                tagCampo("AREA", "EXM_MOTIVO_CAMBIO", "Motivo del cambio"),
+                tagSolo("EXM_CAMBIO_PUESTO_ACTUAL", "Puesto actual"),
+                tagCampo("DATE", "EXM_FECHA_ING_ACTUAL", "Fecha de ingreso (puesto actual)"))));
+        // FT-SO-13: la incapacidad que origina el examen. Dias, ramo, tipo y fechas se precargan de
+        // la ultima incapacidad del NSS (PrecargaFormato); diagnostico y tratamiento los escribe el medico
+        CATALOGO.put("Antecedentes de la incapacidad", new Seccion("SERV_MED_EXM_INCAPACIDAD", List.of(
+                tagCampo("AREA", "EXM_INC_DIAGNOSTICO", "Diagnóstico"),
+                tagSolo("EXM_INC_DIAS", "Días de incapacidad"),
+                tagCampo("OPCION", "EXM_INC_RAMO", "Ramo del seguro"),
+                tagCampo("OPCION", "EXM_INC_TIPO", "Tipo de incapacidad"),
+                tagCampo("DATE", "EXM_INC_INICIO", "Fecha de inicio"),
+                tagCampo("DATE", "EXM_INC_TERMINO", "Fecha de término"),
+                tagCampo("AREA", "EXM_INC_TRATAMIENTO", "Tratamiento"))));
 
         // ---- Antecedentes heredofamiliares (Slice 1): Si/No + observaciones ----
         CATALOGO.put("Neurología", new Seccion("NEUROLOGIA", List.of(
@@ -150,7 +267,9 @@ public class ExamenService {
                 text("HOBBIES_PASATIEMPOS", "Hobbies / pasatiempos"),
                 text("FC2", "Frecuencia (hobbies)"))));
 
-        // ---- Inmunizaciones: vacunas Si/No + fecha ----
+        // ---- Inmunizaciones: vacunas Si/No + fecha de influenza + COVID por dosis (FT-SO-17) ----
+        // FECHA de la tabla es la de COVID (asi la rotulaba el PHP y casi solo hay fecha donde hay
+        // dosis); la de influenza el PHP la guardaba en el tag fechaINFLUEN (saveContactosEmergencia.php).
         CATALOGO.put("Inmunizaciones", new Seccion("SERV_MED_INMUNIZACIONES", List.of(
                 sino0("BLG", "BCG"),
                 sino0("SABIN", "Sabin"),
@@ -159,8 +278,9 @@ public class ExamenService {
                 sino0("SR", "SR"),
                 sino0("INFLUENZA", "Influenza"),
                 sino0("TD", "Td"),
-                sino0("COVID", "COVID"),
-                date("FECHA", "Fecha"))));
+                tagFecha("fechaINFLUEN", "Fecha influenza"),
+                dosis("COVID", "COVID-19 (dosis)"),
+                date("FECHA", "Fecha COVID"))));
 
         // ---- Antecedentes gineco-obstetricos (AGO): texto ----
         CATALOGO.put("Gineco-obstétricos (AGO)", new Seccion("SERV_MED_ANT_GIN_OBSTETRICOS", List.of(
@@ -168,9 +288,10 @@ public class ExamenService {
                 text("RITMO", "Ritmo"),
                 text("IVSA", "IVSA"),
                 text("FUM", "FUM"),
+                // G, P, A, C: orden de los FT-SO (16-oct-2026)
                 text("G", "Gesta (G)"),
-                text("A", "Abortos (A)"),
                 text("P", "Partos (P)"),
+                text("A", "Abortos (A)"),
                 text("C", "Cesáreas (C)"),
                 text("MET_PLANIFICACION", "Método de planificación"),
                 text("PAPANICOLAOU", "Papanicolaou"),
@@ -180,10 +301,11 @@ public class ExamenService {
         // ---- Antecedentes personales patologicos (APP): Si/No (+ obs) ----
         CATALOGO.put("APP: personales patológicos", new Seccion("SERV_MED_ANT_PER_PATOLOGICOS", List.of(
                 sino0("ENF_CONGENITAS", "Enf. congénitas"),
-                sino0("GENITAL", "Genital"),
+                // etiquetas como el FT-SO-04 rev. 05 (filas 66-69), con su aclaracion entre parentesis
+                sino0("GENITAL", "Genital (prolapsos)"),
                 sino0("ENF_PROP_INF", "Enf. propias de la infancia"),
                 sino0("DERMATOPATIAS", "Dermatopatías"),
-                sino0("SIST_AUDITIVO", "Sistema auditivo"),
+                sino0("SIST_AUDITIVO", "Sistema auditivo (sordera, perforación de tímpano)"),
                 sino0("RESPIRATORIO", "Respiratorio"),
                 sino0("SIS_OLFATIVO", "Sistema olfativo"),
                 sino0("TRAUMATICOS", "Traumáticos"))));
@@ -199,7 +321,7 @@ public class ExamenService {
                 sino("HERNIAS", "Hernias"),
                 sino("CIRROSIS", "Cirrosis"),
                 sino("COLITIS", "Colitis"),
-                sino("GASTRITIS", "Gastritis"),
+                sino("GASTRITIS", "Gastritis y esofagitis"),
                 sino("HEMORROIDES", "Hemorroides"),
                 sino("CIRUGIAS", "Cirugías"))));
         CATALOGO.put("APP: renal", new Seccion("SERV_MED_RENAL", List.of(
@@ -208,8 +330,8 @@ public class ExamenService {
                 sino("LITIASIS", "Litiasis"))));
         CATALOGO.put("APP: sistema nervioso", new Seccion("SERV_MED_SIST_NERVIOSO", List.of(
                 sino("ANEURISMA", "Aneurisma"),
-                sino("ENF_DEG_MUS_NEU", "Enf. degenerativa musc./neuro."),
-                sino("ACC_CER_VASCU", "Acc. cerebrovascular"),
+                sino("ENF_DEG_MUS_NEU", "Enf. degenerativas musculares y neuronales"),
+                sino("ACC_CER_VASCU", "Accidente cerebrovascular"),
                 sino("EPILEPSIA", "Epilepsia"),
                 sino("PAR_FACIAL", "Parálisis facial"))));
         CATALOGO.put("APP: músculo-esquelético", new Seccion("SERV_MED_MUS_ESQUELETICO", List.of(
@@ -229,7 +351,8 @@ public class ExamenService {
                 sino("TABAQUISMO", "Tabaquismo"),
                 sino("ALCOHOLISMO", "Alcoholismo"),
                 sino("DROGAS", "Drogas"),
-                sino("ALT_CARGA ", "Alteración de carga"),
+                // la pregunta del FT-SO-04: "¿Algun trastorno que repercuta en la manipulacion de cargas manuales?"
+                sino("ALT_CARGA ", "Trastorno que afecte la manipulación de cargas"),
                 sino("PERFORACIONES", "Perforaciones"),
                 sino("TATUAJES", "Tatuajes"),
                 sino("ALERGIAS", "Alergias"))));
@@ -237,6 +360,12 @@ public class ExamenService {
                 sino("DIABETES", "Diabetes"),
                 sino("HIPERTIROIDISMO", "Hipertiroidismo"),
                 sino("HIPOTIROIDISMO", "Hipotiroidismo"))));
+        // FT-SO-17 (periodico, 15-oct-2026): categorias del formato que no tienen tabla en el WS.
+        // Texto en SERV_MED_TAG: "NEGADOS" o el antecedente. Sin columna de respaldo.
+        CATALOGO.put("APP: otros", new Seccion("SERV_MED_APP_OTROS", List.of(
+                tagSolo("APPHEMATOPATIAS", "Hematopatías"),
+                tagSolo("APPTRANSFUSIONALES", "Transfusionales"),
+                tagSolo("APPQUIRURGICOS", "Quirúrgicos"))));
 
         // ---- Padecimiento actual / Interrogatorio (textarea) ----
         CATALOGO.put("Padecimiento actual", new Seccion("SERV_MED_PADECI_ACTUAL", List.of(
@@ -248,20 +377,29 @@ public class ExamenService {
         CATALOGO.put("Exploración física", new Seccion("SERV_MED_EXPLORACION_FISICA", List.of(
                 text("PESO", "Peso"), text("TALLA", "Talla"), text("IMC", "IMC"),
                 text("FC", "FC"), text("FR", "FR"), text("TA", "TA"), text("TEMP", "Temperatura"),
-                text("ECTOMORFICO", "Ectomórfico"), text("MESOMORFO", "Mesomorfo"), text("ENDOMORFICA", "Endomórfica"),
+                // Constitucion, estado emocional, facies y marcha: en el PHP eran UN select cada uno y
+                // el texto elegido se guardaba en la primera columna del grupo (ECTOMORFICO,
+                // SERENIDAD, HIPOCRITA, PARKINSON); las demas columnas nunca se llenaron (13-oct-2026)
+                opcion("ECTOMORFICO", "Constitución"), oculto("MESOMORFO", "Mesomorfo"), oculto("ENDOMORFICA", "Endomórfica"),
                 text("SATISFACCION", "Satisfacción"), text("COMP_TRABAJO", "Comp. trabajo"), text("COMP_ORGANIZACION", "Comp. organización"),
                 text("TIEMPO", "Tiempo"), text("ESPACIO", "Espacio"), text("PERSONA", "Persona"),
-                text("SERENIDAD", "Serenidad"), text("INTERES", "Interés"), text("ANTAGONICO", "Antagónico"),
-                text("ENTUSIASTA", "Entusiasta"), text("ENOJO", "Enojo"), text("HIPOCRITA", "Hipócrita"),
-                text("ICTERICA", "Ictérica"), text("ANEMICA", "Anémica"), text("TIROIDEA", "Tiroidea"),
-                text("NOLMAL_FASCIES", "Facies normal"), text("PARKINSON", "Parkinson"), text("HEMIPLEJICO", "Hemipléjico"),
-                text("ATAXICA", "Atáxica"), text("HEMIPARESIA", "Hemiparesia"), text("NORMAL_MARCHA", "Marcha normal"),
+                opcion("SERENIDAD", "Estado emocional"), oculto("INTERES", "Interés"), oculto("ANTAGONICO", "Antagónico"),
+                oculto("ENTUSIASTA", "Entusiasta"), oculto("ENOJO", "Enojo"), opcion("HIPOCRITA", "Facies"),
+                oculto("ICTERICA", "Ictérica"), oculto("ANEMICA", "Anémica"), oculto("TIROIDEA", "Tiroidea"),
+                oculto("NOLMAL_FASCIES", "Facies normal"), opcion("PARKINSON", "Marcha"), oculto("HEMIPLEJICO", "Hemipléjico"),
+                oculto("ATAXICA", "Atáxica"), oculto("HEMIPARESIA", "Hemiparesia"), oculto("NORMAL_MARCHA", "Marcha normal"),
                 text("LENGUAJE", "Lenguaje"), text("CONVER_FLUIDA", "Conversación fluida"), text("COHERENCIA_PALABLAS", "Coherencia de palabras"))));
         CATALOGO.put("Cráneo", new Seccion("SERV_MED_CRANEO", List.of(
                 text("OJOS", "Ojos"), text("PUPILAS", "Pupilas"), text("CONJUNTIVAS", "Conjuntivas"),
                 text("REFLEJOS", "Reflejos"), text("FONDO_OJO", "Fondo de ojo"))));
         CATALOGO.put("Agudeza visual", new Seccion("SERV_MED_AGUDEZA_VISUAL", List.of(
-                text("OD", "Ojo derecho"), text("OIZ", "Ojo izquierdo"), text("COLORES", "Colores"))));
+                // SL/CL del FT-SO-04: OD/OIZ es la medida SIN lentes; la medida CON lentes ya la
+                // capturaba el PHP en estos tags (medido 15-oct-2026: "20/10", "20/20", "SDPA", "N/A"...;
+                // solo 43 de ~2,100 son 0/1). pdfGenerator.php los imprimia mal como Si/No.
+                text("OD", "Ojo derecho sin lentes (SL)"), text("OIZ", "Ojo izquierdo sin lentes (SL)"),
+                tagSolo("LENTEOJODERECHOEXP", "Ojo derecho con lentes (CL)"),
+                tagSolo("LENTEOJOIZQUIERDOEXP", "Ojo izquierdo con lentes (CL)"),
+                text("COLORES", "Colores"))));
         CATALOGO.put("Nariz", new Seccion("SERV_MED_NARIZ", List.of(
                 text("CAVIDAD_NASAL", "Cavidad nasal"), text("MUCOSA", "Mucosa"),
                 text("TABIQUE_NASA", "Tabique nasal"), text("OLFATO", "Olfato"))));
@@ -269,9 +407,16 @@ public class ExamenService {
                 text("CERVICA", "Cervical"), text("DORSAL", "Dorsal"), text("LUMBAR", "Lumbar"))));
         CATALOGO.put("Boca", new Seccion("SERV_MED_BOCA", List.of(
                 text("LESIONES", "Lesiones"), text("ENCIAS", "Encías"), text("OROIFARINGE", "Orofaringe"))));
+        // Los nombres de tag no corresponden a la etiqueta (OD = OIMEMTIMINPEXP): es el mapeo del
+        // PHP (formsEFis/EFis.html) y del impreso (examen-documento.html), se respeta tal cual
         CATALOGO.put("Oídos", new Seccion("SERV_MED_OIDOS", List.of(
-                text("CAE", "CAE"), text("MEM_TIM", "Membrana timpánica"), text("AGUD_AUDIT", "Agudeza auditiva"),
-                text("OD", "Oído derecho"), text("OI", "Oído izquierdo"))));
+                oculto("CAE", "CAE"), oculto("MEM_TIM", "Membrana timpánica"), oculto("AGUD_AUDIT", "Agudeza auditiva"),
+                oculto("OD", "Oído derecho"), oculto("OI", "Oído izquierdo"),
+                tagTexto("ODCAEINPEXP", "CAE", "CAE"),
+                tagTexto("ODMEMTIMINPEXP", "Membrana timpánica", "MEM_TIM"),
+                tagTexto("ODAGAUDIINPEXP", "Agudeza auditiva", "AGUD_AUDIT"),
+                tagTexto("OIMEMTIMINPEXP", "Oído derecho (OD)", "OD"),
+                tagTexto("OIAGAUDIINPEXP", "Oído izquierdo (OI)", "OI"))));
         CATALOGO.put("Tórax", new Seccion("SERV_MED_TORAX", List.of(
                 text("RUIDOS_CARDIACOS", "Ruidos cardíacos"), text("REG_PRECORDIAL", "Región precordial"),
                 text("CAMPOS_PULM", "Campos pulmonares"))));
@@ -319,29 +464,54 @@ public class ExamenService {
 
     // Agrupacion puramente de UI (no afecta guardado/lectura) - un nombre de seccion que no
     // aparezca aqui simplemente no se agrupa (no rompe el catalogo si cambia).
+    // Un grupo por seccion del FT-SO-04 / FT-SO-17, con su mismo titulo y orden (16-oct-2026);
+    // los dos coinciden si la exploracion se lee por columnas, que es como estan maquetados.
+    // Heredofamiliares y APNP solo los pide el FT-SO-04: examen-shell.html los oculta en el
+    // periodico y ahi agrega «"Inmunizaciones"» al titulo de no patologicos, como el FT-SO-17.
+    // Los nombres de grupo los compara examen-shell.html: si cambian, cambiarlos tambien alla.
     private static final List<Map.Entry<String, List<String>>> GRUPOS = List.of(
             Map.entry("Antecedentes laborales", List.of(
-                    "Antecedentes laborales (resumen)")),
-            Map.entry("Heredofamiliares", List.of(
+                    "Antecedentes laborales (resumen)", "Puesto inicial y actual")),
+            Map.entry("Antecedentes laborales específicos", List.of(
+                    "Antecedentes laborales específicos")),
+            Map.entry("Cambio de puesto", List.of(
+                    "Cambio de puesto")),
+            Map.entry("Antecedentes de la incapacidad", List.of(
+                    "Antecedentes de la incapacidad")),
+            Map.entry("Antecedentes heredofamiliares", List.of(
                     "Neurología", "Cardiopatía", "Neumopatía", "Toxicológico", "Nefropatías",
                     "Endocrinas", "Obesidad", "Mentales", "Generales", "Otras",
                     "Heredofamiliares (resumen)")),
-            Map.entry("Antecedentes personales", List.of(
-                    "APNP (no patológicos)", "Inmunizaciones", "Gineco-obstétricos (AGO)",
-                    "APP: personales patológicos", "APP: oftalmológico", "APP: digestivo",
-                    "APP: renal", "APP: sistema nervioso", "APP: músculo-esquelético",
-                    "APP: cardiovascular", "APP: toxicológico", "APP: endocrino")),
-            Map.entry("Padecimiento e interrogatorio", List.of(
-                    "Padecimiento actual", "Interrogatorio por aparatos")),
+            Map.entry("Antecedentes personales no patológicos", List.of(
+                    "APNP (no patológicos)", "Inmunizaciones")),
+            Map.entry("Antecedentes gineco-obstétricos", List.of(
+                    "Gineco-obstétricos (AGO)")),
+            // La pestana "Patologicos (resumen)" la inserta examen-shell.html antes de las APP
+            Map.entry("Antecedentes personales patológicos", List.of(
+                    "APP: personales patológicos", "APP: oftalmológico", "APP: renal",
+                    "APP: cardiovascular", "APP: sistema nervioso", "APP: digestivo",
+                    "APP: músculo-esquelético", "APP: endocrino", "APP: toxicológico", "APP: otros")),
+            Map.entry("Padecimiento actual", List.of(
+                    "Padecimiento actual")),
+            Map.entry("Interrogatorio por aparatos y sistemas", List.of(
+                    "Interrogatorio por aparatos")),
             Map.entry("Exploración física", List.of(
                     "Exploración física", "Cráneo", "Agudeza visual", "Nariz", "Columna vertebral",
-                    "Boca", "Oídos", "Tórax", "Columna (movilidad)", "Abdomen", "Genitales",
-                    "Urinario", "Extremidades", "Piel", "Cuello", "Dientes")),
-            Map.entry("Cierre", List.of(
-                    "Estudios realizados", "Diagnóstico", "Plan terapéutico", "Resultado del examen")));
+                    "Boca", "Oídos", "Cuello", "Tórax", "Columna (movilidad)", "Abdomen", "Genitales",
+                    "Urinario", "Extremidades", "Piel", "Dientes")),
+            Map.entry("Estudios realizados y resultados", List.of(
+                    "Estudios realizados")),
+            Map.entry("Diagnóstico", List.of(
+                    "Diagnóstico")),
+            Map.entry("Plan o terapéutica empleada", List.of(
+                    "Plan terapéutico")),
+            Map.entry("Resultado del examen", List.of(
+                    "Resultado del examen")));
 
     private final ExamenClient client;
     private final MedTagRepository tags;
+    private final ExamenHistoricoRepository historico;
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ExamenService.class);
 
     /**
      * Cache corta de la lectura del WS por NSS. El acordeon carga cada seccion con una peticion
@@ -368,9 +538,10 @@ public class ExamenService {
         cacheLectura.remove(nss);
     }
 
-    public ExamenService(ExamenClient client, MedTagRepository tags) {
+    public ExamenService(ExamenClient client, MedTagRepository tags, ExamenHistoricoRepository historico) {
         this.client = client;
         this.tags = tags;
+        this.historico = historico;
     }
 
     /** Nombres de las secciones (orden de navegacion). */
@@ -395,6 +566,9 @@ public class ExamenService {
         Set<String> out = new java.util.HashSet<>();
         for (Seccion sec : CATALOGO.values()) {
             for (Campo c : sec.campos()) {
+                if (c.tag() != null) {
+                    continue;   // va a SERV_MED_TAG; su columna de respaldo ya esta como OCULTO
+                }
                 out.add(sec.dataKey() + "." + c.field());
                 if (c.hasObs()) {
                     out.add(sec.dataKey() + "." + c.field() + "_OBS");
@@ -418,7 +592,49 @@ public class ExamenService {
         if ("SERV_ANTECEDENTESLAB".equals(sec.dataKey())) {
             completarDesdeTags(data, normalizeNss(nss));
         }
+        if (sec.campos().stream().anyMatch(c -> c.tag() != null)) {
+            cargarCamposTag(data, normalizeNss(nss));
+        }
         return itemsDesde(sec, data);
+    }
+
+    /** TYPEs de SERV_MED_TAG que el catalogo permite leer/escribir (lista cerrada). */
+    private static Set<String> tiposTag() {
+        Set<String> out = new java.util.LinkedHashSet<>();
+        for (Seccion sec : CATALOGO.values()) {
+            for (Campo c : sec.campos()) {
+                if (c.tag() != null) {
+                    out.add(c.tag());
+                }
+            }
+        }
+        return out;
+    }
+
+    /** Ultimo valor de cada tag del catalogo, o mapa vacio si no se pudo leer. */
+    private Map<String, String> leerTags(String nss) {
+        Map<String, String> out = new LinkedHashMap<>();
+        Set<String> tipos = tiposTag();
+        try {
+            // una lectura por prefijo de 2 letras (OD/OI de Oidos, LE de lentes) y se filtra a la lista
+            Set<String> prefijos = new java.util.TreeSet<>();
+            tipos.forEach(t -> prefijos.add(t.substring(0, Math.min(2, t.length()))));
+            for (String prefijo : prefijos) {
+                tags.latestByNssAndTypePrefix(nss, prefijo).forEach((k, v) -> {
+                    if (tipos.contains(k)) {
+                        out.put(k, v);
+                    }
+                });
+            }
+        } catch (RuntimeException ex) {
+            log.warn("[examen] no se pudieron leer los tags de {}: {}", nss, ex.getMessage());
+        }
+        return out;
+    }
+
+    /** Pone en data las claves "TAG.<TYPE>" con el ultimo valor de SERV_MED_TAG. */
+    private void cargarCamposTag(Map<String, String> data, String nss) {
+        leerTags(nss).forEach((k, v) -> data.put(PREFIJO_TAG + k, v));
     }
 
     /**
@@ -465,13 +681,17 @@ public class ExamenService {
      * por seccion porque el acordeon carga una a la vez; aqui serian 22 llamadas por nada.
      */
     public ExpedienteImpreso expedienteCompleto(String nss) {
-        Map<String, String> data = client.getExamenData(normalizeNss(nss));
+        Map<String, String> data = new LinkedHashMap<>(client.getExamenData(normalizeNss(nss)));
+        cargarCamposTag(data, normalizeNss(nss));
         List<GrupoImpreso> grupos = new ArrayList<>();
         for (Grupo g : grupos()) {
             List<SeccionImpresa> secciones = new ArrayList<>();
             for (String nombre : g.secciones()) {
                 List<ExamItem> items = new ArrayList<>();
                 for (ExamItem it : itemsDesde(CATALOGO.get(nombre), data)) {
+                    if ("OCULTO".equals(it.type())) {
+                        continue;   // columnas que el PHP nunca lleno: en papel solo serian renglones vacios
+                    }
                     items.add(new ExamItem(it.type(), it.label(), it.fieldName(), legible(it.value()),
                             it.obsName(), legible(it.obsValue())));
                 }
@@ -509,6 +729,15 @@ public class ExamenService {
     private static List<ExamItem> itemsDesde(Seccion sec, Map<String, String> data) {
         List<ExamItem> items = new ArrayList<>();
         for (Campo campo : sec.campos()) {
+            if (campo.tag() != null) {
+                // tag primero; si esta vacio, lo que hubiera en la columna del WS (asi no se pierde
+                // y al guardar pasa al tag)
+                String deTag = mostrable(data.get(PREFIJO_TAG + campo.tag()));
+                String valor = deTag.isBlank()
+                        ? mostrable(ExamenClaves.leer(data, sec.dataKey() + "." + campo.field())) : deTag;
+                items.add(new ExamItem(campo.type(), campo.label(), PREFIJO_TAG + campo.tag(), valor, null, null));
+                continue;
+            }
             String base = sec.dataKey() + "." + campo.field();
             String obsName = campo.hasObs() ? base + "_OBS" : null;
             // ExamenClaves.leer(): el WS de lectura devuelve varias claves con nombre distinto
@@ -574,16 +803,110 @@ public class ExamenService {
 
     /** Guarda el examen (CAMBIO). campos = name->value de las secciones cargadas. */
     public String guardar(String nss, Map<String, String> campos, String firma) {
-        invalidar(normalizeNss(nss));
-        String r = client.guardar(normalizeNss(nss), campos == null ? Map.of() : campos, firma);
-        invalidar(normalizeNss(nss));
+        return guardar(nss, campos, firma, ExamenHistoricoRepository.ORIGEN_GENERAL);
+    }
+
+    /**
+     * Guarda y, si el guardado trae dictamen (el examen "cierra"), deja la foto completa en
+     * SERV_MED_EXAMEN_HISTORICO con el origen indicado. Los guardados parciales por seccion
+     * del modulo general no generan fila: solo los que incluyen Resultado del examen.
+     */
+    public String guardar(String nss, Map<String, String> campos, String firma, String origen) {
+        String limpio = normalizeNss(nss);
+        invalidar(limpio);
+        // Las claves "TAG.<TYPE>" van a SERV_MED_TAG, no al WS: se separan antes de mandarlo
+        Map<String, String> c = new LinkedHashMap<>();
+        Map<String, String> nuevosTags = new LinkedHashMap<>();
+        Set<String> tipos = tiposTag();
+        if (campos != null) {
+            campos.forEach((k, v) -> {
+                if (k.startsWith(PREFIJO_TAG)) {
+                    String tipo = k.substring(PREFIJO_TAG.length());
+                    if (tipos.contains(tipo)) {
+                        nuevosTags.put(tipo, v);
+                    }
+                } else {
+                    c.put(k, v);
+                }
+            });
+        }
+        String r = client.guardar(limpio, c, firma);
+        guardarTags(limpio, nuevosTags);
+        invalidar(limpio);
+        String dictamen = c.getOrDefault("SERV_MED_RESULTADO_EXAMEN.DICTAMEN", "");
+        if (dictamen != null && !dictamen.isBlank()) {
+            registrarHistorico(limpio, origen, dictamen.trim());
+        }
         return r;
+    }
+
+    /**
+     * Escribe solo los tags cuyo valor cambio respecto al vigente: abrir y guardar sin tocar
+     * Oidos no reescribe ~3,000 historicos ni crea filas vacias. Va despues del WS: si el WS
+     * falla, no queda medio examen en tags.
+     */
+    private void guardarTags(String nss, Map<String, String> nuevos) {
+        if (nuevos.isEmpty()) {
+            return;
+        }
+        Map<String, String> vigentes = leerTags(nss);
+        String usuario = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() == null
+                ? "SISTEMA" : org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        nuevos.forEach((tipo, valor) -> {
+            String nuevo = valor == null ? "" : valor.trim();
+            String actual = mostrable(vigentes.get(tipo)).trim();
+            if (!nuevo.equals(actual)) {
+                tags.upsert(nss, tipo, nuevo, GRUPO_TAG_FISICO, usuario);
+            }
+        });
+    }
+
+    /**
+     * Foto del examen tal como quedo en el WS (lectura fresca, aplanada) + tipo de examen del
+     * tag del legacy. Nunca lanza: el guardado ya ocurrio y un fallo aqui no debe reportarse
+     * como error del examen.
+     */
+    private void registrarHistorico(String nss, String origen, String dictamen) {
+        try {
+            Map<String, String> data = client.getExamenData(nss);
+            String tipo = null;
+            try {
+                tipo = tags.latestByNssAndTypePrefix(nss, "tipoExamenInputO").get("tipoExamenInputO");
+            } catch (RuntimeException ex) {
+                // sin tag: queda NULL
+            }
+            if (tipo != null && (tipo.isBlank() || "0".equals(tipo.trim()))) {
+                tipo = null;
+            }
+            // 16-oct-2026: la foto lleva tambien los tags del catalogo (lentes, pension, bloques de
+            // los formatos EMLE...). El tag se reescribe al cambiar, asi que el historico es el unico
+            // lugar donde queda el valor de cada examen cerrado.
+            Map<String, String> foto = new LinkedHashMap<>(data);
+            leerTags(nss).forEach((k, v) -> foto.put(PREFIJO_TAG + k, v));
+            foto.put(PREFIJO_TAG + "tipoExamenInputO", tipo == null ? "" : tipo);
+            String json = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(foto);
+            String usuario = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() == null
+                    ? "SISTEMA" : org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+            historico.registrar(nss, origen, tipo, dictamen, usuario, json);
+        } catch (Exception ex) {
+            log.warn("[examen] no se pudo registrar el historico de {} ({}): {}", nss, origen, ex.getMessage());
+        }
+    }
+
+    /** Dictamen vigente en el WS (apto/no_apto/...), o vacio si no hay. Para el candado del examen inicial. */
+    public String dictamenVigente(String nss) {
+        try {
+            return dictamenDesdeFlags(datosExamen(normalizeNss(nss)), "SERV_MED_RESULTADO_EXAMEN");
+        } catch (RuntimeException ex) {
+            return "";
+        }
     }
 
     /** Todas las secciones de una vez (para "Abrir todo": 1 peticion HTTP y 1 lectura del WS). */
     public Map<String, List<ExamItem>> itemsDeTodas(String nss) {
         Map<String, String> data = new java.util.LinkedHashMap<>(datosExamen(normalizeNss(nss)));
         completarDesdeTags(data, normalizeNss(nss));
+        cargarCamposTag(data, normalizeNss(nss));
         Map<String, List<ExamItem>> out = new LinkedHashMap<>();
         for (Map.Entry<String, Seccion> e : CATALOGO.entrySet()) {
             out.put(e.getKey(), itemsDesde(e.getValue(), data));

@@ -16,7 +16,7 @@ guardan en `credenciales-acceso.local.html` (local) o en el gestor de contraseñ
 |---|---|---|
 | Local | Oracle XE `localhost:1521/PROYECTO_BASE_PDB`, esquema `USR_BOILERPLATE` | — (consume la de QA) |
 | QA | `200.94.116.132:1521/orclpdb`, esquema `ONEWMS_QA` | `http://10.249.249.3/biows/ords/security/Servcio` |
-| **Producción** | **por definir — Fase 0.1 del plan** | **base entregada 23-sep-2026, datos abajo** |
+| **Producción** | **`PDBPRD`, tablas `SERV_MED_*` dentro de `BIOMETRICO`** (alias TNS `PDBPRD`) | `http://10.249.249.3/biows/ords/security/Servcio` |
 
 ## Producción — base de ORDS (entregada e inventariada 23-sep-2026)
 
@@ -52,41 +52,19 @@ Lo corre el usuario y pega la salida. Responde:
 Con esa salida se llena la matriz "existe / falta" de la Fase 1 y se decide qué scripts
 `docs/ords-*.sql` aplicar.
 
-## Variables de entorno del perfil `prod`
+## Configuración del perfil `prod`: dentro del WAR
 
-`application-prod.properties` ya no trae valores fijos: todo se resuelve como
-`${VARIABLE:valor_por_defecto}`. Si la variable existe en el entorno del Tomcat, gana.
+**Ya no se usan variables de entorno ni `setenv`** (decisión 14-oct-2026, confirmada 19-oct-2026).
+Las variables y el `setenv` que describía antes esta sección quedaron fuera: un placeholder en
+`setenv.bat` bloqueó la cuenta `BIOMETRICO` el 27-sep-2026.
 
-| Variable | Propiedad | Default en el WAR |
-|---|---|---|
-| `SPRING_DATASOURCE_URL` | `spring.datasource.url` | QA (`200.94.116.132/orclpdb`) — **provisional** |
-| `SPRING_DATASOURCE_USERNAME` | `spring.datasource.username` | `ONEWMS_QA` |
-| `SPRING_DATASOURCE_PASSWORD` | `spring.datasource.password` | **vacío — obligatorio definirla** |
-| `PORTAL_FILES_ROOT` | `portal.files.root` | `/mnt/data/onedev/apps/exec/filessalud` |
-| `PORTAL_BIOWS_BASEURL` | `portal.biows.base-url` | `http://10.249.249.3/biows/ords/security` |
-| `PORTAL_SSO_JWKS_URI` | `portal.sso.jwks-uri` | `https://sso.onestcloud.mx/sso/.well-known/jwks.json` |
-| `PORTAL_SSO_ISSUER_URI` | `portal.sso.issuer-uri` | `https://sso.onestcloud.mx/sso` |
-| `PORTAL_AUTH_STRATEGY` | `portal.auth.strategy` | `LEGACY_PHP` |
-| `PORTAL_PERMISSIONS_SOURCE` | `portal.permissions.source` | `LOCAL` |
+Toda la configuración de producción va dentro del WAR. Maven la mete al compilar con `-Pprod`,
+desde `config/produccion/portal-salud.local.properties`. La base es `BIOMETRICO` en `PDBPRD`, por
+el alias TNS `PDBPRD`. El servidor solo pone el `tnsnames.ora` y la carpeta de archivos.
 
-**Linux (servidor):** `$CATALINA_HOME/bin/setenv.sh` o el unit de systemd:
-```sh
-export SPRING_DATASOURCE_URL="jdbc:oracle:thin:@HOST:1521/SERVICIO"
-export SPRING_DATASOURCE_USERNAME="USUARIO"
-export SPRING_DATASOURCE_PASSWORD="********"
-export CATALINA_OPTS="$CATALINA_OPTS -Dspring.profiles.active=prod"
-```
+El stack, los requisitos del servidor, el build y el despliegue están en **`README.md`**.
 
-**Windows (pruebas locales):** `C:	omcatpache-tomcat-11.0.21in\setenv.bat`:
-```bat
-set "SPRING_DATASOURCE_URL=jdbc:oracle:thin:@HOST:1521/SERVICIO"
-set "SPRING_DATASOURCE_USERNAME=USUARIO"
-set "SPRING_DATASOURCE_PASSWORD=********"
-set "CATALINA_OPTS=%CATALINA_OPTS% -Dspring.profiles.active=prod"
-```
-
-`setenv.sh` / `setenv.bat` viven en el Tomcat, **fuera del repo**: ahí sí puede ir la contraseña.
-Verificación al arrancar: el banner `BASE DE DATOS ACTIVA` del log imprime el `JDBC URL` y el
+Verificación al arrancar: el bloque `BASE DE DATOS ACTIVA` del log imprime la URL JDBC y el
 `DB_NAME` que realmente tomó.
 
 ## Recordatorio de seguridad

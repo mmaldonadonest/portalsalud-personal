@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inventario de exámenes</title>
+<style>
+  body { margin: 0; background: #fff; color: #000; font: 15px/1.5 Arial, Helvetica, sans-serif; }
+  main { max-width: 1000px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  h2 { font-size: 1.1rem; margin: 30px 0 8px; border-bottom: 2px solid #000; padding-bottom: 3px; }
+  h3 { font-size: 1rem; margin: 18px 0 6px; }
+  p.sub { color: #444; margin: 0 0 18px; }
+  table { border-collapse: collapse; width: 100%; margin: 6px 0 10px; }
+  th, td { border: 1px solid #000; padding: 6px 9px; text-align: left; vertical-align: top; background: #fff; color: #000; }
+  th { font-weight: bold; }
+  .si { font-weight: bold; }
+  .pend { background: #FFF4CC; }
+  ul, ol { margin: 6px 0 10px; }
+  li { margin-bottom: 4px; }
+  .nota { color: #444; font-size: .92rem; }
+  .scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Inventario de exámenes médicos en el Portal Salud</h1>
+  <p class="sub">Formatos EMLE reflejados en el sistema: captura, impresión y ayudas de captura · 16-oct-2026 · rama feature/carga-excel-nss-vistas, commit ac8bfea</p>
+
+  <h2>1. Exámenes por tipo (módulo «Examen médico»)</h2>
+  <div class="scroll">
+  <table>
+    <tr><th>#</th><th>Tipo de examen</th><th>Formato</th><th>Captura</th><th>Impresión</th><th>Bloques propios del formato</th></tr>
+    <tr><td>1</td><td>Admisión (examen inicial)</td><td>FT-SO-04 rev. 05</td><td>En su menú propio (sección 2). Aquí solo se abre o corrige; <b>dictamen de solo lectura</b></td><td class="si">Sí · 12 hojas</td><td>Todo el FT-SO-04</td></tr>
+    <tr><td>2</td><td>Periódico</td><td>FT-SO-17 rev. 06</td><td class="si">Sí</td><td class="si">Sí · 11 hojas</td><td>Puesto inicial / puesto actual</td></tr>
+    <tr><td>3</td><td>Cambio de puesto</td><td>FT-SO-16 rev. 06</td><td class="si">Sí</td><td class="si">Sí · 11 hojas</td><td>Cambio de puesto: puesto y fecha de ingreso anterior y actual, motivo del cambio</td></tr>
+    <tr><td>4</td><td>Post incapacidad</td><td>FT-SO-13 rev. 06</td><td class="si">Sí</td><td class="si">Sí · 7 hojas</td><td>Antecedentes de la incapacidad (días, ramo, tipo y fechas se precargan de la última incapacidad)</td></tr>
+    <tr><td>5</td><td>Especial</td><td>Sin formato propio (imprime FT-SO-04)</td><td class="si">Sí (todas las secciones)</td><td class="si">Sí · 12 hojas</td><td>Todos</td></tr>
+    <tr><td>6</td><td>Egreso</td><td>FT-SO-18 rev. 06</td><td class="si">Sí</td><td class="si">Sí · 11 hojas, sin Plan (como el formato)</td><td>Puesto inicial/actual, turno, antigüedad y motivo de salida</td></tr>
+    <tr><td>7</td><td>Inicial mantenimiento</td><td>FT-SO-19 rev. 06</td><td class="si">Sí</td><td class="si">Sí · 12 hojas, sin Diagnóstico (como el formato)</td><td>Antecedentes laborales específicos: altura, en caliente, espacios confinados y 8 preguntas</td></tr>
+    <tr><td>8</td><td>Periódico mantenimiento</td><td>FT-SO-20 rev. 06</td><td class="si">Sí</td><td class="si">Sí · 11 hojas</td><td>Puesto inicial/actual y antecedentes laborales específicos</td></tr>
+  </table>
+  </div>
+  <p class="nota">Todos los impresos llevan el consentimiento (FT-SO-11), el aviso de privacidad (FT-SO-32 rev. 03) y el examen con el encabezado de su formato y solo sus secciones. Vista previa del impreso por tipo: <code>…/api/nss/examen/imprimir?nss=NSS&amp;tipo=N</code>.</p>
+
+  <h2>2. Módulo «Examen médico inicial»</h2>
+  <p>FT-SO-04 rev. 05 como asistente por hojas: borrador automático, solicitud de OCR (nuevo ingreso), candado de examen vigente, firma y aviso a OCR al finalizar. Al cerrar, guarda el examen como tipo 1 Admisión. Mismo impreso que el tipo 1.</p>
+
+  <h2>3. Ayudas de captura</h2>
+  <table>
+    <tr><th style="width:24%">Sección</th><th>Ayuda</th></tr>
+    <tr><td>Ficha de identificación</td><td>Agencia del biométrico u OCR (predeterminada «Grupo Logístico Integral SAPI de CV» con opción de otra); escolaridad, profesión u oficio y departamento.</td></tr>
+    <tr><td>Antecedentes laborales</td><td>Pensión IMSS / trámite: No o Sí con detalle. Tabla de trabajos anteriores (solo FT-SO-04 y 19).</td></tr>
+    <tr><td>Heredofamiliares y patológicos</td><td>Botones Sí/No; «NEGADOS» automático con No; «Todo normal» por sección; resumen de las 24 categorías del FT-SO-17 con detalle en línea.</td></tr>
+    <tr><td>Inmunizaciones</td><td>Cuadrícula Sí/No; COVID-19 por dosis (1, 2, 3); fecha de influenza; «Todo Sí / Todo No».</td></tr>
+    <tr><td>Gineco-obstétricos</td><td>Orden G, P, A, C como el formato; FUP solo donde el formato la pide.</td></tr>
+    <tr><td>Exploración física</td><td>OK/NO con el texto del formato («SIN AGREGADOS», «PRESENTES / AUSENTES», «NEGATIVO / POSITIVO», «DIFERIDO»); curvatura en botones; «Todo normal» por sección; resumen con el estado de cada sección.</td></tr>
+    <tr><td>Dientes</td><td>Odontograma por caras: caries, amalgama y endodoncia por cara; prótesis y ausente por diente completo.</td></tr>
+    <tr><td>Resultado del examen</td><td>Apto (15), No apto (30), Apto condicionado (45), Apto restringido = Inclusión (60). Tabla validada por Servicio Médico; la clave no se imprime.</td></tr>
+    <tr><td>General</td><td>Cada tipo muestra solo las secciones de su formato; el formato (FT-SO-xx) aparece junto al tipo; al cambiar de tipo la pantalla se acomoda sin perder lo capturado.</td></tr>
+  </table>
+
+  <h2>4. Pendiente</h2>
+
+  <h3 class="pend">4.1 FT-SO-05 · Cuestionario de síntomas osteomusculares (rev. 05) — no está en el sistema</h3>
+  <p>Formato de una hoja. Para reflejarlo hace falta su captura y su impreso:</p>
+  <ul>
+    <li><b>Datos del trabajador:</b> nombre, edad, puesto, cuenta, agencia y fecha (se pueden tomar de la ficha).</li>
+    <li><b>Columna vertebral:</b> curvatura fisiológica antero-posterior (normal / aumentada / disminuida) en cervical, dorsal y lumbar; desviación del eje lateral (normal / concavidad derecha / izquierda) dorsal y lumbar.</li>
+    <li><b>Movilidad y dolor:</b> flexión, extensión, lateral izquierda/derecha, rotación derecha/izquierda e irradiación, cervical y dorso-lumbar.</li>
+    <li><b>Exploración:</b> Lasègue y Schober, derecho e izquierdo (+ / −).</li>
+    <li><b>Palpación:</b> apófisis espinosas dolorosas y contractura muscular, columna cervical, dorsal y lumbar.</li>
+    <li><b>Articulaciones, movilidad y dolor:</b> hombro, codo, muñeca, cadera, rodilla y tobillo, derecho e izquierdo (abducción, aducción, flexión, extensión, rotación externa e interna, irradiación, alteración muscular).</li>
+  </ul>
+  <p class="nota">Por definir: si es un examen aparte o un anexo del examen médico (por ejemplo del periódico), y en qué tipos aplica.</p>
+
+  <h3 class="pend">4.2 FT-SO-14 · Cadena de custodia (rev. 05) — no está en el sistema</h3>
+  <p>El módulo de Antidoping existe, pero no genera este formato. Para reflejarlo:</p>
+  <ul>
+    <li><b>Encabezado:</b> folio, puesto, cuenta, nombre, fecha de nacimiento, edad y sexo.</li>
+    <li><b>Identificación:</b> tipo, emitida por y número de identificación.</li>
+    <li><b>Prueba:</b> razón (aleatoria / periódico / otro), elementos a detectar (AMP, COC, OPI, THC, MET, BENZO, BARB) y % BASC (alcohol en aire espirado).</li>
+    <li><b>Tratamiento médico:</b> diagnóstico actual, medicamento prescrito y recetado por.</li>
+    <li><b>Autorización y custodia:</b> firma del donante, responsable de la toma, fecha, hora, lugar de recolección y resultado, con firma del responsable.</li>
+  </ul>
+  <p class="nota">Por definir: si se imprime desde el módulo de Antidoping (una cadena por prueba) aprovechando lo que ya se captura ahí, y qué datos faltan capturar.</p>
+
+  <h3 class="pend">4.3 Otros pendientes de los exámenes</h3>
+  <ul>
+    <li><b>Precarga del Post incapacidad:</b> probar con un NSS real que tenga ese tipo de examen.</li>
+    <li><b>Histórico de exámenes:</b> hoy solo se guarda una copia al cerrar con dictamen (existe desde el 3-oct-2026). Decidir si también se registran los guardados sin dictamen.</li>
+  </ul>
+</main>
+</body>
+</html>

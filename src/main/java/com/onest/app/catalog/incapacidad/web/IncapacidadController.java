@@ -1,12 +1,17 @@
 package com.onest.app.catalog.incapacidad.web;
 
 import com.onest.app.audit.web.Auditado;
+import com.onest.app.catalog.dashboard.repository.VistaIncapacidadRepository;
 import com.onest.app.catalog.expediente.service.DocumentoImpresoService;
 import com.onest.app.catalog.file.service.FileStoreService;
 import com.onest.app.catalog.incapacidad.service.IncapacidadService;
 import com.onest.app.catalog.nss.service.NssSearchService;
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
@@ -27,15 +32,21 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/api/nss")
 public class IncapacidadController {
 
+    private static final Logger log = LoggerFactory.getLogger(IncapacidadController.class);
+
     private final IncapacidadService incapacidadService;
     private final FileStoreService fileStoreService;
     private final NssSearchService nssSearchService;
+    // Solo existe con portal.historico.fuente=VISTA: entonces el expediente muestra tambien lo del Excel
+    private final ObjectProvider<VistaIncapacidadRepository> vistaIncapacidades;
 
     public IncapacidadController(IncapacidadService incapacidadService, FileStoreService fileStoreService,
-                                 NssSearchService nssSearchService) {
+                                 NssSearchService nssSearchService,
+                                 ObjectProvider<VistaIncapacidadRepository> vistaIncapacidades) {
         this.incapacidadService = incapacidadService;
         this.fileStoreService = fileStoreService;
         this.nssSearchService = nssSearchService;
+        this.vistaIncapacidades = vistaIncapacidades;
     }
 
     @PostMapping(
@@ -44,11 +55,34 @@ public class IncapacidadController {
             produces = MediaType.TEXT_HTML_VALUE)
     public String incapacidades(@RequestParam("data") String data, Model model) {
         try {
+            String nss = data == null ? "" : data.trim();
             model.addAttribute("incapacidades", incapacidadService.byNss(data));
-            model.addAttribute("nss", data == null ? "" : data.trim());
+            model.addAttribute("nss", nss);
+            agregarHistorico(nss, model);
             return "fragments/incapacidades-list :: table";
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        }
+    }
+
+    /**
+     * Histórico del Excel (layout 5 por NSS) para la tarjeta "Histórico Excel" del expediente.
+     * Sin el interruptor VISTA no se agrega nada y la pantalla queda como siempre. Si la vista
+     * falla, el modulo sigue con lo del portal y la tarjeta avisa: el historico es un complemento,
+     * no debe tumbar el expediente.
+     */
+    private void agregarHistorico(String nss, Model model) {
+        VistaIncapacidadRepository vista = vistaIncapacidades.getIfAvailable();
+        if (vista == null || nss.isEmpty()) {
+            return;
+        }
+        model.addAttribute("conHistorico", true);
+        try {
+            model.addAttribute("historico", vista.historicoPorNss(nss));
+        } catch (DataAccessException ex) {
+            log.warn("[expediente] historico de incapacidades no disponible para el NSS: {}", ex.getMessage());
+            model.addAttribute("historico", List.of());
+            model.addAttribute("historicoError", true);
         }
     }
 

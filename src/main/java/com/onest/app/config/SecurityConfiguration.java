@@ -48,6 +48,8 @@ public class SecurityConfiguration {
                 .authenticationManager(authenticationManager)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/theme/**", "/css/**", "/js/**", "/img/**", "/login", "/sso/login", "/error", "/actuator/health", "/actuator/info").permitAll()
+                        // Integracion OCR: la autentica OcrApiKeyFilter (X-Api-Key), no la sesion de usuarios
+                        .requestMatchers("/api/integracion/**").permitAll()
                         .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/analisis/**", "/api/analisis/**", "/api/auditoria/**").hasRole("MEDICO_ANALISTA")
                         .anyRequest().authenticated())
@@ -79,7 +81,7 @@ public class SecurityConfiguration {
                 // /sso/login lo llama el launcher externo (SsoLoginController) - no tiene forma
                 // de traer un token CSRF de una sesion nuestra que todavia no existe. La proteccion
                 // real de ese endpoint es la firma del JWT (SsoJwtConfiguration), no el token CSRF.
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/sso/login"))
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/sso/login", "/api/integracion/**"))
                 .headers(headers -> headers
                         // X-XSS-Protection desactivado (header obsoleto; valor 0 es el correcto moderno)
                         .xssProtection(xss -> xss.disable())

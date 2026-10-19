@@ -21,6 +21,22 @@
         <java.version>21</java.version>
         <maven.compiler.release>21</maven.compiler.release>
         <skipTests>true</skipTests>
+        <!-- Valores que Maven inyecta en application*.properties al empaquetar (el parent de
+             Spring Boot filtra esos archivos con delimitador @...@). Por defecto: perfil local
+             y credenciales de produccion VACIAS, para que un WAR armado sin pensar nunca pegue
+             a produccion. El perfil de Maven "prod" (abajo) los llena desde un archivo que git
+             ignora. -->
+        <portal.perfil>local</portal.perfil>
+        <prod.datasource.url></prod.datasource.url>
+        <prod.datasource.username></prod.datasource.username>
+        <prod.datasource.password></prod.datasource.password>
+        <prod.tns.admin></prod.tns.admin>
+        <!-- Integracion OCR: llaves por ambiente (config/produccion/*.local.properties, fuera de git).
+             Vacias = la API /api/integracion/** rechaza todo con 401. -->
+        <ocr.apikey></ocr.apikey>
+        <ocr.hmac.secret></ocr.hmac.secret>
+        <ocr.callback.url></ocr.callback.url>
+        <meili.key></meili.key>
     </properties>
 
     <dependencies>
@@ -113,6 +129,9 @@
     </dependencies>
 
     <build>
+        <!-- target/portal-salud.war (19-oct-2026): Tomcat toma el context path del nombre del
+             archivo, asi que se copia tal cual a webapps/ y queda en /portal-salud. -->
+        <finalName>portal-salud</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
@@ -125,6 +144,17 @@
                     <!-- <skip>true</skip> -->
                 </configuration>
             </plugin>
+            <!-- SIEMPRE re-filtrar application*.properties: sin overwrite, Maven solo copia si el
+                 fuente cambio, y un build con otro perfil (o sin perfil) dejaba en target/ las
+                 llaves/URL del build anterior: un WAR -Pqa con credenciales de prod, o vacias.
+                 Detectado 6-oct-2026 por la suite E2E (503: API key de OCR vacia en el WAR). -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <configuration>
+                    <overwrite>true</overwrite>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -132,10 +162,95 @@
                     <release>${maven.compiler.release}</release>
                 </configuration>
             </plugin>
+            <!-- Tests en JDK 22: Mockito ya no puede auto-adjuntar el agente de Byte Buddy
+                 (la JVM lo bloquea), asi que se carga como -javaagent, que es lo que pide la
+                 propia documentacion de Mockito. maven-dependency-plugin:properties expone la
+                 ruta del jar como ${org.mockito:mockito-core:jar}. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-javaagent:${org.mockito:mockito-core:jar} -Xshare:off</argLine>
+                </configuration>
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- WAR de PRODUCCION con todo adentro: `mvn -Pprod -DskipTests clean package`.
+             Lee config/produccion/portal-salud.local.properties (versionado desde el 16-oct-2026,
+             repo privado) y mete perfil prod + url (alias TNS PDBPRD) + carpeta del tnsnames.ora
+             + usuario + contrasena en el WAR. Sin properties externos ni variables de entorno.
+             Lo unico que pone el servidor es el tnsnames.ora con el alias PDBPRD (19-oct-2026,
+             decision del usuario: seguir con TNS). Ver README.md. -->
+        <profile>
+            <id>prod</id>
+            <properties>
+                <portal.perfil>prod</portal.perfil>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>properties-maven-plugin</artifactId>
+                        <version>1.2.1</version>
+                        <executions>
+                            <execution>
+                                <phase>initialize</phase>
+                                <goals>
+                                    <goal>read-project-properties</goal>
+                                </goals>
+                                <configuration>
+                                    <files>
+                                        <file>${project.basedir}/config/produccion/portal-salud.local.properties</file>
+                                    </files>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <!-- WAR de QA: `mvn -Pqa -DskipTests clean package`. Perfil test (QA) + llaves de la
+             integracion OCR de QA desde config/produccion/portal-salud-qa.local.properties. -->
+        <profile>
+            <id>qa</id>
+            <properties>
+                <portal.perfil>test</portal.perfil>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>properties-maven-plugin</artifactId>
+                        <version>1.2.1</version>
+                        <executions>
+                            <execution>
+                                <phase>initialize</phase>
+                                <goals>
+                                    <goal>read-project-properties</goal>
+                                </goals>
+                                <configuration>
+                                    <files>
+                                        <file>${project.basedir}/config/produccion/portal-salud-qa.local.properties</file>
+                                    </files>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

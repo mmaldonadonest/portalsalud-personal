@@ -21,8 +21,10 @@
 -- hace nada. Si un objeto ya tiene el nombre nuevo, lo reporta y sigue.
 --
 -- ORDEN DE EJECUCION
---   1. Respaldo del esquema.
---   2. Bajar el WAR (que nadie escriba mientras se renombra).
+--   1. Respaldo del esquema: NO bloqueante, ya hay respaldo automatico. Se menciona
+--      porque los RENAME no se deshacen solos.
+--   2. Bajar el WAR (que nadie escriba mientras se renombra). ESTO SI es necesario:
+--      con transacciones abiertas el RENAME falla con ORA-00054.
 --   3. Este script.
 --   4. 00_init_oracle21c.sql  y  app_domain/tags-salud.sql   (recrean vistas/procs/triggers)
 --   5. Levantar el WAR: con ddl-auto=validate, si algo quedo mal no arranca y lo dice.
@@ -31,12 +33,51 @@
 SET SERVEROUTPUT ON;
 
 -- -------------------------------------------------------------------------------------
--- PASO 0: que hay hoy (solo lectura). Revisar la salida antes de seguir.
+-- PASO 0: conteo EXACTO de filas antes de renombrar (solo lectura).
+--
+-- Usa COUNT(*), NO el NUM_ROWS de user_tables: NUM_ROWS son estadisticas del optimizador
+-- y casi siempre estan atrasadas. En la corrida en local (24-sep) NUM_ROWS decia 21,449
+-- en APP_FS_FILE y el COUNT(*) real era 21,455: parecia que el renombrado habia agregado
+-- 6 filas y era solo la estadistica vieja. El PASO 4 (d) hace el mismo COUNT(*) sobre los
+-- nombres nuevos, asi que las dos listas se comparan directamente, fila por fila.
 -- -------------------------------------------------------------------------------------
-SELECT table_name, num_rows FROM user_tables
- WHERE table_name LIKE 'APP\_%' ESCAPE '\' OR table_name LIKE 'MED\_%' ESCAPE '\'
-    OR table_name LIKE 'SERV\_MED\_%' ESCAPE '\'
- ORDER BY table_name;
+DECLARE
+  PROCEDURE contar(p_tabla VARCHAR2) IS
+    v_filas  NUMBER;
+    v_existe NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO v_existe FROM user_tables WHERE table_name = p_tabla;
+    IF v_existe = 0 THEN
+      DBMS_OUTPUT.PUT_LINE(RPAD(p_tabla, 32) || '  (no existe en este ambiente)');
+      RETURN;
+    END IF;
+    EXECUTE IMMEDIATE 'SELECT COUNT(*) FROM ' || p_tabla INTO v_filas;
+    DBMS_OUTPUT.PUT_LINE(RPAD(p_tabla, 32) || TO_CHAR(v_filas, '9,999,999,999'));
+  END;
+BEGIN
+  DBMS_OUTPUT.PUT_LINE('--- filas ANTES del renombrado (COUNT(*) exacto) ---');
+  contar('APP_AUDIT_SQL_EXECUTION');
+  contar('APP_AUD_EVENT');
+  contar('APP_FS_FILE');
+  contar('APP_FS_FILE_ACCESS_LOG');
+  contar('APP_FS_FILE_ORPHAN_TRACKING');
+  contar('APP_FS_FILE_POLICY');
+  contar('APP_FS_FILE_VERSION');
+  contar('APP_IMPORT_FILA');
+  contar('APP_IMPORT_LOTE');
+  contar('APP_JOB_CATALOG');
+  contar('APP_MENU');
+  contar('APP_MENU_ROLE');
+  contar('APP_NOTIF_TEMPLATE');
+  contar('APP_SEC_PERMISSION');
+  contar('APP_SEC_ROLE');
+  contar('APP_SEC_ROLE_PERMISSION');
+  contar('APP_SEC_USER');
+  contar('APP_SEC_USER_ROLE');
+  contar('MED_TAG');
+  contar('MED_TAG_MIG_LOG');
+END;
+/
 
 PROMPT ============================================================
 PROMPT [1/4] BORRAR triggers, vistas, procedimientos y funcion VIEJOS
@@ -141,24 +182,45 @@ DECLARE
   END;
 
   -- La tabla dueña se busca en el diccionario: asi no hay que mantenerla a mano.
+  --
+  -- OJO (detectado en local el 24-sep): una PK o UNIQUE declarada con nombre se apoya en
+  -- un INDICE al que Oracle le pone EL MISMO nombre que la constraint, y
+  -- ALTER TABLE ... RENAME CONSTRAINT *no* renombra ese indice. Si no se renombra aparte,
+  -- queda un PK_MED_TAG suelto dentro del esquema compartido, que es justo lo que el
+  -- prefijo SERV_MED_ venia a evitar. Por eso el indice se revisa SIEMPRE, incluso cuando
+  -- la constraint ya estaba renombrada de una corrida anterior.
   PROCEDURE ren_constraint(p_viejo VARCHAR2, p_nuevo VARCHAR2) IS
-    v_tabla USER_CONSTRAINTS.TABLE_NAME%TYPE;
-    v_nuevo NUMBER;
+    v_tabla   USER_CONSTRAINTS.TABLE_NAME%TYPE;
+    v_nuevo   NUMBER;
+    v_indice  NUMBER;
+
+    PROCEDURE ren_indice_de_apoyo IS
+    BEGIN
+      SELECT COUNT(*) INTO v_indice FROM user_indexes WHERE index_name = p_viejo;
+      IF v_indice = 0 THEN
+        RETURN;
+      END IF;
+      EXECUTE IMMEDIATE 'ALTER INDEX ' || p_viejo || ' RENAME TO ' || p_nuevo;
+      DBMS_OUTPUT.PUT_LINE('[OK]   indice de apoyo ' || RPAD(p_viejo, 22) || ' -> ' || p_nuevo);
+    END;
   BEGIN
     SELECT COUNT(*) INTO v_nuevo FROM user_constraints WHERE constraint_name = p_nuevo;
     IF v_nuevo > 0 THEN
       DBMS_OUTPUT.PUT_LINE('[SKIP] constraint ya renombrada: ' || p_nuevo);
+      ren_indice_de_apoyo;          -- pudo quedar pendiente de una corrida previa
       RETURN;
     END IF;
     BEGIN
       SELECT table_name INTO v_tabla FROM user_constraints WHERE constraint_name = p_viejo;
     EXCEPTION WHEN NO_DATA_FOUND THEN
       DBMS_OUTPUT.PUT_LINE('[SKIP] constraint inexistente: ' || p_viejo);
+      ren_indice_de_apoyo;          -- el indice puede existir aunque la constraint no
       RETURN;
     END;
     EXECUTE IMMEDIATE 'ALTER TABLE ' || v_tabla || ' RENAME CONSTRAINT ' || p_viejo ||
                       ' TO ' || p_nuevo;
     DBMS_OUTPUT.PUT_LINE('[OK]   constraint ' || RPAD(p_viejo, 28) || ' -> ' || p_nuevo);
+    ren_indice_de_apoyo;
   END;
 BEGIN
   ren_indice('UX_NOTIF_TEMPLATE_CODE_CHANNEL',   'SERV_MED_UX_NOTIF_TPL_CH');
@@ -269,13 +331,63 @@ SELECT object_name, object_type, status FROM user_objects
  WHERE status <> 'VALID' AND object_name LIKE 'SERV\_MED\_%' ESCAPE '\'
  ORDER BY object_type, object_name;
 
--- (d) Conteo de filas: debe coincidir con lo que habia ANTES del renombrado.
-SELECT 'SERV_MED_TAG'     t, COUNT(*) filas FROM SERV_MED_TAG
-UNION ALL SELECT 'SERV_MED_FS_FILE',  COUNT(*) FROM SERV_MED_FS_FILE
-UNION ALL SELECT 'SERV_MED_SEC_USER', COUNT(*) FROM SERV_MED_SEC_USER
-UNION ALL SELECT 'SERV_MED_MENU',     COUNT(*) FROM SERV_MED_MENU
-UNION ALL SELECT 'SERV_MED_MENU_ROLE',COUNT(*) FROM SERV_MED_MENU_ROLE;
+-- (d) Conteo EXACTO de filas despues del renombrado. Compararlo LINEA POR LINEA con la
+--     lista del PASO 0: mismo COUNT(*), mismos nombres en el mismo orden. Las tablas que
+--     el PASO 0 reporto como "(no existe en este ambiente)" las crea vacias el DDL
+--     consolidado en el paso siguiente.
+DECLARE
+  PROCEDURE contar(p_tabla VARCHAR2) IS
+    v_filas  NUMBER;
+    v_existe NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO v_existe FROM user_tables WHERE table_name = p_tabla;
+    IF v_existe = 0 THEN
+      DBMS_OUTPUT.PUT_LINE(RPAD(p_tabla, 32) || '  (no existe en este ambiente)');
+      RETURN;
+    END IF;
+    EXECUTE IMMEDIATE 'SELECT COUNT(*) FROM ' || p_tabla INTO v_filas;
+    DBMS_OUTPUT.PUT_LINE(RPAD(p_tabla, 32) || TO_CHAR(v_filas, '9,999,999,999'));
+  END;
+BEGIN
+  DBMS_OUTPUT.PUT_LINE('--- filas DESPUES del renombrado (COUNT(*) exacto) ---');
+  contar('SERV_MED_AUDIT_SQL_EXECUTION');
+  contar('SERV_MED_AUD_EVENT');
+  contar('SERV_MED_FS_FILE');
+  contar('SERV_MED_FS_FILE_ACCESS_LOG');
+  contar('SERV_MED_FS_FILE_ORPHAN');
+  contar('SERV_MED_FS_FILE_POLICY');
+  contar('SERV_MED_FS_FILE_VERSION');
+  contar('SERV_MED_IMPORT_FILA');
+  contar('SERV_MED_IMPORT_LOTE');
+  contar('SERV_MED_JOB_CATALOG');
+  contar('SERV_MED_MENU');
+  contar('SERV_MED_MENU_ROLE');
+  contar('SERV_MED_NOTIF_TEMPLATE');
+  contar('SERV_MED_SEC_PERMISSION');
+  contar('SERV_MED_SEC_ROLE');
+  contar('SERV_MED_SEC_ROLE_PERMISSION');
+  contar('SERV_MED_SEC_USER');
+  contar('SERV_MED_SEC_USER_ROLE');
+  contar('SERV_MED_TAG');
+  contar('SERV_MED_TAG_MIG_LOG');
+END;
+/
 
--- Recordatorio: falta el PASO 4 del encabezado -> correr 00_init_oracle21c.sql y
--- app_domain/tags-salud.sql para recrear vistas, procedimientos, funcion y triggers.
+-- (e) Nombres VIEJOS que hayan quedado sueltos colgando de una tabla ya renombrada.
+--     Debe dar 0 filas. Los SYS_% se excluyen: son los indices que Oracle genera solo
+--     para las PK declaradas sin nombre, y siempre se llaman asi, en todos los ambientes.
+SELECT 'INDEX' tipo, index_name nombre, table_name tabla FROM user_indexes
+ WHERE table_name LIKE 'SERV\_MED\_%' ESCAPE '\'
+   AND index_name NOT LIKE 'SERV\_MED\_%' ESCAPE '\'
+   AND index_name NOT LIKE 'SYS\_%' ESCAPE '\'
+UNION ALL
+SELECT 'CONSTRAINT', constraint_name, table_name FROM user_constraints
+ WHERE table_name LIKE 'SERV\_MED\_%' ESCAPE '\'
+   AND constraint_name NOT LIKE 'SERV\_MED\_%' ESCAPE '\'
+   AND constraint_name NOT LIKE 'SYS\_%' ESCAPE '\'
+ ORDER BY 1, 2;
+
+-- Recordatorio: falta el PASO 5 del encabezado -> correr
+-- prod/01_ddl_portal_en_biometrico.sql, que recrea vistas, procedimientos, funcion y
+-- triggers con los nombres nuevos y crea las tablas que falten en este ambiente.
 

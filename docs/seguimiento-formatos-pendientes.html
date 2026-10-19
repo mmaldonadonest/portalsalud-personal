@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seguimiento de formatos</title>
+<style>
+  body { margin: 0; background: #fff; color: #000; font: 14px/1.45 Arial, Helvetica, sans-serif; }
+  main { max-width: 1280px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  h2 { font-size: 1.05rem; margin: 26px 0 8px; border-bottom: 2px solid #000; padding-bottom: 3px; }
+  p.sub { color: #444; margin: 0 0 16px; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; min-width: 1080px; }
+  table.mod { min-width: 0; max-width: 760px; }
+  th, td { border: 1px solid #000; padding: 6px 8px; text-align: left; vertical-align: top; background: #fff; color: #000; }
+  th { font-weight: bold; }
+  td.cod { font-weight: bold; white-space: nowrap; }
+  td.vacio { min-width: 90px; }
+  .e { display: inline-block; padding: 1px 7px; border: 1px solid #000; border-radius: 3px; font-size: .85rem; white-space: nowrap; }
+  .e.pend { background: #FFF4CC; }
+  .e.comp { background: #E0F2FE; }
+  .e.nuevo { background: #F3F4F6; }
+  ul { margin: 4px 0 10px; }
+  li { margin-bottom: 4px; }
+  .nota { color: #444; font-size: .92rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Seguimiento de formatos de Salud Ocupacional</h1>
+  <p class="sub">Formatos de <code>docs\formatosnuevos\reportalsalud(2)</code> que aún no están en el Portal Salud · corte 16-oct-2026. Los exámenes médicos (FT-SO-04, 13, 16, 17, 18, 19, 20) y el aviso de privacidad (FT-SO-32) ya están integrados; ver <code>docs\inventario-examenes-emle.html</code>. Lo que ya se puede imprimir (para confirmar con Servicio Médico) está en <code>docs\formatos-para-imprimir-confirmar-sm.xlsx</code>; lo que requiere captura o módulo nuevo, en <code>docs\formatos-captura-nueva.xlsx</code>.</p>
+
+  <h2>Estados</h2>
+  <ul>
+    <li><span class="e pend">Pendiente</span> ya revisado; falta decidir cómo se integra e implementarlo.</li>
+    <li><span class="e comp">Por comparar</span> el portal ya tiene algo parecido; falta compararlo contra el formato.</li>
+    <li><span class="e nuevo">Por revisar</span> no se ha analizado; hoy no existe en el portal.</li>
+  </ul>
+
+  <h2>Por módulo (propuesta)</h2>
+  <table class="mod">
+    <tr><th>Módulo</th><th>Formatos</th></tr>
+    <tr><td>Examen médico</td><td>FT-SO-05, FT-SO-11, FT-SO-23, FT-SO-25, FT-SO-31</td></tr>
+    <tr><td>Antidoping</td><td>FT-SO-14, FT-SO-22</td></tr>
+    <tr><td>Consultas</td><td>FT-SO-02, FT-SO-29</td></tr>
+    <tr><td>Pretest</td><td>FT-SO-30</td></tr>
+    <tr><td>Sin módulo (habría que crear uno de seguimiento)</td><td>FT-SO-24, FT-SO-27</td></tr>
+    <tr><td>Por definir</td><td>FT-SO-10, nota de fisioterapia</td></tr>
+  </table>
+
+  <h2>Formatos</h2>
+  <div class="scroll">
+  <table>
+    <tr>
+      <th>Formato</th><th>Nombre</th><th>Revisión</th><th>De qué trata</th><th>Relación con el portal</th><th>Dónde viviría (propuesta)</th><th>Estado</th><th>Qué preguntar a Servicio Médico</th><th>Decisión</th><th>Responsable</th><th>Fecha</th>
+    </tr>
+    <tr>
+      <td class="cod">FT-SO-05</td><td>Cuestionario de síntomas osteomusculares</td><td>05 · oct-2026</td>
+      <td>Columna (curvatura, desviación lateral, movilidad y dolor), Lasègue y Schober, palpación, y movilidad y dolor de hombro, codo, muñeca, cadera, rodilla y tobillo (derecho e izquierdo).</td>
+      <td>No existe. Comparte datos con la exploración física del examen.</td>
+      <td>Examen médico (anexo) o examen aparte</td>
+      <td><span class="e pend">Pendiente</span></td><td>¿A quién se aplica y en qué tipos de examen?</td>
+      <td class="vacio"></td><td class="vacio"></td><td class="vacio"></td>
+    </tr>
+    <tr>
+      <td class="cod">FT-SO-14</td><td>Cadena de custodia</td><td>05 · oct-2026</td>
+      <td>Folio, identificación del donante, razón de la prueba, sustancias (AMP, COC, OPI, THC, MET, BENZO, BARB), % BASC, tratamiento médico, autorización y custodia de la muestra.</td>
+      <td>El módulo de Antidoping existe pero no imprime este formato.</td>
+      <td>Antidoping, se imprime por prueba</td>
+      <td><span class="e pend">Pendiente</span></td><td>¿Se imprime una por muestra? ¿Quién la firma?</td>
+      <td class="vacio"></td><td class="vacio"></td><td class="vacio"></td>
+    </tr>
+    <tr>
+      <td class="cod">FT-SO-11</td><td>Consentimiento de realización de examen médico</td><td>04 · sep-2024</td>
+      <td>Consentimiento del trabajador para el examen (admisión, periódico, cambio de rol, post incapacidad y especial): agencia, aptitud laboral, departamento y puesto.</td>
+      <td>El impreso del examen ya trae un consentimiento con esta clave.</td>
+      <td>Examen médico (ya se imprime)</td>
+      <td><span class="e comp">Por comparar</span></td><td>¿El texto del portal es el vigente? ¿Hay versión 2026?</td>
+      <td class="vacio"></td><td class="vacio"></td><td class="vacio"></td>
+    </tr>
+    <tr>
+      <td class="cod">FT-SO-30</td><td>Pre-test para ingresos por contingencia</td><td>03 · sep-2024</td>
+      <td>Datos personales del candidato (cuenta, puesto, agencia, IMSS, domicilio…) y cuestionario previo al ingreso.</td>
+      <td>Existe el módulo Pretest.</td>
+      <td>Pretest</td>
+      <td><span class="e comp">Por comparar</span></td><td>¿Reemplaza al pretest actual o es otro distinto?</td>
+      <td class="vacio"></td><td class="vacio"></td><td class="vacio"></td>
+    </tr>
+    <tr>
+      <td class="cod">FT-SO-31</td><td>Dictamen de certificación de aptitud médica laboral</td><td>02 · sep-2024</td>
+      <td>Certificado con vigencia: apto / no apto / apto condicionado / no aplica para cada uno de 10 tipos de trabajo (administrativos, manufactura, vehículos, espacios confinados, alturas, enzimas, vigilancia, brigadistas, cargas, respirador). Trae impreso un médico fijo.</td>
+      <td>El portal guarda un solo dictamen general y no guarda vigencia: requiere captura nueva.</td>
+      <td>Examen médico, al guardar el resultado</td>
+      <td><span class="e pend">Pendiente</span></td><td>¿Dictamen por cada tipo de trabajo o basta el general? ¿Cuánto dura la vigencia? ¿Firma el médico del examen o el del formato?</td>
+      <td class="vacio"></td><td class="vacio"></td><td class="vacio"></td>
+    </tr>
+    <tr>
+      <td class="cod">FT-SO-25</td><td>Carta compromiso (apto condicionado)</td><td>04 · sep-2024</td>
+      <td>Compromiso del trabajador con dictamen «apto condicionado» (ingreso, cambio de rol, periódico o campaña): condición a cumplir y fecha de cumplimiento.</td>
+      <td>Relacionado con el dictamen «Apto condicionado» y con Restricciones médicas.</td>
+      <td>Examen médico, solo con dictamen «Apto condicionado»</td>
+      <td><span class="e nuevo">Por revisar</span></td><td>¿Es obligatoria en todo condicionado? ¿Quién da seguimiento a la condición?</td>
+      <td class="vacio"></td><td class="vacio"></td><td class="vacio"></td>
+    </tr>
+    <tr>
+      <td class="cod">FT-SO-22</td><td>Aceptación CAPA</td><td>04 · sep-2024</td>
+      <td>Aceptación del trabajador con antidoping positivo para entrar a rehabilitación.</td>
+      <td>Relacionado con Antidoping (propuesta previa: CAPA dentro de Antidoping).</td>
+      <td>Antidoping, cuando la prueba sale positiva</td>
+      <td><span class="e nuevo">Por revisar</span></td><td>¿Se firma siempre que sale positivo o solo si acepta la rehabilitación?</td>
+      <td class="vacio"></td><td class="vacio"></td><td class="vacio"></td>
+    </tr>
+    <tr>
+      <td class="cod">FT-SO-24</td><td>Carnet de control de enfermedades crónico-degenerativas</td><td>04 · sep-2024</td>
+      <td>Seguimiento mensual: peso, IMC, perímetro abdominal, T/A, FC, glucosa, colesterol…</td>
+      <td>La carga de «Carnet» se dejó para después (7-oct).</td>
+      <td>Módulo nuevo de seguimiento por NSS</td>
+      <td><span class="e nuevo">Por revisar</span></td><td>¿Quién lo llena y cada cuánto?</td>
+      <td class="vacio"></td><td class="vacio"></td><td class="vacio"></td>
+    </tr>
+    <tr>
+      <td class="cod">FT-SO-27</td><td>Control de presión arterial</td><td>03 · sep-2024</td>
+      <td>Tomas de presión con fecha y hora, brazo derecho e izquierdo y observaciones.</td>
+      <td>No existe.</td>
+      <td>Junto con el carnet (FT-SO-24)</td>
+      <td><span class="e nuevo">Por revisar</span></td><td>¿Es parte del carnet o va por separado?</td>
+      <td class="vacio"></td><td class="vacio"></td><td class="vacio"></td>
+    </tr>
+    <tr>
+      <td class="cod">FT-SO-02</td><td>Pase de salida</td><td>04 · sep-2024</td>
+      <td>Salida del trabajador por cita o atención: motivo, causa, horario de salida y regreso, e incapacidad (días, inicio, término).</td>
+      <td>Toca Consultas e Incapacidades, pero no existe como pase.</td>
+      <td>Consultas (o Incapacidades si hay días)</td>
+      <td><span class="e nuevo">Por revisar</span></td><td>¿Sale de cada consulta o solo cuando el trabajador se retira?</td>
+      <td class="vacio"></td><td class="vacio"></td><td class="vacio"></td>
+    </tr>
+    <tr>
+      <td class="cod">FT-SO-29</td><td>Pase de medicamento</td><td>03 · sep-2024</td>
+      <td>Autorización para tomar medicamento en horario: padecimiento, medicamento, duración, frecuencia y vigencia.</td>
+      <td>No existe.</td>
+      <td>Consultas</td>
+      <td><span class="e nuevo">Por revisar</span></td><td>¿Se emite desde la receta de la consulta?</td>
+      <td class="vacio"></td><td class="vacio"></td><td class="vacio"></td>
+    </tr>
+    <tr>
+      <td class="cod">FT-SO-10</td><td>Registro de skin prick test (SPT)</td><td>06 · sep-2024</td>
+      <td>Registro de pruebas cutáneas por fecha (lecturas P y E, positivo o negativo).</td>
+      <td>No existe.</td>
+      <td>Por definir: módulo aparte o Archivos del expediente</td>
+      <td><span class="e nuevo">Por revisar</span></td><td>¿Se sigue usando? ¿Para qué puestos?</td>
+      <td class="vacio"></td><td class="vacio"></td><td class="vacio"></td>
+    </tr>
+    <tr>
+      <td class="cod">FT-SO-23</td><td>Carta de consentimiento para pruebas especiales</td><td>04 · sep-2024</td>
+      <td>Consentimiento para prueba rápida (NOM-010, VIH) con ficha de identificación.</td>
+      <td>No existe.</td>
+      <td>Examen médico o Consultas</td>
+      <td><span class="e nuevo">Por revisar</span></td><td>¿Cuándo se aplica? ¿Es confidencial y debe tener acceso restringido?</td>
+      <td class="vacio"></td><td class="vacio"></td><td class="vacio"></td>
+    </tr>
+    <tr>
+      <td class="cod">—</td><td>Propuesta de nota de fisioterapia 2026</td><td>Propuesta, sin revisión</td>
+      <td>Ficha de identificación, antecedentes de lesión, diagnóstico, evolución, tratamiento previo e incapacidad (IMSS o interna).</td>
+      <td>No existe; todavía es propuesta.</td>
+      <td>Por definir: módulo nuevo o Notas médicas</td>
+      <td><span class="e nuevo">Por revisar</span></td><td>¿Ya está aprobada como formato?</td>
+      <td class="vacio"></td><td class="vacio"></td><td class="vacio"></td>
+    </tr>
+  </table>
+  </div>
+  <p class="nota">Salvo FT-SO-05 y FT-SO-14 (rev. 05, oct-2026), los archivos son versiones de septiembre de 2024. Conviene confirmar con Calidad si ya hay versión 2026 antes de implementarlos.</p>
+
+  <h2>Limpieza de la carpeta (16-oct-2026)</h2>
+  <ul>
+    <li>Se quitaron los 7 formatos de examen médico de 2024 porque ya están cubiertos por las versiones 2026 que tiene el portal.</li>
+    <li>Se quitó FT-SO-32 (Aviso de privacidad) porque ya está integrado en los exámenes.</li>
+    <li>FT-SO-25 venía dos veces. Se quitó la copia sin «R» y quedó la más actual.</li>
+    <li>FT-SO-05 y FT-SO-14 se reemplazaron por sus versiones 2026.</li>
+    <li>Respaldo de todo lo quitado: carpeta <code>respaldo-reportalsalud2</code> del scratchpad de la sesión (temporal; si se quiere conservar, copiarla a un lugar permanente).</li>
+  </ul>
+</main>
+</body>
+</html>

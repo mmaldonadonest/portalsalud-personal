@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tablas de morbilidad</title>
+<style>
+  :root{
+    --azul:#0057A8; --azul-900:#003E75; --azul-100:#EAF3FA;
+    --verde:#2B9138; --verde-100:#EAF7EC;
+    --gris-50:#F8FAFC; --gris-100:#F2F4F7; --gris-200:#E1E6EB; --gris-500:#667085; --gris-700:#475467; --gris-950:#20252B;
+    --ambar:#8a5300; --ambar-bg:#FFF7E6;
+    --fg:var(--gris-950); --muted:var(--gris-500); --line:var(--gris-200);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#fff;color:var(--fg);font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 16px 60px}
+  .hero{background:var(--azul);color:#fff;margin:0 -16px 26px;padding:28px 16px 24px;}
+  .hero-in{max-width:968px;margin:0 auto}
+  .hero h1{font-size:1.6rem;margin:0 0 4px;font-weight:700;letter-spacing:-.01em}
+  .hero .sub{opacity:.85;font-size:.92rem;margin:0}
+  .marca{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;opacity:.75;margin-bottom:8px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 22px}
+  .kpi{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--gris-50)}
+  .kpi b{display:block;font-size:1.5rem;color:var(--azul);font-variant-numeric:tabular-nums;line-height:1.1}
+  .kpi span{font-size:.8rem;color:var(--muted)}
+  h2{font-size:1.15rem;color:var(--azul-900);margin:28px 0 8px;padding-bottom:6px;border-bottom:2px solid var(--azul-100)}
+  p.lead{color:var(--gris-700);margin:0 0 12px}
+  table{width:100%;border-collapse:collapse;font-size:.9rem;margin:6px 0 14px}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:var(--gris-100);color:var(--gris-700);font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em}
+  td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  code{font-family:Consolas,"Cascadia Mono",monospace;font-size:.85em;background:var(--gris-100);padding:1px 5px;border-radius:4px;white-space:nowrap}
+  tr.principal td{background:#F4F9FE}
+  tr.principal td:first-child{border-left:4px solid var(--azul)}
+  .tag{display:inline-block;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px;vertical-align:1px}
+  .tag.ok{background:var(--verde-100);color:var(--verde)}
+  .tag.pend{background:var(--ambar-bg);color:var(--ambar)}
+  .nota{background:var(--ambar-bg);border-left:4px solid var(--ambar);padding:10px 14px;border-radius:6px;margin:12px 0;font-size:.9rem}
+  .pie{color:var(--muted);font-size:.82rem;margin-top:24px}
+  @media print{.hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero"><div class="hero-in">
+    <div class="marca">Portal Salud · Análisis</div>
+    <h1>Carga de los Excel de morbilidad: tablas principales</h1>
+    <p class="sub">Dónde quedó la información de 2026 (enero–junio) y qué encontrarán en cada tabla · base del portal (esquema BIOMETRICO) · carga del 30-sep / 1-oct-2026</p>
+  </div></div>
+
+  <div class="kpis">
+    <div class="kpi"><b>166</b><span>archivos / hojas cargados</span></div>
+    <div class="kpi"><b>24,236</b><span>eventos (atenciones, exámenes, incapacidades…)</span></div>
+    <div class="kpi"><b>118,515</b><span>datos de detalle de esos eventos</span></div>
+    <div class="kpi"><b>4,742</b><span>totales de productividad y consumibles</span></div>
+    <div class="kpi"><b>ene → jun 2026</b><span>periodo cubierto (solo carpeta 2026)</span></div>
+  </div>
+
+  <h2>Tablas principales</h2>
+  <p class="lead">Todo alimenta las gráficas del menú <b>Análisis</b> del portal. </p>
+  <table>
+    <tr><th style="width:30%">Tabla</th><th>Qué encontrarán</th><th style="width:14%">Renglones</th></tr>
+    <tr class="principal">
+      <td><code>SERV_MED_BITACORA_EVENTO</code><span class="tag ok">principal</span></td>
+      <td>Un renglón por cada <b>atención, examen médico, incapacidad, accidente, prueba antidoping o seguimiento de maternidad</b>: fecha, año y mes, predio, cuenta, área, puesto, agencia, nombre, género, rango de edad y la familia a la que pertenece.</td>
+      <td class="n">24,236</td>
+    </tr>
+    <tr>
+      <td><code>SERV_MED_BITACORA_ATRIBUTO</code></td>
+      <td>El <b>detalle</b> de cada evento, como pares dato → valor: causa de la atención, diagnóstico, tratamiento, ramo, dictamen del examen (apto / condicionado / restringido / no apto), días y costo de la incapacidad, tipo de accidente, resultado y desenlace del antidoping.</td>
+      <td class="n">118,515</td>
+    </tr>
+    <tr>
+      <td><code>SERV_MED_BITACORA_METRICA</code></td>
+      <td><b>Totales que el Excel ya traía calculados</b> y que no corresponden a una persona: productividad mensual, consumibles de medicamento, conteos por concepto (Papanicolaou, pruebas VIH, detectados…), por predio, año y mes.</td>
+      <td class="n">4,742</td>
+    </tr>
+    <tr>
+      <td><code>SERV_MED_BITACORA_LOTE</code></td>
+      <td>La <b>bitácora de la carga</b>: qué archivo y hoja entró, de qué predio y año, cuántos renglones se leyeron e insertaron, y si el conteo <b>cuadró contra la hoja ACUMULADO del propio Excel</b>. Es la evidencia de que lo cargado es lo que el archivo dice.</td>
+      <td class="n">166</td>
+    </tr>
+  </table>
+
+  <h2>Qué tipos de eventos hay</h2>
+  <table>
+    <tr><th style="width:26%">Familia</th><th>Qué es</th><th>Detalle que guarda</th></tr>
+    <tr><td>Atenciones</td><td>Consultas de la bitácora de atención</td><td>Causa, ramo, diagnóstico, tratamiento</td></tr>
+    <tr><td>Exámenes (ingreso, periódico, post incapacidad)</td><td>Exámenes médicos</td><td>Dictamen</td></tr>
+    <tr><td>Incapacidades</td><td>Incapacidades IMSS e internas</td><td>Ramo (EG / MAT / RT1 / RT2), tipo, días, costo, inicio y fin</td></tr>
+    <tr><td>Accidentes</td><td>Riesgos de trabajo</td><td>Tipo (laboral / trayecto / incidente / enfermedad profesional)</td></tr>
+    <tr><td>Antidoping</td><td>Pruebas aplicadas</td><td>Resultado y desenlace (monitoreo / baja / no contratado)</td></tr>
+    <tr><td>Maternidad</td><td>Seguimiento de embarazo</td><td>Estado y días</td></tr>
+    <tr><td>Consumibles</td><td>Inventario de medicamento</td><td>Se guarda como totales (métrica), no como evento</td></tr>
+  </table>
+
+  <h2>Pendientes</h2>
+  <table>
+    <tr><th style="width:34%">Qué</th><th>Detalle</th></tr>
+    <tr><td>Faltan julio a septiembre 2026</td><td>El archivo más reciente entregado es del 3 de julio; hay que pedir los Excel al corte.</td></tr>
+    <tr><td>Años 2017 a 2025 sin cargar</td><td>Solo se cargó la carpeta MORBILIDAD 2026. Las carpetas de años anteriores están en el origen pero no entraron en esta carga.</td></tr>
+    <tr><td>Incapacidades y accidentes sin cuadre</td><td>Sus archivos no traen hoja ACUMULADO, así que no se pudieron verificar contra el origen (no significa que estén mal).</td></tr>
+  </table>
+
+  <p class="pie">Detalle técnico (columnas, familias, consultas de ejemplo y scripts): <code>docs/tablas-carga-excel-morbilidad.md</code> en el repositorio.</p>
+</div>
+</body>
+</html>

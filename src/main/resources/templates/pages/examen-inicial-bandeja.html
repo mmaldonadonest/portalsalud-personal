@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: bandejaContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Exámenes iniciales | Portal Salud Personal</title>
+</head>
+<body>
+
+<th:block id="pageStyles"></th:block>
+
+<!-- Bandeja de examenes iniciales (ExamenInicialBandejaController). Visibilidad de todas las
+     solicitudes recibidas (hoy solo OCR), quien atiende cada una y acceso directo al examen.
+     El menu se asigna por rol con el CODE EXAMEN_INICIAL_BANDEJA. -->
+<th:block th:fragment="bandejaContent">
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/home}" href="/home">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Exámenes iniciales</li>
+            </ol>
+            <h4 class="main-title mb-0">Bandeja de exámenes iniciales</h4>
+        </div>
+        <div class="d-flex gap-2">
+            <span class="badge bg-warning text-dark" th:text="${pendientes} + ' pendiente' + (${pendientes} == 1 ? '' : 's')">0 pendientes</span>
+            <span class="badge bg-info text-dark" th:text="${enCaptura} + ' en captura'">0 en captura</span>
+        </div>
+    </div>
+
+    <div class="alert alert-warning" th:unless="${disponible}">
+        Falta aplicar <code>db/sql/app_domain/integracion-ocr.sql</code> y <code>examen-inicial-bandeja.sql</code> en la base del portal: no se pueden leer las solicitudes.
+    </div>
+
+    <div class="card card-one mb-3">
+        <div class="card-body py-3">
+            <form method="get" class="row g-2 align-items-end" id="bandejaFiltros">
+                <div class="col-6 col-md-2">
+                    <label class="form-label fs-xs text-muted mb-1">Estatus</label>
+                    <select class="form-select form-select-sm" name="estatus">
+                        <option value="" th:selected="${estatus == ''}">Todos</option>
+                        <option value="PENDIENTE" th:selected="${estatus == 'PENDIENTE'}">Pendientes</option>
+                        <option value="EN_CAPTURA" th:selected="${estatus == 'EN_CAPTURA'}">En captura</option>
+                        <option value="FINALIZADO" th:selected="${estatus == 'FINALIZADO'}">Finalizados</option>
+                        <option value="CANCELADO" th:selected="${estatus == 'CANCELADO'}">Cancelados</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label fs-xs text-muted mb-1">NSS</label>
+                    <input type="text" class="form-control form-control-sm" name="nss" th:value="${nss}" inputmode="numeric" maxlength="11" placeholder="Empieza por…">
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label fs-xs text-muted mb-1">Nombre</label>
+                    <input type="text" class="form-control form-control-sm" name="nombre" th:value="${nombre}" placeholder="Contiene…">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label fs-xs text-muted mb-1">Cita / recibido desde</label>
+                    <input type="date" class="form-control form-control-sm" name="desde" th:value="${desde}">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label fs-xs text-muted mb-1">Hasta</label>
+                    <input type="date" class="form-control form-control-sm" name="hasta" th:value="${hasta}">
+                </div>
+                <div class="col-12 col-md-1 d-flex gap-1">
+                    <button type="submit" class="btn btn-sm btn-primary flex-fill"><i class="ri-search-line"></i></button>
+                    <a th:href="@{/examen-inicial/bandeja}" href="/examen-inicial/bandeja" class="btn btn-sm btn-outline-secondary" title="Limpiar filtros"><i class="ri-close-line"></i></a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card card-one">
+        <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <h6 class="card-title mb-0">Solicitudes <span class="text-muted fw-normal fs-sm" th:text="'(' + ${#lists.size(solicitudes)} + ')'">(0)</span></h6>
+            <span class="fs-xs text-muted">Primero pendientes, luego en captura; dentro de cada grupo por fecha de cita (o de recepción).</span>
+        </div>
+        <div class="card-body">
+            <div class="text-muted fs-sm" th:if="${#lists.isEmpty(solicitudes)}">No hay solicitudes con esos filtros.</div>
+            <div class="table-responsive" th:unless="${#lists.isEmpty(solicitudes)}">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>NSS</th><th>Candidato</th><th>Puesto / cuenta</th><th>Cita</th><th>Recibido</th>
+                            <th>Estatus</th><th>Atiende</th><th>Dictamen</th><th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="s : ${solicitudes}" th:attr="data-id=${s.id}, data-estatus=${s.estatus}">
+                            <td class="text-nowrap"><a th:href="@{/nss(nss=${s.nss})}" th:text="${s.nss}">nss</a></td>
+                            <td><span th:text="${s.nombreCompleto()}">nombre</span><br><small class="text-muted" th:text="${s.referencia}">ref</small></td>
+                            <td><span th:text="${s.puestoSolicitado}">puesto</span><br><small class="text-muted" th:text="${s.cuenta}">cuenta</small></td>
+                            <td class="text-nowrap" th:text="${s.fechaCita == null} ? '—' : ${#temporals.format(s.fechaCita, 'dd/MM/yyyy')}">cita</td>
+                            <td class="text-nowrap" th:text="${s.createdAt == null} ? '' : ${#temporals.format(s.createdAt, 'dd/MM/yyyy HH:mm')}">recibido</td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${s.estatus == 'FINALIZADO'} ? 'bg-success' : (${s.estatus == 'CANCELADO'} ? 'bg-secondary' : (${s.estatus == 'EN_CAPTURA'} ? 'bg-info text-dark' : 'bg-warning text-dark'))"
+                                      th:text="${s.estatus == 'EN_CAPTURA'} ? 'EN CAPTURA' : ${s.estatus}">estatus</span>
+                                <div class="fs-xs text-muted" th:if="${s.estatus == 'CANCELADO'}" th:text="${s.motivoCancel}">motivo</div>
+                                <div class="fs-xs text-muted" th:if="${s.estatus == 'PENDIENTE' and s.caduca != null}" th:text="'caduca ' + ${#temporals.format(s.caduca, 'dd/MM')}">caduca</div>
+                            </td>
+                            <td>
+                                <th:block th:if="${s.atendidoPor != null}">
+                                    <span th:text="${s.atendidoPor}" th:classappend="${s.atendidoPor == usuarioActual} ? 'fw-semibold text-primary' : ''">usuario</span>
+                                    <div class="fs-xs text-muted" th:if="${s.atendidoAt != null}" th:text="${#temporals.format(s.atendidoAt, 'dd/MM HH:mm')}">hora</div>
+                                </th:block>
+                                <span class="text-muted" th:if="${s.atendidoPor == null}">—</span>
+                            </td>
+                            <td th:text="${s.dictamen == null} ? '' : ${s.dictamen}">dictamen</td>
+                            <td class="text-nowrap text-end">
+                                <a class="btn btn-xs btn-primary" th:if="${s.activa()}"
+                                   th:href="@{/nss(nss=${s.nss},abrir='examen-inicial')}"><i class="ri-stethoscope-line"></i> Abrir examen</a>
+                                <button type="button" class="btn btn-xs btn-outline-warning" th:if="${s.activa() and s.atendidoPor != null and s.atendidoPor != usuarioActual}"
+                                        th:attr="data-id=${s.id}" onclick="bandejaTomar(this);">Tomar</button>
+                                <a class="btn btn-xs btn-outline-secondary" th:if="${s.estatus == 'FINALIZADO'}"
+                                   th:href="@{/api/nss/examen/imprimir(nss=${s.nss},auto=1)}" target="_blank" title="Abre el expediente y el diálogo de impresión"><i class="ri-printer-line"></i> Documento</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="bandejaResult" class="fs-sm mt-2"></div>
+        </div>
+    </div>
+</th:block>
+
+<th:block id="pageScripts">
+    <script>
+        (function () {
+            function csrf() {
+                var h = {};
+                var t = document.querySelector('meta[name="_csrf"]');
+                var n = document.querySelector('meta[name="_csrf_header"]');
+                if (t && n) { h[n.content] = t.content; }
+                return h;
+            }
+            // Reasigna la solicitud al usuario en sesion y recarga para ver la columna "Atiende" al dia
+            window.bandejaTomar = async function (btn) {
+                var id = btn.dataset.id;
+                if (!window.confirm('¿Tomar este examen? Quien lo tenía asignado dejará de poder finalizarlo.')) { return; }
+                btn.disabled = true;
+                var out = document.getElementById('bandejaResult');
+                try {
+                    var r = await fetch(contextPath + 'api/examen-inicial/bandeja/' + id + '/tomar', { method: 'POST', headers: csrf() });
+                    out.textContent = await r.text();
+                    out.className = 'fs-sm mt-2 ' + (r.ok ? 'text-success' : 'text-danger');
+                    if (r.ok) { window.location.reload(); }
+                } catch (err) {
+                    out.textContent = 'Error de red.';
+                    out.className = 'fs-sm mt-2 text-danger';
+                } finally {
+                    btn.disabled = false;
+                }
+            };
+        })();
+    </script>
+</th:block>
+</body>
+</html>

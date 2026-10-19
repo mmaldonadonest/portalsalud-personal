@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: ayudaContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Ayuda | Portal Salud Personal</title>
+</head>
+<body>
+
+<th:block id="pageStyles">
+    <style>
+        .ayuda-art { border: 1px solid #E1E6EB; border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; background: #fff; cursor: pointer; }
+        .ayuda-art:hover { border-color: #0057A8; }
+        .ayuda-art .t { font-weight: 600; color: #003E75; }
+        .ayuda-art .p { font-size: .85rem; color: #667085; }
+        .ayuda-art .cuerpo { display: none; margin-top: 8px; border-top: 1px dashed #E1E6EB; padding-top: 8px; font-size: .92rem; }
+        .ayuda-art.abierto .cuerpo { display: block; }
+        .ayuda-art .cuerpo h3, .ayuda-art .cuerpo h4 { font-size: 1rem; margin: 10px 0 4px; color: #003E75; }
+        .ayuda-art .cuerpo ul, .ayuda-art .cuerpo ol { padding-left: 20px; }
+    </style>
+</th:block>
+
+<!-- Centro de ayuda: todos los articulos que el rol puede ver, por modulo. La busqueda usa el
+     mismo chat (boton de arriba). AyudaController.centro -->
+<th:block th:fragment="ayudaContent">
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/home}" href="/home">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Ayuda</li>
+            </ol>
+            <h4 class="main-title mb-0">Centro de ayuda</h4>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="ayudaAbrir();"><i class="ri-question-answer-line me-1"></i> Preguntar</button>
+    </div>
+
+    <div class="alert alert-light border fs-sm" th:unless="${buscadorActivo}">
+        El buscador avanzado no está disponible ahora; la búsqueda del chat funciona con coincidencia simple.
+    </div>
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-3">
+            <div class="card card-one">
+                <div class="card-body py-2">
+                    <div class="fs-xs text-muted text-uppercase mb-2">Temas</div>
+                    <ul class="list-unstyled mb-0">
+                        <li th:each="m : ${porModulo}" class="mb-1">
+                            <a th:href="'#mod-' + ${m.key}" th:text="${nombresModulo.get(m.key) ?: m.key}" class="fs-sm">Tema</a>
+                            <span class="text-muted fs-xs" th:text="'(' + ${#lists.size(m.value)} + ')'">(0)</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-9">
+            <div th:each="m : ${porModulo}" class="mb-4" th:id="'mod-' + ${m.key}">
+                <h6 class="mb-2" th:text="${nombresModulo.get(m.key) ?: m.key}">Tema</h6>
+                <div class="ayuda-art" th:each="a : ${m.value}" th:attr="data-id=${a.id}" onclick="ayudaCentroAbrir(this, event);">
+                    <div class="t" th:text="${a.titulo}">Título</div>
+                    <div class="p" th:text="${a.pregunta}">Pregunta</div>
+                    <div class="cuerpo"></div>
+                </div>
+            </div>
+            <div class="text-muted" th:if="${#maps.isEmpty(porModulo)}">
+                La ayuda se está preparando; pronto encontrarás aquí las respuestas a las dudas más comunes del portal.
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block id="pageScripts">
+    <script>
+        window.ayudaCentroAbrir = async function (caja, ev) {
+            if (ev && ev.target && ev.target.closest('a')) { return; }   // enlaces dentro del cuerpo
+            var cuerpo = caja.querySelector('.cuerpo');
+            if (caja.classList.contains('abierto')) { caja.classList.remove('abierto'); return; }
+            if (!cuerpo.innerHTML) {
+                try {
+                    var r = await fetch(contextPath + 'api/ayuda/articulos/' + caja.dataset.id, { headers: { 'Accept': 'application/json' } });
+                    var a = await r.json();
+                    cuerpo.innerHTML = a.html;
+                    cuerpo.querySelectorAll('a.ayuda-enlace').forEach(function (l) { l.href = contextPath + String(l.dataset.ruta).replace(/^\//, ''); });
+                    if (a.enlace) {
+                        var b = document.createElement('a');
+                        b.className = 'btn btn-sm btn-primary mt-1';
+                        b.href = contextPath + String(a.enlace).replace(/^\//, '');
+                        b.textContent = 'Abrir';
+                        cuerpo.appendChild(b);
+                    }
+                } catch (e) {
+                    cuerpo.textContent = 'No se pudo cargar el artículo.';
+                }
+            }
+            caja.classList.add('abierto');
+        };
+    </script>
+</th:block>
+</body>
+</html>

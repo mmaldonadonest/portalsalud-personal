@@ -226,4 +226,6 @@ lleva cambios locales.
 
 - `docs/conexiones-ambientes.md`: bases y ambientes.
 - `docs/paso-a-produccion-dos-bases.md`: qué `.sql` va a la base del portal y cuál a ORDS.
-- `etl/README.md`: migración del histórico del sistema anterior (proyecto aparte).
+- Cargadores de una sola vez (`etl/`: migración del histórico del sistema anterior; `excel-loader/`:
+  carga de los Excel): no están en `main`, para que nadie los ejecute por error y sobrescriba
+  datos. Su código está en la rama `archivo/cargadores`.

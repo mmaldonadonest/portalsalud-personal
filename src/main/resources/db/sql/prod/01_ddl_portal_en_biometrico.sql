@@ -16,8 +16,14 @@
 -- APP_ ya esta ocupado por OTRO sistema (APP_TAREAS, APP_REPORTES, APP_CONFIG_EXCEL y 7 mas).
 -- SERV_MED_ es la convencion del servicio medico en esa base.
 --
--- Se respeta el limite de 30 caracteres del esquema legacy (Oracle 21c admite 128, pero
--- SERV_MED_RESULTADO_EXAMEN_HIST mide exactamente 30: se conserva la convencion).
+-- Se respeta el limite de 30 caracteres del esquema legacy (desde 12.2 Oracle admite 128,
+-- pero SERV_MED_RESULTADO_EXAMEN_HIST mide exactamente 30: se conserva la convencion).
+-- El nombre mas largo que crea este script mide 30, verificado.
+--
+-- VERSION: BIOMETRICO@PDBPRD es Oracle 19c Enterprise Edition. Lo mas nuevo que usa este
+-- script son las columnas IDENTITY (12.1) y el q-quoting de literales (10.1), asi que 19c
+-- alcanza de sobra. Que uno de los scripts de origen se llame 00_init_oracle21c.sql es solo
+-- el nombre del archivo, heredado del ambiente donde se escribio; no exige 21c.
 --
 -- QUIEN LO EJECUTA: el usuario / el DBA, en SQL Developer, conectado como BIOMETRICO.
 -- El agente no ejecuta nada contra esta base (regla del 23-sep-2026).
@@ -25,8 +31,10 @@
 -- -------------------------------------------------------------------------------------
 -- ANTES DE EJECUTAR
 -- -------------------------------------------------------------------------------------
--- 1. RESPALDO del esquema (expdp) o al menos constancia de que se puede revertir.
--- 2. Correr el bloque "PRE-CHECK" de aqui abajo. Con el prefijo nuevo hay que revisar TRES
+-- 1. RESPALDO: NO es bloqueante. La base ya tiene respaldo automatico, no hay que hacer
+--    uno a proposito. Se menciona solo para tenerlo presente: este DDL es autoconfirmado,
+--    ROLLBACK no sirve, y la vuelta atras son ese respaldo o prod/02_rollback_portal_en_biometrico.sql.
+-- 2. LO UNICO BLOQUEANTE: correr el bloque "PRE-CHECK" de aqui abajo. Con el prefijo nuevo hay que revisar TRES
 --    cosas, no solo los nombres de tabla:
 --      a) que ninguna tabla SERV_MED_* del portal exista ya,
 --      b) que ningun INDICE ni CONSTRAINT choque por nombre (comparten namespace por esquema),
@@ -89,8 +97,20 @@ SELECT 'OTRO', object_name FROM user_objects
                        'SERV_MED_TRG_FS_FILE_BU','SERV_MED_TRG_FS_FILE_POLICY_BU')
  ORDER BY 1, 2;
 
--- (c) Inventario actual: que SERV_MED_* hay hoy (del PHP legacy) y que APP_* (de otro sistema)
-SELECT table_name FROM user_tables WHERE table_name LIKE 'SERV\_MED\_%' ESCAPE '\' ORDER BY 1;
+-- (c) Inventario actual, para tener la linea base antes de agregar nada.
+--     El 24-sep-2026 habia 64 tablas SERV_MED_* y 10 APP_*. Si los numeros cambiaron,
+--     averiguar por que ANTES de seguir. De esas 64:
+--        * 53 son del PHP legacy (expediente clinico: ABDOMEN, DIAGNOSTICO,
+--          EXPLORACION_FISICA, CAT_INDICE_IDC10 con las 909 claves ICD, etc.)
+--        * 11 son de ESTE proyecto pero del lado de ORDS, no de JDBC (Accidentes,
+--          Antidoping, Causas, Restricciones, Maternidad, Predio/Cuenta). Tienen datos
+--          reales y este DDL no las toca: son las unicas SERV_MED_* sin estadisticas
+--          recolectadas, asi que se distinguen por NUM_ROWS / LAST_ANALYZED en blanco.
+--     Despues de este DDL el esquema quedara con 84 tablas SERV_MED_*.
+SELECT COUNT(*) AS serv_med_antes FROM user_tables
+ WHERE table_name LIKE 'SERV\_MED\_%' ESCAPE '\';
+SELECT table_name, num_rows, TO_CHAR(last_analyzed, 'DD/MM/YYYY') estadisticas_del
+  FROM user_tables WHERE table_name LIKE 'SERV\_MED\_%' ESCAPE '\' ORDER BY 1;
 SELECT table_name FROM user_tables WHERE table_name LIKE 'APP\_%' ESCAPE '\' ORDER BY 1;
 
 -- (d) Privilegios del usuario con el que se va a ejecutar
@@ -857,7 +877,7 @@ PROMPT ============================================================
 -- RBAC local para Portal Salud (roles/menus/usuarios propios) - idempotente.
 -- Ubicacion: src/main/resources/db/sql
 --
--- Contexto: activa el esquema APP_SEC_*/SERV_MED_MENU ya sembrado (dormant) en
+-- Contexto: activa el esquema SERV_MED_SEC_*/SERV_MED_MENU ya sembrado (dormant) en
 -- 00_init_oracle21c.sql para resolver menus/permisos localmente en vez de
 -- contra el WS ORDS compartido con el portal PHP legacy. Ver docs/plan-rbac-local.md.
 --
@@ -1673,140 +1693,164 @@ END;
 --   Requiere Database Link desde Oracle hacia MariaDB llamado MARIADB_LINK.
 --   Si no existe DB Link ver BLOQUE 6 (alternativa ETL externo).
 -- =============================================================================
-CREATE OR REPLACE PROCEDURE SERV_MED_SP_MIGRATE_TAGS (
-  p_batch_size  IN NUMBER DEFAULT 500,
-  p_dry_run     IN CHAR   DEFAULT 'N'   -- 'S' = solo cuenta, no inserta
-)
-IS
-  -- Cursor sobre DB Link a MariaDB
-  -- Solo trae registros que aún no existen en Oracle (reanudable)
-  CURSOR c_tags IS
-    SELECT id, nss, type, content
-    FROM   tags@MARIADB_LINK
-    WHERE  id NOT IN (
-             SELECT SOURCE_ID
-             FROM   SERV_MED_TAG
-             WHERE  SOURCE_ID IS NOT NULL
-           )
-    ORDER BY id ASC;
-
-  TYPE t_ids      IS TABLE OF NUMBER;
-  TYPE t_nss      IS TABLE OF VARCHAR2(255);
-  TYPE t_types    IS TABLE OF VARCHAR2(120);
-  TYPE t_contents IS TABLE OF CLOB;
-
-  v_ids      t_ids;
-  v_nss      t_nss;
-  v_types    t_types;
-  v_contents t_contents;
-
-  v_batch_no   NUMBER := 1;
-  v_total_ins  NUMBER := 0;
-  v_batch_ins  NUMBER := 0;
-  v_id_from    NUMBER;
-  v_id_to      NUMBER;
-
-BEGIN
-  DBMS_OUTPUT.PUT_LINE('════════════════════════════════════════════');
-  DBMS_OUTPUT.PUT_LINE('SERV_MED_SP_MIGRATE_TAGS — inicio: ' ||
-                       TO_CHAR(SYSTIMESTAMP,'YYYY-MM-DD HH24:MI:SS'));
-  DBMS_OUTPUT.PUT_LINE('Modo    : ' ||
-                       CASE p_dry_run WHEN 'S' THEN 'DRY-RUN (solo conteo)'
-                                      ELSE 'REAL (insertando en Oracle)' END);
-  DBMS_OUTPUT.PUT_LINE('Lote    : ' || p_batch_size || ' filas');
-  DBMS_OUTPUT.PUT_LINE('════════════════════════════════════════════');
-
-  OPEN c_tags;
-  LOOP
-    FETCH c_tags
-    BULK COLLECT INTO v_ids, v_nss, v_types, v_contents
-    LIMIT p_batch_size;
-
-    EXIT WHEN v_ids.COUNT = 0;
-
-    v_id_from := v_ids(1);
-    v_id_to   := v_ids(v_ids.LAST);
-
-    -- Registrar inicio de lote
-    INSERT INTO SERV_MED_TAG_MIG_LOG
-      (BATCH_NO, SOURCE_ID_FROM, SOURCE_ID_TO,
-       ROWS_EXPECTED, STATUS, STARTED_AT)
-    VALUES
-      (v_batch_no, v_id_from, v_id_to,
-       v_ids.COUNT, 'RUNNING', SYSTIMESTAMP);
-    COMMIT;
-
-    IF p_dry_run = 'N' THEN
-      BEGIN
-        -- Inserción masiva con clasificación automática de TAG_GROUP
-        FORALL i IN 1..v_ids.COUNT
-          INSERT INTO SERV_MED_TAG (
-            NSS, TYPE, CONTENT, TAG_GROUP,
-            SOURCE_ID,   MIGRATED_AT,
-            CREATED_AT,  CREATED_BY
-          ) VALUES (
-            v_nss(i),
-            v_types(i),
-            v_contents(i),
-            SERV_MED_FN_TAG_GROUP(v_types(i)),  -- clasificación automática
-            v_ids(i),
-            SYSTIMESTAMP,
-            SYSTIMESTAMP,
-            'SP_MIGRATE_TAGS_V2'
-          );
-
-        v_batch_ins := SQL%ROWCOUNT;
-        v_total_ins := v_total_ins + v_batch_ins;
-
-        UPDATE SERV_MED_TAG_MIG_LOG
-        SET    STATUS       = 'DONE',
-               ROWS_INSERTED = v_batch_ins,
-               FINISHED_AT  = SYSTIMESTAMP
-        WHERE  BATCH_NO = v_batch_no AND STATUS = 'RUNNING';
-        COMMIT;
-
-        DBMS_OUTPUT.PUT_LINE('[LOTE ' || LPAD(v_batch_no,3) || ']' ||
-                             ' IDs '   || v_id_from || ' → ' || v_id_to ||
-                             ' | ins: ' || v_batch_ins);
-
-      EXCEPTION WHEN OTHERS THEN
-        ROLLBACK;
-        UPDATE SERV_MED_TAG_MIG_LOG
-        SET    STATUS      = 'ERROR',
-               ERROR_MSG   = SUBSTR(SQLERRM, 1, 4000),
-               FINISHED_AT = SYSTIMESTAMP
-        WHERE  BATCH_NO = v_batch_no AND STATUS = 'RUNNING';
-        COMMIT;
-        DBMS_OUTPUT.PUT_LINE('[ERROR lote ' || v_batch_no || '] ' || SQLERRM);
-        EXIT;  -- detener en primer error; relanzar desde el lote fallido
-      END;
-
-    ELSE
-      -- Dry-run: solo reporta, no inserta
-      UPDATE SERV_MED_TAG_MIG_LOG
-      SET    STATUS       = 'DRY-RUN',
-             ROWS_INSERTED = 0,
-             FINISHED_AT  = SYSTIMESTAMP
-      WHERE  BATCH_NO = v_batch_no AND STATUS = 'RUNNING';
-      COMMIT;
-      DBMS_OUTPUT.PUT_LINE('[DRY-RUN lote ' || LPAD(v_batch_no,3) || ']' ||
-                           ' IDs ' || v_id_from || ' → ' || v_id_to ||
-                           ' | filas: ' || v_ids.COUNT);
-    END IF;
-
-    v_batch_no := v_batch_no + 1;
-  END LOOP;
-
-  CLOSE c_tags;
-
-  DBMS_OUTPUT.PUT_LINE('════════════════════════════════════════════');
-  DBMS_OUTPUT.PUT_LINE('Total insertados : ' || v_total_ins);
-  DBMS_OUTPUT.PUT_LINE('Fin              : ' ||
-                       TO_CHAR(SYSTIMESTAMP,'YYYY-MM-DD HH24:MI:SS'));
-  DBMS_OUTPUT.PUT_LINE('════════════════════════════════════════════');
-
-END SERV_MED_SP_MIGRATE_TAGS;
-/
+-- ---------------------------------------------------------------------------
+-- *** DESACTIVADO 24-sep-2026 - NO SE CREA EN NINGUN AMBIENTE ***
+--
+-- Este procedimiento NO COMPILA y no puede compilar. Dos motivos independientes:
+--
+--   1. El cursor lee  tags@MARIADB_LINK  y ese database link NO EXISTE en ningun
+--      ambiente (local, QA ni produccion) ni existio nunca -> ORA-00942.
+--   2. Usa SQLERRM dentro de un UPDATE (ERROR_MSG = SUBSTR(SQLERRM,1,4000)).
+--      Oracle no permite llamar SQLERRM desde una sentencia SQL -> ORA-00904
+--      "SQLERRM": invalid identifier. Ese bug siempre estuvo aqui; nunca se habia
+--      visto porque el procedimiento jamas llego a compilarse.
+--
+-- Es CODIGO MUERTO: la carga historica de tags (550,560 filas) se hizo con el
+-- proyecto ETL en Java (carpeta etl/), no con este camino de DB Link. Se deja
+-- comentado como referencia del diseno original, no se ejecuta.
+--
+-- Se detecto al correr el DDL consolidado en el Oracle local el 24-sep: dejaba el
+-- objeto en estado INVALID, que en produccion habria sido ruido para el DBA y
+-- ademas dispara la alerta del bloque de VERIFICACION ("ningun objeto SERV_MED_*
+-- debe quedar INVALID").
+--
+-- SERV_MED_TAG_MIG_LOG y SERV_MED_V_TAG_MIG_STATUS (bloques 4 y 7d) SI se crean:
+-- son objetos validos y quedan vacios. Son vestigios de este mismo camino.
+-- ---------------------------------------------------------------------------
+-- CREATE OR REPLACE PROCEDURE SERV_MED_SP_MIGRATE_TAGS (
+--   p_batch_size  IN NUMBER DEFAULT 500,
+--   p_dry_run     IN CHAR   DEFAULT 'N'   -- 'S' = solo cuenta, no inserta
+-- )
+-- IS
+--   -- Cursor sobre DB Link a MariaDB
+--   -- Solo trae registros que aún no existen en Oracle (reanudable)
+--   CURSOR c_tags IS
+--     SELECT id, nss, type, content
+--     FROM   tags@MARIADB_LINK
+--     WHERE  id NOT IN (
+--              SELECT SOURCE_ID
+--              FROM   SERV_MED_TAG
+--              WHERE  SOURCE_ID IS NOT NULL
+--            )
+--     ORDER BY id ASC;
+--
+--   TYPE t_ids      IS TABLE OF NUMBER;
+--   TYPE t_nss      IS TABLE OF VARCHAR2(255);
+--   TYPE t_types    IS TABLE OF VARCHAR2(120);
+--   TYPE t_contents IS TABLE OF CLOB;
+--
+--   v_ids      t_ids;
+--   v_nss      t_nss;
+--   v_types    t_types;
+--   v_contents t_contents;
+--
+--   v_batch_no   NUMBER := 1;
+--   v_total_ins  NUMBER := 0;
+--   v_batch_ins  NUMBER := 0;
+--   v_id_from    NUMBER;
+--   v_id_to      NUMBER;
+--
+-- BEGIN
+--   DBMS_OUTPUT.PUT_LINE('════════════════════════════════════════════');
+--   DBMS_OUTPUT.PUT_LINE('SERV_MED_SP_MIGRATE_TAGS — inicio: ' ||
+--                        TO_CHAR(SYSTIMESTAMP,'YYYY-MM-DD HH24:MI:SS'));
+--   DBMS_OUTPUT.PUT_LINE('Modo    : ' ||
+--                        CASE p_dry_run WHEN 'S' THEN 'DRY-RUN (solo conteo)'
+--                                       ELSE 'REAL (insertando en Oracle)' END);
+--   DBMS_OUTPUT.PUT_LINE('Lote    : ' || p_batch_size || ' filas');
+--   DBMS_OUTPUT.PUT_LINE('════════════════════════════════════════════');
+--
+--   OPEN c_tags;
+--   LOOP
+--     FETCH c_tags
+--     BULK COLLECT INTO v_ids, v_nss, v_types, v_contents
+--     LIMIT p_batch_size;
+--
+--     EXIT WHEN v_ids.COUNT = 0;
+--
+--     v_id_from := v_ids(1);
+--     v_id_to   := v_ids(v_ids.LAST);
+--
+--     -- Registrar inicio de lote
+--     INSERT INTO SERV_MED_TAG_MIG_LOG
+--       (BATCH_NO, SOURCE_ID_FROM, SOURCE_ID_TO,
+--        ROWS_EXPECTED, STATUS, STARTED_AT)
+--     VALUES
+--       (v_batch_no, v_id_from, v_id_to,
+--        v_ids.COUNT, 'RUNNING', SYSTIMESTAMP);
+--     COMMIT;
+--
+--     IF p_dry_run = 'N' THEN
+--       BEGIN
+--         -- Inserción masiva con clasificación automática de TAG_GROUP
+--         FORALL i IN 1..v_ids.COUNT
+--           INSERT INTO SERV_MED_TAG (
+--             NSS, TYPE, CONTENT, TAG_GROUP,
+--             SOURCE_ID,   MIGRATED_AT,
+--             CREATED_AT,  CREATED_BY
+--           ) VALUES (
+--             v_nss(i),
+--             v_types(i),
+--             v_contents(i),
+--             SERV_MED_FN_TAG_GROUP(v_types(i)),  -- clasificación automática
+--             v_ids(i),
+--             SYSTIMESTAMP,
+--             SYSTIMESTAMP,
+--             'SP_MIGRATE_TAGS_V2'
+--           );
+--
+--         v_batch_ins := SQL%ROWCOUNT;
+--         v_total_ins := v_total_ins + v_batch_ins;
+--
+--         UPDATE SERV_MED_TAG_MIG_LOG
+--         SET    STATUS       = 'DONE',
+--                ROWS_INSERTED = v_batch_ins,
+--                FINISHED_AT  = SYSTIMESTAMP
+--         WHERE  BATCH_NO = v_batch_no AND STATUS = 'RUNNING';
+--         COMMIT;
+--
+--         DBMS_OUTPUT.PUT_LINE('[LOTE ' || LPAD(v_batch_no,3) || ']' ||
+--                              ' IDs '   || v_id_from || ' → ' || v_id_to ||
+--                              ' | ins: ' || v_batch_ins);
+--
+--       EXCEPTION WHEN OTHERS THEN
+--         ROLLBACK;
+--         UPDATE SERV_MED_TAG_MIG_LOG
+--         SET    STATUS      = 'ERROR',
+--                ERROR_MSG   = SUBSTR(SQLERRM, 1, 4000),
+--                FINISHED_AT = SYSTIMESTAMP
+--         WHERE  BATCH_NO = v_batch_no AND STATUS = 'RUNNING';
+--         COMMIT;
+--         DBMS_OUTPUT.PUT_LINE('[ERROR lote ' || v_batch_no || '] ' || SQLERRM);
+--         EXIT;  -- detener en primer error; relanzar desde el lote fallido
+--       END;
+--
+--     ELSE
+--       -- Dry-run: solo reporta, no inserta
+--       UPDATE SERV_MED_TAG_MIG_LOG
+--       SET    STATUS       = 'DRY-RUN',
+--              ROWS_INSERTED = 0,
+--              FINISHED_AT  = SYSTIMESTAMP
+--       WHERE  BATCH_NO = v_batch_no AND STATUS = 'RUNNING';
+--       COMMIT;
+--       DBMS_OUTPUT.PUT_LINE('[DRY-RUN lote ' || LPAD(v_batch_no,3) || ']' ||
+--                            ' IDs ' || v_id_from || ' → ' || v_id_to ||
+--                            ' | filas: ' || v_ids.COUNT);
+--     END IF;
+--
+--     v_batch_no := v_batch_no + 1;
+--   END LOOP;
+--
+--   CLOSE c_tags;
+--
+--   DBMS_OUTPUT.PUT_LINE('════════════════════════════════════════════');
+--   DBMS_OUTPUT.PUT_LINE('Total insertados : ' || v_total_ins);
+--   DBMS_OUTPUT.PUT_LINE('Fin              : ' ||
+--                        TO_CHAR(SYSTIMESTAMP,'YYYY-MM-DD HH24:MI:SS'));
+--   DBMS_OUTPUT.PUT_LINE('════════════════════════════════════════════');
+--
+-- END SERV_MED_SP_MIGRATE_TAGS;
+-- /
 
 
 -- =============================================================================

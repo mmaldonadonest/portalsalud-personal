@@ -1,0 +1,1103 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carga Excel 2026</title>
+<style>
+  :root{
+    --blanco:#ffffff;
+    --azul:#0057A8;          /* --onest-blue   */
+    --azul-700:#00549E;      /* --onest-blue-700 */
+    --azul-900:#003E75;      /* --onest-blue-900 */
+    --azul-300:#4FA8E0;      /* --onest-blue-300 */
+    --azul-100:#EAF3FA;      /* --onest-blue-100 */
+    --verde:#2B9138;         /* --onest-green-700 */
+    --verde-100:#EAF7EC;     /* --onest-green-100 */
+    --gris-50:#F8FAFC; --gris-100:#F2F4F7; --gris-200:#E1E6EB;
+    --gris-300:#D0D5DD; --gris-500:#667085; --gris-700:#475467; --gris-950:#20252B;
+    --ambar:#8a5300; --ambar-bg:#FFF7E6;
+    --fg:var(--gris-950); --muted:var(--gris-500); --line:var(--gris-200);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--blanco);color:var(--fg);
+       font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 16px 80px}
+
+  /* ---- cabecera ---- */
+  .hero{background:var(--azul);color:#fff;margin:0 -16px 28px;padding:30px 16px 26px;}
+  .hero-in{max-width:1028px;margin:0 auto}
+  .hero h1{font-size:1.8rem;margin:0 0 4px;letter-spacing:-.015em;font-weight:700}
+  .hero .sub{opacity:.85;font-size:.94rem;margin:0}
+  .marca{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;opacity:.75;margin-bottom:10px}
+
+  /* ---- barra de progreso ---- */
+  .prog{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:0 0 26px;
+        box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .prog-top{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .prog-top b{font-size:1.02rem;color:var(--azul-900)}
+  .prog-pct{font-size:1.5rem;font-weight:700;color:var(--azul);font-variant-numeric:tabular-nums}
+  .barra{height:26px;border-radius:7px;background:var(--gris-100);overflow:hidden;display:flex;
+         border:1px solid var(--gris-200)}
+  .seg{height:100%;display:flex;align-items:center;justify-content:center;
+       font-size:.7rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden}
+  .seg.hecho{background:var(--verde)}
+  .seg.curso{background:var(--azul-300)}
+  .seg.falta{background:var(--gris-200);color:var(--gris-500)}
+  .leyenda{display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;font-size:.82rem;color:var(--muted)}
+  .leyenda i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+  .fases{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+  .fase{flex:1 1 180px;border:1px solid var(--line);border-radius:9px;padding:10px 12px;background:var(--gris-50)}
+  .fase .t{font-size:.76rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
+  .fase .b{height:6px;border-radius:3px;background:var(--gris-200);margin:7px 0 5px;overflow:hidden}
+  .fase .b span{display:block;height:100%;background:var(--verde)}
+  .fase .n{font-size:.82rem;color:var(--gris-700)}
+
+  .cards{display:flex;flex-wrap:wrap;gap:12px;margin:22px 0 6px}
+  .card{flex:1 1 150px;border:1px solid var(--line);border-radius:10px;padding:13px 15px;background:var(--gris-50)}
+  .card .n{font-size:1.5rem;font-weight:700;color:var(--azul);line-height:1.2}
+  .card .l{font-size:.79rem;color:var(--muted)}
+
+  h2{font-size:1.16rem;margin:42px 0 6px;padding-bottom:7px;color:var(--azul-900);
+     border-bottom:2px solid var(--azul);font-weight:700}
+  h3{font-size:.95rem;margin:26px 0 8px;color:var(--gris-700);text-transform:uppercase;
+     letter-spacing:.06em;font-weight:700}
+  /* h4 subordinado a h3: mismo tono, sin mayusculas, para los sub-apartados de una familia */
+  h4{font-size:.92rem;margin:22px 0 6px;color:var(--azul-900);font-weight:700}
+  p{margin:10px 0}
+
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.89rem}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--azul-100);color:var(--azul-900);font-weight:700;font-size:.78rem;
+     text-transform:uppercase;letter-spacing:.04em}
+  tbody tr:nth-child(even){background:var(--gris-50)}
+  td.n,th.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  td.id{font-weight:700;color:var(--azul);white-space:nowrap}
+  tfoot td{font-weight:700;border-top:2px solid var(--azul);border-bottom:none;background:#fff}
+  tr.ok td:first-child::after{content:" ✓";color:var(--verde);font-weight:700}
+
+  .tag{display:inline-block;font-size:.71rem;padding:2px 7px;border-radius:99px;
+       border:1px solid var(--gris-300);color:var(--muted);white-space:nowrap;background:#fff}
+  .tag.comp{background:var(--azul-100);color:var(--azul-700);border-color:transparent}
+  .tag.done{background:var(--verde-100);color:var(--verde);border-color:transparent;font-weight:700}
+
+  .note{border-left:3px solid var(--azul);background:var(--azul-100);padding:12px 15px;
+        border-radius:0 8px 8px 0;margin:16px 0}
+  .warn{border-left:3px solid var(--ambar);background:var(--ambar-bg);padding:12px 15px;
+        border-radius:0 8px 8px 0;margin:16px 0}
+  .good{border-left:3px solid var(--verde);background:var(--verde-100);padding:12px 15px;
+        border-radius:0 8px 8px 0;margin:16px 0}
+
+  ul{margin:8px 0;padding-left:22px} li{margin:5px 0}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.86em;
+       background:var(--gris-100);border:1px solid var(--gris-200);border-radius:4px;padding:1px 5px}
+  footer{margin-top:52px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:.81rem}
+  @media (max-width:640px){
+    th,td{padding:7px 6px;font-size:.83rem}
+    .hero h1{font-size:1.42rem}
+    .prog-pct{font-size:1.25rem}
+  }
+  @media print{ .hero{background:#fff;color:#000} .prog{break-inside:avoid} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hero"><div class="hero-in">
+  <div class="marca">Onest SmartLogistics &middot; Portal Salud</div>
+  <h1>Carga de Excel 2026</h1>
+  <p class="sub">Plan de tareas, estimado y avance &middot; actualizado el 30 de septiembre de 2026</p>
+</div></div>
+
+<div class="prog">
+  <div class="prog-top">
+    <b>Avance del proyecto</b>
+    <span class="prog-pct">Fases 1 y 2 &middot; las 9 familias cargadas</span>
+  </div>
+  <div class="barra">
+    <div class="seg hecho" style="width:67%">Fases 1 y 2</div>
+    <div class="seg falta" style="width:33%">Fase 3</div>
+  </div>
+  <div class="leyenda">
+    <span><i style="background:#2B9138"></i>Terminado, cargado y verificado contra la base</span>
+    <span><i style="background:#E1E6EB"></i>Pendiente</span>
+  </div>
+
+  <div class="fases">
+    <div class="fase">
+      <div class="t">Fase 1 &middot; Atenciones y exámenes</div>
+      <div class="b"><span style="width:100%"></span></div>
+      <div class="n"><strong>21 de 21 tareas &middot; CERRADA</strong> · 4 familias cargando, 21,186 renglones en QA</div>
+    </div>
+    <div class="fase">
+      <div class="t">Fase 2 &middot; Las 5 familias restantes</div>
+      <div class="b"><span style="width:100%"></span></div>
+      <div class="n"><strong>5 de 5, con pantalla</strong> · antidoping, maternidad, incapacidades, accidentabilidad y consumo</div>
+    </div>
+    <div class="fase">
+      <div class="t">Fase 3 &middot; Seguimiento</div>
+      <div class="b"><span style="width:0%"></span></div>
+      <div class="n">0 de 4 reportes · carnet, CAPA, NOM-035, seguimiento especial</div>
+    </div>
+  </div>
+
+  <div class="leyenda" style="margin-top:10px">
+    <span><b>9 de 9</b>&nbsp; familias cargando</span>
+    <span><b>9 de 9</b>&nbsp; familias con pantalla</span>
+    <span><b>24,236</b>&nbsp; eventos + <b>4,742</b> métricas en QA</span>
+  </div>
+</div>
+
+<div class="good">
+<strong>Lo que ya corre contra los archivos reales.</strong> El inventario y el analizador de
+layout se probaron sobre los <strong>132 archivos</strong>: cero fallos al abrir, cero sin
+clasificar, y el detector de encabezado resolvió <strong>108 de 120</strong> archivos en alcance,
+extrayendo <strong>23,388 renglones</strong> de datos. Los 12 que faltan son consumibles, que no
+tiene columna de persona porque lleva medicamentos &mdash; es configuración de esa familia, no un
+defecto. El DDL está aplicado y validado en <strong>QA y producción</strong>.
+</div>
+<div class="cards">
+  <div class="card"><div class="n">132</div><div class="l">archivos de 2026</div></div>
+  <div class="card"><div class="n">15</div><div class="l">predios</div></div>
+  <div class="card"><div class="n">9</div><div class="l">familias de reporte</div></div>
+  <div class="card"><div class="n">3</div><div class="l">formatos de archivo</div></div>
+  <div class="card"><div class="n">6</div><div class="l">reportes de seguimiento</div></div>
+  <div class="card"><div class="n">4 de 9</div><div class="l">familias cargando</div></div>
+</div>
+<p style="font-size:.9em;color:#667085;margin-top:-6px">Los predios eran «12» en las versiones
+anteriores de este documento. Son <strong>15</strong>: la cuenta se hacía sobre las carpetas del
+origen, y tres predios viven dentro de la carpeta de otro (<code>MKLS</code>, <code>UT</code> y
+<code>FORANEO</code>, cada uno como hoja aparte).</p>
+
+<h2>Dónde estamos, al cierre del 30 de septiembre</h2>
+
+<table>
+<tr><th style="width:190px">Hito</th><th>Estado</th></tr>
+<tr class="ok"><td><strong>DDL</strong></td><td>aplicado y validado 10/10 en <strong>QA y producción</strong>. 6 tablas, 21 índices</td></tr>
+<tr class="ok"><td><strong>Cargador</strong></td><td><strong>las 9 familias configuradas</strong></td></tr>
+<tr class="ok"><td><strong>Carga en QA</strong></td><td><strong>24,236 eventos · 118,515 atributos · 4,742 métricas</strong> · 0 errores · 0 descartados</td></tr>
+<tr class="ok"><td><strong>Verificación</strong></td><td>corrida y cuadrada. Avisos al <strong>0.13 %</strong></td></tr>
+<tr class="ok"><td><strong>Portal local</strong></td><td>levantado contra la base de QA, con el código del histórico dentro</td></tr>
+<tr class="ok"><td><strong>9 pantallas</strong></td><td>atenciones, causas, musculoesqueléticas, exámenes, antidoping, maternidad, incapacidades, accidentabilidad y <strong>consumo de medicamentos</strong></td></tr>
+<tr><td><strong>Recarga de consumibles</strong></td><td><strong>pendiente</strong>: el predio salió del nombre de la hoja. Corregido en el cargador, falta borrar y volver a correr</td></tr>
+<tr><td><strong>Menú de «Consumo»</strong></td><td>pendiente el seed de <code>SERV_MED_MENU</code>. Hoy se entra por URL directa</td></tr>
+<tr><td><strong><code>MATERIAL FIJO</code>: fechas</strong></td><td>pendiente. Las de recepción y baja no se cargan: <code>_METRICA.VALOR</code> es numérica</td></tr>
+<tr><td><strong>Despliegue a QA</strong></td><td>pendiente. El WAR de QA todavía no tiene nada de esto</td></tr>
+<tr><td><strong>Fase 3</strong></td><td>sin empezar. Los 4 reportes de seguimiento y su grupo nuevo en el menú</td></tr>
+</table>
+
+<div class="warn">
+<strong>Un defecto que vale más que su arreglo.</strong> Consumibles cargó 24 hojas con cero avisos,
+cero errores y <code>[ok]</code>&hellip; y con el predio equivocado en los 4,742 renglones, porque
+en esa familia la hoja se llama <code>MEDICAMENTOS</code> y el predio vive en la carpeta. Se vio en
+la columna PREDIO de la tabla, <strong>no en una alerta</strong>.
+<br><br>
+Arrastraba dos más, todos del mismo origen &mdash;<code>_METRICA</code> es nueva y el resto del
+cargador no la conocía&mdash;: la reversa no la borraba, y la limpieza del lote incompleto tampoco,
+así que un reintento de consumibles habría <strong>duplicado</strong> sus métricas. Los tres
+corregidos, y el reporte ahora cuenta las cuatro tablas.
+</div>
+
+<div class="good">
+<strong>La carga corrió en QA el 30 de septiembre y está verificada.</strong> Cero errores y
+<strong>cero renglones descartados</strong> &mdash; en las 66 hojas lo insertado iguala lo leído.
+Atenciones 12,570 · nuevo ingreso 7,069 · periódico 1,270 · pos-incapacidad 277. Quince predios,
+de AIFA (5,108) a SMO (28). El cuadre: 54 hojas cuadran, 8 son archivos sin su acumulado, 3
+difieren en 1 o 2 renglones y 1 no se pudo comparar. Las tres pantallas de Morbilidad ya tienen
+con qué llenarse.
+</div>
+
+<div class="cards">
+  <div class="card"><div class="n">22,012</div><div class="l">eventos cargados</div></div>
+  <div class="card"><div class="n">12,570</div><div class="l">atenciones de 2026</div></div>
+  <div class="card"><div class="n">4,679</div><div class="l">personas distintas</div></div>
+  <div class="card"><div class="n">15</div><div class="l">predios</div></div>
+  <div class="card"><div class="n">26</div><div class="l">causas del catálogo</div></div>
+  <div class="card"><div class="n">0</div><div class="l">renglones descartados</div></div>
+</div>
+
+<div class="warn">
+<strong>Lo que este avance NO incluye.</strong> El portal de QA sigue corriendo un WAR sin el
+código del histórico, así que <strong>quien entre a QA hoy sigue viendo las pantallas vacías</strong>.
+La carga está en la base de QA y el código está construido, pero desplegarlo es un paso aparte que
+toca un ambiente compartido. Y producción no tiene ni una cosa ni la otra.
+</div>
+
+<h2>Lo que destapó el ensayo del 30 de septiembre</h2>
+<p>Antes de esa carga se corrió una muestra de 25 renglones por hoja &mdash;66 hojas, 1,255
+eventos&mdash; y se verificó. Salieron <strong>cinco defectos</strong>. Ninguno habría hecho fallar
+la carga: los cinco producían números que se leen como si estuvieran bien. Los cinco están
+corregidos y <strong>comprobados contra los datos reales</strong>: los años quedaron solo en 2026
+(21,135) y 2025 (51), los tres predios duplicados salieron fundidos, y las causas quedaron en 26
+sin rastro de <code>EG</code>.</p>
+
+<table>
+<tr><th>Lo que se vio</th><th>La causa real</th><th>Qué rompía</th></tr>
+<tr>
+  <td>El examen periódico va de <strong>2025 a 2029</strong>, y el de ingreso arranca en 2023, en
+      archivos que son todos de 2026.</td>
+  <td>Erratas de captura del año que el cargador guardaba tal cual. Se encontraron 2029, 2002,
+      2023 y un <strong>2626</strong> que a la vista se ve bien, porque la celda tiene formato
+      <code>d/m/yy</code> y muestra «26».</td>
+  <td>La tendencia agrupa por año y mes: el eje iba de 2002 a 2626 con un punto de un renglón en
+      cada extremo y 2026 aplastado contra el margen. Son ~20 renglones de 12,500.</td>
+</tr>
+<tr>
+  <td><strong>18 predios</strong> donde hay 15.</td>
+  <td>El mismo predio se escribe distinto entre archivos de la misma carpeta:
+      <code>MKLS</code>/<code>MIKELS</code>, <code>FORANEO</code>/<code>FLORANEO</code>,
+      <code>UT</code>/<code>U TEPALCAPA</code>.</td>
+  <td>Tres pares de barras con la mitad de sus atenciones cada una. No se nota porque ninguna
+      queda en cero.</td>
+</tr>
+<tr>
+  <td><strong>30 causas</strong> donde el catálogo tiene 26, y <code>EG</code> aparecía como el
+      segundo motivo de consulta del año con 105 casos.</td>
+  <td>El examen pos-incapacidad tiene un bloque que <em>se llama</em> <code>CAUSA</code> pero sus
+      cinco columnas son <code>EG · MAT · RT 1 · RT 2 · INTERNA</code>: el ramo de la incapacidad,
+      no un motivo de consulta.</td>
+  <td>Nada, por ahora: el portal consulta siempre con <code>FAMILIA = 'ATENCION'</code>. Solo se
+      vio en la verificación. Se separó igual, como <code>RAMO_INCAPACIDAD</code>.</td>
+</tr>
+<tr>
+  <td><strong>11 hojas «no cuadran»</strong>, con diferencias de 183, 152 y 90 renglones.</td>
+  <td>Ocho de las once son archivos cuya hoja ACUMULADO existe pero está <strong>en ceros</strong>:
+      el origen nunca la llenó. Se abrió para comprobarlo. Las tres que sí no cuadran difieren en
+      1 o 2 renglones.</td>
+  <td>Leído así parecía pérdida masiva de datos. El cuadre ahora distingue «el archivo no lleva su
+      acumulado» de «no cuadra».</td>
+</tr>
+<tr>
+  <td><strong>19,718 renglones descartados</strong> de 20,948.</td>
+  <td>Eran renglones buenos que el tope de 25 del ensayo no alcanzó a insertar. No hubo un solo
+      rechazo.</td>
+  <td>El reporte parecía una carga con dos tercios de basura. El tope ya no se cuenta como
+      descarte; queda anotado aparte.</td>
+</tr>
+</table>
+
+<div class="good">
+<strong>Lo que el ensayo confirmó que sí está bien.</strong> El rango de edad sale
+<code>18-25</code> sin espacios, que es el formato exacto del dashboard &mdash;y los archivos lo
+escriben <code>18 - 25</code>, <code>+ 55</code> y <code>55 +</code> según el año&mdash;. Género
+solo <code>FEM</code> y <code>MASC</code>. Cero renglones sin predio, cero sin fecha, cero con NSS.
+Las cuatro columnas de <code>DATOS INCAPACIDAD</code> entran cada una con su tipo real: 196 días
+como número y 588 fechas como fechas. Y cada renglón es rastreable hasta su archivo, hoja y fila.
+</div>
+
+<h3>Tres preguntas nuevas para servicio médico</h3>
+<p>Salieron de la carga real, no del cuestionario. Ninguna detiene el desarrollo; las tres cambian
+lo que una gráfica significa.</p>
+<table>
+<tr><th>Pregunta</th><th>De dónde sale</th><th>Qué hace hoy el cargador</th></tr>
+<tr>
+  <td>Cuando la enfermera marca <strong>dos casillas del mismo bloque</strong> &mdash;dos causas,
+      dos rangos de edad, dos cuentas&mdash; ¿cuenta como una de cada una o como una sola?</td>
+  <td><strong>92 renglones</strong> de 21,186. Ejemplo real: fila 1560 de Toluca con
+      <code>ACIDO PEPTICA</code> y <code>ALERGIA / INTOXICACION</code> marcadas.</td>
+  <td>Toma la primera y deja aviso. Mueve poco (0.4 %), pero la respuesta define si el total de
+      causas puede exceder el total de atenciones.</td>
+</tr>
+<tr>
+  <td>¿Es correcta la distribución de dictámenes de <strong>nuevo ingreso</strong>?
+      58 % condicionado, 18.6 % no apto, solo 22 % apto sin condición.</td>
+  <td>7,067 exámenes de 2026. No es error de lectura: hay avisos de <code>STATUS: 2 marcas</code>
+      que prueban que lee la etiqueta de la columna, no una posición.</td>
+  <td>Nada que corregir. Es dato real, y conviene que lo confirmen antes de que esa cifra aparezca
+      en una pantalla que vea dirección.</td>
+</tr>
+<tr>
+  <td>Los <strong>49 nombres que aparecen en más de un predio</strong>: ¿es la misma persona que
+      rotó, o dos personas distintas?</td>
+  <td>49 de 4,679 personas (1 %). Ya se había medido en 23 «parecen la misma» y 25 «parecen dos».</td>
+  <td>Se cuentan <strong>una vez</strong>, por consistencia con el portal desde 2027, donde manda
+      el NSS. La diferencia entre criterios es del 1 %.</td>
+</tr>
+</table>
+
+<div class="warn">
+<strong>Una decisión quedó tomada por default y conviene saberlo.</strong> La corrección del año
+solo toca lo <em>imposible</em>: si la celda dice el año anterior al del archivo, se respeta. Eso
+es a propósito, porque ahí sí hay hechos reales &mdash;una incapacidad que arranca en diciembre se
+reporta en enero, y hay ~45 renglones así, todos con fecha de fin de año&mdash;. Corregir también
+ésos sería mover hechos de fecha. Si servicio médico quiere que 2026 signifique solo 2026, es una
+línea de código, pero se pierden esos 45.
+</div>
+
+<h2>Alcance</h2>
+<p>Cargar los reportes de <strong>2026, de enero a la fecha</strong> &mdash; no los diez años. Las
+nueve familias que servicio médico marcó con SÍ en el cuestionario del 29-sep
+(Angélica Rosales): atenciones diarias, examen de ingreso, examen periódico, examen
+pos-incapacidad, incapacidades, accidentabilidad, antidoping, maternidad y consumibles.</p>
+
+<div class="warn">
+<strong>Contradicción a resolver.</strong> En la pregunta 2 del cuestionario servicio médico pidió
+cargar <strong>desde 2017</strong>. La instrucción vigente es 2026 de enero a la fecha. Manda la
+instrucción, pero no es lo que pidieron.
+</div>
+
+<h3>Lo que el recorte a 2026 elimina</h3>
+<ul>
+  <li><strong>La deriva de catálogos.</strong> Un solo catálogo de causas; ya no hace falta la tabla de equivalencias. Las preguntas 5, 6 y 7 del cuestionario dejan de aplicar a la carga.</li>
+  <li><strong>Las dos épocas estructurales.</strong> 2026 es hoja única; no hay que manejar las doce hojas mensuales de 2017&ndash;2022.</li>
+  <li><strong>Las 16,336 columnas fantasma</strong>, que eran de 2024 y 2025.</li>
+  <li><strong>El volumen.</strong> ~20 mil atenciones en vez de ~250 mil: no hace falta pre-agregar ni optimizar la consulta.</li>
+  <li><strong>El traslape con ORDS.</strong> <code>TBL_SERV_CONSULTA_MEDICA</code> tiene 209 renglones en total y 4 de 2026, todos de prueba.</li>
+</ul>
+
+<h3>Lo que el recorte NO elimina</h3>
+<ul>
+  <li><strong>Los tres formatos:</strong> 60 <code>.xls</code> (OLE2 binario), 64 <code>.xlsx</code> y 8 <code>.xlsm</code>. Hacen falta dos lectores.</li>
+  <li><strong>El one-hot.</strong> Cada atributo sigue desplegado en decenas de columnas con un <code>1</code> en la que aplica.</li>
+  <li><strong>El año de la carpeta no es el del archivo.</strong> Dentro de <code>MORBILIDAD 2026/</code> hay un <code>REPORTE MATERNIDAD 2025 CHARCON.xls</code>. Y el prefijo numérico no identifica la categoría: en ZARA el 4 y el 5 están intercambiados.</li>
+  <li><strong>Nueve estructuras distintas</strong>, cada una con su destino y su gráfica. Siete de las nueve gráficas no existen.</li>
+</ul>
+
+<div class="warn">
+<strong>Los datos de Excel no deben entrar a las tablas operativas.</strong>
+<code>SERV_MED_ACCIDENTE</code>, <code>SERV_MED_ANTIDOPING_RESULTADO</code> y
+<code>SERV_MED_MATERNIDAD_SEGUIMIENTO</code> están llaveadas por NSS, y el Excel no tiene NSS:
+habría que adivinarlo por nombre. En una gráfica agregada un match equivocado mueve un número;
+en una tabla operativa le pega el expediente médico de una persona a otra. Van a tablas propias
+para graficar.
+</div>
+
+<h2>Contra el menú de Análisis del portal</h2>
+<p>El plan tiene que empatar con lo que el portal ya muestra. Éste es el menú real
+(<code>fragments/menu.html</code>) y qué lo alimenta:</p>
+
+<table>
+<thead><tr><th>Grupo</th><th>Pantalla del menú</th><th>Familia que la alimenta</th><th>Fase</th></tr></thead>
+<tbody>
+<tr><td rowspan="2">&mdash;</td><td>Dashboard Ejecutivo</td><td>agregado de todas</td><td>1&ndash;3</td></tr>
+<tr><td>Vista por Predio</td><td>transversal a todas</td><td>1&ndash;3</td></tr>
+
+<tr><td rowspan="3"><strong>Morbilidad</strong></td><td>Atenciones</td><td rowspan="3"><strong>ATENCIÓN</strong> &mdash; las tres salen del mismo archivo: la lista, su bloque <code>CAUSA</code> y su bloque de 15 columnas de lesiones</td><td rowspan="3"><span class="tag comp">1</span></td></tr>
+<tr><td>Causas</td></tr>
+<tr><td>Musculoesqueléticas</td></tr>
+
+<tr><td rowspan="3"><strong>Clínico</strong></td><td>Exámenes Médicos</td><td>EXAMEN_INGRESO + EXAMEN_PERIODICO + EXAMEN_POS_INCAP &mdash; <strong>tres familias, una pantalla</strong></td><td>2</td></tr>
+<tr><td>Incapacidades</td><td>INCAPACIDAD</td><td>2</td></tr>
+<tr><td>Accidentabilidad</td><td>ACCIDENTE</td><td>2</td></tr>
+
+<tr><td rowspan="3"><strong>Control</strong></td><td>Antidoping</td><td>ANTIDOPING</td><td>2</td></tr>
+<tr><td>Inventario</td><td>CONSUMIBLE</td><td>2</td></tr>
+<tr><td>Maternidad</td><td>MATERNIDAD</td><td>2</td></tr>
+
+<tr><td rowspan="4"><strong>Sistema</strong></td><td>Empleados</td><td>ficha por NSS, no es tablero</td><td>&mdash;</td></tr>
+<tr><td>Importar Excel</td><td>pantalla del importador</td><td>&mdash;</td></tr>
+<tr><td>Reportes</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>Auditoría</td><td>bitácora interna</td><td>&mdash;</td></tr>
+</tbody>
+</table>
+
+<div class="note">
+<strong>Las nueve familias del cuestionario cubren exactamente las nueve pantallas de tablero
+que existen.</strong> No es casualidad: las pantallas se diseñaron contra esas nueve. Y el
+reparto no es uno a uno &mdash; <strong>ATENCIÓN sola alimenta tres pantallas</strong> y
+<strong>Exámenes Médicos toma tres familias en una</strong>.
+</div>
+
+<div class="warn">
+<strong>Los cuatro reportes de seguimiento no tienen pantalla en el menú.</strong> Carnet de
+crónicos, CAPA, NOM-035 y seguimiento médico especial no aparecen en ninguno de los cuatro
+grupos. Si entran, hace falta un grupo nuevo &mdash; <em>Seguimiento</em> &mdash; con su
+plantilla, su ruta en <code>PortalViewController</code> y sus renglones en
+<code>SERV_MED_MENU</code> y <code>SERV_MED_MENU_ROLE</code>. Eso último es SQL que hay que
+correr, no solo código: está contemplado en el estimado de la fase 3.
+</div>
+
+<div class="warn">
+<strong>Lo que hoy dibujan esas pantallas.</strong> El tablero en producción marca
+<strong>CONSULTAS 209</strong>, que es exactamente el total de
+<code>TBL_SERV_CONSULTA_MEDICA</code> &mdash; los 209 renglones de prueba, con
+<code>fdsfds</code> y <code>pepegrillo</code> entre las causas. Atenciones, Causas y
+Musculoesqueléticas están dibujando eso. Por eso la fase 1 es la que más cambia lo que se ve.
+</div>
+
+<h2>Identidad de las personas: se resuelve por nombre</h2>
+
+<p><strong>Decisión del 29-sep-2026.</strong> Los Excel no traen NSS, solo nombre. Se asume el
+riesgo &mdash; homónimos, errores de captura &mdash; y <code>totalPersonas</code> se calcula
+sobre el nombre normalizado. <strong>A partir de 2027 el dato sale de la captura del portal</strong>,
+que sí trae NSS, y el KPI se vuelve exacto solo.</p>
+
+<h3>El riesgo está medido, no supuesto</h3>
+<p>Sobre los 12 archivos de atenciones de 2026:</p>
+
+<table>
+<thead><tr><th>Medida</th><th class="n">Valor</th></tr></thead>
+<tbody>
+<tr><td>Atenciones con nombre</td><td class="n">12,453</td></tr>
+<tr><td>Nombres distintos en crudo</td><td class="n">4,639</td></tr>
+<tr><td><strong>Nombres distintos normalizados</strong></td><td class="n"><strong>4,613</strong></td></tr>
+<tr><td>Se fusionan al normalizar</td><td class="n">26 · <strong>0.6 %</strong></td></tr>
+<tr><td>Atenciones por persona</td></tr>
+</tbody>
+</table>
+
+<p>Ese 0.6 % son todas variantes de captura del mismo tipo, y todas las arregla la
+normalización: <strong>espacios dobles</strong> (<code>PERALTA&nbsp;&nbsp;RAMIREZ ERIKA</code>) y
+<strong>puntos en abreviaturas</strong> (<code>MA. DE LA PAZ</code> contra <code>MA DE LA PAZ</code>).
+No hay errores de dedo reales en la muestra.</p>
+
+<h3>Los 48 nombres que aparecen en más de un predio</h3>
+<p>Cada uno es una persona que rotó o dos homónimos, y desde el Excel no se distingue. Se
+buscaron señales de que sean dos:</p>
+
+<table>
+<thead><tr><th>Señal</th><th class="n">Casos</th><th>Qué significa</th></tr></thead>
+<tbody>
+<tr><td>Género distinto entre predios</td><td class="n">1</td><td>son dos personas, seguro</td></tr>
+<tr><td>Rango de edad distinto</td><td class="n">16</td><td>casi seguro dos, o error de captura en la edad</td></tr>
+<tr><td>Fechas que se solapan</td><td class="n">16</td><td>atendido en dos predios el mismo mes</td></tr>
+<tr><td><strong>Ninguna señal</strong></td><td class="n"><strong>23</strong></td><td>mismo género, misma edad, sin solape: parece la misma persona</td></tr>
+</tbody>
+</table>
+
+<p>Los grupos se traslapan entre sí, así que el número limpio es el último: <strong>23 de los 48
+parecen la misma persona y 25 parecen dos</strong>. Hay casos sin duda: <code>SANCHEZ HERNANDEZ
+CLAUDIA</code> figura como <code>18-25</code> en Atizapark y <code>46-55</code> en Macro 1.</p>
+
+<div class="note">
+<strong>Por eso la decisión pesa poco.</strong> Contar una vez da <strong>4,613</strong>; contar
+por predio da <strong>4,661</strong>; la verdad estimada es <strong>~4,638</strong>. Los dos
+extremos se separan por 48 personas de 4,613 &mdash; el <strong>1 %</strong> &mdash; y cualquiera
+cae a medio punto de la verdad.
+<br><br>
+<strong>Se cuenta una vez</strong>, por tres razones: es la regla más simple de explicar, el error
+es de ~25 personas, y <strong>es consistente con el portal desde 2027</strong>, donde manda el NSS
+y una persona que cambia de predio es una sola. Contar por predio rompería la comparabilidad con
+lo que el portal produzca después.
+</div>
+
+<h3>Cómo queda en el código</h3>
+<ul>
+  <li><code>totalPersonas</code> = nombres distintos en <code>NOMBRE_NORM</code>: mayúsculas, sin acentos, espacios simples, sin puntos.</li>
+  <li>Se guardan los dos, <code>NOMBRE</code> crudo y <code>NOMBRE_NORM</code>, para poder recalcular si el criterio cambia. Las dos columnas ya existen en <code>SERV_MED_BITACORA_EVENTO</code>.</li>
+  <li>La pantalla lo etiqueta <strong>«personas distintas»</strong>, no «NSS distintos», con la nota de que en el histórico se identifica por nombre.</li>
+  <li>Por predio no hay ambigüedad: ahí cada quien cuenta en el suyo. La decisión solo afecta al total global.</li>
+</ul>
+
+<h2>Primer ensayo en QA &middot; 29 de septiembre</h2>
+
+<p>Se corrió el cargador en modo <code>sample</code> contra <strong>ONEWMS_QA</strong>, con tope de
+25 renglones por archivo. Una sola conexión, sin reintentos.</p>
+
+<div class="cards">
+  <div class="card"><div class="n">48</div><div class="l">archivos procesados</div></div>
+  <div class="card"><div class="n">1,003</div><div class="l">eventos insertados</div></div>
+  <div class="card"><div class="n">2,486</div><div class="l">atributos</div></div>
+  <div class="card"><div class="n">0</div><div class="l">errores</div></div>
+</div>
+
+<p>Los 72 restantes se saltaron con <em>&laquo;familia sin mapeo configurado todav&iacute;a&raquo;</em>,
+que es lo esperado: incapacidades, accidentabilidad, antidoping, maternidad y consumibles entran
+en la fase 2.</p>
+
+<div class="good">
+<strong>Para esto servía el ensayo.</strong> No falló nada &mdash; y aun así destapó
+<strong>dos defectos</strong> que la muestra de 30 archivos nunca habría mostrado, y al
+corregirlos apareció <strong>un tercero</strong> que la propia corrección introdujo. Los tres
+están resueltos y verificados. Son la tarea 19 de la fase 1, que no estaba en el plan original.
+</div>
+
+<h3>Defecto 1 <span class="tag done">corregido</span> &middot; <code>DATOS INCAPACIDAD</code> no es un bloque de &laquo;marca con 1&raquo;</h3>
+
+<p>Explica casi todos los <strong>179 avisos</strong> de la corrida. Las cuatro columnas de ese
+grupo, en el examen pos-incapacidad de AIFA:</p>
+
+<table>
+<thead><tr><th class="n">Col</th><th>Subetiqueta</th><th>Tres renglones de datos</th></tr></thead>
+<tbody>
+<tr><td class="n">29</td><td><code>DIAS</code></td><td>5 &middot; 3 &middot; 3</td></tr>
+<tr><td class="n">30</td><td><code>INICIA INCAPACIDAD</code></td><td>2025-12-30 &middot; 2026-01-11 &middot; 2026-01-11</td></tr>
+<tr><td class="n">31</td><td><code>ULTIMO DIA DE INCAPACIDAD</code></td><td>2026-01-03 &middot; 2026-01-13 &middot; 2026-01-13</td></tr>
+<tr><td class="n">32</td><td><code>INICIA LABORES</code></td><td>2026-01-04 &middot; 2026-01-14 &middot; 2026-01-14</td></tr>
+</tbody>
+</table>
+
+<p><strong>Las cuatro columnas tienen su propio valor y las cuatro son datos distintos.</strong> No
+compiten por una marca: conviven. El transpositor lo trató como one-hot, tomó la primera y
+descartó tres fechas reales en cada renglón de los tres exámenes.</p>
+
+<div class="good">
+<strong>Corregido.</strong> El mapeo ya puede declarar que un grupo es un <strong>conjunto de
+campos</strong> en lugar de un bloque one-hot, y cada columna se guarda como su propio atributo
+con su tipo real: <code>DIAS</code> como número en <code>VALOR_NUM</code> y las tres fechas en
+<code>VALOR_FECHA</code>. El transpositor no cambió: lo que cambió es qué se le pide transponer.
+</div>
+
+<h3>Defecto 2 <span class="tag done">corregido</span> &middot; Un archivo puede traer varios predios</h3>
+
+<p><code>MIKELS-UT-FLORA</code> tiene cuatro hojas, y la regla de &laquo;la primera que no sea
+resumen&raquo; agarró la única casi vacía:</p>
+
+<table>
+<thead><tr><th>Hoja</th><th class="n">Renglones con nombre</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>ACUMULADO</code></td><td class="n">&mdash;</td><td>resumen, se ignora bien</td></tr>
+<tr><td><code>FLORA</code></td><td class="n">1</td><td><strong>la única que se leyó</strong></td></tr>
+<tr><td><code>MKLS</code></td><td class="n">60</td><td>perdidos</td></tr>
+<tr><td><code>UT</code></td><td class="n">55</td><td>perdidos</td></tr>
+</tbody>
+</table>
+
+<p>Por eso el reporte muestra <code>FLORA 0 0 0 0</code> en las cuatro familias: no es que no haya
+datos, es que se leyó la hoja equivocada. <strong>Se perdieron 115 atenciones</strong> y lo mismo
+en los otros tres reportes de ese predio.</p>
+
+<div class="good">
+<strong>Corregido, y sin tocar el esquema.</strong> El cargador procesa <strong>todas</strong> las
+hojas de detalle y cada una abre su propio lote con su predio.
+<code>SERV_MED_BITACORA_LOTE</code> ya era por archivo <em>y hoja</em>, con índice único
+<code>(ARCHIVO, HOJA)</code>: el DDL lo soportaba desde el principio, solo el cargador no lo
+aprovechaba.
+<br><br>
+Verificado en seco: <code>MKLS</code> y <code>UT</code> ya devuelven sus renglones
+&mdash; 59 y 54 en atenciones, 61 y 97 en examen de ingreso, 10 y 30 en periódico, 4 y 11 en
+pos-incapacidad. <strong>326 renglones recuperados solo en ese predio.</strong>
+</div>
+
+<h3>Defecto 3 <span class="tag done">corregido</span> &middot; el que introdujo la corrección anterior</h3>
+
+<p>Al procesar todas las hojas, el análisis saltó de 120 a <strong>645</strong>. Ese número no
+cuadraba, y al revisarlo apareció por qué: los archivos de incapacidades traen la hoja del predio
+con el año completo <strong>y además doce hojas mensuales con los mismos renglones partidos</strong>.</p>
+
+<table>
+<thead><tr><th>Hoja de World Park</th><th class="n">Renglones</th><th></th></tr></thead>
+<tbody>
+<tr><td><code>WORLD PARK</code></td><td class="n">124</td><td>el año completo</td></tr>
+<tr><td><code>EN</code> <code>FB</code> <code>MZ</code> <code>AB</code> <code>MY</code> <code>JN</code>…</td><td class="n">114</td><td>los mismos, partidos por mes</td></tr>
+</tbody>
+</table>
+
+<div class="warn">
+<strong>Cargarlas todas habría metido cada atención dos veces.</strong> Un defecto de duplicación
+silenciosa, que es de los peores: no falla nada, solo que los totales quedan inflados y nadie sabe
+por qué. Ahora las hojas con nombre de mes se ignoran y manda la del predio. Si algún día hace
+falta el corte mensual, ya está en las columnas <code>ANIO</code> y <code>MES</code>, calculadas
+de la fecha de cada renglón.
+</div>
+
+<p>Con eso, el análisis en seco bajó de 645 a <strong>501 hojas</strong> y
+<strong>24,769 renglones</strong>.</p>
+
+<h3>Lo que no es defecto</h3>
+<p><code>ATIZAPAN / ATENCION fila 21 &middot; CAUSA: 2 marcas (CURACION, GRAL&nbsp;-&nbsp;ALGIA)</code>
+es un caso legítimo: la persona tuvo las dos. Se toma la primera y queda constancia en
+<code>SERV_MED_BITACORA_LOTE.MENSAJES</code>, que fue lo acordado. Nunca se descarta la atención
+completa por una casilla de más.</p>
+
+<div class="warn">
+<strong>Sigue pendiente el cuadre.</strong> La columna <code>cuadra</code> salió <code>-</code> en
+los 48 archivos porque la lectura de la hoja <code>ACUMULADO</code> todavía no está implementada.
+Sin ella no hay autoverificación, que es la que convierte &laquo;creo que cargó bien&raquo; en
+&laquo;el archivo dice 1,635 y el cargador contó 1,635&raquo;. Es una de las cinco tareas que
+restan de la fase 1.
+</div>
+
+<h3>Qué sigue</h3>
+<p>Los 1,003 renglones del ensayo se borran de QA con
+<code>docs/script-prod/excel-99-reversa-bitacora.sql</code> y se vuelve a correr con las tres
+correcciones puestas. Deben entrar <strong>más</strong> renglones que en el primer ensayo, y los
+avisos de <code>DATOS INCAPACIDAD</code> tienen que desaparecer: eran casi todos los 179.</p>
+
+<p>Lo que el análisis en seco dejó a la vista y se resuelve en la fase 2: la hoja
+<code>INTERNAS</code> de las incapacidades &mdash;que separa las que paga la empresa de las del
+IMSS, como confirmó servicio médico&mdash;, la hoja <code>ST-7</code> con el formato del IMSS, y
+que <code>MEDICAMENTOS</code> de consumibles no tenga columna de persona porque lleva
+medicamentos.</p>
+
+<h3>Segundo ensayo &middot; 30 de septiembre</h3>
+
+<div class="cards">
+  <div class="card"><div class="n">66</div><div class="l">hojas procesadas <span style="font-size:.75em">(eran 48)</span></div></div>
+  <div class="card"><div class="n">1,255</div><div class="l">eventos</div></div>
+  <div class="card"><div class="n">3,656</div><div class="l">atributos</div></div>
+  <div class="card"><div class="n">1</div><div class="l">aviso <span style="font-size:.75em">(eran 179)</span></div></div>
+</div>
+
+<p>Las tres correcciones funcionaron. Los atributos de pos-incapacidad pasaron de 3 a
+<strong>6 por renglón</strong> &mdash; son las cuatro columnas de <code>DATOS INCAPACIDAD</code>
+que antes se colapsaban en una. Y aparecieron seis predios que se perdían:
+<code>MKLS</code> 59 · <code>UT</code> 54 · <code>MIKELS</code> 10 ·
+<code>U TEPALCAPA</code> 45 · <code>SMO</code> 20 · <code>FORANEO</code> 24.</p>
+
+<p>El cuadre ya funciona: <strong>54 de 66 hojas cuadran exacto</strong> contra lo que declara su
+propia hoja <code>ACUMULADO</code>. Las 12 que no, todas con explicación y <strong>ninguna por
+error de lectura</strong>:</p>
+
+<table>
+<thead><tr><th class="n">Casos</th><th>Causa</th><th>Quién tiene razón</th></tr></thead>
+<tbody>
+<tr><td class="n">8</td><td>El <code>ACUMULADO</code> del archivo tiene <strong>ceros en todos los predios</strong>, incluido el suyo, mientras su hoja de detalle sí trae datos. Verificado en Atizapán periódico: 15 renglones en <code>0.0</code> contra 25 de detalle. <strong>Siete de los ocho son examen periódico.</strong></td><td>El archivo se contradice a sí mismo. No es comparable</td></tr>
+<tr><td class="n">3</td><td>Diferencia de uno o dos renglones. En AIFA ingreso el Excel dice 1,683 y se leyeron 1,681: los dos de más son <code>'*'</code> en la fila 130 y <code>'b'</code> en la 792 &mdash; basura de captura en la columna del nombre</td><td><strong>El cargador.</strong> El filtro los rechaza por tener menos de cuatro caracteres</td></tr>
+<tr><td class="n">1</td><td>El predio de Charcón ingreso no empareja con ningún renglón del resumen</td><td>Falta una regla de nombre</td></tr>
+</tbody>
+</table>
+
+<div class="good">
+<strong>Deuda pagada el 30-sep.</strong> El reporte decía «11 no cuadran» y metía en el mismo saco
+un archivo mal llenado en origen y una diferencia real de lectura. Ya son cuatro estados
+distintos: <em>cuadra</em> (54 hojas), <em>el archivo no lleva su acumulado</em> (8, no comparable),
+<em>no cuadra</em> (3, todas de 1 o 2 renglones) y <em>sin comparar</em> (1, el predio no empareja).
+Se abrió la hoja ACUMULADO de un examen periódico para confirmar que los ceros son del archivo y
+no de la lectura: existe, trae el predio en su renglón y los doce meses en cero.
+</div>
+
+<h2>Fase 1 &middot; Familia 1: atenciones diarias</h2>
+<p>Enciende <strong>tres</strong> pantallas del grupo Morbilidad que ya existen:
+<code>analisis-atenciones</code>, <code>analisis-causas</code> y
+<code>analisis-musculoesqueleticas</code>. Las tres se alimentan del mismo archivo. Las tareas
+marcadas <span class="tag comp">compartida</span> las reusan las otras ocho familias.</p>
+
+<table>
+<thead><tr><th style="width:36px">#</th><th>Tarea programable</th><th>Qué entrega</th></tr></thead>
+<tbody>
+<tr class="ok"><td class="id">1</td><td>Módulo Maven nuevo con Apache POI &mdash; HSSF para <code>.xls</code>, XSSF para <code>.xlsx</code>/<code>.xlsm</code> <span class="tag comp">compartida</span></td><td>proyecto que compila y abre los tres formatos <span class="tag done">hecho</span></td></tr>
+<tr class="ok"><td class="id">2</td><td>Inventario de archivos: clasificar la familia por el <em>texto</em> del nombre y no por el número, tomar el año del contenido, descartar lo que no sea 2026 <span class="tag comp">compartida</span></td><td>lista de los 132 con familia, predio y año resueltos <span class="tag done">hecho</span></td></tr>
+<tr class="ok"><td class="id">3</td><td>Lector unificado: una sola interfaz sobre los dos motores de POI <span class="tag comp">compartida</span></td><td>acceso a celdas independiente del formato <span class="tag done">hecho</span></td></tr>
+<tr class="ok"><td class="id">4</td><td>Detector de encabezado: localizar la fila de grupo buscando <code>FECHA</code>, sin fila fija <span class="tag comp">compartida</span></td><td>índice de la fila de grupo y de subcategoría <span class="tag done">hecho</span></td></tr>
+<tr class="ok"><td class="id">5</td><td>Índice etiqueta&rarr;columna del bloque one-hot, tolerante a espacios dobles, acentos y mayúsculas <span class="tag comp">compartida</span></td><td>mapa por etiqueta, nunca por posición <span class="tag done">hecho</span></td></tr>
+<tr class="ok"><td class="id">6</td><td>Transpositor: resolver cada bloque por renglón; reportar los de 0 marcas y los de más de 1 <span class="tag comp">compartida</span></td><td>un objeto por atención <span class="tag done">hecho</span></td></tr>
+<tr class="ok"><td class="id">7</td><td>Filtro de renglones: excluir <code>TOTAL</code> y <code>ACUMULADO GENERAL</code>, los sin nombre, y acotar el ancho real de columnas <span class="tag comp">compartida</span></td><td>solo renglones de datos <span class="tag done">hecho</span></td></tr>
+<tr class="ok"><td class="id">8</td><td>Normalizadores: fecha (serial de Excel y DATE), <code>"18 - 25"</code>&rarr;<code>"18-25"</code>, FEM/MASC, texto <span class="tag comp">compartida</span></td><td>valores listos para insertar <span class="tag done">hecho</span></td></tr>
+<tr class="ok"><td class="id">9</td><td>DDL de la tabla de hechos de atenciones + índices</td><td><code>.sql</code> para que lo corras <span class="tag done">hecho</span></td></tr>
+<tr class="ok"><td class="id">10</td><td>DDL de la tabla de control de carga: archivo, checksum, filas, resultado <span class="tag comp">compartida</span></td><td><code>.sql</code> para que lo corras <span class="tag done">hecho</span></td></tr>
+<tr class="ok"><td class="id">11</td><td>Repositorio JDBC por lotes + idempotencia por archivo/hoja/fila <span class="tag comp">compartida</span></td><td>inserción reintentable sin duplicar <span class="tag done">hecho</span></td></tr>
+<tr class="ok"><td class="id">12</td><td>Runner de consola con modos <code>none</code> / <code>sample</code> / <code>full</code> <span class="tag comp">compartida</span></td><td>JAR ejecutable que no hace nada si no se le pide <span class="tag done">hecho</span></td></tr>
+<tr class="ok"><td class="id">13</td><td>Reporte de carga por archivo: leídas, insertadas, descartadas y por qué <span class="tag comp">compartida</span></td><td>bitácora legible de la corrida <span class="tag done">hecho</span></td></tr>
+<tr class="ok"><td class="id">14</td><td>Repositorio de agregación en SQL que devuelva <code>ConteoSimpleDto</code> por dimensión</td><td>totales por causa, género, edad, cuenta, predio y mes <span class="tag done">hecho</span></td></tr>
+<tr class="ok"><td class="id">15</td><td>Integrar en <code>DashboardConsultaService</code>: sin el filtro de NSS y aceptando el bucket de edad ya calculado</td><td>las gráficas leen el nuevo origen <span class="tag done">hecho</span></td></tr>
+<tr class="ok"><td class="id">16</td><td>Ajustar las <strong>tres</strong> pantallas del grupo Morbilidad: <code>analisis-atenciones</code>, <code>analisis-causas</code> y <code>analisis-musculoesqueleticas</code> &mdash; esta última sale del bloque de 15 columnas de lesiones del mismo archivo</td><td>las tres pantallas con datos reales <span class="tag done">hecho</span></td></tr>
+<tr class="ok"><td class="id">17</td><td><code>.sql</code> de verificación y de reversa</td><td>cuadre y vuelta atrás <span class="tag done">hecho</span></td></tr>
+<tr class="ok"><td class="id">18</td><td>Prueba con los 14 archivos reales y cuadre contra los <code>ACUMULADO</code> del propio Excel</td><td>evidencia de que los números coinciden <span class="tag done">hecho</span></td></tr>
+<tr class="ok"><td class="id">19</td><td>Los <strong>cinco defectos</strong> del ensayo del 30-sep: año imposible, predio canónico, <code>RAMO_INCAPACIDAD</code>, cuarto estado del cuadre y <code>descartadas</code> <span class="tag comp">compartida</span></td><td>corregidos y comprobados contra los datos reales <span class="tag done">hecho</span></td></tr>
+<tr class="ok"><td class="id">20</td><td><strong>Carga <code>full</code> en QA</strong> y verificación de las cifras una por una</td><td>21,186 eventos · 68,798 atributos · 0 errores <span class="tag done">hecho</span></td></tr>
+<tr class="ok"><td class="id">21</td><td>Freno para la corrida que no inserta nada, y los dos defectos del propio script de verificación <span class="tag comp">compartida</span></td><td>un <code>full</code> vacío ya no puede rematar en <code>[ok]</code> <span class="tag done">hecho</span></td></tr>
+</tbody>
+<tfoot>
+<tr><td></td><td>Fase 1 &mdash; <strong>21 de 21 hechas</strong>. Catorce de ellas son infraestructura compartida, que las otras familias reusan sin volver a escribirla</td><td></td></tr>
+</tfoot>
+</table>
+
+<div class="good">
+<strong>Las 21 están hechas y la fase está cerrada con datos dentro.</strong> Las tareas 1 a 18
+eran el plan original; las tres últimas salieron de correr la carga de verdad, que es exactamente
+para lo que servía correrla. El renglón 21 vale la pena leerlo: el primer <code>full</code> se
+corrió sin vaciar QA, insertó <strong>cero</strong> renglones y terminó imprimiendo
+<code>[ok] Termino</code> junto con &laquo;todas las hojas comparables cuadran&raquo;. Las dos
+frases eran ciertas &mdash;cero hojas comparables, cero que no cuadran&mdash; y juntas decían lo
+contrario de lo que había pasado. Ahora una corrida que no inserta nada abre el reporte con
+<code>*** NO SE CARGO NADA</code> y sale con código 2.
+</div>
+
+<h2>Fase 2 &middot; Cada familia adicional</h2>
+<p>Quedan <strong>cinco</strong>: incapacidades, accidentabilidad, antidoping, maternidad y
+consumibles. Las cinco reusan toda la infraestructura de la fase 1 &mdash;lector, detector,
+transpositor, repositorio, cuadre y reversa&mdash; sin volver a escribirla. Lo que se repite por
+familia:</p>
+
+<table>
+<thead><tr><th style="width:36px">#</th><th>Tarea programable</th></tr></thead>
+<tbody>
+<tr><td class="id">a</td><td>Configuración del transpositor para su layout &mdash; sus bloques, sus etiquetas, sus grupos de campos. Es una entrada en <code>MapeoFamilia</code></td></tr>
+<tr><td class="id">b</td><td>Repositorio de agregación en SQL</td></tr>
+<tr><td class="id">c</td><td>Conectar su pantalla, que hoy es un placeholder</td></tr>
+<tr><td class="id">d</td><td>Verificación y cuadre contra el <code>ACUMULADO</code> del Excel</td></tr>
+</tbody>
+<tfoot><tr><td></td><td>Las cinco, más conectar <code>analisis-examenes</code></td></tr></tfoot>
+</table>
+
+<div class="good">
+<strong>Ya no hace falta DDL por familia.</strong> El plan original pedía una tabla destino por
+cada una; la tabla genérica <code>SERV_MED_BITACORA_EVENTO</code> + <code>_ATRIBUTO</code> ya
+absorbe cualquier layout, y la fase 1 lo demostró metiendo cuatro familias muy distintas por el
+mismo camino &mdash;incluidas las cuatro columnas de <code>DATOS INCAPACIDAD</code>, que conviven
+con valores de tipos diferentes&mdash;. Agregar una familia es configuración, no esquema.
+</div>
+
+<div class="good">
+<strong>Exámenes Médicos: conectada <span class="tag done">hecho</span></strong>. Los tres exámenes
+&mdash;ingreso, periódico y post-incapacidad&mdash; ya estaban cargados desde la fase 1: 8,616
+renglones con sus dictámenes, verificados, que ninguna pantalla leía. La pantalla
+<code>analisis-examenes</code> no necesitó un solo cambio de diseño: ya pedía
+<code>/api/dashboard/examen</code> y su DTO ya traía los cuatro dictámenes. Todo el trabajo fue
+en el repositorio y el servicio.
+<br><br>
+De paso quedó resuelta la equivalencia que faltaba: el WS entrega cuatro columnas y el Excel una
+sola marca con etiquetas <code>APTO (15)</code>, <code>CONDICIONADO (45)</code>,
+<code>NO APTO (30)</code> e <code>INCLUSION (60)</code>. Vive en un solo lugar
+(<code>DictamenExamen</code>) y se reconoce por el <strong>número</strong>, no por el texto: el
+código del catálogo no cambia, la redacción sí cambia entre años y predios.
+</div>
+
+<h3>El orden propuesto para las cinco</h3>
+<p>Salió de mirar el layout real de cada una, no de suponer:</p>
+<table>
+<tr><th style="width:36px">#</th><th>Familia</th><th>Lo que muestra su encabezado</th></tr>
+<tr class="ok"><td class="id">1</td><td><strong>Antidoping</strong> <span class="tag done">cargado</span></td><td><strong>No era la más simple.</strong> Se veía «un solo bloque» porque el detector estaba leyendo mal el archivo: tiene <strong>encabezado de tres filas</strong> y once bloques. Ver abajo</td></tr>
+<tr><td class="id">2</td><td><strong>Maternidad</strong> <span class="tag">configurada · carga pendiente</span></td><td><strong>Tampoco era la fácil.</strong> Cuatro grupos de campos y, sobre todo, <strong>la primera familia sin fecha del evento</strong>. Ver abajo</td></tr>
+<tr><td class="id">3</td><td><strong>Accidentabilidad</strong></td><td><code>CALIFICADO</code>, <code>IMPROCEDENTE</code>, <code>CAUSA DE RT</code> y <code>STATUS</code>. Cuatro bloques, ninguno raro</td></tr>
+<tr><td class="id">4</td><td><strong>Incapacidades</strong></td><td>cuatro bloques de 15 por ramo (general, maternidad, accidente laboral, accidente de trayecto), <strong>y hojas sueltas</strong> del tipo <code>AIFA INT</code>, <code>REP RH</code>, <code>ST7</code> y <code>PEND 2025</code> que hay que clasificar antes de cargar</td></tr>
+<tr><td class="id">5</td><td><strong>Consumibles</strong></td><td><strong>No encaja en el patrón.</strong> Cero bloques one-hot y <strong>no tiene columna de persona</strong>: son medicamentos, no gente. Y su columna de fecha es la de caducidad, con valores de 2027 a 2030. Va al final porque necesita criterio propio</td></tr>
+</table>
+
+<h3>Antidoping <span class="tag done">cargado y verificado</span></h3>
+<p><strong>826 pruebas en 16 hojas</strong>, cero descartados, y las 14 hojas comparables cuadran
+contra su <code>ACUMULADO</code>. Pero llegar ahí costó cuatro defectos, y tres eran de
+infraestructura compartida &mdash;o sea que las otras cuatro familias se benefician.</p>
+
+<table>
+<tr><th>Defecto</th><th>Qué pasaba</th><th>El arreglo</th></tr>
+<tr>
+  <td><strong>Encabezado de tres filas</strong></td>
+  <td>El detector tomaba siempre <code>filaGrupo + 1</code>. En antidoping esa fila solo tiene
+      cuatro celdas, todas bajo <code>RESULTADO</code>, así que <strong>perdía las subetiquetas de
+      los otros ocho bloques</strong>. El análisis reportaba <strong>1 bloque donde hay 11</strong>:
+      meses, edad, género, cuenta, área y puesto quedaban sin resolver.</td>
+  <td>Cada columna se etiqueta con <strong>la fila más profunda que tenga texto</strong>. Y el
+      encabezado termina donde aparece un dato: una fila de encabezado está vacía en la columna de
+      <code>FECHA</code> y de <code>NOMBRE</code>, una de datos no. Criterio de contenido, no cuenta
+      de celdas &mdash;que es lo que fallaba, porque la fila 4 tiene 4 celdas y la 5 tiene 158, y
+      las dos son encabezado&mdash;.</td>
+</tr>
+<tr>
+  <td><strong><code>RESULTADO</code> no es «marca con 1»</strong></td>
+  <td>Un renglón positivo lleva <strong>dos</strong> marcas: el veredicto y la sustancia. Tratado
+      como one-hot se quedaba con <code>POSITIVO</code>, tiraba la sustancia y levantaba un aviso
+      por renglón: <strong>63 de 63 en MACRO 1</strong>.</td>
+  <td>Tercer tipo de grupo, <strong>multimarca</strong>: cada marca se guarda, con ruteo declarado.
+      <code>NEGATIVO</code>/<code>POSITIVO</code> → <code>RESULTADO</code>, <code>%</code> →
+      <code>ALCOHOLEMIA</code>, <strong>todo lo demás</strong> → <code>SUSTANCIA</code>. Ese «todo
+      lo demás» es lo que hace la configuración duradera: una sustancia nueva aparece sola.</td>
+</tr>
+<tr>
+  <td><strong>Un lote caído bloqueaba el reintento</strong></td>
+  <td><strong>El peor de los cuatro.</strong> La hoja MERCURIO murió con un
+      <code>NullPointerException</code> <em>después</em> de abrir su lote, y la regla de
+      idempotencia contaba cualquier lote. El siguiente intento la habría saltado con «ya cargada
+      antes» y sus <strong>462 renglones se habrían perdido en silencio y para siempre</strong>,
+      con el reporte diciendo que todo salió bien.</td>
+  <td>Solo cuenta como cargada si terminó en <code>OK</code> o <code>CON_AVISOS</code>, y al
+      reabrir se limpian los restos de la hoja que no terminó. El reintento se volvió automático.
+      Y una hoja caída ya hace que el proceso salga con código 3, no con <code>[ok]</code>.</td>
+</tr>
+<tr>
+  <td><strong>Unboxing en un ternario</strong></td>
+  <td>El <code>NullPointerException</code> de MERCURIO. Una rama <code>int</code> y la otra
+      <code>Integer</code>: Java desempaqueta y truena si viene nula. <strong>Llevaba ahí desde el
+      principio</strong>; no se había disparado porque en la fase 1 los 46 renglones sin fecha sí
+      tenían marca de mes.</td>
+  <td>Una línea. Lo caro no fue el arreglo, fue que se comiera la hoja más grande de la familia.</td>
+</tr>
+<tr>
+  <td><strong><code>N/A</code> ganaba sobre el dato real</strong></td>
+  <td>Dos renglones traían <code>N/A</code> y <code>NO CONTRATADO</code> marcados a la vez, y se
+      quedaba con <code>N/A</code> por estar antes en la hoja &mdash;borrando el único dato real
+      del renglón&mdash;.</td>
+  <td>Servicio médico confirmó que <code>N/A</code> es «no aplica», o sea ausencia de desenlace.
+      Ahora <strong>una etiqueta neutra pierde contra cualquier valor real</strong>, y eso no se
+      reporta como ambigüedad. Se comparan completas: <code>NO APLICA</code> es neutra pero
+      <code>NO APTO</code> y <code>NO CONTRATADO</code> son respuestas de verdad.</td>
+</tr>
+</table>
+
+<div class="good">
+<strong>El <code>DashboardAntidopingDto</code> no cambió ni una línea.</strong> Cuando se diseñó
+contra el WS de ORDS ya pedía <code>porResultado</code>, <code>porSustancia</code>,
+<code>porTipoPrueba</code> y <code>porStatusConclusion</code> &mdash;exactamente como quedó el
+ruteo del Excel&mdash;. Los dos orígenes describen el mismo proceso, lo que dice que el modelo no
+salió de una preferencia sino del negocio.
+</div>
+
+<div class="warn">
+<strong>Una pregunta abierta y dos pendientes menores.</strong> Tres renglones traen
+<code>ANTIDOPING</code> y <code>ALCOHOLEMIA</code> marcados a la vez: ¿son dos pruebas o sobra una
+marca? Hoy se guarda solo la primera, así que <strong>la alcoholemia de esos 3 casos no aparece en
+ningún reporte</strong>. Está preguntado a servicio médico.
+<br><br>
+Y dos cosas que no pierden datos: la hoja de MERCURIO declara 463 y se leyeron 462 &mdash;el de más
+es basura de captura que el filtro rechaza, igual que en AIFA&mdash;, y el <code>ACUMULADO</code> de
+Z Vallejo no empareja con su predio, así que esa hoja no se puede cuadrar.
+</div>
+
+<h3>Maternidad <span class="tag">configurada · carga pendiente</span></h3>
+<p>15 hojas, 70 renglones, 9 bloques y <strong>cero avisos de lectura</strong>. Pero es la familia
+que más obligó a pensar, porque rompe una suposición que las cinco anteriores compartían.</p>
+
+<div class="warn">
+<strong>Un caso de maternidad no tiene fecha del evento.</strong> No es un hecho de un día: es un
+expediente que se sigue durante meses, y todas sus columnas de fecha son de otra cosa.
+<table style="margin-top:10px">
+<tr><th style="width:230px">Columna</th><th>Qué es</th><th>En AIFA</th></tr>
+<tr><td><code>FECHA DE INGRESO</code></td><td>cuándo entró a la empresa</td><td>años antes</td></tr>
+<tr><td><code>FUM</code></td><td>última menstruación</td><td><strong>14/11/2024</strong></td></tr>
+<tr><td><code>INICIO</code> de incapacidad</td><td>el permiso, cuando ya se autorizó</td><td>2025</td></tr>
+<tr><td><code>FECHA PROBABLE DE PARTO</code></td><td>fórmula: FUM + 280 días</td><td>a futuro</td></tr>
+</table>
+<br>
+Con el mapeo genérico, la búsqueda parcial por «FECHA» habría agarrado <code>FECHA DE INGRESO</code>
+&mdash;la primera columna cuyo grupo contiene esa palabra&mdash; y la gráfica habría salido
+<strong>por antigüedad en la empresa</strong>. Es lo que explica el escaneo previo, que reportó 11 de
+12 renglones «fuera de 2026»: estaba leyendo fechas de contratación.
+<br><br>
+<strong>Y había un daño peor esperando.</strong> Con <code>FUM</code> en 2024 dentro de un archivo de
+2026, la corrección de año imposible lo habría «arreglado» a 2026, porque 2024 queda fuera de
+[2025, 2026]. La regla que el día anterior salvó 20 renglones habría <strong>destruido uno
+bueno</strong>. Un embarazo cruza años legítimamente.
+</div>
+
+<div class="good">
+<strong>El propio archivo dice cómo leerse.</strong> Su primer bloque es <code>MES REPORTADO</code> y
+su primera casilla es <code>ANTES 2025</code>: el origen piensa en <em>cuándo se reporta el caso</em>,
+no en cuándo ocurrió. De ahí sale el mes, y del archivo el año. Las fechas clínicas se guardan todas
+como atributos, con su tipo, así que no se pierde ninguna y ninguna pasa por la corrección de año.
+<br><br>
+Los renglones marcados en <code>ANTES 2025</code> quedan sin mes, y es correcto: son expedientes
+heredados que no pertenecen a ningún mes de 2026.
+</div>
+
+<h4>Lo que maternidad arregló para todos</h4>
+<table>
+<tr><th style="width:210px">Defecto</th><th>Qué pasaba</th><th>El arreglo</th></tr>
+<tr>
+  <td><strong>Los renglones sin fecha desaparecían al filtrar</strong></td>
+  <td>Toda consulta acota por <code>FECHA</code>, y un nulo no entra en un rango. Eran
+      <strong>46 renglones de la fase 1</strong> que se caían en cuanto la pantalla aplicaba un
+      filtro de fechas &mdash;o sea siempre&mdash;. En maternidad habrían sido los 70.</td>
+  <td>Si no hay fecha de celda pero sí mes del bloque, se arma <strong>el día 1 de ese mes</strong>.
+      El mes y el año los dice el origen; lo único sintético es el día, que ningún reporte usa. El
+      aviso «sin fecha legible» se queda, para saber cuál es sintética.</td>
+</tr>
+<tr>
+  <td><strong>Nombres de atributo demasiado largos</strong></td>
+  <td><code>ORA-12899</code>: <strong>10 de las 15 hojas</strong> se cayeron. El origen mete la
+      instrucción dentro del encabezado, y concatenada daba <strong>95 caracteres</strong> contra
+      los 60 de la columna:
+      <code>CORREO DE AVISO (COLOCAR LA FECHA DE ENVIO).OBSERVACIONES (COLOCAR CONCLUYE / BAJA / LABORANDO)</code></td>
+  <td>Se quitan los paréntesis, que son instrucciones para quien captura y no parte del nombre.
+      Queda <code>CORREO_DE_AVISO.OBSERVACIONES</code>, 29 caracteres. <strong>Mejor que ensanchar
+      la columna</strong>: no necesita DDL en dos ambientes y el nombre queda legible. Verificado
+      que los nombres del pos-incapacidad ya cargados salen idénticos.</td>
+</tr>
+</table>
+
+<div class="good">
+<strong>El freno de ayer se ganó el sueldo.</strong> Las 10 hojas caídas hicieron que el proceso
+saliera con <strong>código 3</strong> en lugar de <code>[ok]</code>, y los 68 eventos que alcanzaron
+a entrar antes del error quedaron marcados como lote incompleto, para limpiarse solos en el
+reintento. Sin los dos arreglos de la mañana, esto habría dejado 68 renglones a medias, invisibles,
+imposibles de recuperar sin meter mano a la base.
+</div>
+
+<div class="warn">
+<strong>Una hoja que no es basura y todavía no cabe.</strong> Los archivos de maternidad traen una
+hoja <code>REVISIONES</code>: una matriz de <em>nombre &times; mes de revisión prenatal</em> con
+observaciones del tipo «PULSERA ROJA». Es data real, pero de otra forma &mdash;un renglón por
+persona y una columna por mes, no un evento por renglón&mdash;. Se ignora para que no entre como si
+fuera un predio llamado REVISIONES, y <strong>queda anotada aquí como contenido pendiente, no como
+hoja descartable</strong>.
+</div>
+
+<h3>Consumo de Medicamentos <span class="tag done">pantalla nueva</span></h3>
+<p>Resultó ser <strong>una pantalla nueva, no una conexión</strong>. El menú tiene 15 módulos y
+ninguno era consumo de medicamentos: el que se llama «Inventario» es el control de kits de
+antidoping, otra cosa. Hubo que crear el DTO, el servicio, el endpoint, la plantilla y la entrada
+en el menú.</p>
+
+<div class="warn">
+<strong>Es el único módulo que no fusiona dos orígenes</strong>, y el único que lee de
+<code>_METRICA</code> en vez de <code>_EVENTO</code>. El portal no captura consumo de medicamentos,
+así que todo lo que se ve viene del histórico. Por lo mismo no tiene filtro de cuenta &mdash;los
+Excel no la registran&mdash; ni KPI de personas: su renglón es un medicamento, no alguien.
+</div>
+
+<table>
+<tr><th style="width:230px">Decisión</th><th>Por qué</th></tr>
+<tr>
+  <td><strong>Solo se suma una de las tres medidas</strong></td>
+  <td>El Excel trae el desglose por semana, el <code>TOTAL x LOTE</code> y el acumulado. Sumar las
+      tres daría <strong>el triple</strong>: las semanas ya están dentro del total y el acumulado lo
+      repite. Se usa el total por lote, que es el que el archivo calcula y el que cuadra contra sus
+      propias semanas. Las otras dos quedan guardadas y consultables.</td>
+</tr>
+<tr>
+  <td><strong>El equipo no se filtra por periodo</strong></td>
+  <td><code>MATERIAL FIJO</code> se cargó con mes nulo porque es el estado del año, no un hecho de
+      un mes. Acotarlo por fecha lo haría desaparecer. Va en su propia gráfica y no suma con las
+      piezas de medicamento: un baumanómetro no se gasta.</td>
+</tr>
+<tr>
+  <td><strong>Tiene cuadre propio</strong></td>
+  <td>Las semanas suman el <code>TOTAL x LOTE</code>, así que el archivo se verifica contra sí mismo
+      sin depender de una hoja ACUMULADO. Ninguna otra familia puede hacer eso.</td>
+</tr>
+</table>
+
+<h4>El zoológico de nombres de predio</h4>
+<p>Al revisar los 132 archivos salió que el mismo predio se escribe de muchas formas según la
+familia. Hasta ahora se encontraban de a uno, al tropezar con ellos; conviene tenerlos a la vista:</p>
+<table>
+<tr><th style="width:150px">Predio</th><th>También se escribe</th><th>Estado</th></tr>
+<tr class="ok"><td>MKLS</td><td><code>MIKELS</code></td><td>resuelto</td></tr>
+<tr class="ok"><td>FORANEO</td><td><code>FLORANEO</code></td><td>resuelto</td></tr>
+<tr class="ok"><td>UT</td><td><code>U TEPALCAPA</code></td><td>resuelto</td></tr>
+<tr class="ok"><td>Z VALLEJO</td><td><code>VALLEJO</code></td><td>resuelto</td></tr>
+<tr class="ok"><td>MACRO 1</td><td><code>M1</code></td><td>resuelto (maternidad)</td></tr>
+<tr><td>MACRO 2</td><td><code>M2</code></td><td>pendiente</td></tr>
+<tr><td>ATIZAPAN</td><td><code>ATIZ</code></td><td>pendiente</td></tr>
+<tr><td>Z VALLEJO</td><td><code>ZV</code></td><td>pendiente</td></tr>
+<tr><td>TULTIPARK</td><td><code>TULT</code>, <code>TULTI</code></td><td>pendiente</td></tr>
+<tr><td>TOLUCA</td><td><code>TOL</code></td><td>pendiente</td></tr>
+<tr><td>SIGLO XXI</td><td><code>SIG</code>, <code>SIGLO</code></td><td>pendiente</td></tr>
+<tr><td>MERCURIO</td><td><code>MERC</code></td><td>pendiente</td></tr>
+<tr><td>CHARCON</td><td><code>CHARC</code></td><td>pendiente</td></tr>
+<tr><td>WORLD PARK</td><td><code>WP</code></td><td>pendiente</td></tr>
+<tr><td>MKLS</td><td><code>MIK</code></td><td>pendiente</td></tr>
+<tr><td>FLORA</td><td><code>FLR</code></td><td>pendiente</td></tr>
+</table>
+
+<div class="warn">
+<strong>Los pendientes se resuelven al configurar su familia, no antes.</strong> Aquí el error
+costoso no es dejar un alias sin emparejar &mdash;eso se nota, aparece un predio de más&mdash; sino
+<strong>fundir dos predios distintos</strong>, que no se nota nunca. Cada alias se agrega cuando se
+abre el archivo que lo usa.
+<br><br>
+Y dos que no se van a mapear sin preguntar: <code>ZARA</code> puede ser el predio o las cuentas
+<code>ZARA CADENAS</code> y <code>ZARA ALMACEN</code>, y <code>M3</code> aparece siete veces sin que
+exista ningún predio «MACRO 3» entre los quince.
+</div>
+
+<h2>Fase 3 &middot; Los reportes de seguimiento</h2>
+<p>Seis reportes que <strong>no estaban en el cuestionario</strong> &mdash; nadie los presentó a
+servicio médico. Salieron al recorrer los 132 archivos: 24 de ellos no pertenecen a ninguna de
+las nueve familias.</p>
+
+<div class="note">
+<strong>Miden algo distinto, y por eso valen.</strong> Las nueve familias cuentan <em>eventos</em>
+&mdash; una atención, un examen, un accidente. Estos seis <em>siguen personas en el tiempo</em>:
+quién está en control, con qué diagnóstico, desde cuándo, si asistió a su cita cada mes. Hoy el
+portal no puede responder nada de eso.
+</div>
+
+<h3>Lo que los seis comparten</h3>
+<ul>
+  <li><strong>No son «marca con 1».</strong> Listas nominales con valores reales; no hay nada que transponer. Por eso salen más baratos que las nueve familias.</li>
+  <li><strong>Misma arquitectura de tres capas:</strong> una hoja <code>CONCENTRADO</code>/<code>GENERAL</code> con el resumen ya agregado, una hoja por predio con el detalle, y algunos una hoja <code>NOMENCLATURA</code> con el diccionario de códigos.</li>
+  <li><strong>Los 24 archivos son ~6 reportes globales duplicados.</strong> Cada uno trae una hoja por predio (carnet 72 hojas, CAPA 21, NOM-035 17, seguimiento 15) y cada predio guarda su copia. Cargar los 24 sería cargar seis cosas siete veces: hay que deduplicar por contenido.</li>
+  <li><strong>La hoja <code>CONCENTRADO</code> ya es la gráfica.</strong> Predio × género × estado, agregado. Solo hay que leerla.</li>
+</ul>
+
+<table>
+<thead><tr><th>Reporte</th><th>Qué sigue</th><th>Dato propio</th></tr></thead>
+<tbody>
+<tr><td><strong>CARNET</strong> <span class="tag">2 archivos</span></td><td>enfermedad crónica</td><td><code>DM</code> diabetes, <code>HAS</code> hipertensión, <code>OBE 2/3/MOR</code> obesidad, <code>DISLI</code> dislipidemia; prefijo <code>PB</code> = probable. Estado mensual por persona</td></tr>
+<tr><td><strong>CAPA</strong> <span class="tag">4 archivos</span></td><td>adicciones</td><td><code>CONSUMO: THC</code>, estatus, citas programadas contra asistencia y faltas. <strong>Es la continuación de antidoping</strong></td></tr>
+<tr><td><strong>NOM-035</strong> <span class="tag">7 archivos</span></td><td>riesgo psicosocial</td><td>acontecimiento traumático, apoyo social, requiere medicación, fechas de detección y alta. Obligación normativa</td></tr>
+<tr><td><strong>SEGUIMIENTO ESPECIAL</strong> <span class="tag">7 archivos</span></td><td>padecimientos graves</td><td>diagnóstico libre, última cita, prótesis, <strong>edad exacta y antigüedad</strong> &mdash; datos que no existen en ninguna otra parte del alcance</td></tr>
+<tr><td>PRODUCTIVIDAD <span class="tag">1 archivo</span></td><td>actividad preventiva</td><td>papanicolau, antígeno prostático, VIH, hepatitis, uroanálisis, exploración de mama, por mes. Cinco años en un archivo</td></tr>
+<tr><td>MANIFIESTOS <span class="tag">3 archivos</span></td><td>residuos peligrosos</td><td>recolección y acumulado por predio. <strong>No es salud de personas</strong></td></tr>
+</tbody>
+<tfoot><tr><td><strong>Se recomiendan los 4 primeros</strong></td><td colspan="2">Productividad existe en un solo predio y manifiestos es control de residuos, no salud de personas. Los dos quedan fuera salvo que servicio médico los pida</td></tr></tfoot>
+</table>
+
+<div class="warn">
+<strong>Dos que cuestionaría antes de invertirles.</strong> <strong>MANIFIESTOS</strong> es
+cumplimiento ambiental de residuos, no salud de personas: no pertenece a este tablero.
+<strong>PRODUCTIVIDAD</strong> existe en un solo predio y sus hojas por año sugieren un control
+local, no un reporte institucional. Los otros cuatro sí los haría.
+</div>
+
+<div class="warn">
+<strong>Una trampa que estos archivos traen y las nueve familias no.</strong> Varios calculan la
+edad y la antigüedad por fórmula. En las filas vacías la fórmula toma la fecha nula como 1900 y
+arroja <strong>126 años</strong>. Lo vi en el seguimiento especial y en CAPA. Son filas fantasma
+con números plausibles pero falsos &mdash; peor que una celda vacía, porque no se notan. La
+antigüedad no se copia del Excel: se calcula desde <code>FECHA_INGRESO</code>.
+</div>
+
+<h2>Las tres fases</h2>
+<table>
+<thead><tr><th style="width:150px">Fase</th><th>Qué entrega</th><th style="width:110px">Estado</th></tr></thead>
+<tbody>
+<tr class="ok"><td>1 &mdash; Atenciones y exámenes</td><td>infraestructura completa + <strong>las 3 pantallas de Morbilidad</strong>, con las 4 familias cargadas y verificadas<br><span style="font-size:.85em;color:#667085">21 tareas, de las cuales 3 salieron de correr la carga de verdad</span></td><td><strong>cerrada</strong></td></tr>
+<tr><td>2 &mdash; Las 5 familias restantes</td><td>5 agregaciones y <strong>6 pantallas</strong> (Clínico y Control), sobre la tabla genérica que ya existe</td><td>sin empezar</td></tr>
+<tr><td>3 &mdash; Seguimiento</td><td>4 indicadores nuevos + un grupo nuevo en el menú, con su SQL de <code>SERV_MED_MENU</code></td><td>sin empezar</td></tr>
+</tbody>
+<tfoot><tr><td>Todo</td><td>13 pantallas del menú de Análisis · 9 familias + 4 reportes de seguimiento</td><td>4 de 13</td></tr></tfoot>
+</table>
+
+<div class="note">
+<strong>Recomendación: por fases, en este orden.</strong> La fase 1 ya está entregada y con datos
+dentro, así que la decisión sobre el resto se toma <em>viendo</em> trabajar al cargador contra los
+archivos reales, no creyéndole a un plan.
+<br><br>
+Y la fase 2 es mucho menos trabajo de lo que parecía, por tres recortes de diseño que ya están
+hechos y probados: <strong>una tabla genérica</strong> en lugar de nueve
+(<code>SERV_MED_BITACORA_EVENTO</code> + <code>_ATRIBUTO</code>, el mismo patrón EAV que
+<code>SERV_MED_TAG</code> ya sostiene con 550 mil renglones), <strong>una pantalla
+parametrizada</strong> en lugar de siete, y <strong>el cuadre automático</strong> contra la hoja
+<code>ACUMULADO</code> que cada Excel trae de sí mismo. Agregar una familia ya no necesita DDL:
+es configuración en <code>MapeoFamilia</code>.
+</div>
+
+<div class="warn">
+<strong>Este documento ya no lleva estimaciones de tiempo.</strong> Las que traía no resultaron
+confiables, y un plan con una cifra que no se sostiene es peor que un plan sin cifra: obliga a
+discutir el número en lugar del trabajo. El avance se mide aquí en cosas contables &mdash;tareas
+cerradas, familias cargando, pantallas con datos, renglones en la base&mdash; que se pueden
+verificar sin creerle a nadie.
+<br><br>
+Donde queda riesgo real es en el <strong>formato del origen</strong>. Lo que sabemos sale de los
+132 archivos de 2026, y los dos ensayos demostraron que sigue habiendo sorpresas ahí: nueve de los
+defectos corregidos salieron de correr la carga, no de leer los archivos. Las cinco familias de la
+fase 2 no han pasado por el transpositor todavía.
+</div>
+
+<h2>Las tres que faltaban, ya contestadas</h2>
+<p>Resueltas el 29-sep-2026. <strong>No queda ninguna pregunta abierta para empezar.</strong></p>
+
+<table>
+<thead><tr><th style="width:36px">#</th><th>Respuesta</th><th>Qué cambia en el código</th></tr></thead>
+<tbody>
+<tr><td class="id">7</td><td><strong><code>POLICONTUNDIDO</code>: tomarlo de cualquiera de las dos listas, no debe estar doble.</strong> Y en 2026 el problema ni se presenta: no está en el catálogo de causas, solo en el bloque de lesiones músculo-esqueléticas.</td><td>Leerlo del bloque de lesiones. Si alguna vez aparece en los dos, contar una sola vez.</td></tr>
+<tr><td class="id">9</td><td><strong>El cliente se distingue porque se pone «cliente» en <code>PUESTO</code>, y <code>CUENTA</code> dice de qué cuenta es.</strong></td><td>Bandera <code>ES_EXTERNO</code> derivada de <code>PUESTO</code>. <code>CUENTA</code> se guarda tal cual. <strong>El predio sale de la hoja del archivo</strong>, no del mapeo cuenta→predio del portal.</td></tr>
+<tr><td class="id">12</td><td><strong>La unidad es el episodio, no el año.</strong> Los días se cuentan desde la primera incapacidad hasta el alta, para ver los acumulados. La pregunta estaba mal planteada: preguntó por el corte de año calendario.</td><td><code>FECHA</code> del evento = <code>FECHA DE PRIMERA INCAPACIDAD</code> (col 104). Un renglón del Excel = un episodio. <code>2025 PENDIENTE</code> y <code>2027 ENERO</code> son cómo arrastran el episodio a través del año.</td></tr>
+</tbody>
+</table>
+
+<div class="warn">
+<strong>Y <code>DIAS ACUMULADOS</code> se lee <em>y se valida</em>.</strong> El archivo ya lo trae
+calculado en la columna 100, pero es una fórmula &mdash; y ya vimos lo que las fórmulas de estos
+archivos hacen en las filas vacías (126 años). Así que el cargador guarda
+<strong>los dos valores</strong>: el que dice el Excel y el que él mismo calcula desde
+<code>FECHA DE PRIMERA INCAPACIDAD</code> hasta el <code>ALTA</code>, sumando los bloques de
+<code>DIAS SUBSIDIADOS</code>. Cuando no coincidan, queda registrado en
+<code>SERV_MED_BITACORA_LOTE.MENSAJES</code> con el renglón exacto.
+<br><br>
+Es el mismo principio que con las causas: se conserva el dato crudo y el derivado, y se comparan.
+Nunca se hereda un número sin verificarlo.
+</div>
+
+<h2>Reglas que salieron del cuestionario y ya están fijas</h2>
+<ul>
+  <li><strong>Dictamen:</strong> <code>15</code> APTO, <code>45</code> APTO CONDICIONADO, <code>60</code> APTO RESTRINGIDO (= inclusión), <code>30</code> NO APTO. <strong>Solo el 30 descalifica</strong>; el 60 es apto. La lista de no aptos se filtra por <code>= 30</code>.</li>
+  <li><strong>Inclusión no es una categoría de personal</strong>, es el dictamen 60. No hay que rastrearla aparte.</li>
+  <li><strong>RT1 = laboral, RT2 = trayecto.</strong> El RT1 lo paga la empresa al IMSS; el RT2 impacta en ausentismo. Las cinco categorías entran al indicador de accidentabilidad.</li>
+  <li><strong>Las causas nuevas engloban varias viejas</strong> &mdash; no son renombres. Se puede subir lo viejo a la categoría nueva, nunca bajar lo nuevo al detalle viejo.</li>
+  <li><code>CONTROL PESO</code> se borró: no incluirla. <code>TOMA DE GLUCOSA</code> no es diabetes.</li>
+  <li><strong>Externos y clientes sí cuentan.</strong> Incapacidades internas sí cuentan (las paga la empresa) y el costo sí entra al portal.</li>
+</ul>
+
+<footer>
+Fuentes: cuestionario contestado por Angélica Rosales el 29-sep-2026 (aplica a todos los predios) &middot;
+muestra de 30 archivos en años y predios distintos &middot; conteo de los 132 archivos de 2026 &middot;
+<code>docs/carga-historica-morbilidad-hallazgos.md</code>.
+</footer>
+
+</div>
+</body>
+</html>

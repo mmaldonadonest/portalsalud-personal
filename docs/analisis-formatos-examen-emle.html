@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Formatos de examen EMLE</title>
+<style>
+  :root { --tinta: #1f2937; --gris: #6b7280; --borde: #e5e7eb; --azul: #0057A8; --ok: #15803d; --okbg: #f0fdf4; --no: #b91c1c; --nobg: #fef2f2; --am: #92400e; --ambg: #fffbeb; }
+  body { margin: 0; background: #ffffff; color: var(--tinta); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 56px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 34px 0 8px; border-bottom: 2px solid var(--borde); padding-bottom: 4px; }
+  h3 { font-size: 16px; margin: 20px 0 6px; }
+  .sub { color: var(--gris); margin: 0 0 16px; }
+  .tabla { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 6px 0 10px; }
+  th, td { border: 1px solid var(--borde); padding: 6px 9px; text-align: left; vertical-align: top; }
+  th { background: #f9fafb; }
+  .tag { display: inline-block; padding: 0 8px; border-radius: 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .si { background: var(--okbg); color: var(--ok); }
+  .no { background: var(--nobg); color: var(--no); }
+  .parcial { background: var(--ambg); color: var(--am); }
+  code { background: #f3f4f6; padding: 0 4px; border-radius: 4px; }
+  ul, ol { padding-left: 22px; }
+  .nota { border-left: 4px solid var(--azul); background: #f8fafc; padding: 8px 12px; margin: 12px 0; }
+  pre.mermaid { background: #ffffff; border: 1px solid var(--borde); border-radius: 6px; padding: 12px; overflow-x: auto; text-align: center; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'default', flowchart: { htmlLabels: true } });</script>
+</head>
+<body>
+<main>
+  <h1>Formatos de examen médico EMLE (FT-SO-04, 13, 16, 17, 18, 19 y 20)</h1>
+  <p class="sub">Análisis de <code>docs/formatosnuevos</code> contra el portal (rama <code>feature/carga-excel-nss-vistas</code>). 14 de octubre de 2026. Solo lectura de los .xlsx; no se cambió nada.</p>
+
+  <div class="nota"><b>En resumen.</b> Son 7 tipos de examen sobre la misma base clínica. Las "ayudas" (celdas amarillas y comentarios) son <b>reglas de llenado</b>: valor predeterminado, dos opciones fijas o casilla "NO" ya marcada. El portal ya tiene casi todos los campos de exploración, pero como texto libre y sin valores predeterminados. Faltan 2 tipos (egreso y la variante mantenimiento) y unos 20 datos propios de cada tipo.</div>
+
+  <h2>1. Los 7 formatos contra los tipos de examen del portal</h2>
+  <div class="tabla"><table>
+    <tr><th>Formato</th><th>Revisión</th><th>Base</th><th>Propio de este examen</th><th>Tipo en el portal hoy</th></tr>
+    <tr><td>FT-SO-04 Inicial</td><td>05 (14-sep-2026)</td><td>completo, 3 hojas</td><td>antecedentes laborales (4 empleos), heredofamiliares, APNP, APP con listas, manipulación de cargas, perforaciones, tatuajes</td><td><span class="tag si">sí</span> 1 Admisión</td></tr>
+    <tr><td>FT-SO-19 Inicial mantenimiento</td><td>06</td><td>= 04</td><td>+ <b>antecedentes laborales específicos</b>: altura, en caliente, espacios confinados (sí/no) y 6 preguntas (¿certificado?, ¿aprobó examen hace &lt; 1 año?, medicamentos 24 h, epilepsia/mareos/vértigo, aerofobia, asma/alergias, enfermedad pulmonar/cardiaca, claustrofobia); columna "exp. a riesgos" en empleos</td><td><span class="tag no">no</span></td></tr>
+    <tr><td>FT-SO-17 Periódico</td><td>06</td><td>versión corta del 04</td><td>departamento, puesto, turno; puesto inicial y puesto actual; APP como lista simple con "NEGADOS"; tatuajes y perforaciones</td><td><span class="tag si">sí</span> 2 Periódico</td></tr>
+    <tr><td>FT-SO-20 Periódico mantenimiento</td><td>—</td><td>= 17</td><td>+ el mismo bloque de antecedentes laborales específicos del 19</td><td><span class="tag no">no</span></td></tr>
+    <tr><td>FT-SO-16 Cambio de puesto</td><td>—</td><td>= 17</td><td>fecha de ingreso, <b>puesto anterior</b>, <b>motivo del cambio</b>; sin SaO2 ni cintura/cadera</td><td><span class="tag si">sí</span> 3 Cambio de rol</td></tr>
+    <tr><td>FT-SO-18 Egreso</td><td>—</td><td>= 17</td><td><b>antigüedad</b>, <b>motivo de salida</b>, "estudios durante su periodo laboral"; sin plan terapéutico</td><td><span class="tag no">no</span> (no existe "egreso")</td></tr>
+    <tr><td>FT-SO-13 Post incapacidad</td><td>06 (14-sep-2026)</td><td>corto, 1 hoja</td><td>antecedentes de la incapacidad: diagnóstico, días, ramo (EG, MAT, RT, enlace), tipo (IMSS/interna), fechas, tratamiento; departamento, puesto, turno; solo signos vitales en exploración</td><td><span class="tag si">sí</span> 4 Post incapacidad</td></tr>
+  </table></div>
+  <p>El portal además tiene "5 Especial", que no corresponde a ningún formato de esta carpeta. Los 7 cierran con el mismo resultado: <b>APTO 15 · APTO 45 (condicionado) · CLAVE 60 · CLAVE 30</b>. En el 16 y el 18 sigue el error de plantilla "APTO <b>19</b>45".</p>
+
+  <h2>2. Las "ayudas": reglas de llenado</h2>
+  <p>Se repiten en los 7 formatos. Son de 5 clases:</p>
+  <div class="tabla"><table>
+    <tr><th>Regla</th><th>Dónde aplica</th><th>Portal hoy</th></tr>
+    <tr><td><b>Agencia</b>: texto predeterminado "Grupo Logístico Integral SAPI de CV", con opción "otro" y especificar</td><td>los 7</td><td><span class="tag parcial">revisar</span></td></tr>
+    <tr><td><b>"NEGADOS"</b> como observación predeterminada</td><td>heredofamiliares (04, 19, unas 30 enfermedades); antecedentes personales patológicos (los 7 salvo 13); en 17/18/20 también tabaquismo, alcoholismo, tatuajes, perforaciones</td><td><span class="tag no">no</span> observación vacía</td></tr>
+    <tr><td><b>Casilla "NO" ya marcada</b> (comentario "celda preseleccionada")</td><td>04 y 19: listas de APP de oftalmológico, renal, cardiopatías, sistema nervioso, digestivo, musculoesquelético, endocrinas, toxicológicas</td><td><span class="tag no">no</span> Sí/No sin elegir</td></tr>
+    <tr><td><b>OK / NO + "SIN AGREGADOS"</b> predeterminado</td><td>exploración: ojos, pupilas, conjuntivas, fondo de ojo, oídos (CAE, membrana, agudeza, OD, OI), nariz (4), tórax (3), tiroides, tráquea, abdomen (forma, peristalsis), fosas renales, extremidades sup/inf, movimientos, marcha, punta-talón, lunares, pigmentación, encías, orofaringe</td><td><span class="tag parcial">texto libre</span></td></tr>
+    <tr><td><b>Dos opciones "PRESENTES / AUSENTES"</b></td><td>reflejos, visceromegalias, hernias, dolor (abdomen y columna), deformaciones (cuello y columna), insuficiencia venosa periférica, cicatrices quirúrgicas (CxQx), lesiones de boca</td><td><span class="tag parcial">texto libre</span></td></tr>
+    <tr><td><b>Dos opciones "NEGATIVO / POSITIVO"</b></td><td>puntos ureterales, edema, Lassegue</td><td><span class="tag parcial">texto libre</span> (Romberg ni siquiera se captura)</td></tr>
+    <tr><td><b>"DIFERIDO"</b> predeterminado</td><td>genitales masculino y femenino</td><td><span class="tag parcial">texto libre</span></td></tr>
+    <tr><td><b>Odontograma</b> C, A, E, P, X</td><td>todos menos el 13</td><td><span class="tag parcial">examen inicial sí; examen médico con 32 cajas de texto</span></td></tr>
+  </table></div>
+
+  <h2>3. Datos que el portal no captura hoy</h2>
+  <div class="tabla"><table>
+    <tr><th>Dato</th><th>Formatos</th><th>Dónde se guardaría</th></tr>
+    <tr><td>SaO2, cintura, cadera</td><td>04, 17, 19, 20</td><td><span class="tag si">ya existe</span> en el examen inicial (tags STPO2, CINTURA, CADERA); falta en el examen médico</td></tr>
+    <tr><td>Agudeza visual sin lentes / con lentes (SL/CL)</td><td>04, 17, 19, 20</td><td>tags del PHP LENTEOJODERECHOEXP / LENTEOJOIZQUIERDOEXP (hoy sin pantalla)</td></tr>
+    <tr><td>Curvatura fisiológica (normal, aumentada, disminuida)</td><td>04, 19</td><td>nuevo (tag)</td></tr>
+    <tr><td>Manipulación de cargas manuales (Sí/No + obs.)</td><td>04, 19</td><td>nuevo (tag)</td></tr>
+    <tr><td>Perforaciones y tatuajes</td><td>04, 17, 18, 19, 20</td><td>nuevo (tag)</td></tr>
+    <tr><td>Antecedentes laborales específicos (3 sí/no + 6 preguntas)</td><td>19, 20</td><td>nuevo (tags)</td></tr>
+    <tr><td>Departamento, puesto, turno; puesto inicial / actual</td><td>13, 16, 17, 18, 20</td><td>puesto y cuenta salen del biométrico; puesto inicial y turno son nuevos</td></tr>
+    <tr><td>Fecha de ingreso, puesto anterior, motivo del cambio</td><td>16</td><td>nuevo (tags); la fecha de ingreso existe en el biométrico (EMP_FECHAI)</td></tr>
+    <tr><td>Antigüedad, motivo de salida</td><td>18</td><td>nuevo (tags); la antigüedad se puede calcular de EMP_FECHAI</td></tr>
+    <tr><td>Antecedentes de la incapacidad</td><td>13</td><td>los datos existen en el módulo Incapacidades; falta ligarlos al examen</td></tr>
+    <tr><td>Voz clara y fuerte, Romberg</td><td>04, 19</td><td>tags del PHP (hoy sin pantalla; Romberg se imprime "Negativo" aunque no se evalúe)</td></tr>
+  </table></div>
+  <p>Ninguno necesita cambiar las tablas del WS ORDS: todo lo nuevo cabe en <code>SERV_MED_TAG</code>, igual que cintura, cadera y Oídos.</p>
+
+  <h2>4. ¿Se relacionan o es captura plana?</h2>
+  <p><b>Se relacionan, de tres maneras.</b> Los 7 formatos comparten una base y heredan unos de otros, siguen el ciclo de vida del trabajador, y en el portal se guardan en <b>el mismo expediente por NSS</b>.</p>
+
+  <h3>4.1 Herencia entre formatos</h3>
+  <pre class="mermaid">
+flowchart LR
+  BASE["Base común<br/>ficha de identificación · gineco-obstétricos<br/>signos vitales · diagnóstico · plan<br/>resultado APTO 15 / 45 / CLAVE 60 / 30"]
+  F04["FT-SO-04 Inicial<br/>(completo: laborales, heredofamiliares,<br/>APNP, APP con listas, exploración completa,<br/>odontograma)"]
+  F19["FT-SO-19 Inicial mantenimiento<br/>+ altura · en caliente · confinados<br/>+ 6 preguntas"]
+  F17["FT-SO-17 Periódico<br/>(APP corto con 'NEGADOS',<br/>puesto inicial / actual)"]
+  F20["FT-SO-20 Periódico mantenimiento<br/>+ mismo bloque del 19"]
+  F16["FT-SO-16 Cambio de puesto<br/>+ fecha de ingreso, puesto anterior,<br/>motivo del cambio"]
+  F18["FT-SO-18 Egreso<br/>+ antigüedad, motivo de salida"]
+  F13["FT-SO-13 Post incapacidad<br/>+ antecedentes de la incapacidad<br/>(solo signos vitales)"]
+  BASE --> F04 --> F19
+  F04 -->|versión corta| F17 --> F20
+  F17 --> F16
+  F17 --> F18
+  BASE --> F13
+  </pre>
+
+  <h3>4.2 Ciclo de vida del trabajador y conexiones con otros módulos</h3>
+  <pre class="mermaid">
+flowchart TB
+  OCR["Solicitud OCR<br/>(candidato: nombre, fecha de nacimiento)"] --> ING
+  subgraph VIDA["Ciclo de vida (mismo NSS)"]
+    ING["Ingreso<br/>FT-SO-04 / 19"] --> ALTA(("Alta en<br/>biométrico"))
+    ALTA --> PER["Periódico<br/>FT-SO-17 / 20"]
+    PER --> PER
+    PER --> CAM["Cambio de puesto<br/>FT-SO-16"]
+    CAM --> PER
+    PER --> INC["Incapacidad"] --> POS["Post incapacidad<br/>FT-SO-13"] --> PER
+    PER --> BAJA(("Baja")) --> EGR["Egreso<br/>FT-SO-18"]
+  end
+  BIO[("Biométrico<br/>BIO_EMPLEADO: nombre, RFC,<br/>fecha de ingreso, puesto, cuenta")] -.ficha, puesto, antigüedad.-> PER & CAM & EGR & POS
+  MODINC["Módulo Incapacidades<br/>(diagnóstico, días, ramo, fechas)"] -.antecedentes de la incapacidad.-> POS
+  RES["Resultado del examen"]
+  ING & PER & CAM & POS & EGR --> RES
+  RES -->|APTO 45 condicionado| CARTA["Carta compromiso FT-SO-25<br/>+ Restricciones médicas"]
+  RES --> HIST[("Histórico de dictámenes<br/>(gráficas de Exámenes)")]
+  XLS["Excel por NSS<br/>layout 2 ingreso · 3 periódico · 4 pos incapacidad"] --> HIST
+  </pre>
+
+  <h3>4.3 Cómo se guardan hoy en el portal</h3>
+  <pre class="mermaid">
+flowchart LR
+  E1["Cualquier tipo de examen<br/>(04, 17, 16, 13...)"] -->|guardar| WS["WS ORDS Servcio/Medico<br/>~45 tablas SERV_MED_*<br/><b>1 renglón por NSS</b>"]
+  E1 -->|campos nuevos| TAG[("SERV_MED_TAG<br/>cintura, cadera, Oídos...")]
+  WS -->|cada guardado con dictamen| H[("SERV_MED_EXAMEN_HISTORICO<br/>foto completa del examen")]
+  WS --> R[("SERV_MED_RESULTADO_EXAMEN_HIST<br/>dictamen + fecha")]
+  </pre>
+  <div class="nota"><b>Consecuencia importante:</b> el WS guarda <b>un solo examen vigente por NSS</b>. Un periódico encima de un inicial <b>sobrescribe</b> los antecedentes y la exploración. El examen anterior solo queda en la foto del histórico, y el tipo de examen no se guarda en las tablas del WS, solo en un tag. Por eso el diseño de los tipos nuevos tiene que decidir qué se hereda del examen anterior (antecedentes del 04) y qué se captura de nuevo (exploración), sin perder el examen previo.</div>
+
+  <h2>4b. Encabezados de control (carpeta <code>reformatosdeexamenmedicoparaemle</code>, 14-oct-2026)</h2>
+  <p>Los 7 EMLE de esa carpeta son idénticos a los de <code>docs/formatosnuevos</code>. Se agregan FT-SO-05, FT-SO-14 y FT-SO-32.</p>
+  <div class="tabla"><table>
+    <tr><th>Formato</th><th>Rev.</th><th>Reemplaza</th><th>F. implementación</th><th>Motivo</th><th>Hoja</th><th>Observación</th></tr>
+    <tr><td>FT-SO-04 Inicial</td><td>05</td><td>04</td><td>14-sep-2026</td><td>Actualización por vigencia</td><td>1 de 3</td><td><span class="tag parcial">revisar</span> un solo encabezado que se repite al imprimir: las 3 hojas dirían "1 de 3"</td></tr>
+    <tr><td>FT-SO-13 Post incapacidad</td><td>06</td><td>05</td><td>14-sep-2026</td><td>Actualización por vigencia</td><td>1 de 1</td><td><span class="tag si">ok</span></td></tr>
+    <tr><td>FT-SO-16 Cambio de puesto</td><td>06 / <b>05</b></td><td>05 / 04</td><td>14-sep-2026 / <b>18-sep-2024</b></td><td><b>vacío</b> / Actualización de logo</td><td>1 y 2 de 2</td><td><span class="tag no">inconsistente</span> hoja 2 sigue en la rev. 05 y la hoja 1 no tiene motivo</td></tr>
+    <tr><td>FT-SO-17 Periódico</td><td>06 / <b>05</b></td><td>05 / 04</td><td><b>14-sep-2024</b> / 18-sep-2024</td><td>Vigencia / Actualización de logo</td><td>1 de 2 / <b>1 de 2</b></td><td><span class="tag no">inconsistente</span> fecha de la rev. 06 dice 2024; hoja 2 en rev. 05 y dice "1 de 2"</td></tr>
+    <tr><td>FT-SO-18 Egreso</td><td>06</td><td>05</td><td>14-sep-2026</td><td>Actualización por vigencia</td><td>1 y 2 de 2</td><td><span class="tag si">ok</span></td></tr>
+    <tr><td>FT-SO-19 Inicial mantenimiento</td><td>06 / <b>05 / 05</b></td><td>05 / 04</td><td>14-sep-2026 / <b>18-sep-2024</b></td><td>Modificación + vigencia / Actualización de logo</td><td>1, 2 y 3 de 3</td><td><span class="tag no">inconsistente</span> hojas 2 y 3 siguen en la rev. 05</td></tr>
+    <tr><td>FT-SO-20 Periódico mantenimiento</td><td>06 / <b>05</b></td><td>05 / 04</td><td>14-sep-2026 / <b>18-sep-2024</b></td><td>Modificación + vigencia / Actualización de logo</td><td>1 y 2 de 2</td><td><span class="tag no">inconsistente</span> hoja 2 sigue en la rev. 05</td></tr>
+    <tr><td>FT-SO-05 Cuestionario síntomas osteomusculares</td><td>05</td><td>04</td><td>14-oct-2026</td><td>Actualización por vigencia</td><td>1 de 1</td><td><span class="tag si">ok</span> nuevo</td></tr>
+    <tr><td>FT-SO-14 Cadena de custodia</td><td>05</td><td>04</td><td>14-oct-2026</td><td>Actualización por vigencia</td><td>—</td><td><span class="tag parcial">revisar</span> nuevo; sin "Hoja X de Y"</td></tr>
+    <tr><td>FT-SO-32 Aviso de privacidad (Word)</td><td>03</td><td>—</td><td>14-oct-2026 ("última actualización")</td><td>—</td><td>—</td><td><span class="tag parcial">otro formato</span> el control va en el pie ("FT-SO-32 REV-03"), sin bloque de encabezado como los demás</td></tr>
+  </table></div>
+  <p>Para el portal, la impresión de cada formato debe llevar la revisión vigente (la 06 en 13, 16, 17, 18, 19 y 20; la 05 en 04, 05 y 14) en <b>todas</b> las hojas. El FT-SO-32 trae 2 casillas de consentimiento para fines secundarios (muestras biológicas y uso de datos médicos) que hoy el portal no captura.</p>
+
+  <h2>5. Propuesta</h2>
+  <ol>
+    <li><b>Un solo examen con tipo.</b> Agregar los tipos que faltan (Egreso; Inicial y Periódico "mantenimiento", como tipo propio o como marca) y que cada tipo muestre solo sus secciones, como en el formato.</li>
+    <li><b>Botón "Todo normal" por sección</b>, como el "Todo Sí" del examen inicial. Llena los predeterminados de la sección ("NEGADOS", "OK + SIN AGREGADOS", "AUSENTES", "NEGATIVO", "DIFERIDO", casilla NO) y el médico solo cambia lo anormal. Es la forma práctica de cumplir las ayudas sin que se guarden valores que nadie revisó: el predeterminado solo se escribe si el médico pulsa el botón.</li>
+    <li><b>Controles por regla:</b> OK/NO + texto; Presentes/Ausentes; Negativo/Positivo; odontograma.</li>
+    <li><b>Impresión por formato</b>: cada tipo con su clave FT-SO y revisión (ya está en <code>plan-formatos-ft-so.html</code>).</li>
+  </ol>
+
+  <h2>6. Preguntas para servicio médico</h2>
+  <ol>
+    <li>¿El predeterminado se guarda solo si el médico lo confirma ("Todo normal"), o el examen debe abrir ya lleno?</li>
+    <li>Mantenimiento: ¿es un tipo de examen distinto o una marca sobre Inicial/Periódico? ¿Qué puestos lo llevan?</li>
+    <li>"Egreso": ¿se hace a todas las bajas o solo a algunas? ¿Lo dispara la baja en el biométrico?</li>
+    <li>"5 Especial" del portal: ¿a qué formato corresponde?</li>
+    <li>"APTO 1945" en el 16 y el 18: confirmar que es "APTO 45".</li>
+    <li>Las casillas "SI/NO" resaltadas en amarillo de "en caliente" (19 y 20): ¿llevan alguna regla o es solo formato?</li>
+    <li>En un periódico, cambio de puesto o egreso: ¿los antecedentes (heredofamiliares, APNP, APP) se copian del examen anterior para confirmarlos, o se capturan de nuevo?</li>
+  </ol>
+</main>
+</body>
+</html>

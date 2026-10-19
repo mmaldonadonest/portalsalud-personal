@@ -26,7 +26,11 @@ public class RestIntranetUserClient implements IntranetUserClient {
     private final RestClient intranetRestClient;
     private final IntranetProperties properties;
 
-    public RestIntranetUserClient(RestClient intranetRestClient, IntranetProperties properties) {
+    // @Qualifier explicito: el 10-oct-2026 un @Primary en otro RestClient (el de ORDS) le gano a
+    // la inyeccion por nombre y las fotos se pedian a ORDS (404 de Oracle, avatar generico).
+    public RestIntranetUserClient(
+            @org.springframework.beans.factory.annotation.Qualifier("intranetRestClient") RestClient intranetRestClient,
+            IntranetProperties properties) {
         this.intranetRestClient = intranetRestClient;
         this.properties = properties;
     }

@@ -4,8 +4,13 @@ import com.onest.app.audit.web.Auditado;
 import com.onest.app.catalog.accidente.dto.AccidenteDto;
 import com.onest.app.catalog.accidente.dto.AccidenteSeguimientoDto;
 import com.onest.app.catalog.accidente.service.AccidenteService;
+import com.onest.app.catalog.dashboard.repository.VistaAccidenteRepository;
 import com.onest.app.catalog.file.service.FileStoreService;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
@@ -25,12 +30,18 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/api/nss")
 public class AccidenteController {
 
+    private static final Logger log = LoggerFactory.getLogger(AccidenteController.class);
+
     private final AccidenteService accidenteService;
     private final FileStoreService fileStoreService;
+    // Solo existe con portal.historico.fuente=VISTA: entonces el expediente muestra tambien lo del Excel
+    private final ObjectProvider<VistaAccidenteRepository> vistaAccidentes;
 
-    public AccidenteController(AccidenteService accidenteService, FileStoreService fileStoreService) {
+    public AccidenteController(AccidenteService accidenteService, FileStoreService fileStoreService,
+                               ObjectProvider<VistaAccidenteRepository> vistaAccidentes) {
         this.accidenteService = accidenteService;
         this.fileStoreService = fileStoreService;
+        this.vistaAccidentes = vistaAccidentes;
     }
 
     @PostMapping(
@@ -39,11 +50,33 @@ public class AccidenteController {
             produces = MediaType.TEXT_HTML_VALUE)
     public String accidentes(@RequestParam("data") String data, Model model) {
         try {
+            String nss = data == null ? "" : data.trim();
             model.addAttribute("accidentes", accidenteService.byNssConEstado(data));
-            model.addAttribute("nss", data == null ? "" : data.trim());
+            model.addAttribute("nss", nss);
+            agregarHistorico(nss, model);
             return "fragments/accidentes-list :: table";
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        }
+    }
+
+    /**
+     * Histórico del Excel (layout 6 por NSS) para la tarjeta "Histórico Excel" del expediente.
+     * Sin el interruptor VISTA no se agrega nada. Si la vista falla, el modulo sigue con lo del
+     * portal y la tarjeta avisa: el historico es un complemento, no debe tumbar el expediente.
+     */
+    private void agregarHistorico(String nss, Model model) {
+        VistaAccidenteRepository vista = vistaAccidentes.getIfAvailable();
+        if (vista == null || nss.isEmpty()) {
+            return;
+        }
+        model.addAttribute("conHistorico", true);
+        try {
+            model.addAttribute("historico", vista.historicoPorNss(nss));
+        } catch (DataAccessException ex) {
+            log.warn("[expediente] historico de accidentes no disponible para el NSS: {}", ex.getMessage());
+            model.addAttribute("historico", List.of());
+            model.addAttribute("historicoError", true);
         }
     }
 
