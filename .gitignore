@@ -1,7 +1,7 @@
 # Del build solo se versiona el WAR (16-oct-2026): instruccion de tener el ejecutable de
 # produccion en el repo privado para reinstalar en caso de desastre. Lleva credenciales adentro.
 /target/*
-!/target/portal-salud-0.0.1-SNAPSHOT.war
+!/target/portal-salud.war
 /etl/target/
 
 # Scripts con datos personales (NSS y nombres de empleados reales): no se versionan.

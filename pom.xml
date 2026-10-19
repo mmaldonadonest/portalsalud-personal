@@ -129,6 +129,9 @@
     </dependencies>
 
     <build>
+        <!-- target/portal-salud.war (19-oct-2026): Tomcat toma el context path del nombre del
+             archivo, asi que se copia tal cual a webapps/ y queda en /portal-salud. -->
+        <finalName>portal-salud</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
@@ -186,11 +189,11 @@
 
     <profiles>
         <!-- WAR de PRODUCCION con todo adentro: `mvn -Pprod -DskipTests clean package`.
-             Lee config/produccion/portal-salud.local.properties (IGNORADO por git, ver
-             .gitignore *.local.properties) y mete perfil prod + url directa + usuario +
-             contrasena en el WAR. Sin properties externos, sin variables de entorno, sin
-             tnsnames.ora en el servidor (decision del 3-oct-2026). La contrasena nunca
-             pasa por el repositorio. -->
+             Lee config/produccion/portal-salud.local.properties (versionado desde el 16-oct-2026,
+             repo privado) y mete perfil prod + url (alias TNS PDBPRD) + carpeta del tnsnames.ora
+             + usuario + contrasena en el WAR. Sin properties externos ni variables de entorno.
+             Lo unico que pone el servidor es el tnsnames.ora con el alias PDBPRD (19-oct-2026,
+             decision del usuario: seguir con TNS). Ver README.md. -->
         <profile>
             <id>prod</id>
             <properties>
