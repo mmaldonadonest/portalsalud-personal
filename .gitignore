@@ -2,7 +2,11 @@
 # produccion en el repo privado para reinstalar en caso de desastre. Lleva credenciales adentro.
 /target/*
 !/target/portal-salud.war
-/etl/target/
+
+# Cargadores de una sola vez (ETL del legacy y carga de Excel): fuera de main para que nadie los
+# corra por error y machaque datos (19-oct-2026). El codigo vive en la rama archivo/cargadores.
+/etl/
+/excel-loader/
 
 # Scripts con datos personales (NSS y nombres de empleados reales): no se versionan.
 # Se entregan por canal interno, no por GitHub. Ver docs/script-prod/README.md.
@@ -22,7 +26,6 @@ docs/script-prod/salida_*
 docs/script-prod/seed_tablas
 docs/script-prod/verificacion
 docs/script-prod/acentos_verif
-/excel-loader/target/
 
 # Archivos de bloqueo que crea Excel mientras un .xlsx esta abierto
 ~$*
