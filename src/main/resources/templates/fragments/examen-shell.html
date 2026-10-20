@@ -29,6 +29,25 @@
                     .examen-tipo-tag.tipo-7 { background: #1F7A5C; }
                     .examen-tipo-tag.tipo-8 { background: #155E75; }
                     .examen-tipo-tag.tipo- { background: #FDB022; color: #111; }
+                    /* Selector del tipo arriba: mismos colores que la etiqueta, con background-color (el
+                       shorthand "background" borraria la flecha del select) y flecha blanca */
+                    /* la flecha va directo en background-image: el tema la pone ahi en .form-select (no usa la
+                       variable de Bootstrap) y salia oscura sobre el color del tipo */
+                    .examen-tipo-select { width: auto; font-weight: 600; font-size: 1rem; color: #fff; border: 0;
+                        padding: .4rem 2.4rem .4rem .9rem; cursor: pointer;
+                        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+                        background-repeat: no-repeat !important; background-position: right .8rem center !important; background-size: 14px 10px !important; }
+                    .examen-tipo-select option { color: #111; background: #fff; }
+                    .examen-tipo-select.tipo-1 { background-color: #2B9138; }
+                    .examen-tipo-select.tipo-2 { background-color: #0E7490; }
+                    .examen-tipo-select.tipo-3 { background-color: #6938EF; }
+                    .examen-tipo-select.tipo-4 { background-color: #B54708; }
+                    .examen-tipo-select.tipo-5 { background-color: #475467; }
+                    .examen-tipo-select.tipo-6 { background-color: #9E2A2B; }
+                    .examen-tipo-select.tipo-7 { background-color: #1F7A5C; }
+                    .examen-tipo-select.tipo-8 { background-color: #155E75; }
+                    .examen-tipo-select.tipo- { background-color: #FDB022; color: #111;
+                        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23111111' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important; }
                     /* Patologicos (resumen) FT-SO-17: dos columnas como el formato */
                     /* maximo 2 columnas (una sola si el panel mide menos de ~510px) */
                     .exapp-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(max(240px, calc(50% - 12px)), 1fr)); gap: 0 24px; }
@@ -57,6 +76,16 @@
                     .exapp-btns .btn { min-width: 44px; padding: 2px 8px; font-size: .85rem; color: #111; }
                     .exapp-btns .btn.activo-no { background: #2B9138; border-color: #2B9138; color: #fff; }
                     .exapp-btns .btn.activo-si { background: #B42318; border-color: #B42318; color: #fff; }
+                    /* Trabajos previos como asistente: solo se ve la tarjeta activa */
+                    #trabajosBody > [data-trabajo-row]:not(.activo) { display: none !important; }
+                    .trabajos-nav { display: flex; flex-wrap: wrap; gap: 6px; }
+                    .trabajos-nav .btn-outline-secondary { color: #111; }
+                    .trabajos-nav .btn-primary small { opacity: 1 !important; color: #fff; }
+                    .trabajos-nav .btn-outline-secondary small { opacity: 1 !important; color: #344054; }
+                    /* Anterior / Siguiente: letra blanca tambien deshabilitados (Bootstrap los aclara) */
+                    .trabajo-pie .btn-primary, .trabajo-pie .btn-primary:disabled { color: #fff; }
+                    /* Diagnosticos secundarios: cada uno separado del anterior */
+                    #diagnosticosSecundariosForm .diag-sec + .diag-sec { border-top: 1px solid #E4E7EC; padding-top: 14px; }
                     /* Agencia en Datos generales: mismos botones que el examen inicial */
                     .exagencia .exini-chips { display: flex; flex-wrap: wrap; gap: 6px; }
                     .exagencia .exini-chips .btn { color: #111; font-size: .85rem; }
@@ -78,14 +107,31 @@
                     #examenAccordion.tipo-1 .aviso-dictamen-inicial { display: block; }
                     #examenAccordion.tipo-1 select[name="SERV_MED_RESULTADO_EXAMEN.DICTAMEN"] { pointer-events: none; background-color: #F2F4F7; color: #111; }
                 </style>
-                <span id="examenTipoTag" class="badge fs-6 px-3 py-2 examen-tipo-tag"
-                      th:classappend="${'tipo-' + datosGenerales.tipoExamen}"
-                      th:text="${datosGenerales.tipoExamen == ''} ? 'Sin tipo de examen' : ${tiposExamen[datosGenerales.tipoExamen]}">Periódico</span>
+                <!-- Tipo de examen arriba (20-oct-2026): antes era solo una etiqueta y para cambiarlo habia que bajar
+                     a "Datos generales del examen". Es el MISMO dato: los dos selectores se sincronizan
+                     (exAplicarTipo) y "Guardar tipo" usa el guardado de Datos generales. data-guardado = tipo en BD. -->
+                <select id="examenTipoArriba" class="form-select form-select-sm examen-tipo-select"
+                        th:classappend="${'tipo-' + datosGenerales.tipoExamen}"
+                        th:attr="data-guardado=${datosGenerales.tipoExamen}"
+                        aria-label="Tipo de examen" title="Tipo de examen: al cambiarlo se acomodan las secciones; se guarda con «Guardar tipo»"
+                        onchange="exTipoDesdeArriba(this);">
+                    <option value="" th:selected="${datosGenerales.tipoExamen == ''}">Sin tipo de examen</option>
+                    <th:block th:each="t : ${tiposExamen}">
+                        <option th:if="${t.key != '1' or datosGenerales.tipoExamen == '1'}"
+                                th:value="${t.key}" th:text="${t.key == '1'} ? 'Admisión (examen inicial)' : ${t.value}"
+                                th:selected="${t.key == datosGenerales.tipoExamen}">Periódico</option>
+                    </th:block>
+                </select>
                 <!-- Formato EMLE que se trabaja (16-oct-2026): el mismo que imprime el encabezado del expediente -->
                 <span id="examenFormatoTag" class="badge fs-6 px-3 py-2 text-dark border" style="background: #FDE047; border-color: #CA8A04 !important; color: #111 !important; font-weight: 700;"
                       th:classappend="${datosGenerales.tipoExamen == ''} ? 'd-none' : ''"
                       th:attr="data-formatos=${#strings.listJoin(formatosExamen.entrySet().![key + '=' + value], ',')}"
                       th:text="${formatosExamen.get(datosGenerales.tipoExamen)}">FT-SO-17</span>
+                <span id="examenTipoSinGuardar" class="badge bg-warning text-dark d-none">Sin guardar</span>
+                <button type="button" id="examenTipoGuardar" class="btn btn-sm btn-primary d-none" onclick="exGuardarTipoArriba(this);">
+                    <i class="ri-save-line me-1"></i>Guardar tipo
+                </button>
+                <span id="examenTipoResultado" class="fs-sm"></span>
             <!-- Mismas dos acciones que el menu "Examen medico" del PHP (Abrir / Imprimir expediente),
                  aqui en el card porque el sidebar del theme es global, no contextual por modulo. -->
             <div class="d-flex align-items-center flex-wrap gap-2 ms-auto">
@@ -206,9 +252,10 @@
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                                 data-bs-target="#examenExtraBodyDatos" aria-expanded="false" aria-controls="examenExtraBodyDatos">
                             Datos generales del examen
-                            <span class="badge bg-light text-dark ms-2" th:if="${datosGenerales.tipoExamen != ''}"
-                                  th:text="${tiposExamen[datosGenerales.tipoExamen]}">Admisión</span>
-                            <span class="badge bg-warning text-dark ms-2" th:if="${datosGenerales.tipoExamen == ''}">Sin tipo de examen</span>
+                            <!-- un solo badge: exAplicarTipo lo actualiza al elegir otro tipo (20-oct-2026) -->
+                            <span id="examenTipoBadgeDatos" class="badge text-dark ms-2"
+                                  th:classappend="${datosGenerales.tipoExamen == ''} ? 'bg-warning' : 'bg-light'"
+                                  th:text="${datosGenerales.tipoExamen == ''} ? 'Sin tipo de examen' : ${tiposExamen[datosGenerales.tipoExamen]}">Admisión</span>
                         </button>
                     </h2>
                     <div class="accordion-collapse collapse" id="examenExtraBodyDatos"
@@ -291,10 +338,10 @@
                   Guardado CONFIRMADO 2026-08-13 contra el WS real (POST directo a /Servcio/Medico,
                   fila verificada en SERV_MED_DET_ANT_LABORALES con contenido real - primera vez que
                   este arreglo se guarda con datos, ni el legacy PHP lo logro). Ver el fix de payload
-                  anidado en BiowsExamenClient.guardar(). Sigue SIN precargarse desde el WS al reabrir
-                  el examen: el endpoint de lectura (/Servcio/consulta_examen) no expone
-                  SERV_MED_DET_ANT_LABORALES en ningun path de docs/contextoWS.txt - siempre arranca
-                  vacio, solo para trabajos nuevos capturados en esta sesion. Fuera del acordeon de
+                  anidado en BiowsExamenClient.guardar(). El endpoint de lectura (/Servcio/consulta_examen)
+                  no expone SERV_MED_DET_ANT_LABORALES, asi que desde el 20-oct-2026 los trabajos tambien
+                  se guardan en SERV_MED_TAG (HISTORIA_LABORAL, igual que el examen inicial) y de ahi se
+                  precargan (ExamenService.trabajosPrevios) y los lee el impreso. Fuera del acordeon de
                   tabs a proposito: guardarExamen() las recolecta aparte desde #trabajosPrevios.
                 -->
                 <div class="accordion-item" th:classappend="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).clases('Trabajos previos')}">
@@ -307,38 +354,77 @@
                     <div class="accordion-collapse collapse" id="examenExtraBody0"
                          aria-labelledby="examenExtraHeader0" data-bs-parent="#examenExtraAccordion">
                         <div class="accordion-body" id="trabajosPrevios">
-                            <div class="alert alert-warning py-2 px-3 fs-sm mb-3">
+                            <!-- 20-oct-2026: los trabajos ya capturados se precargan (SERV_MED_TAG, mismo lugar que el
+                                 examen inicial y que lee el impreso). La marca solo va si la lectura salio bien: sin
+                                 ella, el guardado no toca los trabajos guardados. -->
+                            <input type="hidden" th:if="${trabajosPrecargados}" th:name="${marcaTrabajos}" value="1">
+                            <div class="alert alert-warning py-2 px-3 fs-sm mb-3" th:unless="${trabajosPrecargados}">
                                 <i class="ri-alert-line me-1"></i>
-                                El guardado ya está verificado contra el sistema real. Lo que sigue sin construirse:
-                                al reabrir el examen, esta lista no se precarga con trabajos capturados antes —
-                                siempre arranca vacía.
+                                No se pudieron leer los trabajos previos guardados. Los que agregues se mandan con el examen,
+                                pero los ya guardados no se modifican.
                             </div>
-                            <div class="d-flex justify-content-end mb-2">
-                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="agregarTrabajoExamen();">
+                            <div class="d-flex justify-content-between align-items-center mb-2" th:attr="data-max=${maxTrabajos}" id="trabajosBarra">
+                                <span class="text-muted fs-sm" id="trabajosVacio" th:style="${#lists.isEmpty(trabajosPrevios)} ? '' : 'display:none'">Sin trabajos previos capturados.</span>
+                                <span class="text-muted fs-sm" id="trabajosMaximo" style="display:none" th:text="'Máximo ' + ${maxTrabajos} + ' trabajos (los del formato).'">Máximo 4 trabajos.</span>
+                                <button type="button" class="btn btn-sm btn-outline-primary ms-auto" id="trabajosAgregar" onclick="agregarTrabajoExamen();">
                                     <i class="ri-add-line me-1"></i> Agregar trabajo
                                 </button>
                             </div>
-                            <div class="table-responsive">
-                                <table class="table table-sm align-middle mb-0">
-                                    <thead>
-                                        <tr>
-                                            <th style="min-width:90px;">No. trabajo</th>
-                                            <th style="min-width:140px;">Giro</th>
-                                            <th style="min-width:140px;">Puesto</th>
-                                            <th style="min-width:110px;">Turno</th>
-                                            <th style="min-width:110px;">Antigüedad</th>
-                                            <th style="min-width:100px;">Año salida</th>
-                                            <th style="min-width:140px;">Riesgos</th>
-                                            <th style="min-width:140px;">EPP</th>
-                                            <th style="min-width:160px;">Descripción</th>
-                                            <th style="min-width:160px;">Observaciones</th>
-                                            <th></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="trabajosBody"></tbody>
-                                </table>
+                            <!-- Una tarjeta por trabajo (antes, tabla de 10 columnas con scroll). name = trabajos[i].campo,
+                                 que guardarExamen() recoge igual. La <template> de abajo es la misma tarjeta, vacia, para
+                                 "Agregar trabajo" (@I@ = indice, @N@ = numero). -->
+                            <!-- Vista tipo asistente (20-oct-2026): una tarjeta a la vez; la barra elige cual. Las demas
+                                 siguen en el DOM (ocultas), asi que guardarExamen() las manda todas. -->
+                            <div id="trabajosNav" class="trabajos-nav mb-2" th:classappend="${#lists.isEmpty(trabajosPrevios)} ? 'd-none' : ''">
+                                <button type="button" th:each="tr, st : ${trabajosPrevios}" class="btn btn-sm"
+                                        th:classappend="${st.first} ? 'btn-primary' : 'btn-outline-secondary'"
+                                        th:attr="data-ir=${st.index}" onclick="trabajosIr(+this.dataset.ir);">
+                                    <span th:text="'Trabajo ' + ${st.count}">Trabajo 1</span>
+                                    <small class="ms-1 opacity-75" th:if="${!#strings.isEmpty(tr.get('empresa'))}" th:text="'· ' + ${#strings.abbreviate(tr.get('empresa'), 22)}">empresa</small>
+                                </button>
                             </div>
-                            <div class="text-muted fs-sm" id="trabajosVacio">Sin trabajos previos capturados.</div>
+                            <div id="trabajosBody" class="d-flex flex-column gap-3" oninput="trabajosAlEscribir(event);">
+                                <div th:each="tr, st : ${trabajosPrevios}" class="border rounded p-3 bg-white" th:classappend="${st.first} ? 'activo' : ''" th:attr="data-trabajo-row=${st.index}">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <strong class="trabajo-titulo" th:text="'Trabajo previo ' + ${st.count} + ' de ' + ${#lists.size(trabajosPrevios)}">Trabajo previo</strong>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" title="Quitar este trabajo" onclick="quitarTrabajoExamen(this);">
+                                            <i class="ri-delete-bin-line me-1"></i>Quitar
+                                        </button>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div th:each="c : ${camposTrabajo}" th:class="'col-md-' + ${c.ancho}">
+                                            <label class="form-label mb-1 fs-sm" th:for="|trabajo${st.index}_${c.clave}|" th:text="${c.etiqueta}">Campo</label>
+                                            <input type="text" class="form-control form-control-sm" th:id="|trabajo${st.index}_${c.clave}|"
+                                                   th:name="|trabajos[${st.index}].${c.clave}|" th:value="${tr.get(c.clave)}">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-3 trabajo-pie">
+                                        <button type="button" class="btn btn-sm btn-primary trabajo-ant" onclick="trabajosPaso(-1);" th:disabled="${st.first}"><i class="ri-arrow-left-s-line"></i> Anterior</button>
+                                        <button type="button" class="btn btn-sm btn-primary trabajo-sig" onclick="trabajosPaso(1);" th:disabled="${st.last}">Siguiente <i class="ri-arrow-right-s-line"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <template id="trabajoPlantilla">
+                                <div class="border rounded p-3 bg-white" data-trabajo-row="@I@">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <strong class="trabajo-titulo">Trabajo previo</strong>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" title="Quitar este trabajo" onclick="quitarTrabajoExamen(this);">
+                                            <i class="ri-delete-bin-line me-1"></i>Quitar
+                                        </button>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div th:each="c : ${camposTrabajo}" th:class="'col-md-' + ${c.ancho}">
+                                            <label class="form-label mb-1 fs-sm" th:for="|trabajo@I@_${c.clave}|" th:text="${c.etiqueta}">Campo</label>
+                                            <input type="text" class="form-control form-control-sm" th:id="|trabajo@I@_${c.clave}|"
+                                                   th:name="|trabajos[@I@].${c.clave}|" th:value="${c.clave == 'nombre'} ? '@N@' : ''">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-3 trabajo-pie">
+                                        <button type="button" class="btn btn-sm btn-primary trabajo-ant" onclick="trabajosPaso(-1);"><i class="ri-arrow-left-s-line"></i> Anterior</button>
+                                        <button type="button" class="btn btn-sm btn-primary trabajo-sig" onclick="trabajosPaso(1);">Siguiente <i class="ri-arrow-right-s-line"></i></button>
+                                    </div>
+                                </div>
+                            </template>
                         </div>
                     </div>
                 </div>
@@ -414,23 +500,26 @@
                         <div class="accordion-body" id="diagnosticosSecundarios">
                             <form id="diagnosticosSecundariosForm" class="row g-3" novalidate>
                                 <input type="hidden" name="nss" th:value="${nss}">
-                                <div th:each="d : ${diagnosticosSecundarios}" class="col-12">
-                                    <label class="form-label mb-1" th:text="'Diagnóstico secundario ' + ${d.indice}">Diagnóstico secundario</label>
-                                    <div class="row g-2">
-                                        <div class="col-md-7">
-                                            <input type="text" class="form-control form-control-sm" readonly
-                                                   placeholder="Selecciona una clave del buscador ICD..."
-                                                   th:id="|diagSec${d.indice}|"
-                                                   th:name="|diagnosticoSecundario${d.indice}|"
-                                                   th:value="${d.valor}">
-                                        </div>
-                                        <div class="col-md-5">
-                                            <label class="form-label mb-1 fs-xs text-muted" th:for="|diagSec${d.indice}IcdConsult|">Buscar diagnóstico secundario (catálogo ICD/CIE)</label>
+                                <!-- 20-oct-2026: un bloque por diagnostico (buscador | seleccionado) con separacion;
+                                     antes las 3 parejas de campos quedaban pegadas. Mismos id/name: el guardado no cambia. -->
+                                <div th:each="d : ${diagnosticosSecundarios}" class="col-12 diag-sec">
+                                    <div class="fw-semibold mb-2" th:text="'Diagnóstico secundario ' + ${d.indice}">Diagnóstico secundario</div>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label mb-1 fs-sm" th:for="|diagSec${d.indice}IcdConsult|">Buscar en el catálogo ICD/CIE</label>
                                             <input type="text" class="form-control form-control-sm" autocomplete="off"
-                                                   placeholder="Escribe al menos 3 letras (autocompleta)..."
+                                                   placeholder="Escribe al menos 3 letras..."
                                                    th:id="|diagSec${d.indice}IcdConsult|"
                                                    th:oninput="|buscarIcdDebounced('diagSec${d.indice}IcdConsult','diagSec${d.indice}IcdResult','diagSec${d.indice}');|">
                                             <div th:id="|diagSec${d.indice}IcdResult|" class="mt-1"></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label mb-1 fs-sm" th:for="|diagSec${d.indice}|">Diagnóstico seleccionado</label>
+                                            <input type="text" class="form-control form-control-sm bg-light" readonly
+                                                   placeholder="Elige uno de los resultados del buscador"
+                                                   th:id="|diagSec${d.indice}|"
+                                                   th:name="|diagnosticoSecundario${d.indice}|"
+                                                   th:value="${d.valor}">
                                         </div>
                                     </div>
                                 </div>

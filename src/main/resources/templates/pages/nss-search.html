@@ -785,21 +785,57 @@
                     } });
             };
 
+            // Selector del tipo arriba (20-oct-2026): mueve el de Datos generales y acomoda el modulo.
+            window.exTipoDesdeArriba = function (arriba) {
+                var sel = document.getElementById('examenTipo');
+                if (!sel) { return; }
+                sel.value = arriba.value;
+                exAplicarTipo(arriba.value, false);
+            };
+
+            // "Guardar tipo" de arriba: el mismo guardado de Datos generales (manda tambien SpO2, cintura,
+            // cadera y agencia tal como esten en ese formulario). El resultado se pinta junto al boton.
+            window.exGuardarTipoArriba = function (btn) {
+                guardarRegistro(btn, { formId: 'datosGeneralesExamenForm', savePath: 'api/nss/examen/datos-generales/save', fileInputId: '__none__', label: 'tipo de examen', resultElId: 'examenTipoResultado',
+                    onSuccess: function () {
+                        var sel = document.getElementById('examenTipo');
+                        if (sel) { exAplicarTipo(sel.value, true); }
+                    } });
+            };
+
             // Acomoda el modulo al formato del tipo (16-oct-2026): al ELEGIR el tipo (vista previa,
             // "(sin guardar)") y al guardarlo. Cada tipo ve lo de su formato (VisibilidadTipo.java,
             // clases "ocultar-en-N"); si la pestana activa quedo oculta pasa a la primera visible y
             // los resumenes por seccion se repintan. Deja un log en la consola para validar.
             window.exAplicarTipo = function (valor, guardado) {
                 var sel = document.getElementById('examenTipo');
-                var tag = document.getElementById('examenTipoTag');
-                if (!sel || !tag) { return; }
+                if (!sel) { return; }
                 var sinTipo = !valor;
                 var nombre = sinTipo ? 'Sin tipo de examen' : sel.options[sel.selectedIndex].text;
-                tag.textContent = nombre + (guardado ? '' : ' (sin guardar)');
+                // selector de arriba (20-oct-2026): mismo valor y color que el de Datos generales. "Sin guardar"
+                // mientras el tipo elegido no sea el que esta en BD (data-guardado); al guardar se actualiza.
+                var arriba = document.getElementById('examenTipoArriba');
+                var pendiente = !guardado;
+                if (arriba) {
+                    if (guardado) { arriba.setAttribute('data-guardado', valor); }
+                    pendiente = valor !== (arriba.getAttribute('data-guardado') || '');
+                    arriba.value = valor;
+                    // (^|\s) y no \b: \b tambien corta "examen-tipo-select" y le quitaba el estilo
+                    arriba.className = arriba.className.replace(/(^|\s)tipo-\S*/g, ' ').trim() + ' tipo-' + valor;
+                }
+                var sinGuardar = document.getElementById('examenTipoSinGuardar');
+                if (sinGuardar) { sinGuardar.classList.toggle('d-none', !pendiente); }
+                var btnGuardarTipo = document.getElementById('examenTipoGuardar');
+                if (btnGuardarTipo) { btnGuardarTipo.classList.toggle('d-none', !pendiente); }
                 // aviso: Admision (1) es el examen inicial y se captura en su propio menu
                 var aviso = document.getElementById('examenAvisoInicial');
                 if (aviso) { aviso.classList.toggle('d-none', valor !== '1'); }
-                tag.className = 'badge fs-6 px-3 py-2 examen-tipo-tag tipo-' + valor;
+                // el badge de "Datos generales del examen" dice lo mismo que el selector de arriba
+                var badgeDatos = document.getElementById('examenTipoBadgeDatos');
+                if (badgeDatos) {
+                    badgeDatos.textContent = nombre + (pendiente ? ' (sin guardar)' : '');
+                    badgeDatos.className = 'badge text-dark ms-2 ' + (sinTipo ? 'bg-warning' : 'bg-light');
+                }
                 var fmt = document.getElementById('examenFormatoTag');
                 if (fmt) {
                     var mapa = {};
@@ -826,7 +862,7 @@
                         .map(function (g) { return g.querySelector('.accordion-button').textContent.trim().replace(/\s+/g, ' '); }) : [];
                 };
                 console.info('[examen] tipo ' + (valor || '(vacío)') + ' «' + nombre + '» ' + (fmt ? fmt.textContent : '')
-                        + (guardado ? ' (guardado)' : ' (sin guardar)') + '\n  grupos: ' + visibles(acordeon).join(' | ')
+                        + (pendiente ? ' (sin guardar)' : ' (guardado)') + '\n  grupos: ' + visibles(acordeon).join(' | ')
                         + '\n  otros datos: ' + visibles(extra).join(' | '));
             };
 
@@ -2708,48 +2744,126 @@
                 if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ri-folder-open-line me-1"></i>Abrir todo'; }
             };
 
-            // Antecedentes laborales - trabajos previos: fila repetible dentro de #trabajosPrevios.
-            // No se precarga desde el WS (ver comentario en examen-shell.html); solo agrega/quita filas nuevas.
-            var trabajoContador = 0;
+            // Antecedentes laborales - trabajos previos (20-oct-2026): una tarjeta por trabajo. Los guardados se
+            // pintan desde el servidor (SERV_MED_TAG, mismo lugar que el examen inicial y el impreso); "Agregar"
+            // clona la <template id="trabajoPlantilla">. Maximo el del formato (data-max, 4).
+            // Al quitar uno, los que quedan se renumeran 1, 2, 3... en "No. trabajo" y en el indice de sus name
+            // (trabajos[0..n-1].campo), para que el guardado no reciba huecos.
+            function trabajosTarjetas(body) {
+                return body.querySelectorAll(':scope > [data-trabajo-row]');
+            }
+            function trabajosEstado(body) {
+                var n = trabajosTarjetas(body).length;
+                var barra = document.getElementById('trabajosBarra');
+                var max = barra ? parseInt(barra.getAttribute('data-max') || '4', 10) : 4;
+                var vacio = document.getElementById('trabajosVacio');
+                var maximo = document.getElementById('trabajosMaximo');
+                var agregar = document.getElementById('trabajosAgregar');
+                if (vacio) { vacio.style.display = n ? 'none' : ''; }
+                if (maximo) { maximo.style.display = n >= max ? '' : 'none'; }
+                if (agregar) { agregar.disabled = n >= max; }
+            }
+            // Vista tipo asistente (20-oct-2026): una tarjeta a la vez (clase "activo"); la barra #trabajosNav
+            // tiene un boton por trabajo con su empresa; Anterior/Siguiente en el pie de cada tarjeta.
+            function trabajoActivo(body) {
+                var t = body.querySelector(':scope > [data-trabajo-row].activo');
+                return t ? +t.getAttribute('data-trabajo-row') : 0;
+            }
+            function trabajosPintar(body, activo) {
+                var tarjetas = trabajosTarjetas(body);
+                var n = tarjetas.length;
+                if (activo === undefined || activo === null) { activo = trabajoActivo(body); }
+                activo = Math.max(0, Math.min(activo, n - 1));
+                tarjetas.forEach(function (t, k) {
+                    t.classList.toggle('activo', k === activo);
+                    var titulo = t.querySelector('.trabajo-titulo');
+                    if (titulo) { titulo.textContent = 'Trabajo previo ' + (k + 1) + ' de ' + n; }
+                    var ant = t.querySelector('.trabajo-ant');
+                    var sig = t.querySelector('.trabajo-sig');
+                    if (ant) { ant.disabled = k === 0; }
+                    if (sig) { sig.disabled = k === n - 1; }
+                });
+                var nav = document.getElementById('trabajosNav');
+                if (nav) {
+                    nav.innerHTML = '';
+                    tarjetas.forEach(function (t, k) {
+                        var b = document.createElement('button');
+                        b.type = 'button';
+                        b.className = 'btn btn-sm ' + (k === activo ? 'btn-primary' : 'btn-outline-secondary');
+                        var empresa = t.querySelector('input[name$=".empresa"]');
+                        var nombre = empresa && empresa.value.trim() ? empresa.value.trim() : '';
+                        b.textContent = 'Trabajo ' + (k + 1);
+                        if (nombre) {
+                            var s = document.createElement('small');
+                            s.className = 'ms-1 opacity-75';
+                            s.textContent = '· ' + (nombre.length > 22 ? nombre.slice(0, 21) + '…' : nombre);
+                            b.appendChild(s);
+                        }
+                        b.onclick = function () { trabajosIr(k); };
+                        nav.appendChild(b);
+                    });
+                    nav.classList.toggle('d-none', n === 0);
+                }
+            }
+            // la empresa se ve en la barra mientras se escribe (oninput del #trabajosBody)
+            window.trabajosAlEscribir = function (e) {
+                var body = document.getElementById('trabajosBody');
+                if (body && e.target && /\.empresa$/.test(e.target.name || '')) { trabajosPintar(body); }
+            };
+            window.trabajosIr = function (k) {
+                var body = document.getElementById('trabajosBody');
+                if (body) { trabajosPintar(body, k); }
+            };
+            window.trabajosPaso = function (d) {
+                var body = document.getElementById('trabajosBody');
+                if (body) { trabajosPintar(body, trabajoActivo(body) + d); }
+            };
+            function renumerarTrabajos(body) {
+                trabajosTarjetas(body).forEach(function (t, k) {
+                    t.setAttribute('data-trabajo-row', String(k));
+                    t.querySelectorAll('input[name]').forEach(function (inp) {
+                        var campo = inp.name.replace(/^trabajos\[\d+\]\./, '');
+                        inp.name = 'trabajos[' + k + '].' + campo;
+                        inp.id = 'trabajo' + k + '_' + campo;
+                        var lbl = inp.previousElementSibling;
+                        if (lbl && lbl.tagName === 'LABEL') { lbl.htmlFor = inp.id; }
+                        if (campo === 'nombre') { inp.value = String(k + 1); }
+                    });
+                });
+                trabajosEstado(body);
+            }
+            window.quitarTrabajoExamen = function (btn) {
+                var body = document.getElementById('trabajosBody');
+                var tarjeta = btn.closest('[data-trabajo-row]');
+                if (!body || !tarjeta) { return; }
+                // se queda en el anterior al quitado (o en el primero)
+                var quitado = +tarjeta.getAttribute('data-trabajo-row');
+                tarjeta.remove();
+                renumerarTrabajos(body);
+                trabajosPintar(body, Math.max(0, quitado - 1));
+            };
             window.agregarTrabajoExamen = function () {
                 var body = document.getElementById('trabajosBody');
-                var vacio = document.getElementById('trabajosVacio');
-                if (!body) {
+                var plantilla = document.getElementById('trabajoPlantilla');
+                if (!body || !plantilla) {
                     return;
                 }
-                var idx = trabajoContador++;
-                var campos = ['nombre', 'giro', 'puesto', 'turno', 'antiguedad', 'salida', 'riesgos', 'epp', 'descripcion', 'observaciones'];
-                var tr = document.createElement('tr');
-                tr.setAttribute('data-trabajo-row', String(idx));
-                campos.forEach(function (campo) {
-                    var td = document.createElement('td');
-                    var inp = document.createElement('input');
-                    inp.type = 'text';
-                    inp.className = 'form-control form-control-sm';
-                    inp.name = 'trabajos[' + idx + '].' + campo;
-                    if (campo === 'nombre') {
-                        inp.value = String(idx + 1);
-                    }
-                    td.appendChild(inp);
-                    tr.appendChild(td);
-                });
-                var tdBtn = document.createElement('td');
-                var btnQuitar = document.createElement('button');
-                btnQuitar.type = 'button';
-                btnQuitar.className = 'btn btn-sm btn-outline-danger';
-                btnQuitar.innerHTML = '<i class="ri-delete-bin-line"></i>';
-                btnQuitar.onclick = function () {
-                    tr.remove();
-                    if (vacio) {
-                        vacio.style.display = body.children.length ? 'none' : '';
-                    }
-                };
-                tdBtn.appendChild(btnQuitar);
-                tr.appendChild(tdBtn);
-                body.appendChild(tr);
-                if (vacio) {
-                    vacio.style.display = 'none';
+                var barra = document.getElementById('trabajosBarra');
+                var max = barra ? parseInt(barra.getAttribute('data-max') || '4', 10) : 4;
+                var idx = trabajosTarjetas(body).length;
+                if (idx >= max) {
+                    trabajosEstado(body);
+                    return;
                 }
+                var html = plantilla.innerHTML.replace(/@I@/g, String(idx)).replace(/@N@/g, String(idx + 1));
+                var tmp = document.createElement('div');
+                tmp.innerHTML = html.trim();
+                var tarjeta = tmp.firstElementChild;
+                body.appendChild(tarjeta);
+                trabajosEstado(body);
+                trabajosPintar(body, idx);
+                var empresa = tarjeta.querySelector('input[name$=".empresa"]');
+                if (empresa) { empresa.focus(); }
             };
 
             // Guarda el examen completo: recolecta los campos de las secciones cargadas + firma.

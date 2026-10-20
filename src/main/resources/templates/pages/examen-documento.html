@@ -113,37 +113,40 @@
                             <center>CONSENTIMIENTO DE REALIZACIÓN DE EXAMEN MÉDICO<br/> ([[${d.v('tipoExamenInputO')}]]).</center>
                         </td>
                     </tr>
+                    <!-- FT-SO-11 rev. 05 (formato 2026 de SM, docs/formatosnuevos/10202026, 20-oct-2026) -->
                     <tr class="">
-                        <td>F. Implementación: 18 de septiembre de 2024</td>
-                        <td>Revisión: 04</td>
-
-
+                        <td>F. Implementación: 14 de octubre de 2026</td>
+                        <td>Revisión: 05</td>
                     </tr>
-                    <td>Clave de control: FT-SO-11</td>
-                    <td>Reemplaza a: 03</td>
                     <tr>
-
+                        <td>Clave de control: FT-SO-11</td>
+                        <td>Reemplaza a: 04</td>
                     </tr>
                     <tr class="">
-
-                        <td>Motivo del cambio: Actualización de logo</td>
+                        <td>Motivo del cambio: Anexo del apartado "Aptitud laboral" y evaluación especial.</td>
                         <td></td>
-
                     </tr>
                 </tbody>
             </table>
         </div>
     </div>
+    <!-- 20-oct-2026: 2 x 2 (Agencia | Aptitud laboral / Departamento | Puesto); en 4 columnas los valores
+         largos ("GRUPO LOGISTICO INTEGRAL", "DESARROLLO DE OPERACIONES") se partian en 3 renglones -->
     <div class="row mt-3 ">
-        <div class="col-4">
+        <div class="col-6">
             <!-- 15-oct-2026: el PHP llenaba "Agencia" con la empresa del WS ("Onest Mexico" para todos);
                  ahora es la agencia real (solicitud OCR > BIO_EMPLEADO.SOCIEDAD > vacio) -->
-            <p  style="font-size: 13px;">Agencia: <b>[[${d.v('AGENCIA')}]]</b></p>
+            <p  style="font-size: 13px; margin-bottom: 4px;">Agencia: <b>[[${d.v('AGENCIA')}]]</b></p>
         </div>
-        <div class="col-4">
-            <p  style="font-size: 13px;">Departamento: [[${d.v('cuenta')}]]</p>
+        <div class="col-6">
+            <!-- FT-SO-11 rev. 05 (20-oct-2026): SM pidio el resultado del examen general. Solo el texto del
+                 dictamen, sin clave (confirmado por el usuario 20-oct). Vacio mientras no haya resultado. -->
+            <p  style="font-size: 13px; margin-bottom: 4px;">Aptitud laboral: <b>[[${d.v('DICTAMEN')}]]</b></p>
         </div>
-        <div class="col-4">
+        <div class="col-6">
+            <p  style="font-size: 13px;">Departamento: <b>[[${d.v('cuenta')}]]</b></p>
+        </div>
+        <div class="col-6">
             <p  style="font-size: 13px;">Puesto: <b>[[${d.v('puesto')}]]</b></p>
         </div>
     </div>

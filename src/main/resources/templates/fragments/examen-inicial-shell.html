@@ -62,6 +62,10 @@
         .exini-sino .btn { min-width: 48px; padding: 3px 10px; font-size: .88rem; color: #111; }
         .exini-sino .btn.activo-si { background: #B42318; border-color: #B42318; color: #fff; }
         .exini-sino .btn.activo-no { background: #2B9138; border-color: #2B9138; color: #fff; }
+        /* Actitud, Orientacion y Lenguaje (20-oct-2026): ahi "Si" es lo NORMAL (orientado, habla claro) y "No"
+           el hallazgo, al reves que en antecedentes. Solo cambia el color; el dato guardado es el mismo. */
+        .exini-grupo .exini-sino .btn.activo-si { background: #2B9138; border-color: #2B9138; color: #fff; }
+        .exini-grupo .exini-sino .btn.activo-no { background: #B42318; border-color: #B42318; color: #fff; }
         .exini-sino:focus-within { outline: 2px solid #4FA8E0; outline-offset: 2px; border-radius: 6px; }
         /* OK / NO del FT-SO-04: al reves que Si/No de antecedentes, aqui OK es lo normal (verde) */
         .exini-okno-btns .btn { min-width: 48px; padding: 3px 10px; font-size: .88rem; color: #111; }
@@ -100,7 +104,23 @@
         .exini-guardado.err { color: #B42318; font-weight: 600; }
         .exini-ficha td:first-child { width: 38%; color: #111; }
         #exIni .form-control-sm, #exIni .form-select-sm { font-size: .9rem; color: #111; }
-        @media (max-width: 640px) { .exini-fila { grid-template-columns: 1fr; } }
+        /* Inmunizaciones como el FT-SO-04: 2 renglones x 4 columnas en el orden del formato. Las filas llegan
+           en el orden de ExamenService (BCG, Sabin, DPT, Hepatitis B, SR, Influenza, Td) y cada una va a su celda */
+        .exini-sinos.inmunizaciones { display: grid; grid-template-columns: repeat(4, 1fr); column-gap: 24px; }
+        .exini-sinos.inmunizaciones .exini-fila { grid-template-columns: minmax(70px, auto) auto; }
+        .exini-sinos.inmunizaciones .exini-fila > span:last-child:empty { display: none; }
+        .exini-sinos.inmunizaciones .exini-fila:nth-child(1) { grid-area: 1 / 1; }
+        .exini-sinos.inmunizaciones .exini-fila:nth-child(2) { grid-area: 2 / 1; }
+        .exini-sinos.inmunizaciones .exini-fila:nth-child(3) { grid-area: 1 / 2; }
+        .exini-sinos.inmunizaciones .exini-fila:nth-child(4) { grid-area: 2 / 2; }
+        .exini-sinos.inmunizaciones .exini-fila:nth-child(5) { grid-area: 1 / 3; }
+        .exini-sinos.inmunizaciones .exini-fila:nth-child(6) { grid-area: 1 / 4; }
+        .exini-sinos.inmunizaciones .exini-fila:nth-child(7) { grid-area: 2 / 4; }
+        @media (max-width: 640px) {
+            .exini-fila { grid-template-columns: 1fr; }
+            .exini-sinos.inmunizaciones { grid-template-columns: 1fr; }
+            .exini-sinos.inmunizaciones .exini-fila { grid-area: auto !important; }
+        }
     </style>
 
     <div class="card card-one">
@@ -410,7 +430,9 @@
                         </th:block>
 
                         <!-- Si/No: una fila por condicion, botones Si/No, observaciones a la derecha -->
-                        <th:block th:if="${!esDientes and tieneSino}">
+                        <!-- Inmunizaciones (20-oct-2026): acomodadas como el FT-SO-04 (renglones 60-61), dos renglones
+                             leidos por columna: BCG/Sabin, DPT/Hepatitis B, SR, Influenza/Td (COVID va abajo con su fecha) -->
+                        <div th:if="${!esDientes and tieneSino}" class="exini-sinos" th:classappend="${s.nombre == 'Inmunizaciones'} ? 'inmunizaciones' : ''">
                             <div class="exini-fila" th:each="it : ${s.items}" th:if="${it.type == 'SINO'}">
                                 <span class="lbl" th:text="${it.label}">Condición</span>
                                 <div class="btn-group exini-sino" role="group" tabindex="0" th:attr="aria-label=${it.label}" onkeydown="exIniTecla(this, event);">
@@ -421,7 +443,7 @@
                                 <input th:if="${it.obsName != null}" type="text" class="form-control form-control-sm" placeholder="Observaciones (si aplica)" th:name="${it.obsName}" th:value="${it.obsValue}">
                                 <span th:unless="${it.obsName != null}"></span>
                             </div>
-                        </th:block>
+                        </div>
 
                         <!-- Resto: texto / fecha / area / resultado en cuadricula -->
                         <div class="exini-grid" th:if="${!esDientes and !esExploracion}" th:with="otros=${s.items.?[type != 'SINO']}">

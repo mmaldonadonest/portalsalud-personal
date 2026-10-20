@@ -107,6 +107,19 @@ public class ExamenController {
             model.addAttribute("agenciaBase", examenDocumentoService.agenciaDeBase(nss));
             model.addAttribute("agenciaElegida", examenDocumentoService.agenciaCapturada(nss));
             model.addAttribute("agenciaPredeterminada", ExamenDocumentoService.AGENCIA_PREDETERMINADA);
+            // Trabajos previos (20-oct-2026): precarga desde SERV_MED_TAG. Si no se pueden leer, la lista
+            // llega vacia y SIN la marca de precarga, asi el guardado no los borra (ver ExamenService).
+            java.util.List<Map<String, String>> trabajos = null;
+            try {
+                trabajos = examenService.trabajosPrevios(nss);
+            } catch (RuntimeException ex) {
+                // queda null: sin precarga ni marca
+            }
+            model.addAttribute("trabajosPrevios", trabajos == null ? java.util.List.of() : trabajos);
+            model.addAttribute("trabajosPrecargados", trabajos != null);
+            model.addAttribute("camposTrabajo", ExamenService.CAMPOS_TRABAJO);
+            model.addAttribute("maxTrabajos", ExamenService.MAX_TRABAJOS);
+            model.addAttribute("marcaTrabajos", ExamenService.MARCA_TRABAJOS);
             model.addAttribute("catalogoRestricciones", restriccionService.catalogo());
             model.addAttribute("restricciones", restriccionService.byNss(nss));
             model.addAttribute("firmaGuardada", examenService.firmaGuardada(nss));

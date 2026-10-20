@@ -147,29 +147,31 @@ public class ExamenDocumentoService {
     }
 
     /**
-     * Encabezado de calidad de cada formato EMLE (docs/formatosnuevos/reformatosdeexamenmedicoparaemle,
-     * filas 1-4 de cada Excel, 15-oct-2026). Calidad pide que cada tipo de examen imprima SU encabezado.
+     * Encabezado de calidad de cada formato (filas 1-4 de cada Excel; version vigente en
+     * docs/formatosnuevos/10202026, 20-oct-2026). Calidad pide que cada tipo de examen imprima SU encabezado.
      */
     public record Encabezado(String titulo, String implementacion, String revision, String clave,
                              String reemplaza, String motivo) {
     }
 
     private static final String VIGENCIA = "Actualización por vigencia";
+    // 20-oct-2026: formatos 2026 del OneDrive de SM (docs/formatosnuevos/10202026). Los 7 cambian solo la
+    // fecha de implementacion (14-sep -> 14-oct-2026); revision, reemplaza y motivo quedan igual.
+    private static final String IMPLEMENTACION = "14 de octubre de 2026";
     private static final Encabezado FT_SO_04 = new Encabezado("EXAMEN MÉDICO INICIAL",
-            "14 de septiembre de 2026", "05", "FT-SO-04", "04", VIGENCIA);
+            IMPLEMENTACION, "05", "FT-SO-04", "04", VIGENCIA);
 
     /** Tipo de examen (codigo del tag tipoExamenInputO) -> formato. Sin formato propio: FT-SO-04. */
     // 6-8 (16-oct-2026): filas 1-4 de FT-SO-18/19/20; el motivo de 19 y 20 es el de su hoja 1
     static final Map<String, Encabezado> ENCABEZADOS = Map.of(
             "1", FT_SO_04,
-            // FT-SO-17: el Excel decia "septiembre de 2024"; corregido a 2026 como los demas (decision 15-oct-2026)
-            "2", new Encabezado("EXAMEN MÉDICO PERIÓDICO", "14 de septiembre de 2026", "06", "FT-SO-17", "05", VIGENCIA),
-            "3", new Encabezado("EXAMEN MÉDICO CAMBIO DE PUESTO", "14 de septiembre de 2026", "06", "FT-SO-16", "05", VIGENCIA),
-            "4", new Encabezado("EXAMEN MÉDICO POST INCAPACIDAD", "14 de septiembre de 2026", "06", "FT-SO-13", "05", VIGENCIA),
-            "6", new Encabezado("EXAMEN MÉDICO EGRESO", "14 de septiembre de 2026", "06", "FT-SO-18", "05", VIGENCIA),
-            "7", new Encabezado("EXAMEN MÉDICO INICIAL \"MANTENIMIENTO\"", "14 de septiembre de 2026", "06", "FT-SO-19", "05",
+            "2", new Encabezado("EXAMEN MÉDICO PERIÓDICO", IMPLEMENTACION, "06", "FT-SO-17", "05", VIGENCIA),
+            "3", new Encabezado("EXAMEN MÉDICO CAMBIO DE PUESTO", IMPLEMENTACION, "06", "FT-SO-16", "05", VIGENCIA),
+            "4", new Encabezado("EXAMEN MÉDICO POST INCAPACIDAD", IMPLEMENTACION, "06", "FT-SO-13", "05", VIGENCIA),
+            "6", new Encabezado("EXAMEN MÉDICO EGRESO", IMPLEMENTACION, "06", "FT-SO-18", "05", VIGENCIA),
+            "7", new Encabezado("EXAMEN MÉDICO INICIAL \"MANTENIMIENTO\"", IMPLEMENTACION, "06", "FT-SO-19", "05",
                     "Modificación del formato y actualización por vigencia"),
-            "8", new Encabezado("EXAMEN MÉDICO PERIÓDICO \"MANTENIMIENTO\"", "14 de septiembre de 2026", "06", "FT-SO-20", "05",
+            "8", new Encabezado("EXAMEN MÉDICO PERIÓDICO \"MANTENIMIENTO\"", IMPLEMENTACION, "06", "FT-SO-20", "05",
                     "Modificación del formato y actualización por vigencia"));
 
     /** Clave del formato EMLE que se trabaja para el tipo (la misma que imprime el encabezado). */

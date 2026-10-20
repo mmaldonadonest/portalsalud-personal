@@ -125,6 +125,104 @@ public class ExamenService {
     private static final String PREFIJO_TAG = "TAG.";
     private static final String GRUPO_TAG_FISICO = "EXAMEN_FISICO";
 
+    /**
+     * Trabajos previos del modulo Examen medico (20-oct-2026). El WS de lectura no devuelve
+     * SERV_MED_DET_ANT_LABORALES, asi que al reabrir la lista salia vacia y el impreso no los veia.
+     * Ahora, igual que el examen inicial, viven tambien en SERV_MED_TAG (grupo HISTORIA_LABORAL,
+     * tipos nombre1..4 = empresa, giro1..4, ...): de ahi se precargan y de ahi imprime el formato.
+     * ancho = columnas de 12 en la tarjeta. "nombre" es el No. de trabajo (asi lo pide el WS).
+     */
+    public record CampoTrabajo(String clave, String etiqueta, int ancho) {
+    }
+
+    public static final int MAX_TRABAJOS = 4;
+    public static final List<CampoTrabajo> CAMPOS_TRABAJO = List.of(
+            new CampoTrabajo("nombre", "No. trabajo", 2), new CampoTrabajo("empresa", "Nombre de la empresa", 5),
+            new CampoTrabajo("giro", "Giro", 5), new CampoTrabajo("puesto", "Puesto", 4),
+            new CampoTrabajo("turno", "Turno", 2), new CampoTrabajo("antiguedad", "Antigüedad", 3),
+            new CampoTrabajo("salida", "Año de salida", 3), new CampoTrabajo("descripcion", "Descripción del puesto", 4),
+            new CampoTrabajo("riesgos", "Riesgos", 4), new CampoTrabajo("epp", "EPP (equipo de protección)", 4),
+            new CampoTrabajo("observaciones", "Observaciones", 12));
+    /** Lo manda la pantalla solo si la lista se precargo bien: sin el, el guardado no toca los tags. */
+    public static final String MARCA_TRABAJOS = "trabajosPrecargados";
+    private static final String GRUPO_TRABAJOS = "HISTORIA_LABORAL";
+    private static final java.util.regex.Pattern CLAVE_TRABAJO = java.util.regex.Pattern.compile("^trabajos\\[(\\d+)]\\.(\\w+)$");
+
+    /** Tipo de SERV_MED_TAG de un campo de trabajo: la empresa va en nombre{i} (asi lo lee el impreso). */
+    private static String tagTrabajo(String campo, int i) {
+        return ("empresa".equals(campo) ? "nombre" : campo) + i;
+    }
+
+    /**
+     * Trabajos previos guardados (SERV_MED_TAG), en orden y sin huecos; "nombre" = posicion.
+     * Lanza si no se pueden leer: la pantalla entonces no manda la marca y el guardado no los pisa.
+     */
+    public List<Map<String, String>> trabajosPrevios(String nss) {
+        Map<String, String> t = tags.latestByNssAndTypeSuffix(normalizeNss(nss), "");
+        List<Map<String, String>> out = new ArrayList<>();
+        for (int i = 1; i <= MAX_TRABAJOS; i++) {
+            Map<String, String> fila = new LinkedHashMap<>();
+            boolean vacio = true;
+            for (CampoTrabajo c : CAMPOS_TRABAJO) {
+                if ("nombre".equals(c.clave())) {
+                    continue;
+                }
+                String v = mostrable(t.get(tagTrabajo(c.clave(), i))).trim();
+                fila.put(c.clave(), v);
+                vacio &= v.isEmpty();
+            }
+            if (!vacio) {
+                fila.put("nombre", String.valueOf(out.size() + 1));
+                out.add(fila);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Saca de los campos del guardado los trabajos previos y los escribe en SERV_MED_TAG (despues del
+     * WS), solo si la pantalla mando la marca. La empresa no viaja al WS (no tiene columna, igual que en
+     * el examen inicial). Los lugares que quedaron sin trabajo se vacian, para que un trabajo quitado
+     * desaparezca. Solo escribe lo que cambio.
+     */
+    private Map<String, String> separarTrabajos(Map<String, String> c) {
+        if (c.remove(MARCA_TRABAJOS) == null) {
+            c.keySet().removeIf(k -> k.matches("^trabajos\\[\\d+]\\.empresa$"));
+            return Map.of();
+        }
+        java.util.TreeMap<Integer, Map<String, String>> porIndice = new java.util.TreeMap<>();
+        for (Map.Entry<String, String> e : c.entrySet()) {
+            java.util.regex.Matcher m = CLAVE_TRABAJO.matcher(e.getKey());
+            if (m.matches()) {
+                porIndice.computeIfAbsent(Integer.parseInt(m.group(1)), k -> new LinkedHashMap<>())
+                        .put(m.group(2), e.getValue() == null ? "" : e.getValue().trim());
+            }
+        }
+        c.keySet().removeIf(k -> k.matches("^trabajos\\[\\d+]\\.empresa$"));
+        Map<String, String> nuevos = new LinkedHashMap<>();
+        int i = 0;
+        for (Map<String, String> fila : porIndice.values()) {
+            boolean vacia = fila.entrySet().stream().filter(x -> !"nombre".equals(x.getKey())).allMatch(x -> x.getValue().isEmpty());
+            if (vacia || i >= MAX_TRABAJOS) {
+                continue;
+            }
+            i++;
+            for (CampoTrabajo campo : CAMPOS_TRABAJO) {
+                if (!"nombre".equals(campo.clave())) {
+                    nuevos.put(tagTrabajo(campo.clave(), i), fila.getOrDefault(campo.clave(), ""));
+                }
+            }
+        }
+        for (int j = i + 1; j <= MAX_TRABAJOS; j++) {
+            for (CampoTrabajo campo : CAMPOS_TRABAJO) {
+                if (!"nombre".equals(campo.clave())) {
+                    nuevos.put(tagTrabajo(campo.clave(), j), "");
+                }
+            }
+        }
+        return nuevos;
+    }
+
     private static final Map<String, Seccion> CATALOGO = new LinkedHashMap<>();
 
     static {
@@ -830,8 +928,10 @@ public class ExamenService {
                 }
             });
         }
+        Map<String, String> tagsTrabajos = separarTrabajos(c);
         String r = client.guardar(limpio, c, firma);
         guardarTags(limpio, nuevosTags);
+        guardarTags(limpio, tagsTrabajos, GRUPO_TRABAJOS);
         invalidar(limpio);
         String dictamen = c.getOrDefault("SERV_MED_RESULTADO_EXAMEN.DICTAMEN", "");
         if (dictamen != null && !dictamen.isBlank()) {
@@ -846,6 +946,10 @@ public class ExamenService {
      * falla, no queda medio examen en tags.
      */
     private void guardarTags(String nss, Map<String, String> nuevos) {
+        guardarTags(nss, nuevos, GRUPO_TAG_FISICO);
+    }
+
+    private void guardarTags(String nss, Map<String, String> nuevos, String grupo) {
         if (nuevos.isEmpty()) {
             return;
         }
@@ -856,7 +960,7 @@ public class ExamenService {
             String nuevo = valor == null ? "" : valor.trim();
             String actual = mostrable(vigentes.get(tipo)).trim();
             if (!nuevo.equals(actual)) {
-                tags.upsert(nss, tipo, nuevo, GRUPO_TAG_FISICO, usuario);
+                tags.upsert(nss, tipo, nuevo, grupo, usuario);
             }
         });
     }
