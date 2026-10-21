@@ -85,8 +85,8 @@
         <span th:if="${elaboro != null and elaboro.firmaDataUri != null}" class="firma-elaboro">Firma:
             <img th:src="${elaboro.firmaDataUri}" alt="Firma"></span>
     </div>
-    <div class="folio" th:if="${folioFirma != null}"
-         th:text="'Folio ' + ${folioFirma.folio} + ' · Código de verificación ' + ${folioFirma.codigo} + ' · verificable en el Portal de Salud Ocupacional'">Folio</div>
+    <!--/* 21-oct-2026: el folio ya no se imprime (decision del usuario: los formatos no lo contemplan). Se sigue
+         registrando cada impresion con firma (SERV_MED_FIRMA_IMPRESO) como bitacora interna. */-->
 </th:block>
 
 </body>

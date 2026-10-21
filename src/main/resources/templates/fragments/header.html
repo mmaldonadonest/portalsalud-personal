@@ -83,7 +83,6 @@
                 <nav class="nav">
                     <!-- Firmas digitalizadas (20-oct-2026): cada quien registra la suya; verificar un folio impreso -->
                     <a th:href="@{/perfil/firma}" href="/perfil/firma"><i class="ri-quill-pen-line"></i> Mi firma digitalizada</a>
-                    <a th:href="@{/firma/verificar}" href="/firma/verificar"><i class="ri-shield-check-line"></i> Verificar folio</a>
                     <form th:action="@{/logout}" action="/logout" method="post">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                         <a href="javascript:void(0)" onclick="this.closest('form').submit(); return false;"><i class="ri-logout-box-r-line"></i> Cerrar sesión</a>

@@ -2562,7 +2562,8 @@
         <div class="col-6">
             <hr>
             <center>
-                <p>Dr. Mauricio Cerón Solana CP 5154089 / 7237048
+                <!--/* 21-oct-2026: solo la cedula que pidio el Dr. (5154089); el PHP traia ademas "/ 7237048" */-->
+                <p th:text="${medico != null} ? ${medico.nombre} + ' CP ' + ${medico.cedula} : 'Dr. Mauricio Cerón Solana CP 5154089'">Dr. Mauricio Cerón Solana CP 5154089
                 <p>
                     <hr>
                     <!--/* 20-oct-2026: la firma sale del modulo de firmas (cifrada, solo vigente); antes era una imagen
@@ -2575,7 +2576,7 @@
                     Elaboró: <b th:text="${elaboro.nombre}">Usuario</b>
                     <img th:if="${elaboro.firmaDataUri != null}" th:src="${elaboro.firmaDataUri}" alt="Firma" style="max-height:34px; vertical-align:middle; margin-left:6px">
                 </p>
-                <p class="footerTxt" th:if="${folioFirma != null}" th:text="'Folio ' + ${folioFirma.folio} + ' · Código ' + ${folioFirma.codigo} + ' · verificable en el portal'">Folio</p>
+                <!--/* 21-oct-2026: el folio ya no se imprime (los formatos no lo contemplan); queda como bitacora interna. */-->
             </center>
         </div>
         <div class="col-6">
