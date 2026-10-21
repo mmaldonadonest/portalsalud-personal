@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <!--
+      FT-SO-22 Aceptacion a CECOSAMA (rev. 05, 14-oct-2026), formato B "por condicion": sale solo para
+      una prueba de antidoping o alcoholemia POSITIVA (AntidopingController#cecosama). Texto tal cual el
+      formato de SM (docs/formatosnuevos/10202026); "Yo", "positivo a" y la fecha vienen de la prueba.
+      La hora y lo que "esta ingiriendo" no los guarda el WS: se llenan a mano.
+    -->
+    <title th:text="'FT-SO-22 Aceptación a CECOSAMA · NSS ' + ${nss}">FT-SO-22 Aceptación a CECOSAMA</title>
+    <th:block th:replace="~{fragments/formato-impreso :: estilos}"></th:block>
+    <style>
+        .texto { font-size: 12px; line-height: 2; text-align: justify; margin: 14px 0; }
+        .hueco { display: inline-block; border-bottom: 1px solid #000; min-width: 40mm; padding: 0 4px; line-height: 1.3; text-align: center; }
+    </style>
+</head>
+<body>
+<div th:replace="~{fragments/formato-impreso :: barra}"></div>
+<div class="hoja">
+    <div th:replace="~{fragments/formato-impreso :: encabezado(${enc})}"></div>
+
+    <div class="texto" style="text-align: right; margin-top: 22px;">
+        A <span class="hueco" style="min-width: 14mm;" th:text="${fecha[0]}"></span>
+        del mes de <span class="hueco" style="min-width: 32mm;" th:text="${fecha[1]}"></span>
+        del <span class="hueco" style="min-width: 16mm;" th:text="${fecha[2]}"></span>
+    </div>
+    <div class="texto">Hora <span class="hueco" style="min-width: 24mm;"></span></div>
+
+    <p class="texto">
+        Yo <span class="hueco" style="min-width: 90mm;" th:text="${nombre}"></span>
+        acepto que me realizaron antidoping, siendo positivo a
+        <span class="hueco" style="min-width: 50mm;" th:text="${sustancia}"></span>,
+        acepto que actualmente estoy ingiriendo <span class="hueco" style="min-width: 70mm;"></span>,
+        y la empresa me está ofreciendo la oportunidad de rehabilitarme.
+    </p>
+    <p class="texto">
+        Así mismo hago constar que se me informó sobre los centros de rehabilitación a los que me puedo
+        dirigir y me hacen saber que me estarán realizando antidoping de seguimiento.
+    </p>
+
+    <div class="firmas" style="grid-template-columns: 1fr; max-width: 60%; margin: 40px auto 0;">
+        <div th:replace="~{fragments/formato-impreso :: firmaVacia('Nombre y Firma del Trabajador', ${nombre})}"></div>
+    </div>
+    <div class="firmas" style="grid-template-columns: 1fr; max-width: 60%; margin: 40px auto 0;">
+        <div th:replace="~{fragments/formato-impreso :: firmaMedico(${medico}, 'Nombre y Firma del Médico o Enfermera')}"></div>
+    </div>
+
+    <div th:replace="~{fragments/formato-impreso :: elaboro}"></div>
+</div>
+<script th:if="${auto}">window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 400); });</script>
+</body>
+</html>

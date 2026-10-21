@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: miFirmaContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Mi firma digitalizada | Portal Salud Personal</title>
+</head>
+<body>
+
+<th:block id="pageStyles">
+    <style>
+        .aviso-texto { white-space: pre-wrap; max-height: 320px; overflow-y: auto; background: #F8FAFC; border: 1px solid #E1E6EB;
+            border-radius: 8px; padding: 12px 14px; font-size: .88rem; }
+        .aviso-borrador { background: #FEF3C7; color: #92400E; border: 1px solid #F59E0B; border-radius: 8px; padding: 8px 12px; font-weight: 600; }
+        .firma-vista { background: #fff; border: 1px dashed #B6CCE6; border-radius: 8px; padding: 10px; text-align: center; min-height: 90px; }
+        .firma-vista img { max-height: 120px; max-width: 100%; }
+        #lienzoFirma { border: 1px solid #B6CCE6; border-radius: 8px; background: #fff; touch-action: none; cursor: crosshair; width: 100%; max-width: 520px; height: 180px; }
+        .opcion-firma { border: 1px solid #E1E6EB; border-radius: 8px; padding: 12px; }
+        .opcion-firma.activa { border-color: #0057A8; background: #F5F9FD; }
+    </style>
+</th:block>
+
+<!-- Mi firma digitalizada (MiFirmaController, 20-oct-2026). Cada persona registra SU firma. -->
+<th:block th:fragment="miFirmaContent">
+    <div class="mb-4">
+        <ol class="breadcrumb fs-sm mb-1">
+            <li class="breadcrumb-item"><a th:href="@{/home}" href="/home">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Mi firma digitalizada</li>
+        </ol>
+        <h4 class="main-title mb-0">Mi firma digitalizada</h4>
+        <p class="text-secondary mb-0 fs-sm">Tu firma sale en los formatos del Servicio Médico que elabores. Se guarda cifrada y nunca se puede descargar.</p>
+    </div>
+
+    <div class="alert alert-success" th:if="${ok}" th:text="${ok}">ok</div>
+    <div class="alert alert-danger" th:if="${error}" th:text="${error}">error</div>
+
+    <div class="alert alert-warning" th:if="${sinModulo}">El módulo de firmas todavía no está instalado en este servidor.</div>
+    <th:block th:if="${mi != null}" th:with="m=${mi}">
+    <div class="alert alert-warning" th:unless="${m.habilitado}">
+        Las firmas digitalizadas están apagadas en este servidor (falta la llave de cifrado). Los formatos salen con la línea para firmar a mano.
+    </div>
+    <div class="alert alert-warning" th:if="${m.aviso.isEmpty()}">
+        Todavía no hay aviso de privacidad publicado; no se pueden registrar firmas.
+    </div>
+    <div class="alert alert-warning" th:if="${!m.empleadoActivo}">
+        Tu usuario no aparece como empleado activo en el biométrico: aunque registres tu firma, no saldrá en los formatos.
+    </div>
+
+    <div class="row g-3">
+        <!-- Estado actual -->
+        <div class="col-lg-5">
+            <div class="card card-one h-100">
+                <div class="card-header"><h6 class="card-title mb-0">Tu firma</h6></div>
+                <div class="card-body">
+                    <th:block th:if="${m.vigente.isPresent()}">
+                        <p class="mb-2"><span class="badge bg-success">Vigente</span>
+                            <span class="fs-sm text-secondary" th:text="'desde ' + ${#temporals.format(m.vigente.get().createdAt(), 'dd/MM/yyyy')}"></span></p>
+                        <div class="firma-vista"><img th:if="${m.imagenVigente != null}" th:src="${m.imagenVigente}" alt="Tu firma"></div>
+                        <div class="alert alert-warning mt-3 mb-0" th:if="${m.debeReaceptar}">
+                            El aviso de privacidad cambió. Mientras no aceptes la versión nueva, tu firma no sale en los formatos.
+                        </div>
+                        <form method="post" th:action="@{/perfil/firma/revocar}" class="mt-3"
+                              onsubmit="return confirm('¿Retirar tu permiso? Tu firma dejará de salir en formatos nuevos. Los ya impresos no cambian.');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="ri-forbid-line me-1"></i>Retirar mi permiso (revocar)</button>
+                        </form>
+                    </th:block>
+                    <th:block th:if="${m.vigente.isEmpty()}">
+                        <p class="mb-0 text-secondary">No tienes firma vigente. Los formatos que elabores salen con tu nombre y la línea para firmar a mano.</p>
+                    </th:block>
+                    <th:block th:if="${m.pendiente.isPresent()}">
+                        <hr>
+                        <p class="mb-2"><span class="badge bg-warning text-dark">Pendiente</span>
+                            <span class="fs-sm">Un administrador cargó esta firma a tu nombre. Revísala; si es tuya, acepta el aviso para activarla.</span></p>
+                        <div class="firma-vista"><img th:if="${m.imagenPendiente != null}" th:src="${m.imagenPendiente}" alt="Firma pendiente"></div>
+                    </th:block>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aviso + registro -->
+        <div class="col-lg-7" th:if="${m.aviso.isPresent()}" th:with="aviso=${m.aviso.get()}">
+            <div class="card card-one">
+                <div class="card-header"><h6 class="card-title mb-0" th:text="${aviso.titulo()} + ' (versión ' + ${aviso.version()} + ')'">Aviso</h6></div>
+                <div class="card-body">
+                    <div class="aviso-borrador mb-2" th:if="${aviso.borrador()}">BORRADOR: este aviso todavía no está aprobado por el área legal o RH.</div>
+                    <div class="aviso-texto" th:text="${aviso.texto()}">Texto del aviso</div>
+
+                    <!-- Activar la firma pendiente o volver a aceptar un aviso nuevo -->
+                    <form method="post" th:action="@{/perfil/firma/aceptar}" class="mt-3"
+                          th:if="${m.habilitado and (m.pendiente.isPresent() or m.debeReaceptar)}">
+                        <input type="hidden" name="avisoVersion" th:value="${aviso.version()}">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="acepto" value="SI" id="aceptoPendiente" required>
+                            <label class="form-check-label" for="aceptoPendiente">He leído el aviso y autorizo el uso de mi firma digitalizada en los formatos del Servicio Médico.</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary"><i class="ri-check-line me-1"></i>
+                            <span th:text="${m.pendiente.isPresent()} ? 'Aceptar y activar la firma cargada' : 'Aceptar el aviso nuevo'">Aceptar</span></button>
+                    </form>
+
+                    <!-- Registrar una firma propia (sustituye a la vigente) -->
+                    <form method="post" th:action="@{/perfil/firma/registrar}" enctype="multipart/form-data" class="mt-4"
+                          th:if="${m.habilitado}" id="formRegistrarFirma" onsubmit="return firmaAntesDeEnviar();">
+                        <h6 th:text="${m.vigente.isPresent() or m.pendiente.isPresent()} ? 'Registrar una firma nueva (sustituye a la actual)' : 'Registrar mi firma'">Registrar</h6>
+                        <input type="hidden" name="avisoVersion" th:value="${aviso.version()}">
+                        <input type="hidden" name="origen" id="origenFirma" value="DIBUJO">
+                        <input type="hidden" name="dibujo" id="dibujoFirma">
+                        <div class="row g-2">
+                            <div class="col-md-7">
+                                <div class="opcion-firma activa" id="opcionDibujo" onclick="firmaOpcion('DIBUJO');">
+                                    <b>a) Dibujarla aquí</b> <span class="badge bg-primary">Recomendado</span>
+                                    <div class="fs-sm text-secondary mb-2">Con el dedo, una pluma de tableta o el mouse.</div>
+                                    <canvas id="lienzoFirma" width="520" height="180"></canvas>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary mt-1" onclick="firmaLimpiar(event);"><i class="ri-eraser-line me-1"></i>Limpiar</button>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="opcion-firma" id="opcionImagen" onclick="firmaOpcion('IMAGEN');">
+                                    <b>b) Subir una imagen</b>
+                                    <div class="fs-sm text-secondary mb-2">PNG o JPG de tu firma en papel blanco con pluma negra o azul. Hasta 1 MB. PDF no.</div>
+                                    <input type="file" class="form-control form-control-sm" name="imagen" accept=".png,.jpg,.jpeg,image/png,image/jpeg">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-check mt-3 mb-2">
+                            <input class="form-check-input" type="checkbox" name="acepto" value="SI" id="aceptoRegistro" required>
+                            <label class="form-check-label" for="aceptoRegistro">He leído el aviso y autorizo el uso de mi firma digitalizada en los formatos del Servicio Médico.</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i>Guardar mi firma</button>
+                        <span class="fs-sm text-danger ms-2" id="firmaMsj"></span>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    </th:block>
+</th:block>
+
+<th:block id="pageScripts">
+    <script>
+        // Recuadro de dibujo (pointer events: mouse, dedo y pluma). Al enviar se manda como PNG.
+        (function () {
+            var c = document.getElementById('lienzoFirma');
+            if (!c) { return; }
+            var ctx = c.getContext('2d');
+            ctx.lineWidth = 2.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#111';
+            var dibujando = false, trazos = 0;
+            function punto(e) {
+                var r = c.getBoundingClientRect();
+                return { x: (e.clientX - r.left) * (c.width / r.width), y: (e.clientY - r.top) * (c.height / r.height) };
+            }
+            c.addEventListener('pointerdown', function (e) { dibujando = true; c.setPointerCapture(e.pointerId); var p = punto(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+            c.addEventListener('pointermove', function (e) { if (!dibujando) { return; } var p = punto(e); ctx.lineTo(p.x, p.y); ctx.stroke(); trazos++; });
+            c.addEventListener('pointerup', function () { dibujando = false; });
+            c.addEventListener('pointerleave', function () { dibujando = false; });
+            window.firmaLimpiar = function (ev) { if (ev) { ev.stopPropagation(); } ctx.clearRect(0, 0, c.width, c.height); trazos = 0; };
+            window.firmaTrazos = function () { return trazos; };
+        })();
+        window.firmaOpcion = function (o) {
+            document.getElementById('origenFirma').value = o;
+            document.getElementById('opcionDibujo').classList.toggle('activa', o === 'DIBUJO');
+            document.getElementById('opcionImagen').classList.toggle('activa', o === 'IMAGEN');
+        };
+        window.firmaAntesDeEnviar = function () {
+            var msj = document.getElementById('firmaMsj');
+            var origen = document.getElementById('origenFirma').value;
+            if (origen === 'DIBUJO') {
+                if (window.firmaTrazos() < 5) { msj.textContent = 'Dibuja tu firma en el recuadro.'; return false; }
+                document.getElementById('dibujoFirma').value = document.getElementById('lienzoFirma').toDataURL('image/png');
+            } else {
+                var f = document.querySelector('#formRegistrarFirma input[name="imagen"]');
+                if (!f.files || !f.files.length) { msj.textContent = 'Elige la imagen de tu firma.'; return false; }
+                if (f.files[0].size > 1024 * 1024) { msj.textContent = 'La imagen pesa más de 1 MB.'; return false; }
+            }
+            return true;
+        };
+    </script>
+</th:block>
+</body>
+</html>

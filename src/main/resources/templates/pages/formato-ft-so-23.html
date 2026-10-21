@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <!--
+      FT-SO-23 Carta de consentimiento para pruebas especiales (rev. 05, 14-oct-2026), formato B "opcional":
+      sale de una consulta con "Generar carta de pruebas especiales" (ExpedienteController#pruebasEspeciales).
+      Textos del formato de SM (docs/formatosnuevos/10202026). Ficha = busqueda por NSS; prueba,
+      autorizacion, fecha, lugar y resultado = SERV_MED_TAG FTSO23.<rel>.* (resultado: dato confidencial).
+    -->
+    <title th:text="'FT-SO-23 Pruebas especiales · NSS ' + ${nss}">FT-SO-23 Pruebas especiales</title>
+    <th:block th:replace="~{fragments/formato-impreso :: estilos}"></th:block>
+    <style>
+        .texto { font-size: 12px; text-align: justify; margin: 10px 0; }
+        .texto li { margin-bottom: 8px; }
+        .hueco { display: inline-block; border-bottom: 1px solid #000; min-width: 45mm; padding: 0 4px; text-align: center; }
+        .opciones { display: flex; gap: 22px; align-items: center; }
+    </style>
+</head>
+<body th:with="e=${empleado}, autoriza=${prueba['AUTORIZA'] ?: ''}, resultado=${prueba['RESULTADO'] ?: ''},
+               puesto=${e == null or #strings.containsIgnoreCase(e.nombrePuesto() ?: '', 'no existe') ? '' : e.nombrePuesto()}">
+<div th:replace="~{fragments/formato-impreso :: barra}"></div>
+<div class="hoja">
+    <div th:replace="~{fragments/formato-impreso :: encabezado(${enc})}"></div>
+
+    <p class="texto">Con fundamento en la NOM-004-SSA3-2012 Del expediente clínico, numerales 10.1.1 al 10.1.1.5;
+        NOM-010-SSA2-2010, Para la prevención y el control de la infección por Virus de la Inmunodeficiencia Humana,
+        numerales 5.5.6 al 5.5.7.</p>
+
+    <div class="titulo-seccion">Ficha de Identificación</div>
+    <div class="campo"><span class="lbl">Nombre:</span><span class="val" th:text="${nombreTrabajador}"></span></div>
+    <div class="campo"><span class="lbl">Cuenta:</span><span class="val" th:text="${e?.cuenta()}"></span></div>
+    <div class="campo"><span class="lbl">Puesto:</span><span class="val" th:text="${puesto}"></span></div>
+
+    <ul class="texto" style="padding-left: 18px;">
+        <li>A través del presente escrito manifiesto que autorizo se me realice la prueba rápida para la detección de
+            anticuerpos contra <span class="hueco" th:text="${prueba['ANTICUERPOS']}"></span></li>
+        <li>Asimismo manifiesto que se me informó del procedimiento y las molestias derivadas del mismo, así como se me
+            dio la oportunidad de hacer las preguntas que considere necesarias, mismas que fueron respondidas a mi entera
+            satisfacción.</li>
+        <li>Se me ha indicado también que todos los datos que proporcione así como el resultado de la prueba, serán
+            utilizados de manera estrictamente confidencial.</li>
+    </ul>
+
+    <div class="opciones" style="margin-top: 12px;">
+        <b>Autorización:</b>
+        <span><span class="circulo" th:classappend="${autoriza == 'SI'} ? 'marcado'"></span>SÍ</span>
+        <span><span class="circulo" th:classappend="${autoriza == 'NO'} ? 'marcado'"></span>NO</span>
+    </div>
+
+    <!-- firma que el trabajador dio en la consulta, si la hay -->
+    <div class="firmas" style="grid-template-columns: 1fr; max-width: 60%; margin: 26px auto 0;">
+        <div class="firma">
+            <div class="espacio"><img th:if="${firmaTrabajador != null}" th:src="${firmaTrabajador}" alt="Firma"></div>
+            <div class="linea">Nombre y Firma</div>
+            <div class="sub" th:text="${nombreTrabajador}">Nombre</div>
+        </div>
+    </div>
+
+    <div class="rejilla" style="grid-template-columns: 1fr 1fr; margin-top: 22px;">
+        <div class="campo"><span class="lbl">Fecha de Realización:</span><span class="val" th:text="${prueba['FECHA']}"></span></div>
+        <div class="campo"><span class="lbl">Lugar de realización:</span><span class="val" th:text="${prueba['LUGAR']}"></span></div>
+    </div>
+
+    <div class="titulo-seccion" style="margin-top: 18px;">Resultado</div>
+    <div class="opciones" style="justify-content: center;">
+        <span><span class="circulo" th:classappend="${resultado == 'SOSPECHOSO'} ? 'marcado'"></span>Sospechoso</span>
+        <span><span class="circulo" th:classappend="${resultado == 'NEGATIVO'} ? 'marcado'"></span>Negativo</span>
+    </div>
+
+    <!-- SM pidio la firma del medico responsable en todos los formatos -->
+    <div class="firmas" style="grid-template-columns: 1fr; max-width: 55%; margin: 30px auto 0;">
+        <div th:replace="~{fragments/formato-impreso :: firmaMedico(${medico}, 'Servicio Médico')}"></div>
+    </div>
+
+    <div th:replace="~{fragments/formato-impreso :: elaboro}"></div>
+</div>
+<script th:if="${auto}">window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 400); });</script>
+</body>
+</html>

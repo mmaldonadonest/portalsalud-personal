@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <!--
+      FT-SO-29 Pase de medicamento (rev. 04, 14-oct-2026), formato B "opcional": sale de una consulta con
+      "Generar pase de medicamento" (ExpedienteController#paseMedicamento). Orden y textos del formato de
+      SM (docs/formatosnuevos/10202026). Padecimiento y fecha = consulta; lo demas = SERV_MED_TAG FTSO29.<rel>.*
+    -->
+    <title th:text="'FT-SO-29 Pase de medicamento · NSS ' + ${nss}">FT-SO-29 Pase de medicamento</title>
+    <th:block th:replace="~{fragments/formato-impreso :: estilos}"></th:block>
+</head>
+<body th:with="d=${detalle}, vigencia=${med['VIGENCIA'] == 'PERMANENTE' ? 'Permanente' : med['VIGENCIA']}">
+<div th:replace="~{fragments/formato-impreso :: barra}"></div>
+<div class="hoja">
+    <div th:replace="~{fragments/formato-impreso :: encabezado(${enc})}"></div>
+
+    <div class="campo" style="max-width: 45%; margin: 10px 0 6px auto;"><span class="lbl">Vigencia:</span><span class="val" th:text="${vigencia}"></span></div>
+
+    <div class="campo"><span class="lbl">Nombre:</span><span class="val" th:text="${nombreTrabajador}"></span></div>
+    <div class="rejilla" style="grid-template-columns: 2fr 1fr;">
+        <div class="campo"><span class="lbl">Padecimiento/Enfermedad:</span><span class="val" th:text="${d.diagnostico}"></span></div>
+        <div class="campo"><span class="lbl">Fecha:</span><span class="val" th:text="${#strings.substring(d.fechaConsulta + '          ', 0, 10).trim()}"></span></div>
+    </div>
+    <!-- Varios medicamentos por pase (respuesta de SM 20-oct-2026): los campos del formato, uno por renglon -->
+    <th:block th:each="m : ${medicamentos}">
+        <div class="rejilla" style="grid-template-columns: 2fr 1fr; margin-top: 6px;">
+            <div class="campo"><span class="lbl">Medicamento:</span><span class="val" th:text="${#strings.trim(m.medicamento() + ' ' + m.gramaje())}"></span></div>
+            <div class="campo"><span class="lbl">Duración del tratamiento (días):</span><span class="val" th:text="${m.duracion()}"></span></div>
+        </div>
+        <div class="campo" style="max-width: 60%; margin-left: auto;"><span class="lbl">Frecuencia de administración:</span><span class="val" th:text="${m.frecuencia()}"></span></div>
+    </th:block>
+
+    <div class="campo" style="margin-top: 12px;"><span class="lbl">Observaciones:</span></div>
+    <div class="caja" th:text="${med['OBSERVACIONES']}"></div>
+
+    <p style="margin: 12px 0;"><b>Nota:</b> El tiempo máximo permitido para la toma del medicamento no debe exceder de 10 minutos.</p>
+
+    <div class="firmas" style="grid-template-columns: 1fr; max-width: 55%; margin: 34px auto 0;">
+        <div th:replace="~{fragments/formato-impreso :: firmaMedico(${medico}, 'Autorización Salud Ocupacional')}"></div>
+    </div>
+
+    <div th:replace="~{fragments/formato-impreso :: elaboro}"></div>
+</div>
+<script th:if="${auto}">window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 400); });</script>
+</body>
+</html>

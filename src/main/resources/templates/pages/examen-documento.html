@@ -2565,10 +2565,17 @@
                 <p>Dr. Mauricio Cerón Solana CP 5154089 / 7237048
                 <p>
                     <hr>
-                    <img th:src="@{/img/examen/firmaDoc.png}" src="/img/examen/firmaDoc.png" class="img-fluid" width="70px" alt="">
+                    <!--/* 20-oct-2026: la firma sale del modulo de firmas (cifrada, solo vigente); antes era una imagen
+                         publica en static heredada del PHP, quitada del proyecto. Sin firma: linea a mano. */-->
+                    <img th:if="${medico != null and medico.firmaDataUri != null}" th:src="${medico.firmaDataUri}" class="img-fluid" width="70px" alt="Firma">
                     <br>
                     <hr>
                 <p class="footerTxt">Realizó</p>
+                <p class="footerTxt" th:if="${elaboro != null}" style="margin-top:6px">
+                    Elaboró: <b th:text="${elaboro.nombre}">Usuario</b>
+                    <img th:if="${elaboro.firmaDataUri != null}" th:src="${elaboro.firmaDataUri}" alt="Firma" style="max-height:34px; vertical-align:middle; margin-left:6px">
+                </p>
+                <p class="footerTxt" th:if="${folioFirma != null}" th:text="'Folio ' + ${folioFirma.folio} + ' · Código ' + ${folioFirma.codigo} + ' · verificable en el portal'">Folio</p>
             </center>
         </div>
         <div class="col-6">

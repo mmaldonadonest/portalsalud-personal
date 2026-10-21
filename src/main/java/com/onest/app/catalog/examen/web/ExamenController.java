@@ -39,6 +39,96 @@ public class ExamenController {
     private final ExamenDocumentoService examenDocumentoService;
     private final org.thymeleaf.spring6.SpringTemplateEngine templateEngine;
     private final com.onest.app.catalog.examen.service.PrecargaFormato precarga;
+    private final com.onest.app.catalog.formato.service.FormatosImpresosService formatos;
+    private final com.onest.app.catalog.examen.service.CertificacionAptitudService certificacion;
+    private final com.onest.app.catalog.predio.service.PredioService predios;
+
+    /**
+     * FT-SO-31 Dictamen de certificacion de aptitud medica laboral (20-oct-2026, formato B "opcional"):
+     * pagina con la captura (arriba, solo en pantalla), la lista de dictamenes anteriores (historial que
+     * pidio SM) y el formato del dictamen elegido o del ultimo (abajo, lo que se imprime). Bajo
+     * /api/nss/examen para heredar el permiso del modulo.
+     */
+    @GetMapping(path = "/examen/certificacion", produces = MediaType.TEXT_HTML_VALUE)
+    @Auditado(modulo = "Examenes", accion = "export", entidad = "Dictamen de certificacion FT-SO-31", registro = "nss")
+    public String certificacion(@RequestParam("nss") String nss,
+                                @RequestParam(name = "exp", required = false) String exp,
+                                @RequestParam(name = "auto", required = false) String auto,
+                                @RequestParam(name = "error", required = false) String error, Model model) {
+        String nssLimpio = nss == null ? "" : nss.trim();
+        if (nssLimpio.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "nss es obligatorio");
+        }
+        ExamenDocumentoService.Documento d = examenDocumentoService.armar(nssLimpio);
+        Map<String, String> c = certificacion.leer(nssLimpio, exp);
+        Map<String, String> ultimo = exp == null || exp.isBlank() ? c : certificacion.leer(nssLimpio, null);
+        model.addAttribute("d", d);
+        model.addAttribute("c", c);
+        model.addAttribute("ultimo", ultimo);
+        model.addAttribute("expedido", !c.isEmpty());
+        model.addAttribute("anteriores", certificacion.expediciones(nssLimpio));
+        model.addAttribute("trabajos", com.onest.app.catalog.examen.service.CertificacionAptitudService.TRABAJOS);
+        // centro de trabajo = CEDIS / cuenta (respuesta de SM 20-oct-2026, ej. "Charcon / Diageo"): el del
+        // ultimo dictamen o, la primera vez, el predio asignado a la cuenta + la cuenta (editable)
+        model.addAttribute("centro", ultimo.containsKey("CENTRO") ? ultimo.get("CENTRO") : centroDeTrabajo(d.v("cuenta")));
+        model.addAttribute("nss", nssLimpio);
+        model.addAttribute("error", error);
+        model.addAttribute("enc", formatos.encabezado("FT-SO-31"));
+        if (c.isEmpty()) {
+            // sin expedir no hay documento que firmar: solo nombre y cedula
+            model.addAttribute("medico", formatos.medicoResponsable());
+        } else {
+            formatos.aplicarFirmas(model, "FT-SO-31", registroCertificacion(nssLimpio, c.get("ID")), nssLimpio);
+        }
+        model.addAttribute("auto", auto != null && !auto.isBlank() && !"0".equals(auto) && !c.isEmpty());
+        return "pages/formato-ft-so-31";
+    }
+
+    /** "CEDIS / cuenta" con el predio asignado a la cuenta en /admin/predios; solo la cuenta si no tiene. */
+    private String centroDeTrabajo(String cuenta) {
+        String cta = cuenta == null ? "" : cuenta.trim();
+        try {
+            return predios.predioFinoPorCuenta(cta).map(p -> p.predioNombre() + " / " + cta).orElse(cta);
+        } catch (RuntimeException ex) {
+            return cta;
+        }
+    }
+
+    /** Expide el FT-SO-31 (guarda) y vuelve a la pagina imprimiendo; con faltantes vuelve con el motivo. */
+    @PostMapping(path = "/examen/certificacion")
+    @Auditado(modulo = "Examenes", accion = "update", entidad = "Dictamen de certificacion FT-SO-31", registro = "nss")
+    public String expedirCertificacion(@RequestParam MultiValueMap<String, String> form) {
+        String nss = form.getFirst("nss") == null ? "" : form.getFirst("nss").trim();
+        if (nss.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "nss es obligatorio");
+        }
+        Map<String, String> aptitud = new LinkedHashMap<>();
+        Map<String, String> especificar = new LinkedHashMap<>();
+        for (int i = 0; i < com.onest.app.catalog.examen.service.CertificacionAptitudService.TRABAJOS.size(); i++) {
+            aptitud.put(String.valueOf(i), form.getFirst("aptitud" + i));
+            especificar.put(String.valueOf(i), form.getFirst("especificar" + i));
+        }
+        String base = "redirect:/api/nss/examen/certificacion?nss=" + java.net.URLEncoder.encode(nss, java.nio.charset.StandardCharsets.UTF_8);
+        try {
+            // cada expedicion se guarda aparte: los dictamenes anteriores quedan en el historial
+            String id = certificacion.expedir(nss, aptitud, especificar, form.getFirst("centro"));
+            // quien expide es quien elaboro este dictamen (segunda firma)
+            formatos.registrarAutor(registroCertificacion(nss, id), nss);
+            return base + "&exp=" + id + "&auto=1";
+        } catch (IllegalArgumentException ex) {
+            return base + "&error=" + java.net.URLEncoder.encode(ex.getMessage(), java.nio.charset.StandardCharsets.UTF_8);
+        }
+    }
+
+    /** Documento para las firmas del FT-SO-31: NSS + id de la expedicion (fecha y hora). */
+    private static String registroCertificacion(String nss, String id) {
+        return "FTSO31:" + nss + ":" + (id == null ? "" : id);
+    }
+
+    /** Documento para las firmas de los impresos del examen: NSS + fecha del examen guardado. */
+    private static String registroExamen(String nss, ExamenDocumentoService.Documento d) {
+        return "EXAMEN:" + nss + ":" + d.v("FECHA_EXAMEN");
+    }
 
     public ExamenController(
             ExamenService examenService,
@@ -49,7 +139,12 @@ public class ExamenController {
             NssSearchService nssSearchService,
             ExamenDocumentoService examenDocumentoService,
             org.thymeleaf.spring6.SpringTemplateEngine templateEngine,
-            com.onest.app.catalog.examen.service.PrecargaFormato precarga) {
+            com.onest.app.catalog.examen.service.PrecargaFormato precarga,
+            com.onest.app.catalog.formato.service.FormatosImpresosService formatos,
+            com.onest.app.catalog.examen.service.CertificacionAptitudService certificacion,
+            com.onest.app.catalog.predio.service.PredioService predios) {
+        this.certificacion = certificacion;
+        this.predios = predios;
         this.examenService = examenService;
         this.contactoEmergenciaService = contactoEmergenciaService;
         this.diagnosticoSecundarioService = diagnosticoSecundarioService;
@@ -59,6 +154,7 @@ public class ExamenController {
         this.examenDocumentoService = examenDocumentoService;
         this.templateEngine = templateEngine;
         this.precarga = precarga;
+        this.formatos = formatos;
     }
 
     /**
@@ -77,10 +173,65 @@ public class ExamenController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "nss es obligatorio");
         }
         // ?tipo=N: vista previa del impreso como si fuera de ese tipo de examen (solo lectura)
-        model.addAttribute("d", examenDocumentoService.armar(nssLimpio,
-                tipo != null && datosGeneralesExamenService.tipos().containsKey(tipo.trim()) ? tipo.trim() : null));
+        ExamenDocumentoService.Documento d = examenDocumentoService.armar(nssLimpio,
+                tipo != null && datosGeneralesExamenService.tipos().containsKey(tipo.trim()) ? tipo.trim() : null);
+        model.addAttribute("d", d);
+        // firma del medico y de quien elaboro (modulo de firmas, 20-oct-2026); antes era la imagen publica
+        // static/img/examen/firmaDoc.png heredada del PHP, que se quito del proyecto
+        formatos.aplicarFirmas(model, "EXAMEN", registroExamen(nssLimpio, d), nssLimpio);
         model.addAttribute("auto", auto != null && !auto.isBlank() && !"0".equals(auto));
         return "pages/examen-documento";
+    }
+
+    /**
+     * FT-SO-25 Carta compromiso (20-oct-2026, formato B "por condicion"): solo si el examen guardado
+     * tiene dictamen Apto condicionado (45) o Apto restringido (60), como pidio Servicio Medico. Bajo
+     * /api/nss/examen para heredar el permiso del modulo (ClinicalAccessFilter).
+     */
+    @GetMapping(path = "/examen/carta-compromiso", produces = MediaType.TEXT_HTML_VALUE)
+    @Auditado(modulo = "Examenes", accion = "export", entidad = "Carta compromiso FT-SO-25", registro = "nss")
+    public String cartaCompromiso(@RequestParam("nss") String nss,
+                                  @RequestParam(name = "auto", required = false) String auto, Model model) {
+        String nssLimpio = nss == null ? "" : nss.trim();
+        if (nssLimpio.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "nss es obligatorio");
+        }
+        ExamenDocumentoService.Documento d = examenDocumentoService.armar(nssLimpio);
+        String error = errorCarta(d);
+        if (error != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, error);
+        }
+        model.addAttribute("d", d);
+        model.addAttribute("enc", formatos.encabezado("FT-SO-25"));
+        formatos.aplicarFirmas(model, "FT-SO-25", registroExamen(nssLimpio, d), nssLimpio);
+        model.addAttribute("auto", auto != null && !auto.isBlank() && !"0".equals(auto));
+        return "pages/formato-ft-so-25";
+    }
+
+    /**
+     * Validacion previa de la carta, en texto, para que la pantalla muestre el motivo junto al boton
+     * (y no en una pestana nueva con la pagina de error).
+     */
+    @GetMapping(path = "/examen/carta-compromiso/validar", produces = "text/plain;charset=UTF-8")
+    @ResponseBody
+    public org.springframework.http.ResponseEntity<String> validarCartaCompromiso(@RequestParam("nss") String nss) {
+        String nssLimpio = nss == null ? "" : nss.trim();
+        if (nssLimpio.isEmpty()) {
+            return org.springframework.http.ResponseEntity.badRequest().body("NSS obligatorio.");
+        }
+        String error = errorCarta(examenDocumentoService.armar(nssLimpio));
+        return error == null ? org.springframework.http.ResponseEntity.ok("ok")
+                : org.springframework.http.ResponseEntity.badRequest().body(error);
+    }
+
+    /** null si el examen guardado permite la carta; si no, el motivo para el usuario. */
+    private static String errorCarta(ExamenDocumentoService.Documento d) {
+        String dictamen = d.v("DICTAMEN");
+        if ("Apto condicionado".equals(dictamen) || "Apto restringido".equals(dictamen)) {
+            return null;
+        }
+        return "La carta compromiso solo aplica con dictamen Apto condicionado o Apto restringido. Dictamen guardado: "
+                + (dictamen.isEmpty() ? "ninguno" : dictamen) + ". Si lo acabas de cambiar, guarda el examen primero.";
     }
 
     /** Shell del examen: navegacion de secciones + contenedor in-page. */

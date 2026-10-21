@@ -26,10 +26,13 @@ public class ViewModelAdvice {
     private final PermissionService permissionService;
     private final String permissionsSource;
     private final com.onest.app.integration.intranet.IntranetUserClient intranetUserClient;
+    private final com.onest.app.catalog.firma.repository.FirmaRepository firmas;
 
     public ViewModelAdvice(PermissionService permissionService,
                            @Value("${portal.permissions.source:ORDS}") String permissionsSource,
-                           com.onest.app.integration.intranet.IntranetUserClient intranetUserClient) {
+                           com.onest.app.integration.intranet.IntranetUserClient intranetUserClient,
+                           com.onest.app.catalog.firma.repository.FirmaRepository firmas) {
+        this.firmas = firmas;
         this.permissionService = permissionService;
         this.permissionsSource = permissionsSource;
         this.intranetUserClient = intranetUserClient;
@@ -58,6 +61,12 @@ public class ViewModelAdvice {
         // SERV_MED_MENU_ROLE del usuario; con ORDS no hay codes -> null = el menu no filtra
         // (comportamiento anterior). Nunca lanza: un fallo aqui no debe tumbar la vista.
         attributes.put("menusPermitidos", menusPermitidos());
+        // Firma digitalizada que un administrador cargo a nombre de este usuario y espera su aceptacion
+        // (20-oct-2026): el encabezado lo avisa. Solo en paginas completas (no en /api/, que son
+        // fragmentos e impresos) para no consultar en cada peticion. Nunca lanza.
+        if (!request.getServletPath().startsWith("/api/")) {
+            attributes.put("firmaPendiente", firmaPendiente(authentication.getName()));
+        }
 
         Object principal = authentication.getPrincipal();
         if (principal instanceof PortalUserPrincipal userPrincipal) {
@@ -77,6 +86,14 @@ public class ViewModelAdvice {
         }
 
         setDefaultUserAttributes(attributes);
+    }
+
+    private boolean firmaPendiente(String usuario) {
+        try {
+            return firmas.enEstado(usuario, "PENDIENTE").isPresent();
+        } catch (RuntimeException ex) {
+            return false; // sin tablas del modulo de firmas
+        }
     }
 
     private Set<String> menusPermitidos() {

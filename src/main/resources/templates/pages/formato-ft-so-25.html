@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <!--
+      FT-SO-25 Carta compromiso (rev. 05, 14-oct-2026), formato B "por condicion": sale solo con
+      dictamen Apto condicionado (45) o Apto restringido (60). Datos del impreso del examen
+      (ExamenDocumentoService); la condicion a cumplir son las observaciones del Resultado del examen.
+      Tipo marcado: ingreso = Admision (1) e Inicial mantenimiento (7); cambio de rol = 3;
+      periodico = 2 y 8; campana de salud no existe como tipo en el portal (se marca a mano).
+    -->
+    <title th:text="'FT-SO-25 Carta compromiso · NSS ' + ${d.v('NSS')}">FT-SO-25 Carta compromiso</title>
+    <th:block th:replace="~{fragments/formato-impreso :: estilos}"></th:block>
+</head>
+<body th:with="tipo=${d.v('TIPO_CODIGO')}, fecha=${d.v('FECHA_EXAMEN')},
+               ingreso=${tipo == '1' or tipo == '7'}, cambio=${tipo == '3'}, periodico=${tipo == '2' or tipo == '8'},
+               nombre=${#strings.trim(d.v('nombre') + ' ' + d.v('apellidoP') + ' ' + d.v('apellidoM'))}">
+<div th:replace="~{fragments/formato-impreso :: barra}"></div>
+<div class="hoja">
+    <div th:replace="~{fragments/formato-impreso :: encabezado(${enc})}"></div>
+
+    <div class="titulo-seccion">APTO CONDICIONADO POR EL SERVICIO DE SALUD OCUPACIONAL</div>
+
+    <div class="rejilla" style="grid-template-columns: 1fr 1fr; margin: 8px 0 12px;">
+        <div>
+            <div><span class="circulo" th:classappend="${ingreso} ? 'marcado'"></span>EXAMEN MÉDICO DE INGRESO</div>
+            <div class="campo"><span class="lbl">FECHA:</span><span class="val" th:text="${ingreso} ? ${fecha} : ''"></span></div>
+        </div>
+        <div>
+            <div><span class="circulo" th:classappend="${cambio} ? 'marcado'"></span>EXAMEN MÉDICO DE CAMBIO DE ROL</div>
+            <div class="campo"><span class="lbl">FECHA:</span><span class="val" th:text="${cambio} ? ${fecha} : ''"></span></div>
+        </div>
+        <div>
+            <div><span class="circulo" th:classappend="${periodico} ? 'marcado'"></span>EXAMEN MÉDICO PERIÓDICO</div>
+            <div class="campo"><span class="lbl">FECHA:</span><span class="val" th:text="${periodico} ? ${fecha} : ''"></span></div>
+        </div>
+        <div>
+            <div><span class="circulo"></span>CAMPAÑA DE SALUD</div>
+            <div class="campo"><span class="lbl">FECHA:</span><span class="val"></span></div>
+        </div>
+    </div>
+
+    <p style="font-weight:700; margin: 10px 0;">FIRMA DE ENTERADO Y EL COMPROMISO DE CORREGIR O ESTABILIZAR ALGUNA ALTERACIÓN DE SALUD QUE PADEZCA</p>
+
+    <div class="rejilla" style="grid-template-columns: 3fr 2fr;">
+        <div class="campo"><span class="lbl">NOMBRE:</span><span class="val" th:text="${nombre}"></span></div>
+        <div class="campo"><span class="lbl">PUESTO:</span><span class="val" th:text="${d.v('puesto')}"></span></div>
+    </div>
+    <!-- Area suele venir corta o vacia; cuenta y agencia son largas ("DESARROLLO DE OPERACIONES") y en
+         tercios iguales se partian en 2 renglones -->
+    <div class="rejilla" style="grid-template-columns: 1fr 1.5fr 1.5fr;">
+        <div class="campo"><span class="lbl">ÁREA:</span><span class="val" th:text="${d.v('DEPARTAMENTO')}"></span></div>
+        <div class="campo"><span class="lbl">CUENTA:</span><span class="val" th:text="${d.v('cuenta')}"></span></div>
+        <div class="campo"><span class="lbl">AGENCIA:</span><span class="val" th:text="${d.v('AGENCIA')}"></span></div>
+    </div>
+
+    <div class="campo" style="margin-top: 12px;"><span class="lbl">CONDICIÓN A CUMPLIR:</span></div>
+    <div class="caja" th:text="${d.v('OBSERVACIONESRESEXAM1')}"></div>
+    <div class="campo" style="max-width: 70%; margin: 10px 0 0 auto;"><span class="lbl">FECHA DE CUMPLIMIENTO:</span><span class="val"></span></div>
+
+    <div class="firmas">
+        <div th:replace="~{fragments/formato-impreso :: firmaVacia('TRABAJADOR', ${nombre})}"></div>
+        <div th:replace="~{fragments/formato-impreso :: firmaMedico(${medico}, 'SERVICIO MÉDICO')}"></div>
+    </div>
+
+    <div style="margin-top: 18px; font-weight: 700;">ENTERADOS:</div>
+    <div class="firmas" style="margin-top: 10px;">
+        <div th:replace="~{fragments/formato-impreso :: firmaVacia('JEFE INMEDIATO', '')}"></div>
+        <div th:replace="~{fragments/formato-impreso :: firmaVacia('RECURSOS HUMANOS', '')}"></div>
+    </div>
+
+    <p style="margin: 18px 0 8px; font-weight: 700;">AL NO CORREGIR O ESTABILIZAR LO ACORDADO, EL CUAL ES UNA CONDICIONANTE PARA LABORAR; SERÁ CANALIZADO A RECURSOS HUMANOS PARA LA SANCIÓN PERTINENTE.</p>
+
+    <div style="display: flex; align-items: center; gap: 18px; margin-top: 10px;">
+        <b>CUMPLIÓ:</b>
+        <span><span class="circulo"></span>SÍ</span>
+        <span><span class="circulo"></span>NO</span>
+    </div>
+    <!-- se firma al verificar el cumplimiento (despues), por eso va en blanco -->
+    <div class="firmas" style="grid-template-columns: 1fr; max-width: 50%; margin: 18px auto 0;">
+        <div th:replace="~{fragments/formato-impreso :: firmaVacia('SERVICIO MÉDICO', '')}"></div>
+    </div>
+
+    <div th:replace="~{fragments/formato-impreso :: elaboro}"></div>
+</div>
+<script th:if="${auto}">window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 400); });</script>
+</body>
+</html>

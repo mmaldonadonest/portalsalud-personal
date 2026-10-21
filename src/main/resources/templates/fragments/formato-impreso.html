@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Base comun de los formatos de Salud Ocupacional que se imprimen sueltos (formatos B, 20-oct-2026):
+  estilos de hoja carta, barra de impresion, encabezado de calidad, firma del medico responsable y
+  "Elaboro". Las firmas las pone FormatosImpresosService.aplicarFirmas (modulo de firmas); sin
+  ella queda el espacio para firmar a mano.
+-->
+
+<th:block th:fragment="estilos">
+    <style>
+        @page { size: Letter; margin: 12mm 14mm; }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #fff; color: #000; font: 11px/1.35 Arial, Helvetica, sans-serif; }
+        .hoja { max-width: 190mm; margin: 0 auto; padding: 8px 0 24px; }
+        .enc { display: grid; grid-template-columns: 42mm 1fr; gap: 10px; align-items: center; margin-bottom: 10px; }
+        .enc img { width: 100%; }
+        .enc table { width: 100%; border-collapse: collapse; }
+        .enc td { border: 1px solid #000; padding: 3px 6px; font-size: 10px; }
+        .enc td.titulo { text-align: center; font-weight: 700; font-size: 12px; }
+        .titulo-seccion { text-align: center; font-weight: 700; margin: 12px 0 8px; }
+        .campo { display: flex; gap: 6px; align-items: flex-end; margin: 6px 0; }
+        .campo .lbl { font-weight: 700; white-space: nowrap; }
+        .campo .val { flex: 1; border-bottom: 1px solid #000; min-height: 16px; padding: 0 4px; }
+        .rejilla { display: grid; gap: 4px 18px; }
+        .circulo { display: inline-block; width: 11px; height: 11px; border: 1px solid #000; border-radius: 50%; vertical-align: -1px; margin-right: 6px; text-align: center; line-height: 9px; font-size: 9px; }
+        .circulo.marcado::after { content: "\25CF"; }
+        .caja { border: 1px solid #000; min-height: 70px; padding: 6px 8px; white-space: pre-wrap; }
+        .firmas { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; margin-top: 26px; text-align: center; }
+        .firma .espacio { height: 44px; display: flex; align-items: flex-end; justify-content: center; }
+        .firma .espacio img { max-height: 44px; max-width: 70%; }
+        .firma .linea { border-top: 1px solid #000; padding-top: 3px; font-weight: 700; }
+        .firma .sub { font-size: 9.5px; }
+        .elaboro { margin-top: 22px; display: flex; justify-content: flex-end; gap: 30px; font-size: 10px; }
+        .elaboro .firma-linea { display: inline-block; width: 50mm; border-bottom: 1px solid #000; }
+        .elaboro .firma-elaboro img { max-height: 34px; max-width: 50mm; vertical-align: middle; border-bottom: 1px solid #000; }
+        .folio { margin-top: 6px; text-align: right; font-size: 9px; color: #333; }
+        .barra-print { position: sticky; top: 0; z-index: 10; background: #0f172a; color: #fff; padding: 10px 16px; display: flex; gap: 10px;
+            align-items: center; font: 12.5px system-ui, sans-serif; }
+        .barra-print button { border: 0; border-radius: 6px; padding: 7px 14px; font-weight: 600; cursor: pointer; color: #fff; }
+        @media print { .barra-print { display: none !important; } .hoja { padding: 0; } }
+    </style>
+</th:block>
+
+<div th:fragment="barra" class="barra-print">
+    <button type="button" onclick="window.print();" style="background:#2563eb">Imprimir / Guardar como PDF</button>
+    <button type="button" onclick="window.close();" style="background:#334155">Cerrar</button>
+    <span style="opacity:.8;margin-left:auto">Ctrl+P también funciona · el PDF lo genera el navegador</span>
+</div>
+
+<!-- Encabezado de calidad: logo + titulo, implementacion, revision, clave, reemplaza y motivo -->
+<div th:fragment="encabezado(enc)" class="enc">
+    <img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="Onest">
+    <table>
+        <tr><td colspan="2" class="titulo" th:text="${enc.titulo}">TITULO</td></tr>
+        <tr><td th:text="'F. Implementación: ' + ${enc.implementacion}">F. Implementación</td><td th:text="'Revisión: ' + ${enc.revision}">Revisión</td></tr>
+        <tr><td th:text="'Clave de control: ' + ${enc.clave}">Clave</td><td th:text="'Reemplaza a: ' + ${enc.reemplaza}">Reemplaza</td></tr>
+        <tr><td colspan="2" th:text="'Motivo del cambio: ' + ${enc.motivo}">Motivo</td></tr>
+    </table>
+</div>
+
+<!-- Firma del medico responsable: su firma (si el modulo de firma la entrega), nombre y cedula -->
+<div th:fragment="firmaMedico(medico, rol)" class="firma">
+    <div class="espacio"><img th:if="${medico.firmaDataUri != null}" th:src="${medico.firmaDataUri}" alt="Firma"></div>
+    <div class="linea" th:text="${rol}">SERVICIO MÉDICO</div>
+    <div class="sub" th:text="${medico.nombre}">Dr.</div>
+    <div class="sub" th:text="'Cédula profesional ' + ${medico.cedula}">Cédula</div>
+</div>
+
+<!-- Firma en blanco: rol y, si se conoce, el nombre impreso -->
+<div th:fragment="firmaVacia(rol, nombre)" class="firma">
+    <div class="espacio"></div>
+    <div class="linea" th:text="${rol}">ROL</div>
+    <div class="sub" th:text="${#strings.isEmpty(nombre)} ? 'Nombre y firma' : ${nombre}">Nombre y firma</div>
+</div>
+
+<!-- Segunda firma que pidio Servicio Medico en todos los formatos: quien elaboro el documento (fijado al
+     crearlo, no quien imprime), con su firma digitalizada si la tiene vigente; si no, la linea a mano.
+     Debajo, el folio y codigo de verificacion cuando el impreso lleva alguna firma. -->
+<th:block th:fragment="elaboro">
+    <div class="elaboro">
+        <span>Elaboró: <b th:text="${elaboro != null and !#strings.isEmpty(elaboro.nombre)} ? ${elaboro.nombre} : (${currentUserName} ?: '')">Usuario</b></span>
+        <span th:if="${elaboro == null or elaboro.firmaDataUri == null}">Firma: <span class="firma-linea"></span></span>
+        <span th:if="${elaboro != null and elaboro.firmaDataUri != null}" class="firma-elaboro">Firma:
+            <img th:src="${elaboro.firmaDataUri}" alt="Firma"></span>
+    </div>
+    <div class="folio" th:if="${folioFirma != null}"
+         th:text="'Folio ' + ${folioFirma.folio} + ' · Código de verificación ' + ${folioFirma.codigo} + ' · verificable en el Portal de Salud Ocupacional'">Folio</div>
+</th:block>
+
+</body>
+</html>

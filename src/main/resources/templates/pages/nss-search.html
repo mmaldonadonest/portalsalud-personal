@@ -279,6 +279,13 @@
                         if (document.getElementById('exIni')) {
                             exIniInit();
                         }
+                        if (document.getElementById('antidopingCustodia')) {
+                            custodiaInit();
+                        }
+                        if (document.getElementById('paseSalidaWrap')) {
+                            togglePaseSalida();
+                            toggleFormatosConsulta();
+                        }
                     } else {
                         mc.innerHTML = '<div class="alert alert-danger mb-0">Error al cargar el modulo (HTTP ' + response.status + ').</div>';
                     }
@@ -731,17 +738,180 @@
                     status.textContent = 'Selecciona al menos un diagnóstico del catálogo ICD antes de guardar.';
                     return;
                 }
+                // Pase de salida FT-SO-02: motivo y hora de salida obligatorios (el servidor lo vuelve a revisar)
+                var fc = document.getElementById('consultaAltaForm');
+                if (fc && fc.tipoConsulta.value === 'pase_salida') {
+                    var faltan = [];
+                    if (!fc.paseMotivo.value) { faltan.push(fc.paseMotivo); }
+                    if (!fc.paseSalida.value) { faltan.push(fc.paseSalida); }
+                    [fc.paseMotivo, fc.paseSalida].forEach(function (el) { el.classList.toggle('is-invalid', faltan.indexOf(el) >= 0); });
+                    if (faltan.length) {
+                        var res = document.getElementById('consultaGuardarResult');
+                        var msj = 'En el pase de salida el Motivo y la Hora de salida son obligatorios.';
+                        if (res) { res.className = 'fs-sm text-danger'; res.textContent = msj; }
+                        status.textContent = msj;
+                        faltan[0].focus();
+                        return;
+                    }
+                }
+                // FT-SO-29 (casilla) y FT-SO-23 (tipo Pruebas Especiales): su dato principal es obligatorio
+                // (el servidor lo vuelve a revisar)
+                var esPruebas = fc && fc.tipoConsulta.value === 'pruebas_especiales';
+                if (fc) {
+                    var falta = null;
+                    var primerMed = fc.querySelector('#medFilas input[name="medMedicamento"]');
+                    var algunMed = Array.prototype.some.call(fc.querySelectorAll('#medFilas input[name="medMedicamento"]'), function (i) { return i.value.trim(); });
+                    if (fc.medGenerar.checked && !algunMed) { falta = [primerMed, 'En el pase de medicamento anota al menos un medicamento.']; }
+                    else if (esPruebas && !fc.pruebaAnticuerpos.value.trim()) { falta = [fc.pruebaAnticuerpos, 'En pruebas especiales indica la prueba (anticuerpos contra...).']; }
+                    if (falta) {
+                        falta[0].classList.add('is-invalid');
+                        var resF = document.getElementById('consultaGuardarResult');
+                        if (resF) { resF.className = 'fs-sm text-danger'; resF.textContent = falta[1]; }
+                        status.textContent = falta[1];
+                        falta[0].focus();
+                        return;
+                    }
+                }
+                // enlaces de los formatos opcionales, con el rel de ESTA consulta (el formulario se limpia al guardar)
+                var nssDoc = encodeURIComponent((input.value || '').trim());
+                var relDoc = fc ? encodeURIComponent(fc.idArchivoRel.value) : '';
+                var extras = [];
+                if (fc && fc.medGenerar.checked) { extras.push(['pase-medicamento', 'Pase de medicamento (FT-SO-29)']); }
+                if (esPruebas) { extras.push(['pruebas-especiales', 'Pruebas especiales (FT-SO-23)']); }
                 guardarRegistro(btn, {
                     formId: 'consultaAltaForm', savePath: 'api/nss/consulta', fileInputId: 'consultaFiles',
                     label: 'consulta', resultElId: 'consultaGuardarResult',
-                    resetOnSuccess: true, onSuccess: limpiarFirmaSiExiste,
-                    // el WS no devuelve el ID_CONSULTA: el documento se ubica por idArchivoRel
+                    // idArchivoRel nuevo tras guardar: reset() lo deja igual y una segunda consulta en la misma
+                    // pantalla compartiria adjuntos y pase con la primera (20-oct-2026)
+                    resetOnSuccess: true, onSuccess: function () {
+                        limpiarFirmaSiExiste(); nuevoIdRelacion('consultaAltaForm'); togglePaseSalida();
+                        var filasMed = document.getElementById('medFilas');
+                        if (filasMed) { filasMed.innerHTML = ''; }
+                        toggleFormatosConsulta();
+                        var resEl = document.getElementById('consultaGuardarResult');
+                        extras.forEach(function (x) {
+                            var a = document.createElement('a');
+                            a.href = contextPath + 'api/nss/consulta/' + x[0] + '?nss=' + nssDoc + '&rel=' + relDoc + '&auto=1';
+                            a.target = '_blank';
+                            a.className = 'btn btn-sm btn-outline-primary ms-2';
+                            a.innerHTML = '<i class="ri-printer-line me-1"></i>' + x[1];
+                            if (resEl) { resEl.appendChild(a); }
+                        });
+                    },
+                    // el WS no devuelve el ID_CONSULTA: el documento se ubica por idArchivoRel. Un pase de
+                    // salida abre el FT-SO-02 (la nota medica sigue en el detalle de la consulta).
                     documentoUrl: function (f) {
                         var rel = f.querySelector('input[name="idArchivoRel"]');
-                        return rel && rel.value ? contextPath + 'api/nss/consulta/imprimir?nss=' + encodeURIComponent((input.value || '').trim())
+                        var doc = f.tipoConsulta && f.tipoConsulta.value === 'pase_salida' ? 'pase-salida' : 'imprimir';
+                        return rel && rel.value ? contextPath + 'api/nss/consulta/' + doc + '?nss=' + encodeURIComponent((input.value || '').trim())
                                 + '&rel=' + encodeURIComponent(rel.value) + '&auto=1' : null;
                     }
                 });
+            };
+
+            // Mismo formato que el UUID sin guiones que genera el servidor para el formulario
+            function nuevoIdRelacion(formId) {
+                var rel = document.querySelector('#' + formId + ' input[name="idArchivoRel"]');
+                if (!rel) { return; }
+                var b = new Uint8Array(16);
+                window.crypto.getRandomValues(b);
+                var hex = Array.prototype.map.call(b, function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+                rel.value = hex;
+                rel.defaultValue = hex;
+            }
+
+            // FT-SO-29 (casilla) y FT-SO-23 (tipo «Pruebas Especiales», respuesta de SM 20-oct-2026): cada uno
+            // muestra sus campos; la fecha de realizacion de la prueba arranca en hoy.
+            function hoyIso() {
+                var d = new Date();
+                return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            }
+            window.toggleFormatosConsulta = function () {
+                var f = document.getElementById('consultaAltaForm');
+                if (!f || !f.medGenerar) {
+                    return;
+                }
+                document.getElementById('medWrap').style.display = f.medGenerar.checked ? '' : 'none';
+                if (f.medGenerar.checked && !document.querySelector('#medFilas .med-fila')) {
+                    medAgregarFila();
+                }
+                var pruebas = f.tipoConsulta.value === 'pruebas_especiales';
+                document.getElementById('pruebaWrap').style.display = pruebas ? '' : 'none';
+                if (pruebas && !f.pruebaFecha.value) {
+                    f.pruebaFecha.value = hoyIso();
+                }
+                medVigenciaPermanente();
+            };
+            // Varios medicamentos por pase (SM 20-oct-2026): un renglon por medicamento, mismos nombres de campo
+            // (el servidor los recibe como listas en el mismo orden). Se arma con DOM, sin plantilla Thymeleaf.
+            window.medAgregarFila = function () {
+                var cont = document.getElementById('medFilas');
+                if (!cont) { return; }
+                var fila = document.createElement('div');
+                fila.className = 'row g-2 med-fila mb-2';
+                // OJO: arreglo de objetos, nunca dos corchetes de apertura seguidos en este script (Thymeleaf
+                // los toma como expresion inline, incluso en comentarios, y rompe TODO el script de la pagina)
+                var campos = [
+                    { nombre: 'medMedicamento', etiqueta: 'Medicamento', col: 'col-md-4', ejemplo: 'Paracetamol' },
+                    { nombre: 'medGramaje', etiqueta: 'Gramaje', col: 'col-md-2', ejemplo: '500 mg' },
+                    { nombre: 'medDuracion', etiqueta: 'Duración (días)', col: 'col-md-2', ejemplo: '5' },
+                    { nombre: 'medFrecuencia', etiqueta: 'Frecuencia', col: 'col-md-3', ejemplo: 'Cada 8 horas' }
+                ];
+                campos.forEach(function (c) {
+                    var col = document.createElement('div');
+                    col.className = c.col;
+                    var lbl = document.createElement('label');
+                    lbl.className = 'form-label fs-sm mb-1';
+                    lbl.textContent = c.etiqueta;
+                    var inp = document.createElement('input');
+                    inp.type = c.nombre === 'medDuracion' ? 'number' : 'text';
+                    if (c.nombre === 'medDuracion') { inp.min = '1'; }
+                    inp.className = 'form-control form-control-sm';
+                    inp.name = c.nombre;
+                    inp.placeholder = c.ejemplo;
+                    inp.addEventListener('input', function () { inp.classList.remove('is-invalid'); });
+                    col.appendChild(lbl);
+                    col.appendChild(inp);
+                    fila.appendChild(col);
+                });
+                var colQuitar = document.createElement('div');
+                colQuitar.className = 'col-md-1 d-flex align-items-end';
+                var quitar = document.createElement('button');
+                quitar.type = 'button';
+                quitar.className = 'btn btn-sm btn-outline-danger';
+                quitar.title = 'Quitar este medicamento';
+                quitar.innerHTML = '<i class="ri-delete-bin-line"></i>';
+                quitar.addEventListener('click', function () {
+                    fila.remove();
+                    if (!cont.querySelector('.med-fila')) { medAgregarFila(); }
+                });
+                colQuitar.appendChild(quitar);
+                fila.appendChild(colQuitar);
+                cont.appendChild(fila);
+            };
+            // Vigencia permanente: la fecha deja de aplicar
+            window.medVigenciaPermanente = function () {
+                var f = document.getElementById('consultaAltaForm');
+                if (!f || !f.medPermanente) { return; }
+                f.medVigencia.disabled = f.medPermanente.checked;
+                if (f.medPermanente.checked) { f.medVigencia.value = ''; }
+            };
+
+            // Pase de salida FT-SO-02 (20-oct-2026): la seccion solo con tipo "Pase de Salida"; la hora de
+            // salida arranca en la hora actual.
+            window.togglePaseSalida = function () {
+                var f = document.getElementById('consultaAltaForm');
+                var wrap = document.getElementById('paseSalidaWrap');
+                if (!f || !wrap) {
+                    return;
+                }
+                var es = f.tipoConsulta.value === 'pase_salida';
+                wrap.style.display = es ? '' : 'none';
+                var salida = document.getElementById('paseSalida');
+                if (es && salida && !salida.value) {
+                    var d = new Date();
+                    salida.value = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+                }
             };
 
             window.guardarIncapacidad = function (btn) {
@@ -783,6 +953,83 @@
                         var sel = document.getElementById('examenTipo');
                         if (sel) { exAplicarTipo(sel.value, true); }
                     } });
+            };
+
+            // FT-SO-25 Carta compromiso (20-oct-2026): se ve con dictamen condicionado o restringido y se HABILITA
+            // solo cuando ese dictamen ya esta guardado (data-guardado del select, que guardarExamen actualiza).
+            function exCartaAplica(v) { return v === 'apto_condicionado' || v === 'apto_restringido'; }
+            window.exCartaVisible = function (sel) {
+                var carta = sel.parentElement.querySelector('.ex-carta');
+                if (!carta) { return; }
+                var elegido = sel.value;
+                var guardado = sel.getAttribute('data-guardado') || '';
+                var habilitado = exCartaAplica(elegido) && elegido === guardado;
+                carta.classList.toggle('d-none', !exCartaAplica(elegido));
+                var btn = carta.querySelector('.ex-carta-btn');
+                if (btn) { btn.disabled = !habilitado; }
+                var aviso = carta.querySelector('.ex-carta-aviso');
+                if (aviso) { aviso.textContent = habilitado ? 'Sale con el dictamen guardado.' : 'Guarda el examen para habilitar la carta.'; }
+                var res = carta.querySelector('.ex-carta-res');
+                if (res) { res.textContent = ''; }
+            };
+            // Al dejar condicionado o restringido, Observaciones trae la condicion a cumplir (la que imprime la
+            // FT-SO-25) y con el dictamen nuevo queda incoherente. No se borra sola: Observaciones tambien sirve
+            // con Apto y un cambio accidental perderia lo escrito; se pregunta junto al campo (20-oct-2026).
+            window.exObsDictamen = function (sel) {
+                var previo = sel.hasAttribute('data-previo') ? sel.getAttribute('data-previo') : (sel.getAttribute('data-guardado') || '');
+                sel.setAttribute('data-previo', sel.value);
+                var form = sel.closest('form') || document;
+                var obs = form.querySelector('textarea[name="SERV_MED_RESULTADO_EXAMEN.OBSERVACIONES"]');
+                if (!obs) { return; }
+                var caja = obs.parentElement.querySelector('.ex-obs-pregunta');
+                if (caja) { caja.remove(); }
+                if (!exCartaAplica(previo) || exCartaAplica(sel.value) || !obs.value.trim()) { return; }
+                caja = document.createElement('div');
+                caja.className = 'ex-obs-pregunta alert alert-warning py-2 px-3 mt-2 mb-0 fs-sm d-flex flex-wrap align-items-center gap-2';
+                caja.innerHTML = '<span class="me-auto">Observaciones tiene la condición del dictamen anterior. ¿La borro?</span>'
+                    + '<button type="button" class="btn btn-sm btn-warning" data-r="si">Sí, borrar</button>'
+                    + '<button type="button" class="btn btn-sm btn-outline-secondary" data-r="no">No, conservar</button>';
+                caja.addEventListener('click', function (ev) {
+                    var r = ev.target.getAttribute('data-r');
+                    if (!r) { return; }
+                    if (r === 'si') { obs.value = ''; obs.dispatchEvent(new Event('input', { bubbles: true })); }
+                    caja.remove();
+                });
+                obs.insertAdjacentElement('afterend', caja);
+            };
+            // FT-SO-31 (20-oct-2026): pagina propia con la captura de aptitudes y el formato
+            window.exAbrirCertificacion = function () {
+                var nssEl = document.querySelector('#datosGeneralesExamenForm input[name="nss"]') || document.getElementById('nssInput');
+                var nss = nssEl ? (nssEl.value || '').trim() : '';
+                if (nss) { window.open(contextPath + 'api/nss/examen/certificacion?nss=' + encodeURIComponent(nss), '_blank'); }
+            };
+            // La pestana se abre en el clic (despues de un await el navegador la bloquea); si el servidor no
+            // permite la carta, se cierra y el motivo se muestra junto al boton.
+            // pintarResultadoInline cambia las clases del elemento: se pinta en uno interno para no perder .ex-carta-res
+            function exCartaMsj(res) { res.innerHTML = '<span></span>'; return res.firstChild; }
+            window.exImprimirCarta = async function (btn) {
+                var nssEl = document.querySelector('#datosGeneralesExamenForm input[name="nss"]') || document.getElementById('nssInput');
+                var nss = nssEl ? (nssEl.value || '').trim() : '';
+                var res = btn.closest('.ex-carta').querySelector('.ex-carta-res');
+                if (!nss) { return; }
+                var ventana = null;
+                try { ventana = window.open('', '_blank'); } catch (e) { ventana = null; }
+                if (ventana) { ventana.document.write('<p style="font:14px system-ui;padding:24px">Generando la carta compromiso…</p>'); }
+                try {
+                    var r = await fetch(contextPath + 'api/nss/examen/carta-compromiso/validar?nss=' + encodeURIComponent(nss), { headers: { 'Accept': 'text/plain' } });
+                    var txt = await r.text();
+                    if (!r.ok) {
+                        if (ventana) { ventana.close(); }
+                        pintarResultadoInline(exCartaMsj(res), txt, true);
+                        return;
+                    }
+                    var url = contextPath + 'api/nss/examen/carta-compromiso?nss=' + encodeURIComponent(nss) + '&auto=1';
+                    if (ventana) { ventana.location.href = url; } else { window.open(url, '_blank'); }
+                    res.textContent = '';
+                } catch (e) {
+                    if (ventana) { ventana.close(); }
+                    pintarResultadoInline(exCartaMsj(res), 'No se pudo validar la carta (error de red).', true);
+                }
             };
 
             // Selector del tipo arriba (20-oct-2026): mueve el de Datos generales y acomoda el modulo.
@@ -1795,6 +2042,7 @@
                 }
                 var formEl = document.getElementById('antidopingAltaForm');
                 var nss = formEl ? formEl.nss.value : null;
+                try { if (formEl && formEl.lugar && formEl.lugar.value.trim()) { localStorage.setItem(CUSTODIA_LUGAR, formEl.lugar.value.trim()); } } catch (e) { /* sin almacenamiento */ }
                 guardarRegistro(btn, {
                     formId: 'antidopingAltaForm', savePath: 'api/nss/antidoping/save', fileInputId: '__none__',
                     label: 'registro de antidoping', resetOnSuccess: true,
@@ -1896,7 +2144,36 @@
                 if (f.tipoPrueba.value !== 'ANTIDOPING') {
                     f.sustancia.value = '';
                 }
+                toggleCustodia();
             };
+
+            // Cadena de custodia FT-SO-14 (20-oct-2026): elementos a detectar solo en antidoping, % BAC solo
+            // en alcoholemia, "¿cuál?" solo con razon Otro y el detalle del tratamiento solo con Si.
+            var CUSTODIA_LUGAR = 'portalSalud.custodia.lugar';
+            window.toggleCustodia = function () {
+                var f = document.getElementById('antidopingAltaForm');
+                if (!f || !document.getElementById('antidopingCustodia')) {
+                    return;
+                }
+                var ver = function (id, si) { var el = document.getElementById(id); if (el) { el.style.display = si ? '' : 'none'; } };
+                var tipo = f.tipoPrueba.value;
+                ver('custElementosWrap', tipo !== 'ALCOHOLEMIA');
+                ver('custBacWrap', tipo === 'ALCOHOLEMIA');
+                ver('custRazonOtroWrap', f.razon.value === 'OTRO');
+                ver('custTratamientoWrap', f.tratamiento.value === 'SI');
+            };
+            // Hora = ahora y lugar = el ultimo que uso este usuario en este navegador (solo comodidad;
+            // si el almacenamiento no esta disponible, el campo queda vacio).
+            function custodiaInit() {
+                var h = document.getElementById('custHora');
+                if (h && !h.value) {
+                    var d = new Date();
+                    h.value = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+                }
+                var l = document.getElementById('custLugar');
+                try { if (l && !l.value) { l.value = localStorage.getItem(CUSTODIA_LUGAR) || ''; } } catch (e) { /* sin almacenamiento */ }
+                toggleCustodia();
+            }
 
             // Costo = salario diario * dias autorizados (legacy calcularSalario).
             window.calcCostoIncap = function () {
@@ -2976,6 +3253,11 @@
                         body: body.toString()
                     });
                     var txt = await response.text();
+                    // el dictamen quedo guardado: habilita (o no) la carta compromiso FT-SO-25
+                    if (response.ok && dictamenEl) {
+                        dictamenEl.setAttribute('data-guardado', dictamenEl.value);
+                        exCartaVisible(dictamenEl);
+                    }
                     if (response.ok && conFirma) {
                         if (ventanaDoc) {
                             ventanaDoc.location.href = urlDocumento;

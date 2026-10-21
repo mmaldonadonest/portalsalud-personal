@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seguimiento formatos B</title>
+<style>
+  body { margin: 0; background: #fff; color: #111; font: 15px/1.5 Arial, Helvetica, sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 28px 16px 56px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; color: #003E75; }
+  h1 .emle { display: inline-block; padding: 0 10px; margin-right: 6px; background: #003E75; color: #fff; border-radius: 6px; letter-spacing: .1em; }
+  h2 { font-size: 1.1rem; margin: 30px 0 10px; padding-bottom: 4px; border-bottom: 3px solid #0057A8; color: #003E75; }
+  p.sub { color: #444; margin: 0 0 20px; }
+  .barra { height: 14px; background: #fff; border: 1px solid #111; border-radius: 7px; overflow: hidden; }
+  .barra > span { display: block; height: 100%; background: #F59E0B; }
+  .barra.completa > span { background: #16A34A; }
+  .barra.grande > span { background: #0057A8; }
+  .barra.grande.completa > span { background: #16A34A; }
+  .barra.grande { height: 22px; border-radius: 11px; }
+  .general { display: flex; align-items: center; gap: 16px; margin: 6px 0 4px; }
+  .general .barra { flex: 1; }
+  .general .pct { font-size: 1.6rem; font-weight: 700; min-width: 72px; text-align: right; }
+  .nota { color: #444; font-size: .9rem; }
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid #111; padding: 7px 9px; text-align: left; vertical-align: top; background: #fff; }
+  th { font-weight: 700; }
+  td.pct { white-space: nowrap; width: 150px; }
+  td.pct .barra { margin-top: 4px; }
+  .cat { display: inline-block; padding: 1px 9px; border-radius: 10px; font-size: .82rem; font-weight: 700; white-space: nowrap; color: #fff; }
+  .cat.siempre { background: #0057A8; }
+  .cat.condicion { background: #D97706; }
+  .cat.opcional { background: #16A34A; }
+  ul.tareas { margin: 0; padding-left: 0; list-style: none; }
+  ul.tareas li { margin: 2px 0; }
+  ul.tareas li::before { content: "☐ "; color: #0057A8; font-weight: 700; }
+  ul.tareas li.hecho::before { content: "☑ "; color: #16A34A; }
+  ul.tareas li.hecho { color: #166534; }
+  .estado { display: inline-block; margin-top: 4px; padding: 0 8px; border-radius: 10px; font-size: .78rem; font-weight: 700; }
+  .estado.pendiente { background: #F2F4F7; color: #344054; }
+  .estado.curso { background: #FEF3C7; color: #92400E; }
+  .estado.listo { background: #DCFCE7; color: #166534; }
+  .req { background: #FFFBEB; border: 2px solid #F59E0B; border-radius: 8px; padding: 12px 16px 12px 34px; }
+  .req li { margin-bottom: 4px; }
+  .leyenda { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; font-size: .9rem; margin: 4px 0 10px; }
+</style>
+</head>
+<body>
+<main>
+  <h1><span class="emle">EMLE</span>Integración de formatos B al Portal Salud</h1>
+  <p class="sub">Formatos para imprimir que confirmó Servicio Médico (Dr. Mauricio Cerón, 20-oct-2026) · formatos 2026 en <code>docs\formatosnuevos\10202026</code> · actualizado: 21-oct-2026</p>
+
+  <div class="general">
+    <div class="barra grande"><span id="barraGeneral" style="width:0%"></span></div>
+    <div class="pct" id="pctGeneral">0%</div>
+  </div>
+  <p class="nota" id="resumenGeneral">0 de 0 tareas terminadas.</p>
+
+  <div class="req" style="padding-left:16px; margin-top:14px">
+    <p style="margin:0 0 6px"><b>Estado al 21-oct-2026:</b> los <b>7 formatos B</b>, la base común y el <b>módulo de firmas digitalizadas</b> están
+      programados y probados con datos reales en el Tomcat local. Las <b>6 respuestas de Servicio Médico ya se aplicaron</b>.</p>
+    <ul style="margin:0; padding-left:20px">
+      <li><span class="estado listo">Listo</span> respuestas de Servicio Médico aplicadas y probadas (ver «Dudas para revisar al final»).</li>
+      <li><span class="estado listo">Listo</span> módulo de firmas (paso 8) con la firma real del Dr.; la firma pública heredada del PHP ya no está en el proyecto.</li>
+      <li><span class="estado curso">Pendiente</span> correr los 2 <code>.sql</code> de limpieza de las pruebas del 20 y 21-oct (tabla «Registros de prueba»).</li>
+      <li><span class="estado curso">Pendiente</span> commit de todo lo del 20 y 21-oct (con permiso del usuario).</li>
+      <li><span class="estado curso">Pendiente</span> regresar a Apto el examen del NSS del usuario (lo hace él desde el portal).</li>
+      <li><span class="estado curso">Pendiente</span> texto final del aviso de privacidad (legal o RH) y, al subir a producción, la llave PORTAL_FIRMAS_LLAVE y cargar la firma del Dr.</li>
+    </ul>
+  </div>
+
+  <h2>Avance por formato</h2>
+  <div class="leyenda">
+    <span class="cat siempre">Siempre</span> se imprime en cada registro
+    <span class="cat condicion">Por condición</span> solo si se cumple la condición
+    <span class="cat opcional">Opcional</span> lo elige quien atiende
+  </div>
+  <div class="scroll">
+  <table id="tablaFormatos">
+    <tr><th>#</th><th>Formato</th><th>Dónde</th><th>Cuándo sale</th><th>Tareas</th><th>Avance</th></tr>
+
+    <tr>
+      <td>0</td><td><b>Base común</b><br><span class="nota">Lo que comparten todos los impresos</span></td><td>—</td><td>—</td>
+      <td><ul class="tareas">
+        <li class="hecho">Plantilla de impreso para formatos sueltos (encabezado 2026 + ficha del trabajador)</li>
+        <li class="hecho">Pie con nombre y cédula 5154089 del Dr. Mauricio Cerón; su firma la entrega el módulo de firma (paso 8), mientras tanto espacio para firmar a mano</li>
+        <li class="hecho">Segunda firma: «Elaboró» con el nombre del usuario que imprime</li>
+        <li class="hecho">Prueba automática del impreso base</li>
+      </ul></td>
+      <td class="pct"></td>
+    </tr>
+
+    <tr>
+      <td>1</td><td><b>FT-SO-25</b> Carta compromiso</td><td>Examen Medico</td><td><span class="cat condicion">Por condición</span><br>Dictamen 45 o 60</td>
+      <td><ul class="tareas">
+        <li class="hecho">Revisar el formato campo por campo contra el portal</li>
+        <li class="hecho">Botón de impresión solo con dictamen condicionado o restringido</li>
+        <li class="hecho">Impreso con los datos del examen</li>
+        <li class="hecho">Prueba automática</li>
+      </ul></td>
+      <td class="pct"></td>
+    </tr>
+
+    <tr>
+      <td>2</td><td><b>FT-SO-22</b> Aceptación CECOSAMA</td><td>Antidoping</td><td><span class="cat condicion">Por condición</span><br>Prueba positiva</td>
+      <td><ul class="tareas">
+        <li class="hecho">Revisar el formato campo por campo contra el portal</li>
+        <li class="hecho">Botón de impresión solo en pruebas positivas</li>
+        <li class="hecho">Impreso con los datos de la prueba (la hora y lo que «está ingiriendo» se llenan a mano: el portal no los guarda)</li>
+        <li class="hecho">Prueba automática</li>
+      </ul></td>
+      <td class="pct"></td>
+    </tr>
+
+    <tr>
+      <td>3</td><td><b>FT-SO-14</b> Cadena de custodia</td><td>Antidoping</td><td><span class="cat siempre">Siempre</span><br>Cada prueba</td>
+      <td><ul class="tareas">
+        <li class="hecho">Revisar el formato campo por campo contra el portal</li>
+        <li class="hecho">Campos nuevos en la captura: identificación, razón de la prueba, elementos a detectar, % de alcohol, tratamiento médico, hora, lugar y responsable de la toma</li>
+        <li class="hecho">Prellenado con los datos del candidato o del trabajador</li>
+        <li class="hecho">Impreso por prueba</li>
+        <li class="hecho">Prueba automática</li>
+      </ul></td>
+      <td class="pct"></td>
+    </tr>
+
+    <tr>
+      <td>4</td><td><b>FT-SO-02</b> Pase de salida</td><td>Consulta Médica</td><td><span class="cat opcional">Opcional</span><br>Motivo «Pase de salida»</td>
+      <td><ul class="tareas">
+        <li class="hecho">Revisar el formato campo por campo contra el portal</li>
+        <li class="hecho">Campos en la consulta (solo tipo Pase de salida): motivo, fecha de cita, hora de salida y de entrada, regresa, incapacidad y observaciones</li>
+        <li class="hecho">Impreso desde la consulta (se abre al guardar con firma y desde el detalle)</li>
+        <li class="hecho">Prueba automática</li>
+      </ul></td>
+      <td class="pct"></td>
+    </tr>
+
+    <tr>
+      <td>5</td><td><b>FT-SO-29</b> Pase de medicamento</td><td>Consulta Médica</td><td><span class="cat opcional">Opcional</span></td>
+      <td><ul class="tareas">
+        <li class="hecho">Revisar el formato campo por campo contra el portal</li>
+        <li class="hecho">Campos: medicamento, gramaje, duración, frecuencia y vigencia (casilla «Generar pase de medicamento» en cualquier consulta)</li>
+        <li class="hecho">Impreso desde la consulta (enlace al guardar y botón en el detalle)</li>
+        <li class="hecho">Prueba automática</li>
+      </ul></td>
+      <td class="pct"></td>
+    </tr>
+
+    <tr>
+      <td>6</td><td><b>FT-SO-23</b> Carta de consentimiento para pruebas especiales</td><td>Consulta Médica</td><td><span class="cat opcional">Opcional</span><br>Como motivo de consulta</td>
+      <td><ul class="tareas">
+        <li class="hecho">Revisar el formato campo por campo contra el portal</li>
+        <li class="hecho">Tipo de consulta «Pruebas Especiales» en el menú (respuesta de SM; antes era casilla)</li>
+        <li class="hecho">Impreso desde la consulta (enlace al guardar y botón en el detalle)</li>
+        <li class="hecho">Prueba automática</li>
+      </ul></td>
+      <td class="pct"></td>
+    </tr>
+
+    <tr>
+      <td>7</td><td><b>FT-SO-31</b> Dictamen de certificación de aptitud médica laboral</td><td>Examen Medico</td><td><span class="cat opcional">Opcional</span><br>Cuando el cliente lo pide</td>
+      <td><ul class="tareas">
+        <li class="hecho">Revisar el formato campo por campo contra el portal</li>
+        <li class="hecho">Captura de la aptitud por tipo de trabajo (10) y «especificar» en Apto condicionado (enfermería)</li>
+        <li class="hecho">Datos generales y fecha prellenados; vigencia fija de 1 año</li>
+        <li class="hecho">Impreso (página propia desde Resultado del examen, «Guardar e imprimir»)</li>
+        <li class="hecho">Prueba automática</li>
+      </ul></td>
+      <td class="pct"></td>
+    </tr>
+
+    <tr>
+      <td>8</td><td><b>Módulo de firmas digitalizadas</b><br><span class="nota">Programado y probado el 20-oct-2026 (Tomcat local, llave de prueba). Firma del Dr. Cerón y de quien elabora cada documento.</span></td><td>Mi perfil (cada usuario) y Administración</td><td>—</td>
+      <td><ul class="tareas">
+        <li class="hecho">Aviso de privacidad en base de datos con versiones (<code>docs\portal-aviso-privacidad-firma.sql</code>, corrido); versión 1 = BORRADOR</li>
+        <li>Texto final del aviso, revisado por el área legal o RH, publicado como versión nueva (solo un INSERT)</li>
+        <li class="hecho">Autorización del Dr. Cerón para usar su firma digitalizada (recibida por correo el 20-oct-2026; guardar el correo fuera del repo)</li>
+        <li class="hecho">Tablas del módulo (<code>docs\portal-firmas-digitalizadas.sql</code>, corrido)</li>
+        <li class="hecho">Pantalla «Mi firma digitalizada» (menú del usuario): cada quien acepta el aviso y registra su propia firma</li>
+        <li class="hecho">Registro con una de dos opciones excluyentes: dibujarla en el portal o subir PNG o JPG; PDF no. Una sola firma vigente: la nueva sustituye a la anterior, que queda apagada sin borrarse</li>
+        <li class="hecho">Limpieza de la imagen: hasta 1 MB, sin datos ocultos, sin fondo blanco, recortada y en baja resolución</li>
+        <li class="hecho">Cifrado AES-256-GCM en el almacén de archivos; llave en PORTAL_FIRMAS_LLAVE; sin llave, firmas apagadas (verificado: el archivo en disco es ilegible)</li>
+        <li class="hecho">Aceptación del aviso con versión, fecha e IP; revocar; si el aviso cambia, la firma no sale hasta volver a aceptar</li>
+        <li class="hecho">Administración «Firmas digitalizadas»: cargar una firma existente (queda PENDIENTE hasta que su dueño la acepta; aviso «Activa tu firma» en el encabezado) y desactivar</li>
+        <li class="hecho">Roles con firma configurables (<code>portal.firmas.roles</code>; vacío = todos)</li>
+        <li class="hecho">Folio y código de verificación en cada impreso con firma, y pantalla «Verificar folio» (NSS enmascarado)</li>
+        <li>Marca tenue sobre la firma (opcional: aporta poco porque la firma anterior ya estaba publicada)</li>
+        <li class="hecho">Impresos sin copia en el navegador (no-cache: lo pone Spring Security en todas las páginas; verificado)</li>
+        <li class="hecho">Autor por documento: se fija al crearlo (consulta, incapacidad, antidoping, FT-SO-31) o en la primera impresión (examen, pretest y documentos anteriores); al reimprimir se usa ese</li>
+        <li class="hecho">Cambio de personal: desactivar la firma de quien se va (sin borrarla); quien llega registra la suya</li>
+        <li class="hecho">Vigencia automática: firma solo con EMP_STATUS = 0; revisión diaria que apaga las de quien ya no está activo</li>
+        <li class="hecho">Conectado a los impresos: los 7 formatos B, examen médico, nota de consulta, incapacidad y pretest</li>
+        <li class="hecho">Quitada la firma pública heredada del PHP (<code>static/img/examen/firmaDoc.png</code>); copia en <code>C:\miguelirma-dr\</code>, fuera del repo</li>
+        <li class="hecho">Bitácora: alta, carga, aceptación, revocación y desactivación de firmas; los folios quedan en su propia tabla</li>
+        <li class="hecho">Prueba automática con la firma real del Dr. (datos de prueba a borrar con <code>docs\portal-borrar-prueba-firmas.sql</code>)</li>
+        <li>En producción: generar la llave, ponerla en PORTAL_FIRMAS_LLAVE del servidor, reiniciar Tomcat y cargar la firma del Dr. desde Administración</li>
+      </ul></td>
+      <td class="pct"></td>
+    </tr>
+  </table>
+  </div>
+
+  <h2>Cómo quedó cada formato terminado</h2>
+  <div class="scroll">
+  <table>
+    <tr><th>Formato</th><th>Dónde está el botón</th><th>Qué llena el portal</th><th>Qué queda a mano</th></tr>
+    <tr>
+      <td><b>FT-SO-25</b> Carta compromiso</td>
+      <td>Examen Medico › Resultado del examen, junto al dictamen. Deshabilitado hasta guardar el dictamen; si el servidor lo rechaza, el motivo sale junto al botón.</td>
+      <td>Tipo de examen marcado y su fecha, nombre, puesto, área, cuenta, agencia, condición a cumplir (Observaciones), firma del Dr. Cerón con cédula, «Elaboró».</td>
+      <td>Fecha de cumplimiento, firmas de jefe inmediato y RH, «Cumplió Sí/No».</td>
+    </tr>
+    <tr>
+      <td><b>FT-SO-22</b> Aceptación a CECOSAMA</td>
+      <td>Antidoping › lista, columna «Formato», solo en pruebas <b>positivas</b>.</td>
+      <td>Fecha de la prueba (día, mes en letra, año), nombre, sustancia en texto (alcoholemia = «alcohol»), firma del Dr. Cerón, «Elaboró».</td>
+      <td>Hora y «actualmente estoy ingiriendo» (el portal no los guarda).</td>
+    </tr>
+    <tr>
+      <td><b>FT-SO-14</b> Cadena de custodia</td>
+      <td>Antidoping › lista, columna «Formato», en <b>todas</b> las pruebas.</td>
+      <td>Folio, ficha del trabajador, fecha y resultado de la prueba, y la custodia capturada en el alta: identificación, razón, elementos a detectar, % de alcohol, tratamiento, hora, lugar y responsable. Firma del Dr. Cerón junto a la del responsable.</td>
+      <td>En pruebas anteriores al 20-oct la custodia sale en blanco. Fecha de nacimiento cuando el biométrico no la tiene.</td>
+    </tr>
+    <tr>
+      <td><b>FT-SO-02</b> Pase de salida</td>
+      <td>Consulta médica con tipo «Pase de Salida»: se abre al guardar (con firma) y está en el detalle de la consulta.</td>
+      <td>Fecha de solicitud, causa, nombre, edad, cuenta, puesto, horario, agencia; motivo, fecha de cita, horas de salida y entrada, regresa, incapacidad y observaciones capturados; firma del trabajador de la consulta y del Dr. Cerón. Motivo y hora de salida obligatorios.</td>
+      <td>Firma del responsable de la cuenta.</td>
+    </tr>
+    <tr>
+      <td><b>FT-SO-29</b> Pase de medicamento</td>
+      <td>Consulta médica, casilla «Generar pase de medicamento»: enlace al guardar y botón en el detalle.</td>
+      <td>Nombre, padecimiento (diagnóstico de la consulta), fecha; uno o varios medicamentos (medicamento y gramaje, duración, frecuencia por renglón); vigencia = fecha autorizada o «Permanente»; observaciones; autorización del Dr. Cerón. Al menos un medicamento obligatorio.</td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><b>FT-SO-23</b> Pruebas especiales</td>
+      <td>Consulta médica con tipo «Pruebas Especiales»: enlace al guardar y botón en el detalle (donde también se ve el resultado).</td>
+      <td>Nombre, cuenta, puesto; prueba (VIH de inicio), autoriza Sí/No, fecha y lugar de realización, resultado (se guarda y se imprime); firma del trabajador de la consulta y del Dr. Cerón. La prueba es obligatoria.</td>
+      <td>Resultado si se deja «Pendiente».</td>
+    </tr>
+    <tr>
+      <td><b>FT-SO-31</b> Dictamen de certificación</td>
+      <td>Examen Medico › Resultado del examen, botón «Dictamen de certificación (FT-SO-31)»: página con la captura arriba, la lista de dictámenes expedidos y el formato abajo.</td>
+      <td>Nombre, puesto, centro de trabajo (CEDIS / cuenta, editable), fecha de expedición = hoy, vigencia = 1 año; aptitud de los 10 tipos de trabajo (obligatoria en todos) y especificación del condicionado; firma del Dr. Cerón. Cada expedición queda en el historial.</td>
+      <td>—</td>
+    </tr>
+  </table>
+  </div>
+
+  <h2>Dudas para revisar al final</h2>
+  <p class="req" style="list-style:none; padding-left:16px; margin:0 0 10px">
+    <b><span class="estado listo">Contestadas y aplicadas</span> Servicio Médico respondió las 6 preguntas (20-oct-2026)</b> en
+    <code>docs\formatosnuevos\10202026\respuestas\dudas-formatos-b-confirmar-sm.xlsx</code>. Cambios hechos y probados el 21-oct:
+  </p>
+  <div class="scroll"><table>
+    <tr><th>#</th><th>Respuesta de SM</th><th>Qué se hizo</th></tr>
+    <tr><td>1</td><td>Varios medicamentos en un pase</td><td>FT-SO-29 con renglones: «Agregar otro medicamento» y quitar; el impreso repite medicamento, duración y frecuencia por renglón</td></tr>
+    <tr><td>2</td><td>Vigencia = fecha en que se autoriza el ingreso del medicamento; hasta un año o permanente</td><td>Se quitó el cálculo automático; fecha capturada o casilla «Permanente»</td></tr>
+    <tr><td>3</td><td>El resultado sí se guarda y se imprime («sospechoso» no es «positivo»)</td><td>Sin cambio en el guardado; además se ve en el detalle de la consulta</td></tr>
+    <tr><td>4</td><td>«Pruebas especiales» como tipo de consulta en el menú</td><td>Nuevo tipo «Pruebas Especiales»; con él aparece la carta (se quitó la casilla)</td></tr>
+    <tr><td>5</td><td>Centro de trabajo = CEDIS / cuenta (ej. «Charcon / Diageo»)</td><td>Se prellena «predio asignado / cuenta» (de Administración › Predios); si la cuenta no tiene predio, solo la cuenta; editable</td></tr>
+    <tr><td>6</td><td>Historial de dictámenes, al menos 5 años</td><td>Cada expedición se guarda aparte (nada se sobrescribe ni se borra); lista «Dictámenes expedidos» con «Ver e imprimir»</td></tr>
+  </table></div>
+  <p class="nota">Preguntas originales:</p>
+  <ol>
+    <li><b>FT-SO-29:</b> ¿un pase por consulta con <b>un solo</b> medicamento (como el formato) o varios medicamentos en el mismo pase?</li>
+    <li><b>FT-SO-29:</b> ¿la vigencia es la fecha hasta la que vale el pase (sugerida: hoy + días del tratamiento − 1)? Sí o No.</li>
+    <li><b>FT-SO-23:</b> ¿el resultado (Sospechoso o Negativo) se guarda en el portal o siempre se escribe a mano en el papel? (es dato confidencial)</li>
+    <li><b>FT-SO-23:</b> ¿se agrega «Pruebas especiales» como tipo de consulta, o basta la casilla en cualquier consulta (como quedó)?</li>
+    <li><b>FT-SO-31:</b> «Centro de trabajo» ¿es la cuenta del trabajador o el predio?</li>
+    <li><b>FT-SO-31:</b> cada «Guardar e imprimir» reemplaza el dictamen anterior del trabajador (solo queda el último). ¿Se necesita historial de dictámenes expedidos? Sí o No.</li>
+    <li><b>Pruebas con datos reales de FT-SO-29, FT-SO-23 y FT-SO-31:</b> HECHAS el 20-oct-2026 en el NSS del usuario y borradas.</li>
+  </ol>
+
+  <h2>Anotado para después (fuera de los formatos)</h2>
+  <ul>
+    <li><b>Archivo de Consultas · fecha en formato de sistema:</b> la columna «Fecha de consulta» muestra
+      <code>2026-10-20T16:49:44Z</code> en vez de <code>20/10/2026 16:49</code>. Ya era así antes del 20-oct-2026.
+      Corregir solo si lo piden (la nota médica impresa ya la muestra bien).</li>
+  </ul>
+
+  <h2>Decisiones del 20-oct-2026</h2>
+  <ul>
+    <li><b>FT-SO-14 · Elementos a detectar:</b> 7 casillas en el alta (AMP, COC, OPI, THC, MET, BENZO, BARB), todas marcadas de inicio; se desmarca lo que el kit no detecta.</li>
+    <li><b>FT-SO-14 · Responsable de la toma:</b> el usuario que captura, editable antes de guardar.</li>
+    <li><b>FT-SO-14 · Lugar de la recolección:</b> texto en el alta; el navegador recuerda el último lugar usado.</li>
+    <li><b>Dictamen y Observaciones:</b> al cambiar el dictamen de condicionado o restringido a otro, si Observaciones tiene texto, el portal pregunta junto al campo «Observaciones tiene la condición del dictamen anterior. ¿La borro?» [Sí, borrar] [No, conservar]. No borra nada solo.</li>
+    <li><b>Firma del Dr. Cerón:</b> en todos los formatos, con nombre y cédula 5154089, más «Elaboró» con quien imprime.</li>
+    <li><b>FT-SO-02 · Obligatorios:</b> en un pase de salida, Motivo y Hora de salida son obligatorios (se revisa en pantalla y en el servidor).</li>
+    <li><b>Consulta · Diagnóstico:</b> el diagnóstico del catálogo ICD sigue obligatorio en toda consulta, también en el pase de salida.</li>
+    <li><b>Consulta · Áreas:</b> Área accidente y Área anatómica se quedan como están en el pase de salida.</li>
+    <li><b>FT-SO-02 · Agrupación:</b> los campos del pase van en un recuadro propio con tres grupos: Motivo y cita, Horario, Incapacidad.</li>
+  </ul>
+
+  <h2>Ajustes que salieron en las pruebas</h2>
+  <ul>
+    <li>Nombre del Dr. salía «CerÃ³n» en los impresos (acento mal leído de la configuración): corregido.</li>
+    <li>Carta compromiso: Cuenta y Agencia se partían en dos renglones: corregido.</li>
+    <li>Cadena de custodia: Puesto mostraba «el no. de puesto no existe en base de datos»: ahora sale vacío.</li>
+    <li>Consentimiento FT-SO-11: Agencia, Aptitud laboral, Departamento y Puesto en 2 x 2 en todos los tipos de examen (el PDF amontonado era una impresión anterior al cambio).</li>
+    <li>Consulta médica: después de guardar, el formulario conservaba el mismo identificador de relación; dos consultas seguidas en la misma pantalla compartían adjuntos (y compartirían los formatos). Ahora se genera uno nuevo en cada guardado.</li>
+  </ul>
+
+  <h2>Registros de prueba en producción (borrados)</h2>
+  <p class="nota">Capturados en el NSS 30048315698 (del usuario, con su autorización) para ver los impresos con datos reales. Cada <code>.sql</code> trae primero el SELECT para revisar, luego el DELETE y el COMMIT.</p>
+  <div class="scroll">
+  <table>
+    <tr><th>Prueba</th><th>Base</th><th>Archivo</th><th>Estado</th></tr>
+    <tr><td>FT-SO-22 · antidoping positivo, registro 61</td><td>ORDS</td><td><code>docs\ords-borrar-antidoping-prueba-ft-so-22.sql</code></td><td><span class="estado listo">Borrado</span></td></tr>
+    <tr><td>FT-SO-14 · antidoping negativo, registro 62</td><td>ORDS</td><td><code>docs\ords-borrar-antidoping-prueba-ft-so-14.sql</code> (1 fila)</td><td><span class="estado listo">Borrado</span></td></tr>
+    <tr><td>FT-SO-14 · custodia del registro 62</td><td>Portal</td><td><code>docs\portal-borrar-custodia-prueba-ft-so-14.sql</code> (12 filas)</td><td><span class="estado listo">Borrado</span></td></tr>
+    <tr><td>FT-SO-02 · consulta de pase de salida (relación 67e5ba9c…)</td><td>ORDS</td><td><code>docs\ords-borrar-consulta-prueba-ft-so-02.sql</code> (1 fila)</td><td><span class="estado listo">Borrado</span></td></tr>
+    <tr><td>FT-SO-02 · datos del pase de esa consulta</td><td>Portal</td><td><code>docs\portal-borrar-pase-prueba-ft-so-02.sql</code> (9 filas)</td><td><span class="estado listo">Borrado</span></td></tr>
+    <tr><td>FT-SO-29 y FT-SO-23 · consulta de prueba (relación 0c0256bc…)</td><td>ORDS</td><td><code>docs\ords-borrar-consulta-prueba-ft-so-29-23.sql</code> (1 fila)</td><td><span class="estado listo">Borrado</span></td></tr>
+    <tr><td>FT-SO-29, FT-SO-23 y FT-SO-31 · datos de los formatos</td><td>Portal</td><td><code>docs\portal-borrar-pruebas-ft-so-29-23-31.sql</code> (34 filas: 6 + 5 + 23)</td><td><span class="estado listo">Borrado</span></td></tr>
+    <tr><td>Módulo de firmas y respuestas de SM · firmas del Dr. (llave de prueba), autores, folios, datos FT-SO-29/23 de la consulta 543a5826… y 2 dictámenes FT-SO-31</td><td>Portal</td><td><code>docs\portal-borrar-prueba-firmas.sql</code></td><td><span class="estado curso">Pendiente de correr</span></td></tr>
+    <tr><td>Respuestas de SM · consulta de prueba «Pruebas Especiales» (relación 543a5826…)</td><td>ORDS</td><td><code>docs\ords-borrar-consulta-prueba-21oct.sql</code> (1 fila)</td><td><span class="estado curso">Pendiente de correr</span></td></tr>
+    <tr><td>FT-SO-25 · examen en «Apto condicionado»</td><td>—</td><td>Se regresa a Apto desde el portal (Resultado del examen)</td><td><span class="estado curso">Pendiente</span></td></tr>
+  </table>
+  </div>
+
+  <h2>Firmas digitalizadas: plan acordado (dato sensible)</h2>
+  <div class="req" style="padding-left:16px">
+    <p style="margin:0 0 8px"><b>Lo que pidió el Dr. Cerón (20-oct-2026):</b> «todos los formatos deben de contener mi firma digitalizada y
+      cédula profesional 5154089, así como de la persona que realizó el documento como segunda firma y su nombre al lado».
+      Por eso el módulo es para <b>cada usuario que elabora documentos</b>, no solo para el Dr.</p>
+    <p style="margin:0 0 8px"><b>Hoy:</b> los impresos ya llevan el nombre y la cédula del Dr. y «Elaboró: nombre» con línea para firmar a mano.
+      Cuando exista el módulo, en esos mismos lugares aparece la firma digitalizada de cada uno; sin firma registrada, sigue la línea a mano.</p>
+    <p style="margin:8px 0 4px"><b>Registro de la firma</b></p>
+    <ul style="margin:0; padding-left:20px">
+      <li><b>Cada quien registra la suya</b>, con su usuario, en «Mi firma digitalizada». Nadie registra la firma de otra persona.</li>
+      <li><b>Aviso de privacidad:</b> antes de guardar, la persona lee el aviso y marca «He leído el aviso y autorizo el uso de mi firma
+        digitalizada en los formatos del Servicio Médico». Se guarda quién aceptó, cuándo y la versión del aviso; si el texto cambia, se vuelve a pedir.
+        El texto lo da o revisa el área legal o RH (la firma es dato personal, Ley Federal de Protección de Datos Personales).</li>
+      <li><b>El aviso se cambia solo por base de datos</b> (decisión del 20-oct-2026): sin pantalla ni rol que lo modifique. Vive en la tabla
+        <code>SERV_MED_AVISO_PRIVACIDAD</code> con versiones (<code>docs\portal-aviso-privacidad-firma.sql</code>). Cambiar el texto = insertar
+        una versión nueva; nunca se edita una publicada. La versión 1 es un <b>BORRADOR que debe sustituirse</b> y el portal lo muestra con esa leyenda.</li>
+      <li><b>Cómo se registra:</b> a) <b>dibujándola en el portal</b> con el dedo o una pluma de tableta (recomendado: la firma nunca existe como
+        archivo suelto); b) subiendo una imagen PNG o JPG de una firma en papel blanco con pluma negra o azul. PDF no.
+        <b>Son excluyentes:</b> cada persona usa una de las dos y tiene <b>una sola firma vigente</b>. Si registra otra después, la nueva
+        sustituye a la anterior para los documentos nuevos; la anterior queda apagada, sin borrarse, para los documentos que ya salieron con ella.</li>
+      <li><b>Si se sube imagen:</b> hasta 1 MB; el portal quita los datos ocultos de la foto (fecha, celular, ubicación), quita el fondo blanco,
+        la reduce a baja resolución y borra cualquier copia sin cifrar.</li>
+      <li><b>Revocar:</b> la misma persona puede retirar su permiso; su firma deja de salir al instante.</li>
+      <li><b>Respaldo legal del Dr.:</b> autorización por escrito para usar su firma digitalizada. No es e.firma; equivale a un sello.</li>
+    </ul>
+    <p style="margin:8px 0 4px"><b>Cómo se guarda</b></p>
+    <ul style="margin:0; padding-left:20px">
+      <li><b>No va</b> en el repositorio, en el WAR ni en la carpeta pública del portal (<code>static</code>).</li>
+      <li><b>Cifrada (AES-256)</b> en el almacén de archivos del portal (<code>SERV_MED_FS_FILE</code> + disco). Solo el servidor la descifra, en memoria, al armar un impreso.</li>
+      <li><b>La llave</b> va en la <b>variable de ambiente <code>PORTAL_FIRMAS_LLAVE</code></b> del servidor (decisión del 20-oct-2026), nunca en el WAR,
+        el repo ni un properties. Reglas: sin valor por omisión; 32 bytes en Base64; si falta o está mal, el portal arranca normal <b>con las firmas
+        apagadas</b> y el log avisa sin mostrarla. Respaldarla aparte (gestor de contraseñas de la organización): si se pierde, cada quien registra
+        su firma de nuevo. Si Tomcat corre como servicio de Windows, va en las variables del sistema o del servicio y se reinicia una vez.</li>
+      <li><b>Protege</b> contra copias de la carpeta de archivos, respaldos de la base, el WAR y GitHub. <b>No protege</b> una firma ya impresa: para eso son las medidas de abajo.</li>
+    </ul>
+    <p style="margin:8px 0 4px"><b>Cómo se usa en los impresos</b></p>
+    <ul style="margin:0; padding-left:20px">
+      <li><b>Folio y código de verificación</b> en cada impreso con firma; una pantalla del portal dice si un folio de verdad salió de ahí (formato, NSS, quién, cuándo).</li>
+      <li><b>Marca tenue sobre la firma:</b> «EMLE · formato · fecha · folio». Si alguien la recorta para otro documento, se nota.</li>
+      <li><b>Baja resolución:</b> suficiente para imprimir, mala para reutilizar.</li>
+      <li><b>Interruptor:</b> la persona o un administrador apaga una firma al instante; los impresos vuelven a la línea para firmar a mano.</li>
+      <li><b>Solo roles autorizados</b> imprimen con firma; los demás imprimen sin ella.</li>
+      <li><b>Sin copia en el navegador</b> (no-cache) y la firma nunca tiene dirección propia ni se puede descargar suelta.</li>
+      <li><b>Bitácora:</b> cada impreso con firma (quién, cuándo, formato, NSS, folio) y cada alta, cambio o revocación de una firma.</li>
+    </ul>
+    <p style="margin:8px 0 4px"><b>Cambio de personal (acordado 20-oct-2026)</b></p>
+    <ul style="margin:0; padding-left:20px">
+      <li><b>Los documentos ya hechos no cambian:</b> conservan a quien los elaboró y al médico responsable de ese momento, aunque se reimpriman después.</li>
+      <li><b>Los documentos nuevos</b> salen con la firma de quien ocupa el puesto en ese momento.</li>
+      <li><b>Cuando alguien se va:</b> el Dr. o un administrador desactiva su usuario y su firma. La firma <b>no se borra</b>: queda cifrada y apagada para verificar sus documentos.</li>
+      <li><b>Cuando llega alguien:</b> se le da su usuario con el rol que imprime con firma; entra, acepta el aviso y registra <b>su propia</b> firma. Nunca se le pasa la firma de quien se fue.</li>
+      <li><b>Mientras el nuevo no registra su firma:</b> los documentos salen con su nombre y la línea para firmar a mano; nada se detiene.</li>
+      <li><b>Médico responsable:</b> igual. Si cambia, el nuevo registra su firma y cédula; la del Dr. Cerón se desactiva sin borrarse.</li>
+      <li><b>Vigencia automática contra el biométrico:</b> al imprimir, la firma de cada firmante (Dr. y quien elaboró) solo sale si su NSS
+        tiene <code>BIO_EMPLEADO.EMP_STATUS = 0</code> (<b>0 = activo</b>, confirmado por el usuario 20-oct-2026 con 4 empleados activos).
+        Cualquier otro valor (1, 99, 100) o vacío = sin firma, con la línea para firmar a mano. Una revisión diaria apaga las firmas de quien
+        ya no está activo y lo deja en la bitácora. Solo lectura del biométrico. La fecha no sirve de dato extra: <code>EMP_FECHAI</code> viene vacía.
+        Todos los firmantes deben ser empleados (confirmado). <i>Nota: el sistema anterior usa <code>EMP_STATUS = 1</code> para los
+        trabajadores de operación (28,370 registros); para las firmas se usa 0, que es el del personal que elabora documentos.</i></li>
+      <li><b>Corrección necesaria:</b> hoy «Elaboró» toma a quien imprime. Con firmas digitalizadas debe tomar a quien hizo el documento, guardado al crearlo junto con el médico responsable.</li>
+    </ul>
+  </div>
+
+  <h2>Necesario para avanzar</h2>
+  <ul class="req">
+    <li><b>Para el módulo de firmas (paso 8):</b> texto final del aviso de privacidad (área legal o RH; hoy hay un borrador en la base) y generar la
+      llave para <code>PORTAL_FIRMAS_LLAVE</code>. La autorización del Dr. ya se recibió por correo. La firma no se entrega como archivo: cada quien
+      la registra en el portal. Mientras tanto los impresos salen con el nombre, la cédula y la línea para firmar a mano.</li>
+    <li><b>Campos nuevos:</b> se guardan en los datos propios del portal (<code>SERV_MED_TAG</code>), sin tocar la base ni los WS. Si algún formato pide una tabla nueva, se entrega el SQL para que lo corra el usuario. Nombres usados:
+      <code>FTSO14.&lt;id de la prueba&gt;.*</code> (custodia),
+      <code>FTSO02.&lt;relación de la consulta&gt;.*</code> (pase de salida),
+      <code>FTSO29.&lt;relación&gt;.*</code> (pase de medicamento),
+      <code>FTSO23.&lt;relación&gt;.*</code> (pruebas especiales) y
+      <code>FTSO31.*</code> por NSS (dictamen de certificación).</li>
+    <li><b>Commit pendiente:</b> base común, los 7 formatos B, respuestas de SM, módulo de firmas (incluye quitar la firma pública del proyecto), pregunta de Observaciones y EMLE en el login están en el Tomcat local, sin commit.</li>
+  </ul>
+
+  <h2>Cómo se actualiza</h2>
+  <p class="nota">Cada tarea terminada se marca con la clase <code>hecho</code> en su renglón (<code>&lt;li class="hecho"&gt;</code>). Las barras y los porcentajes se calculan solos al abrir la página.</p>
+</main>
+<script>
+  // Avance = tareas con clase "hecho" / tareas totales (por formato y general)
+  var total = 0, hechas = 0;
+  document.querySelectorAll('#tablaFormatos tr').forEach(function (tr) {
+    var tareas = tr.querySelectorAll('ul.tareas li');
+    if (!tareas.length) { return; }
+    var h = tr.querySelectorAll('ul.tareas li.hecho').length;
+    total += tareas.length; hechas += h;
+    var pct = Math.round(100 * h / tareas.length);
+    var estado = pct === 100 ? '<span class="estado listo">Listo</span>'
+      : (pct > 0 ? '<span class="estado curso">En curso</span>' : '<span class="estado pendiente">Pendiente</span>');
+    tr.querySelector('td.pct').innerHTML = '<b>' + pct + '%</b> · ' + h + ' de ' + tareas.length
+      + '<div class="barra' + (pct === 100 ? ' completa' : '') + '"><span style="width:' + pct + '%"></span></div>' + estado;
+  });
+  var pctGeneral = total ? Math.round(100 * hechas / total) : 0;
+  document.getElementById('barraGeneral').style.width = pctGeneral + '%';
+  if (pctGeneral === 100) { document.getElementById('barraGeneral').parentElement.classList.add('completa'); }
+  document.getElementById('pctGeneral').textContent = pctGeneral + '%';
+  document.getElementById('resumenGeneral').textContent = hechas + ' de ' + total + ' tareas terminadas.';
+</script>
+</body>
+</html>

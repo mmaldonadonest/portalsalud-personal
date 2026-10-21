@@ -69,6 +69,101 @@
                     </select>
                 </div>
 
+                <!-- Cadena de custodia FT-SO-14 (20-oct-2026): lo que pide el formato y el WS no guarda;
+                     se liga a la prueba al guardar (CustodiaService). Ninguno es obligatorio: lo vacio
+                     sale en blanco en el impreso para llenarse a mano. -->
+                <div class="col-12">
+                    <div class="border rounded p-3" id="antidopingCustodia">
+                        <h6 class="mb-3">Cadena de custodia (FT-SO-14)</h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label" for="custIdentTipo">Tipo de identificación</label>
+                                <select class="form-select" name="identTipo" id="custIdentTipo">
+                                    <option value="">Seleccionar</option>
+                                    <option>INE</option>
+                                    <option>Pasaporte</option>
+                                    <option>Licencia de conducir</option>
+                                    <option>Credencial de la empresa</option>
+                                    <option>Otra</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="custIdentEmitida">Emitida por</label>
+                                <input type="text" class="form-control" name="identEmitida" id="custIdentEmitida" placeholder="INE, SRE, Gobierno del estado...">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="custIdentNumero">No. de identificación</label>
+                                <input type="text" class="form-control" name="identNumero" id="custIdentNumero">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="custRazon">Razón de la prueba</label>
+                                <select class="form-select" name="razon" id="custRazon" onchange="toggleCustodia();">
+                                    <option value="">Seleccionar</option>
+                                    <option value="ALEATORIA">Aleatoria</option>
+                                    <option value="PERIODICO">Periódico</option>
+                                    <option value="OTRO">Otro</option>
+                                </select>
+                            </div>
+                            <div class="col-md-8" id="custRazonOtroWrap" style="display:none">
+                                <label class="form-label" for="custRazonOtro">¿Cuál?</label>
+                                <input type="text" class="form-control" name="razonOtro" id="custRazonOtro">
+                            </div>
+
+                            <!-- mismos 7 y en el orden de CustodiaService.ELEMENTOS (los del formato) -->
+                            <div class="col-12" id="custElementosWrap">
+                                <label class="form-label d-block">Elementos a detectar <span class="text-muted fs-sm">(desmarca los que tu kit no detecta)</span></label>
+                                <div class="d-flex flex-wrap gap-3">
+                                    <label class="form-check-label" th:each="el : ${ {'AMP','COC','OPI','THC','MET','BENZO','BARB'} }">
+                                        <input class="form-check-input me-1" type="checkbox" name="elementos" th:value="${el}" checked>
+                                        <span th:text="${el}">AMP</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4" id="custBacWrap" style="display:none">
+                                <label class="form-label" for="custBac">% de alcohol en aire espirado (BAC)</label>
+                                <input type="text" class="form-control" name="bac" id="custBac" placeholder="0.00">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="custTratamiento">¿Bajo tratamiento médico?</label>
+                                <select class="form-select" name="tratamiento" id="custTratamiento" onchange="toggleCustodia();">
+                                    <option value="">Seleccionar</option>
+                                    <option value="NO">No</option>
+                                    <option value="SI">Sí</option>
+                                </select>
+                            </div>
+                            <div class="col-md-8 row g-3 m-0 p-0" id="custTratamientoWrap" style="display:none">
+                                <div class="col-md-4">
+                                    <label class="form-label" for="custDiagnostico">Diagnóstico actual</label>
+                                    <input type="text" class="form-control" name="diagnostico" id="custDiagnostico">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="custMedicamento">Medicamento prescrito</label>
+                                    <input type="text" class="form-control" name="medicamento" id="custMedicamento">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="custRecetado">Recetado por</label>
+                                    <input type="text" class="form-control" name="recetadoPor" id="custRecetado">
+                                </div>
+                            </div>
+
+                            <div class="col-md-2">
+                                <label class="form-label" for="custHora">Hora de la toma</label>
+                                <input type="time" class="form-control" name="horaToma" id="custHora">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label" for="custLugar">Lugar de la recolección</label>
+                                <input type="text" class="form-control" name="lugar" id="custLugar" placeholder="Consultorio, predio...">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label" for="custResponsable">Responsable de la toma</label>
+                                <input type="text" class="form-control" name="responsable" id="custResponsable" th:value="${currentUserName}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="col-12">
                     <label class="form-label" for="antidopingObservaciones">Observaciones</label>
                     <textarea class="form-control" name="observaciones" id="antidopingObservaciones" rows="3"

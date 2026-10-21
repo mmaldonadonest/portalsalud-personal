@@ -30,8 +30,11 @@ public class PretestController {
 
     private final PretestService pretestService;
     private final NssSearchService nssSearchService;
+    private final com.onest.app.catalog.formato.service.FormatosImpresosService formatos;
 
-    public PretestController(PretestService pretestService, NssSearchService nssSearchService) {
+    public PretestController(PretestService pretestService, NssSearchService nssSearchService,
+                             com.onest.app.catalog.formato.service.FormatosImpresosService formatos) {
+        this.formatos = formatos;
         this.pretestService = pretestService;
         this.nssSearchService = nssSearchService;
     }
@@ -97,6 +100,9 @@ public class PretestController {
         model.addAttribute("nombreTrabajador", DocumentoImpresoService.nombreCompleto(empleado, nssLimpio));
         model.addAttribute("firmaTrabajador", DocumentoImpresoService.firma(crudo.get("drawdataUrl")));
         model.addAttribute("capturo", DocumentoImpresoService.usuarioActual());
+        // firmas (modulo de firmas, 20-oct-2026): el pretest es uno por NSS y se rehace; el documento es
+        // NSS + momento del ultimo guardado, asi un pretest nuevo tiene su propio autor
+        formatos.aplicarFirmas(model, "PRETEST", "PRETEST:" + nssLimpio + ":" + (guardado == null ? "" : guardado.withNano(0)), nssLimpio);
         model.addAttribute("ahora", DocumentoImpresoService.ahora());
         model.addAttribute("auto", auto != null && !auto.isBlank() && !"0".equals(auto));
         return "pages/pretest-documento";

@@ -45,6 +45,7 @@
                                 <th>Conclusion</th>
                                 <th>Observaciones</th>
                                 <th>Usuario</th>
+                                <th data-no-export>Formato</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -61,6 +62,20 @@
                                 <td th:text="${a.statusConclusion}">-</td>
                                 <td th:text="${a.observaciones}">-</td>
                                 <td th:text="${a.usuario}">-</td>
+                                <!-- FT-SO-22 Aceptacion a CECOSAMA (20-oct-2026): solo pruebas positivas; el servidor lo vuelve a revisar -->
+                                <td class="text-nowrap" data-no-export>
+                                    <!-- FT-SO-14 Cadena de custodia: "siempre", una por prueba -->
+                                    <a class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener"
+                                       th:href="@{/api/nss/antidoping/custodia(nss=${nss}, id=${a.idRegistro}, auto=1)}"
+                                       title="Cadena de custodia (FT-SO-14)">
+                                        <i class="ri-printer-line me-1"></i>FT-SO-14
+                                    </a>
+                                    <a th:if="${a.resultado == 'POSITIVO'}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener"
+                                       th:href="@{/api/nss/antidoping/cecosama(nss=${nss}, id=${a.idRegistro}, auto=1)}"
+                                       title="Aceptación a CECOSAMA (FT-SO-22)">
+                                        <i class="ri-printer-line me-1"></i>FT-SO-22
+                                    </a>
+                                </td>
                             </tr>
                         </tbody>
                     </table>

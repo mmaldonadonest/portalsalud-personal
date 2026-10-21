@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: adminFirmasContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Firmas digitalizadas | Portal Salud Personal</title>
+</head>
+<body>
+<th:block id="pageStyles"></th:block>
+
+<!-- Administracion de firmas (AdminFirmasController, 20-oct-2026): estado, carga de una firma existente
+     (queda PENDIENTE hasta que su dueno acepte el aviso) y desactivar. Nunca muestra las imagenes. -->
+<th:block th:fragment="adminFirmasContent">
+    <div class="mb-4">
+        <ol class="breadcrumb fs-sm mb-1">
+            <li class="breadcrumb-item"><a th:href="@{/home}" href="/home">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Firmas digitalizadas</li>
+        </ol>
+        <h4 class="main-title mb-0">Firmas digitalizadas</h4>
+        <p class="text-secondary mb-0 fs-sm">Cada persona registra y acepta su propia firma en «Mi firma digitalizada». Aquí solo se carga una firma existente para que su dueño la active, o se desactiva una firma.</p>
+    </div>
+
+    <div class="alert alert-success" th:if="${ok}" th:text="${ok}">ok</div>
+    <div class="alert alert-danger" th:if="${error}" th:text="${error}">error</div>
+    <div class="alert alert-warning" th:unless="${habilitado}">Firmas apagadas en este servidor: falta la llave PORTAL_FIRMAS_LLAVE.</div>
+
+    <div class="card card-one mb-3">
+        <div class="card-header"><h6 class="card-title mb-0">Cargar una firma existente</h6></div>
+        <div class="card-body">
+            <form method="post" th:action="@{/admin/firmas/cargar}" enctype="multipart/form-data" class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label" for="usuarioFirma">Usuario dueño de la firma (NSS)</label>
+                    <input type="text" class="form-control" name="usuario" id="usuarioFirma" required>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label" for="imagenFirma">Imagen PNG o JPG (hasta 1 MB)</label>
+                    <input type="file" class="form-control" name="imagen" id="imagenFirma" accept=".png,.jpg,.jpeg,image/png,image/jpeg" required>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100" th:disabled="${!habilitado}"><i class="ri-upload-2-line me-1"></i>Cargar (queda pendiente)</button>
+                </div>
+            </form>
+            <p class="fs-sm text-secondary mt-2 mb-0">La firma se limpia, se cifra y queda <b>pendiente</b>: solo se activa cuando su dueño entra a «Mi firma digitalizada» y acepta el aviso.</p>
+        </div>
+    </div>
+
+    <div class="card card-one">
+        <div class="card-header"><h6 class="card-title mb-0">Firmas registradas</h6></div>
+        <div class="card-body">
+            <div th:if="${#lists.isEmpty(firmas)}" class="text-secondary">No hay firmas registradas.</div>
+            <div class="table-responsive" th:unless="${#lists.isEmpty(firmas)}">
+                <table class="table table-sm align-middle mb-0">
+                    <thead><tr><th>Id</th><th>Usuario</th><th>Nombre</th><th>Origen</th><th>Estado</th><th>Aviso</th><th>Registrada</th><th>Motivo</th><th></th></tr></thead>
+                    <tbody>
+                    <tr th:each="f : ${firmas}">
+                        <td th:text="${f.id()}">1</td>
+                        <td th:text="${f.usuario()}">usuario</td>
+                        <td th:text="${f.nombre()}">nombre</td>
+                        <td th:text="${f.origen()}">origen</td>
+                        <td><span class="badge" th:classappend="${f.estado() == 'VIGENTE'} ? 'bg-success' : (${f.estado() == 'PENDIENTE'} ? 'bg-warning text-dark' : 'bg-secondary')" th:text="${f.estado()}">estado</span></td>
+                        <td th:text="${f.avisoVersion() != null} ? 'v' + ${f.avisoVersion()} : '—'">v1</td>
+                        <td th:text="${#temporals.format(f.createdAt(), 'dd/MM/yyyy HH:mm')} + ' · ' + ${f.createdBy()}">fecha</td>
+                        <td class="fs-sm" th:text="${f.motivo()}">motivo</td>
+                        <td>
+                            <form method="post" th:action="@{/admin/firmas/{id}/desactivar(id=${f.id()})}"
+                                  th:if="${f.estado() == 'VIGENTE' or f.estado() == 'PENDIENTE'}" class="d-flex gap-1"
+                                  onsubmit="return confirm('¿Desactivar esta firma? Dejará de salir en formatos nuevos.');">
+                                <input type="text" name="motivo" class="form-control form-control-sm" placeholder="Motivo" style="width: 140px;">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Desactivar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</th:block>
+<th:block id="pageScripts"></th:block>
+</body>
+</html>

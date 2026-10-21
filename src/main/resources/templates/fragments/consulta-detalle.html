@@ -12,7 +12,22 @@
     </div>
 
     <div th:if="${detalle != null}" th:with="d=${detalle}">
-        <div class="d-flex justify-content-end mb-2">
+        <div class="d-flex justify-content-end gap-2 mb-2">
+            <!-- FT-SO-02 Pase de salida (20-oct-2026): solo en consultas de ese tipo; el servidor lo vuelve a revisar -->
+            <a th:if="${esPase}"
+               class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener"
+               th:href="@{/api/nss/consulta/pase-salida(nss=${nss}, id=${serieId}, auto=1)}">
+                <i class="ri-printer-line me-1"></i> Pase de salida (FT-SO-02)
+            </a>
+            <!-- FT-SO-29 y FT-SO-23: solo si al dar de alta se genero ese formato -->
+            <a th:if="${tieneMedicamento}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener"
+               th:href="@{/api/nss/consulta/pase-medicamento(nss=${nss}, id=${serieId}, auto=1)}">
+                <i class="ri-printer-line me-1"></i> Pase de medicamento (FT-SO-29)
+            </a>
+            <a th:if="${tienePruebas}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener"
+               th:href="@{/api/nss/consulta/pruebas-especiales(nss=${nss}, id=${serieId}, auto=1)}">
+                <i class="ri-printer-line me-1"></i> Pruebas especiales (FT-SO-23)
+            </a>
             <a class="btn btn-sm btn-outline-secondary" target="_blank"
                th:href="@{/api/nss/consulta/imprimir(nss=${nss}, id=${serieId})}">
                 <i class="ri-printer-line me-1"></i> Imprimir / PDF
@@ -40,6 +55,26 @@
                 <input type="text" readonly class="form-control form-control-sm"
                        th:value="${campo[1]}">
             </div>
+        </div>
+
+        <!-- Formatos de la consulta, para verlos sin imprimir (20-oct-2026; SM: el resultado de la prueba se
+             guarda "para visualizacion") -->
+        <div th:if="${tienePruebas}" class="mt-4">
+            <h6 class="mb-2"><i class="ri-test-tube-line me-1"></i> Pruebas especiales (FT-SO-23)</h6>
+            <div class="row g-2 fs-sm">
+                <div class="col-md-4">Anticuerpos contra: <b th:text="${pruebaDet['ANTICUERPOS']}">VIH</b></div>
+                <div class="col-md-2">Autoriza: <b th:text="${pruebaDet['AUTORIZA'] == 'SI'} ? 'Sí' : (${pruebaDet['AUTORIZA'] == 'NO'} ? 'No' : '—')">Sí</b></div>
+                <div class="col-md-3">Realización: <b th:text="${pruebaDet['FECHA'] ?: '—'}">fecha</b></div>
+                <div class="col-md-3">Resultado: <b th:text="${pruebaDet['RESULTADO'] == 'SOSPECHOSO'} ? 'Sospechoso' : (${pruebaDet['RESULTADO'] == 'NEGATIVO'} ? 'Negativo' : 'Pendiente')">Negativo</b></div>
+            </div>
+        </div>
+        <div th:if="${tieneMedicamento}" class="mt-4">
+            <h6 class="mb-2"><i class="ri-capsule-line me-1"></i> Pase de medicamento (FT-SO-29)</h6>
+            <ul class="fs-sm mb-1">
+                <li th:each="m : ${medicamentosDet}"
+                    th:text="${#strings.trim(m.medicamento() + ' ' + m.gramaje())} + ' · ' + ${m.duracion()} + ' días · ' + ${m.frecuencia()}">Medicamento</li>
+            </ul>
+            <div class="fs-sm">Vigencia: <b th:text="${medDet['VIGENCIA'] == 'PERMANENTE'} ? 'Permanente' : (${medDet['VIGENCIA']} ?: '—')">fecha</b></div>
         </div>
 
         <hr class="my-4">

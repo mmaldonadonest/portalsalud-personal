@@ -201,7 +201,9 @@
                           th:placeholder="${seccion == 'Diagnóstico'} ? 'Selecciona una o mas claves del buscador ICD de arriba...'"
                           th:name="${it.fieldName}" th:text="${it.value}"></textarea>
 
-                <select th:if="${it.type == 'RESULTADO'}" class="form-select form-select-sm" th:name="${it.fieldName}">
+                <!-- data-guardado = dictamen en BD: la carta FT-SO-25 se habilita solo cuando el elegido ya esta guardado -->
+                <select th:if="${it.type == 'RESULTADO'}" class="form-select form-select-sm" th:name="${it.fieldName}"
+                        th:attr="data-guardado=${it.value}" onchange="exCartaVisible(this); exObsDictamen(this);">
                     <option value="">Seleccionar</option>
                     <option value="apto" th:selected="${it.value == 'apto'}">Apto</option>
                     <option value="no_apto" th:selected="${it.value == 'no_apto'}">No apto</option>
@@ -210,6 +212,25 @@
                 </select>
                 <!-- Examen inicial (tipo 1): dictamen de solo lectura; el CSS de examen-shell.html bloquea el
                      select con la clase tipo-1 del acordeon y el servidor rechaza el cambio (16-oct-2026) -->
+                <!-- FT-SO-25 Carta compromiso (20-oct-2026, formato "por condicion"): solo con dictamen condicionado
+                     (45) o restringido (60). Imprime lo GUARDADO; el servidor vuelve a validar el dictamen. -->
+                <div th:if="${it.type == 'RESULTADO'}" class="ex-carta mt-2"
+                     th:classappend="${it.value == 'apto_condicionado' or it.value == 'apto_restringido'} ? '' : 'd-none'">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-primary ex-carta-btn" onclick="exImprimirCarta(this);">
+                            <i class="ri-printer-line me-1"></i>Imprimir carta compromiso (FT-SO-25)
+                        </button>
+                        <span class="fs-sm text-muted ex-carta-aviso">Sale con el dictamen guardado.</span>
+                    </div>
+                    <div class="ex-carta-res fs-sm mt-1"></div>
+                </div>
+                <!-- FT-SO-31 Dictamen de certificacion (20-oct-2026, formato "opcional": solo si el cliente lo pide) -->
+                <div th:if="${it.type == 'RESULTADO'}" class="mt-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="exAbrirCertificacion();">
+                        <i class="ri-award-line me-1"></i>Dictamen de certificación (FT-SO-31)
+                    </button>
+                    <span class="fs-sm text-muted ms-1">Solo si el cliente lo pide.</span>
+                </div>
                 <div th:if="${it.type == 'RESULTADO'}" class="aviso-dictamen-inicial fs-sm mt-1">
                     <i class="ri-lock-line"></i> Examen inicial: el dictamen es de solo lectura (se definió al finalizar el examen inicial).
                 </div>

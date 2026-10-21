@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <!--
+      FT-SO-14 Cadena de custodia (rev. 05, 14-oct-2026), formato B "siempre": una por prueba de
+      antidoping o alcoholemia (AntidopingController#cadenaCustodia). Orden y textos del formato de SM
+      (docs/formatosnuevos/10202026). Ficha = Catalogo/usuario; prueba = WS; lo demas = custodia
+      capturada en el alta (SERV_MED_TAG FTSO14.<REG_ID>.*). Lo que no haya sale en blanco para llenarse a mano.
+      Puesto: el WS manda "el no. de puesto no existe en base de datos" en vez de vacio (igual que en el examen).
+    -->
+    <title th:text="'FT-SO-14 Cadena de custodia · NSS ' + ${nss}">FT-SO-14 Cadena de custodia</title>
+    <th:block th:replace="~{fragments/formato-impreso :: estilos}"></th:block>
+    <style>
+        .bloque { border: 1px solid #000; padding: 6px 10px; margin-top: 10px; }
+        .bloque h4 { margin: 0 0 4px; font-size: 11px; }
+        .cuadro { display: inline-block; width: 12px; height: 12px; border: 1px solid #000; vertical-align: -2px; margin-right: 4px; text-align: center; line-height: 11px; font-size: 10px; font-weight: 700; }
+        .opciones { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; margin: 4px 0; }
+        .legal { font-size: 10px; text-align: justify; margin: 6px 0; }
+    </style>
+</head>
+<body th:with="esAlcohol=${prueba.tipoPrueba == 'ALCOHOLEMIA'}, razon=${c['RAZON'] ?: ''},
+               nombre=${e == null ? '' : #strings.trim((e.nombre() ?: '') + ' ' + (e.apellidoPaterno() ?: '') + ' ' + (e.apellidoMaterno() ?: ''))},
+               folio=${prueba.folio == '0' ? '' : prueba.folio},
+               puesto=${e == null or #strings.containsIgnoreCase(e.nombrePuesto() ?: '', 'no existe') ? '' : e.nombrePuesto()}">
+<div th:replace="~{fragments/formato-impreso :: barra}"></div>
+<div class="hoja">
+    <div th:replace="~{fragments/formato-impreso :: encabezado(${enc})}"></div>
+
+    <div class="campo" style="max-width: 45%; margin-left: auto;"><span class="lbl">Folio:</span><span class="val" th:text="${folio}"></span></div>
+
+    <div class="rejilla" style="grid-template-columns: 1fr 1fr;">
+        <div class="campo"><span class="lbl">Puesto:</span><span class="val" th:text="${puesto}"></span></div>
+        <div class="campo"><span class="lbl">Cuenta:</span><span class="val" th:text="${e?.cuenta()}"></span></div>
+    </div>
+    <div class="rejilla" style="grid-template-columns: 1fr 1fr 1fr;">
+        <div class="campo"><span class="lbl">Apellido Paterno:</span><span class="val" th:text="${e?.apellidoPaterno()}"></span></div>
+        <div class="campo"><span class="lbl">Apellido Materno:</span><span class="val" th:text="${e?.apellidoMaterno()}"></span></div>
+        <div class="campo"><span class="lbl">Nombre (s):</span><span class="val" th:text="${e?.nombre()}"></span></div>
+    </div>
+    <div class="rejilla" style="grid-template-columns: 1fr 1fr 1fr;">
+        <div class="campo"><span class="lbl">Fecha de Nacimiento:</span><span class="val" th:text="${e?.fechaNacimiento()}"></span></div>
+        <div class="campo"><span class="lbl">Edad:</span><span class="val" th:text="${e?.edad()}"></span></div>
+        <div class="campo"><span class="lbl">Sexo:</span><span class="val" th:text="${sexo}"></span></div>
+    </div>
+
+    <div class="bloque">
+        <div class="campo"><span class="lbl">Tipo de identificación:</span><span class="val" th:text="${c['IDENT_TIPO']}"></span></div>
+        <div class="rejilla" style="grid-template-columns: 1fr 1fr;">
+            <div class="campo"><span class="lbl">Emitida por:</span><span class="val" th:text="${c['IDENT_EMITIDA']}"></span></div>
+            <div class="campo"><span class="lbl">No. de Identificación:</span><span class="val" th:text="${c['IDENT_NUMERO']}"></span></div>
+        </div>
+    </div>
+
+    <div class="bloque">
+        <div class="opciones">
+            <b>Razón de la Prueba:</b>
+            <span><span class="circulo" th:classappend="${razon == 'ALEATORIA'} ? 'marcado'"></span>Aleatoria</span>
+            <span><span class="circulo" th:classappend="${razon == 'PERIODICO'} ? 'marcado'"></span>Periódico</span>
+            <span><span class="circulo" th:classappend="${razon == 'OTRO'} ? 'marcado'"></span>Otro</span>
+            <span class="campo" style="flex: 1; margin: 0;"><span class="val" th:text="${c['RAZON_OTRO']}"></span></span>
+        </div>
+        <div class="opciones">
+            <b>Elementos a detectar:</b>
+            <span th:each="el : ${elementos}"><span class="cuadro" th:text="${!esAlcohol and marcados.contains(el)} ? 'X' : ''"></span><span th:text="${el}">AMP</span></span>
+        </div>
+        <div class="campo"><span class="lbl">% BAC (PORCENTAJE DE ALCOHOL EN AIRE ESPIRADO):</span><span class="val" th:text="${c['BAC']}"></span></div>
+    </div>
+
+    <div class="bloque">
+        <div class="opciones">
+            <b>Si se encuentra bajo tratamiento Médico:</b>
+            <span><span class="circulo" th:classappend="${c['TRATAMIENTO'] == 'SI'} ? 'marcado'"></span>Sí</span>
+            <span><span class="circulo" th:classappend="${c['TRATAMIENTO'] == 'NO'} ? 'marcado'"></span>No</span>
+        </div>
+        <div class="campo"><span class="lbl">Diagnóstico actual:</span><span class="val" th:text="${c['DIAGNOSTICO']}"></span></div>
+        <div class="campo"><span class="lbl">Medicamento prescrito:</span><span class="val" th:text="${c['MEDICAMENTO']}"></span></div>
+        <div class="campo"><span class="lbl">Recetado por:</span><span class="val" th:text="${c['RECETADO_POR']}"></span></div>
+    </div>
+
+    <div class="bloque">
+        <h4 style="text-align: center;">Autorización</h4>
+        <p class="legal">CERTIFICO QUE HE LEÍDO Y ENTENDIDO LA HOJA DE CONSENTIMIENTO PARA REALIZAR LA PRUEBA DE SUSTANCIAS
+            CONTROLADAS Y AUTORIZO LA TOMA DE MUESTRA DE ORINA O AIRE ESPIRADO, INFORMANDO DE FORMA INMEDIATA EL RESULTADO DE
+            ESTA, ASÍ MISMO, AUTORIZO EN CASO DE SER NECESARIO, QUE EL RESULTADO DE METABOLITOS DE SUSTANCIAS SEA CONFIRMADO A
+            TRAVÉS DE CROMATOGRAFÍA DE GASES O DETERMINACIÓN SANGUÍNEA DE ALCOHOL.</p>
+        <div class="firmas" style="grid-template-columns: 1fr; max-width: 60%; margin: 14px auto 0;">
+            <div th:replace="~{fragments/formato-impreso :: firmaVacia('Nombre y Firma', ${nombre})}"></div>
+        </div>
+    </div>
+
+    <div class="bloque">
+        <h4 style="text-align: center;">Responsable de la toma de la muestra</h4>
+        <p class="legal">CERTIFICO QUE LA MUESTRA QUE PRESENTÓ EL DONANTE ES EN TIEMPO REAL Y EN PRESENCIA DE ESTE SE PROPORCIONA RESULTADO.</p>
+        <div class="rejilla" style="grid-template-columns: 1fr 1fr;">
+            <div class="campo"><span class="lbl">Fecha:</span><span class="val" th:text="${prueba.fechaRegistro}"></span></div>
+            <div class="campo"><span class="lbl">Hora:</span><span class="val" th:text="${c['HORA']}"></span></div>
+            <div class="campo"><span class="lbl">Lugar de la Recolección:</span><span class="val" th:text="${c['LUGAR']}"></span></div>
+            <div class="campo"><span class="lbl">Resultado:</span><span class="val"
+                 th:text="${prueba.resultado + ((prueba.resultado == 'POSITIVO' and !esAlcohol and !#strings.isEmpty(prueba.sustancia) and prueba.sustancia != '0') ? ' (' + prueba.sustancia + ')' : '')}"></span></div>
+        </div>
+        <!-- SM pidio la firma del medico responsable en todos los formatos: junto a la del responsable de la toma -->
+        <div class="firmas" style="margin-top: 14px;">
+            <div th:replace="~{fragments/formato-impreso :: firmaVacia('Nombre y Firma del Responsable', ${c['RESPONSABLE']})}"></div>
+            <div th:replace="~{fragments/formato-impreso :: firmaMedico(${medico}, 'Servicio Médico')}"></div>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/formato-impreso :: elaboro}"></div>
+</div>
+<script th:if="${auto}">window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 400); });</script>
+</body>
+</html>

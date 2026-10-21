@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <!--
+      FT-SO-31 Dictamen de certificacion de aptitud medica laboral (rev. 03, 14-oct-2026), formato B
+      "opcional" (solo si el cliente lo pide). Arriba la captura (solo pantalla); abajo el formato con el
+      ultimo dictamen expedido (CertificacionAptitudService, SERV_MED_TAG FTSO31.*). Vigencia FIJA de 1 ano.
+    -->
+    <title th:text="'FT-SO-31 Dictamen de certificación · NSS ' + ${nss}">FT-SO-31 Dictamen de certificación</title>
+    <th:block th:replace="~{fragments/formato-impreso :: estilos}"></th:block>
+    <style>
+        .captura { max-width: 190mm; margin: 14px auto; border: 1px solid #B6CCE6; border-left: 4px solid #0057A8; border-radius: 8px;
+            background: #F5F9FD; padding: 12px 16px; font: 13px system-ui, sans-serif; }
+        .captura h2 { font-size: 15px; margin: 0 0 8px; color: #003E75; }
+        .captura table { width: 100%; border-collapse: collapse; }
+        .captura td { padding: 5px 4px; border-bottom: 1px solid #DCE6F2; vertical-align: middle; }
+        .captura td.trab { font-weight: 600; width: 34%; }
+        .captura label { margin-right: 10px; white-space: nowrap; cursor: pointer; }
+        .captura input[type=text] { width: 100%; padding: 4px 6px; border: 1px solid #B6CCE6; border-radius: 4px; }
+        .captura .acciones { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+        .captura button { border: 0; border-radius: 6px; padding: 8px 16px; font-weight: 600; cursor: pointer; color: #fff; background: #0057A8; }
+        .captura .error { color: #B42318; font-weight: 600; }
+        .captura .nota { color: #475467; font-size: 12px; }
+        .trabajos { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .trabajos td { border: 1px solid #000; padding: 4px 6px; font-size: 10.5px; vertical-align: top; }
+        .trabajos td.nom { font-weight: 700; width: 30%; }
+        .trabajos .ops { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+        .trabajos .esp { margin-top: 3px; font-style: italic; }
+        .sin-expedir { text-align: center; color: #B42318; font-weight: 700; margin: 30px 0; }
+        @media print { .captura { display: none !important; } }
+    </style>
+</head>
+<body th:with="nombre=${#strings.trim(d.v('nombre') + ' ' + d.v('apellidoP') + ' ' + d.v('apellidoM'))}">
+<div th:replace="~{fragments/formato-impreso :: barra}"></div>
+
+<!-- Captura (no se imprime) -->
+<form class="captura" method="post" th:action="@{/api/nss/examen/certificacion}">
+    <input type="hidden" name="nss" th:value="${nss}">
+    <h2>Expedir dictamen de certificación (FT-SO-31)</h2>
+    <p class="nota" style="margin-top:0">Marca la aptitud de cada tipo de trabajo. En «Apto condicionado» especifica la condición.
+        Al guardar se expide con fecha de hoy y vigencia de 1 año.</p>
+    <p class="error" th:if="${error}" th:text="${error}">Error</p>
+    <table>
+        <tr th:each="t, st : ${trabajos}" th:with="ap=${ultimo['APTITUD_' + st.index] ?: ''}">
+            <td class="trab" th:text="${t}">TRABAJO</td>
+            <td>
+                <label><input type="radio" th:name="'aptitud' + ${st.index}" value="APTO" th:checked="${ap == 'APTO'}"> Apto</label>
+                <label><input type="radio" th:name="'aptitud' + ${st.index}" value="NO_APTO" th:checked="${ap == 'NO_APTO'}"> No apto</label>
+                <label><input type="radio" th:name="'aptitud' + ${st.index}" value="CONDICIONADO" th:checked="${ap == 'CONDICIONADO'}"> Apto condicionado</label>
+                <label><input type="radio" th:name="'aptitud' + ${st.index}" value="NO_APLICA" th:checked="${ap == 'NO_APLICA'}"> No aplica</label>
+                <input type="text" th:name="'especificar' + ${st.index}" th:value="${ultimo['ESPECIFICAR_' + st.index]}"
+                       placeholder="Especificar (solo si es Apto condicionado)" style="margin-top:4px">
+            </td>
+        </tr>
+    </table>
+    <div class="acciones">
+        <label style="flex:1">Centro de trabajo (CEDIS / cuenta) <input type="text" name="centro" th:value="${centro}"></label>
+        <button type="submit">Expedir nuevo e imprimir</button>
+    </div>
+    <p class="nota" style="margin:6px 0 0">Cada expedición se guarda aparte; las anteriores no se modifican.</p>
+
+    <!-- Historial de dictamenes (respuesta de SM 20-oct-2026: archivarlos al menos 5 anos) -->
+    <div th:unless="${#lists.isEmpty(anteriores)}" style="margin-top:12px">
+        <h2 style="font-size:14px">Dictámenes expedidos (<span th:text="${#lists.size(anteriores)}">0</span>)</h2>
+        <table>
+            <tr th:each="a : ${anteriores}">
+                <td th:text="'Expedido ' + ${a.expedicion()} + ' · vigente hasta ' + ${a.vigencia()}">fecha</td>
+                <td th:text="${a.centro()}">centro</td>
+                <td style="text-align:right">
+                    <b th:if="${a.id() == c['ID']}">En pantalla</b>
+                    <a th:unless="${a.id() == c['ID']}" th:href="@{/api/nss/examen/certificacion(nss=${nss}, exp=${a.id()})}">Ver e imprimir</a>
+                </td>
+            </tr>
+        </table>
+    </div>
+</form>
+
+<div class="hoja">
+    <div th:replace="~{fragments/formato-impreso :: encabezado(${enc})}"></div>
+
+    <div class="titulo-seccion">FICHA DE IDENTIFICACIÓN</div>
+    <div class="rejilla" style="grid-template-columns: 2fr 1fr;">
+        <div class="campo"><span class="lbl">NOMBRE:</span><span class="val" th:text="${nombre}"></span></div>
+        <div class="campo"><span class="lbl">FECHA DE EXPEDICIÓN:</span><span class="val" th:text="${c['EXPEDICION']}"></span></div>
+        <div class="campo"><span class="lbl">PUESTO:</span><span class="val" th:text="${d.v('puesto')}"></span></div>
+        <div></div>
+        <div class="campo"><span class="lbl">CENTRO DE TRABAJO:</span><span class="val" th:text="${c['CENTRO']}"></span></div>
+        <div class="campo"><span class="lbl">VIGENCIA:</span><span class="val" th:text="${c['VIGENCIA']}"></span></div>
+    </div>
+
+    <p class="sin-expedir" th:unless="${expedido}">Sin expedir: marca las aptitudes arriba y pulsa «Expedir nuevo e imprimir».</p>
+
+    <table class="trabajos" th:if="${expedido}">
+        <tr th:each="t, st : ${trabajos}" th:with="ap=${c['APTITUD_' + st.index] ?: ''}, esp=${c['ESPECIFICAR_' + st.index] ?: ''}">
+            <td class="nom" th:text="${t}">TRABAJO</td>
+            <td>
+                <div class="ops">
+                    <span><span class="circulo" th:classappend="${ap == 'APTO'} ? 'marcado'"></span>APTO</span>
+                    <span><span class="circulo" th:classappend="${ap == 'NO_APTO'} ? 'marcado'"></span>NO APTO</span>
+                    <span><span class="circulo" th:classappend="${ap == 'CONDICIONADO'} ? 'marcado'"></span>APTO CONDICIONADO (ESPECIFICAR)</span>
+                    <span><span class="circulo" th:classappend="${ap == 'NO_APLICA'} ? 'marcado'"></span>NO APLICA</span>
+                </div>
+                <div class="esp" th:if="${!#strings.isEmpty(esp)}" th:text="${esp}"></div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="firmas" style="grid-template-columns: 1fr; max-width: 55%; margin: 34px auto 0;">
+        <div th:replace="~{fragments/formato-impreso :: firmaMedico(${medico}, 'Servicio Médico')}"></div>
+    </div>
+
+    <div th:replace="~{fragments/formato-impreso :: elaboro}"></div>
+</div>
+<script th:if="${auto}">window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 400); });</script>
+</body>
+</html>

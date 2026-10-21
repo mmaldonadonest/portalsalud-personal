@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <!--
+      FT-SO-02 Pase de salida (rev. 05, 14-oct-2026), formato B "opcional": sale de una consulta de tipo
+      Pase de salida (ExpedienteController#paseSalida). Orden y textos del formato de SM
+      (docs/formatosnuevos/10202026). Consulta = WS; ficha = busqueda por NSS; motivo, cita, horas,
+      regresa, incapacidad y observaciones = PaseSalidaService (SERV_MED_TAG FTSO02.<idArchivoRel>.*).
+      Lo que no haya sale en blanco para llenarse a mano.
+    -->
+    <title th:text="'FT-SO-02 Pase de salida · NSS ' + ${nss}">FT-SO-02 Pase de salida</title>
+    <th:block th:replace="~{fragments/formato-impreso :: estilos}"></th:block>
+    <style>
+        .opciones { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; margin: 6px 0; }
+        .firmas.tres { grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+    </style>
+</head>
+<body th:with="d=${detalle}, e=${empleado}, motivo=${pase['MOTIVO'] ?: ''}, regresa=${pase['REGRESA'] ?: ''},
+               puesto=${e == null or #strings.containsIgnoreCase(e.nombrePuesto() ?: '', 'no existe') ? '' : e.nombrePuesto()}">
+<div th:replace="~{fragments/formato-impreso :: barra}"></div>
+<div class="hoja">
+    <div th:replace="~{fragments/formato-impreso :: encabezado(${enc})}"></div>
+
+    <div class="rejilla" style="grid-template-columns: 1fr 1fr; margin-top: 10px;">
+        <!-- fecha de solicitud = fecha de la consulta (sin hora) -->
+        <div class="campo"><span class="lbl">Fecha de solicitud:</span><span class="val" th:text="${#strings.substring(d.fechaConsulta + '          ', 0, 10).trim()}"></span></div>
+        <div class="campo"><span class="lbl">Fecha de Cita:</span><span class="val" th:text="${pase['FECHA_CITA']}"></span></div>
+    </div>
+
+    <div class="opciones">
+        <b>Motivo:</b>
+        <span><span class="circulo" th:classappend="${motivo == 'CITA'} ? 'marcado'"></span>Cita Programada</span>
+        <span><span class="circulo" th:classappend="${motivo == 'ENVIO'} ? 'marcado'"></span>Envío (Atención/Seguimiento)</span>
+        <span class="campo" style="flex: 1; margin: 0;"><span class="lbl">Causa:</span><span class="val" th:text="${d.causa}"></span></span>
+    </div>
+
+    <div class="rejilla" style="grid-template-columns: 3fr 1fr;">
+        <div class="campo"><span class="lbl">Nombre:</span><span class="val" th:text="${nombreTrabajador}"></span></div>
+        <div class="campo"><span class="lbl">Edad:</span><span class="val" th:text="${e?.edad()}"></span></div>
+    </div>
+    <div class="rejilla" style="grid-template-columns: 1fr 1fr;">
+        <div class="campo"><span class="lbl">Cuenta:</span><span class="val" th:text="${e?.cuenta()}"></span></div>
+        <div class="campo"><span class="lbl">Puesto:</span><span class="val" th:text="${puesto}"></span></div>
+        <div class="campo"><span class="lbl">Horario:</span><span class="val" th:text="${e?.turno()}"></span></div>
+        <div class="campo"><span class="lbl">Agencia:</span><span class="val" th:text="${agencia}"></span></div>
+    </div>
+
+    <div class="opciones" style="margin-top: 10px;">
+        <span class="campo" style="margin: 0;"><span class="lbl">Salida:</span><span class="val" style="min-width: 22mm;" th:text="${pase['SALIDA']}"></span><span>HR</span></span>
+        <span class="campo" style="margin: 0;"><span class="lbl">Entrada:</span><span class="val" style="min-width: 22mm;" th:text="${pase['ENTRADA']}"></span><span>HR</span></span>
+        <b style="margin-left: auto;">Regresa:</b>
+        <span><span class="circulo" th:classappend="${regresa == 'SI'} ? 'marcado'"></span>Sí</span>
+        <span><span class="circulo" th:classappend="${regresa == 'NO'} ? 'marcado'"></span>No</span>
+    </div>
+
+    <div class="rejilla" style="grid-template-columns: 1fr 1fr 1fr; margin-top: 6px;">
+        <div class="campo"><span class="lbl">Incapacidad:</span><span class="val" th:text="${pase['INCAP_DIAS']}"></span><span>Días</span></div>
+        <div class="campo"><span class="lbl">Inicia:</span><span class="val" th:text="${pase['INCAP_INICIA']}"></span></div>
+        <div class="campo"><span class="lbl">Termina:</span><span class="val" th:text="${pase['INCAP_TERMINA']}"></span></div>
+    </div>
+
+    <div class="campo" style="margin-top: 12px;"><span class="lbl">Observaciones:</span>
+        <span style="font-style: italic;">(El trabajador deberá comprobar al día siguiente el uso de este pase)</span></div>
+    <div class="caja" th:text="${pase['OBSERVACIONES']}"></div>
+
+    <div class="firmas tres">
+        <div th:replace="~{fragments/formato-impreso :: firmaVacia('Firma Responsable de la cuenta', '')}"></div>
+        <!-- firma que el trabajador dio en la consulta, si la hay -->
+        <div class="firma">
+            <div class="espacio"><img th:if="${firmaTrabajador != null}" th:src="${firmaTrabajador}" alt="Firma"></div>
+            <div class="linea">Firma Trabajador</div>
+            <div class="sub" th:text="${nombreTrabajador}">Nombre</div>
+        </div>
+        <div th:replace="~{fragments/formato-impreso :: firmaMedico(${medico}, 'Firma Salud Ocupacional')}"></div>
+    </div>
+
+    <div th:replace="~{fragments/formato-impreso :: elaboro}"></div>
+</div>
+<script th:if="${auto}">window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 400); });</script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: verificarContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Verificar folio | Portal Salud Personal</title>
+</head>
+<body>
+<th:block id="pageStyles"></th:block>
+
+<!-- Verificar un folio de un formato impreso con firma (VerificarFolioController, 20-oct-2026) -->
+<th:block th:fragment="verificarContent">
+    <div class="mb-4">
+        <ol class="breadcrumb fs-sm mb-1">
+            <li class="breadcrumb-item"><a th:href="@{/home}" href="/home">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Verificar folio</li>
+        </ol>
+        <h4 class="main-title mb-0">Verificar un formato impreso</h4>
+        <p class="text-secondary mb-0 fs-sm">Escribe el folio y el código que vienen al pie del formato para saber si de verdad salió del portal.</p>
+    </div>
+
+    <div class="card card-one mb-3">
+        <div class="card-body">
+            <form method="get" th:action="@{/firma/verificar}" class="row g-2 align-items-end">
+                <div class="col-md-3"><label class="form-label" for="vFolio">Folio</label>
+                    <input type="text" class="form-control" name="folio" id="vFolio" th:value="${folio}" required></div>
+                <div class="col-md-4"><label class="form-label" for="vCodigo">Código de verificación</label>
+                    <input type="text" class="form-control text-uppercase" name="codigo" id="vCodigo" th:value="${codigo}" maxlength="12" required></div>
+                <div class="col-md-2"><button type="submit" class="btn btn-primary w-100">Verificar</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="alert alert-success" th:if="${resultado == 'VALIDO'}">
+        <b>Folio válido:</b> este formato sí salió del portal.
+        <ul class="mb-0 mt-2" th:with="i=${impreso}">
+            <li>Formato: <b th:text="${i.formato()}">FT-SO-25</b></li>
+            <li>Trabajador (NSS): <b th:text="${nssMascara}">****1234</b></li>
+            <li>Impreso: <b th:text="${#temporals.format(i.impresoAt(), 'dd/MM/yyyy HH:mm')}">fecha</b></li>
+            <li>Elaboró: <b th:text="${i.elaboroNombre()}">nombre</b><span th:if="${i.firmaElaboroId() != null}"> (con firma digitalizada)</span></li>
+            <li>Médico responsable: <b th:text="${i.medicoNombre()} + ' · cédula ' + ${i.medicoCedula()}">Dr.</b><span th:if="${i.firmaMedicoId() != null}"> (con firma digitalizada)</span></li>
+        </ul>
+    </div>
+    <div class="alert alert-danger" th:if="${resultado == 'NO_VALIDO'}">
+        <b>No válido:</b> no existe un formato con ese folio y código. Si el papel trae una firma digitalizada, no salió del portal.
+    </div>
+    <div class="alert alert-warning" th:if="${resultado == 'SIN_MODULO'}">El módulo de firmas todavía no está instalado en este servidor.</div>
+</th:block>
+<th:block id="pageScripts"></th:block>
+</body>
+</html>

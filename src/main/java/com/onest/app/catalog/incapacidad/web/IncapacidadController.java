@@ -39,10 +39,13 @@ public class IncapacidadController {
     private final NssSearchService nssSearchService;
     // Solo existe con portal.historico.fuente=VISTA: entonces el expediente muestra tambien lo del Excel
     private final ObjectProvider<VistaIncapacidadRepository> vistaIncapacidades;
+    private final com.onest.app.catalog.formato.service.FormatosImpresosService formatos;
 
     public IncapacidadController(IncapacidadService incapacidadService, FileStoreService fileStoreService,
                                  NssSearchService nssSearchService,
-                                 ObjectProvider<VistaIncapacidadRepository> vistaIncapacidades) {
+                                 ObjectProvider<VistaIncapacidadRepository> vistaIncapacidades,
+                                 com.onest.app.catalog.formato.service.FormatosImpresosService formatos) {
+        this.formatos = formatos;
         this.incapacidadService = incapacidadService;
         this.fileStoreService = fileStoreService;
         this.nssSearchService = nssSearchService;
@@ -141,6 +144,8 @@ public class IncapacidadController {
         model.addAttribute("nombreTrabajador", DocumentoImpresoService.nombreCompleto(empleado, nssLimpio));
         model.addAttribute("firmaTrabajador", DocumentoImpresoService.firma(detalle.firmaDigital()));
         model.addAttribute("capturo", DocumentoImpresoService.usuarioActual());
+        // firmas del medico y de quien elaboro (modulo de firmas, 20-oct-2026)
+        formatos.aplicarFirmas(model, "INCAPACIDAD", "INCAPACIDAD:" + detalle.urlArchivos(), nssLimpio);
         model.addAttribute("ahora", DocumentoImpresoService.ahora());
         model.addAttribute("auto", auto != null && !auto.isBlank() && !"0".equals(auto));
         return "pages/incapacidad-documento";
@@ -167,6 +172,10 @@ public class IncapacidadController {
     public String save(@ModelAttribute IncapacidadAltaForm form) {
         try {
             String proceso = incapacidadService.crearIncapacidad(form);
+            // quien captura la incapacidad es quien elaboro su documento (segunda firma)
+            if (form.getIdArchivoRel() != null && !form.getIdArchivoRel().isBlank()) {
+                formatos.registrarAutor("INCAPACIDAD:" + form.getIdArchivoRel().trim(), form.getNss() == null ? null : form.getNss().trim());
+            }
             return (proceso == null || proceso.isBlank()) ? "Incapacidad registrada." : proceso;
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);

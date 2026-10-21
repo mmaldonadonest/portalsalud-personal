@@ -20,10 +20,12 @@
 
                 <div class="col-md-6">
                     <label class="form-label" for="tipoConsulta">Tipo de consulta</label>
-                    <select class="form-select" name="tipoConsulta" id="tipoConsulta">
+                    <select class="form-select" name="tipoConsulta" id="tipoConsulta" onchange="togglePaseSalida(); toggleFormatosConsulta();">
                         <option value="enfermedad_general">Enfermedad General</option>
                         <option value="incidente_accidente">Incidente/Accidente</option>
                         <option value="pase_salida">Pase de Salida</option>
+                        <!-- FT-SO-23 (respuesta de SM 20-oct-2026): pruebas especiales como tipo de consulta -->
+                        <option value="pruebas_especiales">Pruebas Especiales</option>
                         <option value="cronico_degenerativo">Cronico Degenerativo</option>
                         <option value="campana">Campana</option>
                         <option value="entrega_incapacidad">Entrega de Incapacidad</option>
@@ -143,6 +145,173 @@
                 <div class="col-12">
                     <label class="form-label" for="tratamiento">Tratamiento</label>
                     <textarea class="form-control" name="tratamiento" id="tratamiento" rows="3"></textarea>
+                </div>
+
+                <!-- Pase de salida FT-SO-02 (20-oct-2026): solo con tipo "Pase de Salida". Lo que pide el
+                     formato y el WS no guarda; se liga a la consulta por idArchivoRel (PaseSalidaService).
+                     Nada es obligatorio: lo vacio sale en blanco para llenarse a mano. -->
+                <div class="col-12" id="paseSalidaWrap" style="display:none">
+                    <style>
+                        .pase-fs { border: 1px solid #B6CCE6; border-left: 4px solid #0057A8; border-radius: 8px; background: #F5F9FD; padding: 4px 16px 16px; }
+                        .pase-fs > legend { float: none; width: auto; font-size: 1rem; font-weight: 600; color: #003E75; padding: 0 8px; margin: 0; }
+                        .pase-grupo { background: #fff; border: 1px solid #DCE6F2; border-radius: 6px; padding: 10px 12px 12px; height: 100%; }
+                        .pase-grupo > .pase-grupo-tit { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #0057A8; margin-bottom: 8px; }
+                    </style>
+                    <fieldset class="pase-fs">
+                        <legend><i class="ri-door-open-line me-1"></i>Pase de salida (FT-SO-02)</legend>
+                        <div class="row g-3">
+                            <div class="col-lg-5">
+                                <div class="pase-grupo">
+                                    <div class="pase-grupo-tit">Motivo y cita</div>
+                                    <div class="row g-2">
+                                        <div class="col-md-7">
+                                            <label class="form-label" for="paseMotivo">Motivo <span class="text-danger">*</span></label>
+                                            <select class="form-select" name="paseMotivo" id="paseMotivo" onchange="this.classList.remove('is-invalid');">
+                                                <option value="">Seleccionar</option>
+                                                <option value="CITA">Cita programada</option>
+                                                <option value="ENVIO">Envío (Atención o Seguimiento)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label class="form-label" for="paseFechaCita">Fecha de cita</label>
+                                            <input type="date" class="form-control" name="paseFechaCita" id="paseFechaCita">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-7">
+                                <div class="pase-grupo">
+                                    <div class="pase-grupo-tit">Horario</div>
+                                    <div class="row g-2">
+                                        <div class="col-md-4">
+                                            <label class="form-label" for="paseSalida">Hora de salida <span class="text-danger">*</span></label>
+                                            <input type="time" class="form-control" name="paseSalida" id="paseSalida" oninput="this.classList.remove('is-invalid');">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label" for="paseEntrada">Hora de entrada</label>
+                                            <input type="time" class="form-control" name="paseEntrada" id="paseEntrada">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label" for="paseRegresa">¿Regresa?</label>
+                                            <select class="form-select" name="paseRegresa" id="paseRegresa">
+                                                <option value="">Seleccionar</option>
+                                                <option value="SI">Sí</option>
+                                                <option value="NO">No</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="pase-grupo">
+                                    <div class="pase-grupo-tit">Incapacidad <span class="text-muted fw-normal" style="text-transform: none;">(si aplica)</span></div>
+                                    <div class="row g-2">
+                                        <div class="col-md-2">
+                                            <label class="form-label" for="paseIncapDias">Días</label>
+                                            <input type="number" min="0" class="form-control" name="paseIncapDias" id="paseIncapDias">
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label class="form-label" for="paseIncapInicia">Inicia</label>
+                                            <input type="date" class="form-control" name="paseIncapInicia" id="paseIncapInicia">
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label class="form-label" for="paseIncapTermina">Termina</label>
+                                            <input type="date" class="form-control" name="paseIncapTermina" id="paseIncapTermina">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="paseObservaciones">Observaciones del pase</label>
+                                <textarea class="form-control" name="paseObservaciones" id="paseObservaciones" rows="2"
+                                          placeholder="El trabajador deberá comprobar al día siguiente el uso de este pase"></textarea>
+                            </div>
+                        </div>
+                    </fieldset>
+                </div>
+
+                <!-- Formatos opcionales de cualquier consulta (20-oct-2026): FT-SO-29 y FT-SO-23. Cada casilla abre
+                     sus campos; al guardar van a SERV_MED_TAG ligados a la consulta (FormatosConsultaService). -->
+                <div class="col-12">
+                    <div class="d-flex flex-wrap gap-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="medGenerar" value="SI" id="medGenerar" onchange="toggleFormatosConsulta();">
+                            <label class="form-check-label" for="medGenerar">Generar pase de medicamento (FT-SO-29)</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12" id="medWrap" style="display:none">
+                    <fieldset class="pase-fs">
+                        <legend><i class="ri-capsule-line me-1"></i>Pase de medicamento (FT-SO-29)</legend>
+                        <div class="row g-3">
+                            <!-- Varios medicamentos por pase (respuesta de SM 20-oct-2026): un renglon por medicamento -->
+                            <div class="col-12">
+                                <div class="pase-grupo">
+                                    <div class="pase-grupo-tit">Medicamentos</div>
+                                    <div id="medFilas"></div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="medAgregarFila();">
+                                        <i class="ri-add-line me-1"></i>Agregar otro medicamento
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- Vigencia = fecha en que se autoriza el ingreso del medicamento; puede ser hasta un año
+                                 o permanente (respuesta de SM 20-oct-2026). Se captura, no se calcula. -->
+                            <div class="col-md-4">
+                                <label class="form-label" for="medVigencia">Vigencia (autorizado hasta)</label>
+                                <input type="date" class="form-control" name="medVigencia" id="medVigencia">
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" name="medPermanente" value="SI" id="medPermanente" onchange="medVigenciaPermanente();">
+                                    <label class="form-check-label" for="medPermanente">Permanente</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="medObservaciones">Observaciones</label>
+                                <textarea class="form-control" name="medObservaciones" id="medObservaciones" rows="2"></textarea>
+                            </div>
+                            <div class="col-12 fs-sm text-muted">El padecimiento y la fecha salen del diagnóstico y la fecha de esta consulta.</div>
+                        </div>
+                    </fieldset>
+                </div>
+
+                <!-- Solo con tipo de consulta «Pruebas Especiales» (respuesta de SM 20-oct-2026) -->
+                <div class="col-12" id="pruebaWrap" style="display:none">
+                    <fieldset class="pase-fs">
+                        <legend><i class="ri-test-tube-line me-1"></i>Pruebas especiales: carta de consentimiento (FT-SO-23)</legend>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label" for="pruebaAnticuerpos">Prueba rápida de anticuerpos contra <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="pruebaAnticuerpos" id="pruebaAnticuerpos" value="VIH" oninput="this.classList.remove('is-invalid');">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label" for="pruebaAutoriza">¿Autoriza?</label>
+                                <select class="form-select" name="pruebaAutoriza" id="pruebaAutoriza">
+                                    <option value="">Seleccionar</option>
+                                    <option value="SI">Sí</option>
+                                    <option value="NO">No</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" for="pruebaFecha">Fecha de realización</label>
+                                <input type="date" class="form-control" name="pruebaFecha" id="pruebaFecha">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" for="pruebaLugar">Lugar de realización</label>
+                                <input type="text" class="form-control" name="pruebaLugar" id="pruebaLugar">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="pruebaResultado">Resultado</label>
+                                <select class="form-select" name="pruebaResultado" id="pruebaResultado">
+                                    <option value="">Pendiente (a mano)</option>
+                                    <option value="NEGATIVO">Negativo</option>
+                                    <option value="SOSPECHOSO">Sospechoso</option>
+                                </select>
+                            </div>
+                            <div class="col-md-8 fs-sm text-muted align-self-end">El resultado se guarda, se ve en el detalle de la consulta y sale en la carta.</div>
+                        </div>
+                    </fieldset>
                 </div>
 
                 <div class="col-12">

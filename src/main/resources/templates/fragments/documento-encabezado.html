@@ -83,14 +83,29 @@
             </div>
         </center>
     </div>
+    <!-- 20-oct-2026: con el modulo de firmas, quien elaboro el documento (fijado al crearlo) con su firma;
+         sin modulo, quien captura y la linea a mano, como antes -->
     <div class="col-6">
         <center>
-            <div class="firma-linea">
-                <span th:text="${capturo != null and !capturo.isBlank()} ? ${capturo} : ' '">Personal de salud</span><br>
+            <img th:if="${elaboro != null and elaboro.firmaDataUri != null}" th:src="${elaboro.firmaDataUri}" class="firma-img" alt="Firma">
+            <div class="firma-linea" th:style="${elaboro != null and elaboro.firmaDataUri != null} ? 'margin-top:4px' : ''">
+                <span th:text="${elaboro != null and !#strings.isEmpty(elaboro.nombre)} ? ${elaboro.nombre} : (${capturo != null and !capturo.isBlank()} ? ${capturo} : ' ')">Personal de salud</span><br>
                 <span class="footerTxt">Nombre y firma del personal de salud ocupacional</span>
             </div>
         </center>
     </div>
+    <!-- Firma del medico responsable con cedula, que pidio el Dr. Ceron en todos los formatos -->
+    <div class="col-6" th:if="${medico != null}" style="margin-top: 22px;">
+        <center>
+            <img th:if="${medico.firmaDataUri != null}" th:src="${medico.firmaDataUri}" class="firma-img" alt="Firma">
+            <div class="firma-linea" th:style="${medico.firmaDataUri != null} ? 'margin-top:4px' : ''">
+                <span th:text="${medico.nombre}">Médico</span><br>
+                <span class="footerTxt" th:text="'Médico responsable · Cédula profesional ' + ${medico.cedula}">Cédula</span>
+            </div>
+        </center>
+    </div>
+    <div class="col-12 footerTxt" th:if="${folioFirma != null}" style="text-align:right; margin-top:8px;"
+         th:text="'Folio ' + ${folioFirma.folio} + ' · Código ' + ${folioFirma.codigo} + ' · verificable en el portal'">Folio</div>
 </div>
 </body>
 </html>
