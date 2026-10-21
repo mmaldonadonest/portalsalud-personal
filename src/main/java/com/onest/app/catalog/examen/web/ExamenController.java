@@ -127,7 +127,12 @@ public class ExamenController {
 
     /** Documento para las firmas de los impresos del examen: NSS + fecha del examen guardado. */
     private static String registroExamen(String nss, ExamenDocumentoService.Documento d) {
-        return "EXAMEN:" + nss + ":" + d.v("FECHA_EXAMEN");
+        return registroExamen(nss, d.v("FECHA_EXAMEN"));
+    }
+
+    /** Misma clave que la del impreso; la usa tambien el examen inicial al finalizar. */
+    public static String registroExamen(String nss, String fechaExamen) {
+        return "EXAMEN:" + nss + ":" + (fechaExamen == null ? "" : fechaExamen);
     }
 
     public ExamenController(
@@ -365,6 +370,11 @@ public class ExamenController {
                 }
             }
             String proceso = examenService.guardar(nss, campos, firma);
+            // quien guarda el examen es quien lo elaboro (segunda firma de sus impresos). Va despues del
+            // guardado para tomar la fecha del examen que acaba de quedar en el historico (21-oct-2026)
+            if (nss != null && !nss.isBlank()) {
+                formatos.registrarAutor(registroExamen(nss.trim(), examenDocumentoService.fechaExamen(nss.trim())), nss.trim());
+            }
             return (proceso == null || proceso.isBlank()) ? "Examen guardado." : proceso;
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);

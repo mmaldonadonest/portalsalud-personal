@@ -255,6 +255,19 @@ public class ExamenDocumentoService {
         return agencia(nss, agenciaSolicitud);
     }
 
+    /**
+     * Fecha (dd/MM/yyyy) del ultimo examen guardado del NSS, segun el historico; vacio si no hay. Es la
+     * FECHA_EXAMEN del impreso y parte de la clave del documento para las firmas (21-oct-2026).
+     */
+    public String fechaExamen(String nss) {
+        try {
+            return historico.ultimo(nss)
+                    .map(r -> r.fechaExamen().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))).orElse("");
+        } catch (RuntimeException ex) {
+            return ""; // sin historico: la fecha queda vacia
+        }
+    }
+
     /** Ultima agencia elegida en un examen para el NSS (tag), o vacio. */
     public String agenciaCapturada(String nss) {
         try {
@@ -390,14 +403,7 @@ public class ExamenDocumentoService {
         v.put("ESCOLARIDAD", escolaridadOcr.isEmpty() ? extra.escolaridad() : escolaridadOcr);
         v.put("PROFESION", solicitud == null ? "" : limpio(solicitud.profesionOficio()));
         v.put("DEPARTAMENTO", extra.departamento());
-        String fechaExamen = "";
-        try {
-            fechaExamen = historico.ultimo(nssLimpio)
-                    .map(r -> r.fechaExamen().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))).orElse("");
-        } catch (RuntimeException ex) {
-            // sin historico: la fecha queda vacia
-        }
-        v.put("FECHA_EXAMEN", fechaExamen);
+        v.put("FECHA_EXAMEN", fechaExamen(nssLimpio));
         // --- rev. 04 del FT-SO-04 (sep-2024): cintura y cadera no existian en el PHP ni en el
         // JSON de campos; se capturan en Datos generales del examen (SERV_MED_TAG)
         v.put("CINTURA", limpio(tagValues.get(DatosGeneralesExamenService.CINTURA)));

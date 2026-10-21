@@ -26,9 +26,15 @@ import org.springframework.web.server.ResponseStatusException;
 public class ExamenInicialController {
 
     private final ExamenInicialService service;
+    private final com.onest.app.catalog.formato.service.FormatosImpresosService formatos;
+    private final com.onest.app.catalog.examen.service.ExamenDocumentoService examenDocumento;
 
-    public ExamenInicialController(ExamenInicialService service) {
+    public ExamenInicialController(ExamenInicialService service,
+                                   com.onest.app.catalog.formato.service.FormatosImpresosService formatos,
+                                   com.onest.app.catalog.examen.service.ExamenDocumentoService examenDocumento) {
         this.service = service;
+        this.formatos = formatos;
+        this.examenDocumento = examenDocumento;
     }
 
     @PostMapping(
@@ -86,6 +92,11 @@ public class ExamenInicialController {
                 service.guardarBorrador(nss, hoja == null ? 10 : Integer.parseInt(hoja), datos);
             }
             String proceso = service.finalizar(nss, firma);
+            // quien finaliza el examen inicial es quien lo elaboro (segunda firma del impreso, 21-oct-2026)
+            if (nss != null && !nss.isBlank()) {
+                formatos.registrarAutor(com.onest.app.catalog.examen.web.ExamenController.registroExamen(nss.trim(),
+                        examenDocumento.fechaExamen(nss.trim())), nss.trim());
+            }
             return proceso == null || proceso.isBlank() ? "Examen inicial finalizado." : proceso;
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);

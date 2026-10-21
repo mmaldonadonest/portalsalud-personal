@@ -102,7 +102,7 @@ public class PretestController {
         model.addAttribute("capturo", DocumentoImpresoService.usuarioActual());
         // firmas (modulo de firmas, 20-oct-2026): el pretest es uno por NSS y se rehace; el documento es
         // NSS + momento del ultimo guardado, asi un pretest nuevo tiene su propio autor
-        formatos.aplicarFirmas(model, "PRETEST", "PRETEST:" + nssLimpio + ":" + (guardado == null ? "" : guardado.withNano(0)), nssLimpio);
+        formatos.aplicarFirmas(model, "PRETEST", registroPretest(nssLimpio, guardado), nssLimpio);
         model.addAttribute("ahora", DocumentoImpresoService.ahora());
         model.addAttribute("auto", auto != null && !auto.isBlank() && !"0".equals(auto));
         return "pages/pretest-documento";
@@ -110,6 +110,11 @@ public class PretestController {
 
     private static String fechaCorta(LocalDateTime t) {
         return t == null ? null : t.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+    }
+
+    /** Documento del pretest para las firmas: NSS + momento del ultimo guardado (un pretest nuevo, autor nuevo). */
+    private static String registroPretest(String nss, LocalDateTime guardado) {
+        return "PRETEST:" + nss + ":" + (guardado == null ? "" : guardado.withNano(0));
     }
 
     @PostMapping(
@@ -128,6 +133,11 @@ public class PretestController {
                 }
             });
             pretestService.save(nss, fields);
+            // quien guarda el pretest es quien lo elaboro (segunda firma del impreso, 21-oct-2026); misma
+            // clave que el impreso: NSS + momento del ultimo guardado
+            if (nss != null && !nss.isBlank()) {
+                formatos.registrarAutor(registroPretest(nss.trim(), pretestService.ultimoGuardado(nss.trim())), nss.trim());
+            }
             return "Pre-Test guardado.";
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
