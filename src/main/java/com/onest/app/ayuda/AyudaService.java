@@ -270,7 +270,17 @@ public class AyudaService {
             return null;
         }
         try {
-            return permisos.modulosPermitidos().stream().map(m -> m.code()).filter(c -> c != null && !c.isBlank()).collect(Collectors.toSet());
+            Set<String> codigos = permisos.modulosPermitidos().stream().map(m -> m.code()).filter(c -> c != null && !c.isBlank())
+                    .collect(Collectors.toCollection(java.util.HashSet::new));
+            // Los articulos agrupan por tema, no por menu: "EXPEDIENTE" (consultas) e "INCAPACIDAD" no son CODE de
+            // SERV_MED_MENU. Sin esto, con permisos locales nadie veia esos articulos (corregido 22-oct-2026).
+            if (codigos.contains("CONSULTA_MEDICA") || codigos.contains("ARCHIVO_CONSULTAS")) {
+                codigos.add("EXPEDIENTE");
+            }
+            if (codigos.contains("INCAPACIDADES") || codigos.contains("ARCHIVO_INCAPACIDADES")) {
+                codigos.add("INCAPACIDAD");
+            }
+            return codigos;
         } catch (RuntimeException ex) {
             return Set.of();
         }

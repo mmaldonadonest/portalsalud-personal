@@ -52,6 +52,14 @@
             </div>
         </div>
         <div class="col-12 col-lg-9">
+            <!-- Tutoriales guiados (21-oct-2026, js/ayuda-tutoriales.js): resaltan los menus reales paso a paso -->
+            <div class="card card-one mb-4" id="ayudaCentroTutoriales" style="display:none">
+                <div class="card-body">
+                    <h6 class="mb-1"><i class="ri-cursor-line me-1"></i>Tutoriales guiados</h6>
+                    <p class="fs-sm text-muted mb-2">Te señalan en la pantalla dónde pulsar, paso a paso. No guardan nada.</p>
+                    <div class="d-flex flex-wrap gap-2" id="ayudaCentroTutorialesLista"></div>
+                </div>
+            </div>
             <div th:each="m : ${porModulo}" class="mb-4" th:id="'mod-' + ${m.key}">
                 <h6 class="mb-2" th:text="${nombresModulo.get(m.key) ?: m.key}">Tema</h6>
                 <div class="ayuda-art" th:each="a : ${m.value}" th:attr="data-id=${a.id}" onclick="ayudaCentroAbrir(this, event);">
@@ -69,8 +77,22 @@
 
 <th:block id="pageScripts">
     <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var lista = document.getElementById('ayudaCentroTutorialesLista');
+            if (!lista || !window.ayudaTutoriales) { return; }
+            window.ayudaTutoriales().forEach(function (t) {
+                var b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'btn btn-sm btn-outline-success';
+                b.innerHTML = '<i class="ri-cursor-line me-1"></i>';
+                b.appendChild(document.createTextNode(t.titulo));
+                b.onclick = function () { ayudaTutorial(t.id); };
+                lista.appendChild(b);
+            });
+            document.getElementById('ayudaCentroTutoriales').style.display = '';
+        });
         window.ayudaCentroAbrir = async function (caja, ev) {
-            if (ev && ev.target && ev.target.closest('a')) { return; }   // enlaces dentro del cuerpo
+            if (ev && ev.target && ev.target.closest('a, button')) { return; }   // enlaces y botones dentro del cuerpo
             var cuerpo = caja.querySelector('.cuerpo');
             if (caja.classList.contains('abierto')) { caja.classList.remove('abierto'); return; }
             if (!cuerpo.innerHTML) {
@@ -79,7 +101,13 @@
                     var a = await r.json();
                     cuerpo.innerHTML = a.html;
                     cuerpo.querySelectorAll('a.ayuda-enlace').forEach(function (l) { l.href = contextPath + String(l.dataset.ruta).replace(/^\//, ''); });
-                    if (a.enlace) {
+                    if (a.enlace && window.ayudaBotonEnlace) {
+                        // "Muestrame como" si el enlace trae ?tutorial=; si no, "Abrir" (ver ayuda-panel.html)
+                        var d = document.createElement('div');
+                        d.className = 'mt-1';
+                        d.innerHTML = window.ayudaBotonEnlace(a.enlace);
+                        cuerpo.appendChild(d);
+                    } else if (a.enlace) {
                         var b = document.createElement('a');
                         b.className = 'btn btn-sm btn-primary mt-1';
                         b.href = contextPath + String(a.enlace).replace(/^\//, '');

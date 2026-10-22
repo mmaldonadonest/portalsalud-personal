@@ -27,7 +27,11 @@
   .ayuda-chips button { font-size: .78rem; border: 1px solid #cfe3f5; background: #EAF3FA; color: #003E75; border-radius: 999px; padding: 3px 10px; }
   .ayuda-util { font-size: .78rem; color: #667085; margin-top: 6px; }
   .ayuda-util button { font-size: .78rem; padding: 0 6px; border: 0; background: none; color: #0057A8; }
+  .ayuda-tut { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+  .ayuda-tut button { text-align: left; font-size: .82rem; border: 1px solid #BBF7D0; background: #F0FDF4; color: #166534; border-radius: 8px; padding: 5px 10px; }
+  .ayuda-tut button i { margin-right: 4px; }
 </style>
+<script th:src="@{/js/ayuda-tutoriales.js}" src="/js/ayuda-tutoriales.js"></script>
 
 <div class="offcanvas offcanvas-end ayuda-off" tabindex="-1" id="ayudaPanel" aria-labelledby="ayudaPanelTitulo">
     <div class="offcanvas-header border-bottom py-2">
@@ -44,8 +48,13 @@
                 <button type="button" onclick="ayudaPreguntar(this.textContent);">¿Cómo busco a una persona?</button>
                 <button type="button" onclick="ayudaPreguntar(this.textContent);">¿Cómo doy de alta una incapacidad?</button>
                 <button type="button" onclick="ayudaPreguntar(this.textContent);">¿Qué es apto condicionado?</button>
+                <button type="button" onclick="ayudaPreguntar(this.textContent);">¿Dónde imprimo el pase de salida?</button>
+                <button type="button" onclick="ayudaPreguntar(this.textContent);">¿Cómo registro mi firma?</button>
                 <button type="button" onclick="ayudaPreguntar(this.textContent);">¿Dónde veo los exámenes iniciales pendientes?</button>
-                <button type="button" onclick="ayudaPreguntar(this.textContent);">¿Por qué no me deja finalizar el examen?</button>
+            </div>
+            <!-- Tutoriales guiados (21-oct-2026): resaltan los menus y botones reales, paso a paso -->
+            <div class="ayuda-msg bot" id="ayudaTutorialesMsg">O sigue un <b>tutorial guiado</b>: te señalo en la pantalla dónde pulsar.
+                <div class="ayuda-tut" id="ayudaTutoriales"></div>
             </div>
         </div>
         <form class="mt-2 d-flex gap-2" onsubmit="ayudaPreguntar(document.getElementById('ayudaInput').value); return false;">
@@ -79,6 +88,30 @@
     function conMarcas(s) { return esc(s).replace(/&lt;mark&gt;/g, '<mark>').replace(/&lt;\/mark&gt;/g, '</mark>'); }
     function ruta(r) { return (window.contextPath || '/') + String(r || '').replace(/^\//, ''); }
 
+    // Un enlace "...?tutorial=id" lanza el tutorial guiado en vez de solo abrir la pantalla
+    function botonEnlace(enlace) {
+        var m = String(enlace).match(/[?&]tutorial=([\w-]+)/);
+        if (m && window.ayudaTutorial) {
+            return '<button type="button" class="btn btn-success btn-sm" onclick="ayudaTutorial(\'' + m[1] + '\');"><i class="ri-cursor-line me-1"></i>Muéstrame cómo</button>';
+        }
+        return '<a class="btn btn-primary btn-sm" href="' + ruta(enlace) + '">Abrir</a>';
+    }
+    window.ayudaBotonEnlace = botonEnlace;
+
+    function pintarTutoriales() {
+        var cont = document.getElementById('ayudaTutoriales');
+        if (!cont || !window.ayudaTutoriales) { var msg = document.getElementById('ayudaTutorialesMsg'); if (msg) { msg.remove(); } return; }
+        cont.innerHTML = '';
+        window.ayudaTutoriales().forEach(function (t) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.innerHTML = '<i class="ri-cursor-line"></i>' + esc(t.titulo);
+            b.onclick = function () { ayudaTutorial(t.id); };
+            cont.appendChild(b);
+        });
+    }
+    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', pintarTutoriales); } else { pintarTutoriales(); }
+
     window.ayudaAbrir = function () {
         var el = document.getElementById('ayudaPanel');
         if (!el || !window.bootstrap) { return; }
@@ -110,7 +143,7 @@
                     + '<div class="t">' + conMarcas(res.tituloResaltado || res.titulo) + '</div>'
                     + (res.fragmento ? '<div class="f">' + conMarcas(res.fragmento) + '</div>' : '')
                     + '<button type="button" class="btn btn-outline-primary btn-sm me-1" onclick="ayudaLeer(this, ' + res.id + ', ' + data.preguntaId + ');">Leer</button>'
-                    + (res.enlace ? '<a class="btn btn-primary btn-sm" href="' + ruta(res.enlace) + '">Abrir</a>' : '')
+                    + (res.enlace ? botonEnlace(res.enlace) : '')
                     + '</div>';
             });
             html += '<div class="ayuda-util">¿Te sirvió? '
