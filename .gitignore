@@ -33,3 +33,9 @@ docs/script-prod/acentos_verif
 # Bitacoras locales y cache de Python
 /logs/
 __pycache__/
+
+# Sacados del repo el 23-oct-2026 (hallazgos de Aikido). php-old ya se migro al portal Java y el WAR no lo usa;
+# copia de consulta fuera del repo en C:\miguel\respaldo-fuera-del-repo-23oct
+php-old/
+datosdentales.csv
+*.local.html
