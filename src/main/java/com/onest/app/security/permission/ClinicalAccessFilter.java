@@ -82,6 +82,10 @@ public class ClinicalAccessFilter extends OncePerRequestFilter {
         RUTAS_EXAMENES_LOCAL.put("/api/causas-consulta", "CAUSAS_CONSULTA");
         RUTAS_EXAMENES_LOCAL.put("/examen-inicial/bandeja", "EXAMEN_INICIAL_BANDEJA");
         RUTAS_EXAMENES_LOCAL.put("/api/examen-inicial/bandeja", "EXAMEN_INICIAL_BANDEJA");
+        // Ayuda (25-oct-2026): boton del header solo para los roles que tienen el menu AYUDA asignado;
+        // /admin/ayuda y /api/admin/ayuda no entran aqui (los protege el rol ADMIN)
+        RUTAS_EXAMENES_LOCAL.put("/ayuda", "AYUDA");
+        RUTAS_EXAMENES_LOCAL.put("/api/ayuda", "AYUDA");
     }
 
     private final PermissionService permissionService;

@@ -17,10 +17,7 @@
                     <a href="javascript:void(0)" class="nav-link has-sub"><i class="ri-booklet-line"></i> <span>Expediente General</span></a>
                     <nav class="nav nav-sub" id="nssModulesSub"></nav>
                 </li>
-                <!-- Centro de ayuda: para todos; el contenido se filtra por los menus del rol -->
-                <li class="nav-item" th:if="${ayudaVisible}">
-                    <a th:href="@{/ayuda}" href="/ayuda" class="nav-link" th:classappend="${currentPath == '/ayuda'} ? ' active' : ''"><i class="ri-question-answer-line"></i> <span>Ayuda</span></a>
-                </li>
+                <!-- Ayuda: se movio al header fijo (25-oct-2026); el centro de ayuda se abre desde su panel («Ver todo») -->
             </ul>
         </div>
         <!-- Examenes: paginas standalone fuera del flujo de NSS (grupo propio desde 14-sep).
