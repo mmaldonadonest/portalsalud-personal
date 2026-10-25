@@ -138,11 +138,22 @@
         if (!el && paso.alterno && q(paso.alterno)) { el = q(paso.alterno); texto = paso.textoAlterno; }
         // el usuario ya hizo la accion de este paso: avanza solo
         if (paso.avanzaCon && q(paso.avanzaCon) && estado.i < t.pasos.length - 1) { ir(estado.i + 1); return; }
+        // Si pulso «Siguiente» sin hacer la accion de un paso anterior (p. ej. «Nuevo registro»), lo de este
+        // paso aun no existe: se resalta lo ultimo que SI esta en pantalla y se le dice que falta, en vez de
+        // dejar solo el texto sin nada senalado (reporte del usuario 25-oct)
+        var aviso = null;
+        for (var j = estado.i - 1; !el && j >= 0; j--) {
+            var previo = q(t.pasos[j].el) || q(t.pasos[j].alterno);
+            if (previo) { el = previo; aviso = 'Para ver este paso, primero: «' + t.pasos[j].titulo + '» (resaltado).'; }
+        }
+        // falta buscar a la persona: se senala el buscador de NSS
+        if (!el && paso.siNoEsta === PRIMERO_NSS && q('#nssInput')) { el = q('#nssInput'); aviso = PRIMERO_NSS; }
         var ultimo = estado.i === t.pasos.length - 1;
         var espera = !el;
+        if (espera) { aviso = paso.siNoEsta || 'Esperando a que aparezca en la pantalla…'; }
         var html = '<div class="tut-p">' + esc(t.titulo) + ' · paso ' + (estado.i + 1) + ' de ' + t.pasos.length + '</div>'
             + '<h5>' + esc(paso.titulo) + '</h5><div>' + esc(texto) + '</div>'
-            + (espera ? '<div class="tut-espera">' + esc(paso.siNoEsta || 'Esperando a que aparezca en la pantalla…') + '</div>' : '')
+            + (aviso ? '<div class="tut-espera">' + esc(aviso) + '</div>' : '')
             + '<div class="tut-b"><button type="button" class="tut-sal">Salir</button>'
             + (estado.i > 0 ? '<button type="button" class="tut-ant">Anterior</button>' : '')
             + '<button type="button" class="tut-sig">' + (ultimo ? 'Terminar' : 'Siguiente') + '</button></div>';
