@@ -31,6 +31,13 @@
   .ayuda-tut button { text-align: left; font-size: .82rem; border: 1px solid #BBF7D0; background: #F0FDF4; color: #166534; border-radius: 8px; padding: 5px 10px; }
   .ayuda-tut button i { margin-right: 4px; }
 </style>
+<!-- Lo que el rol puede abrir, para listar solo sus tutoriales (menusPermitidos null = fuente ORDS, sin filtro) -->
+<script th:inline="javascript">
+    window.ayudaPermisos = {
+        menus: /*[[${menusPermitidos}]]*/ null,
+        admin: /*[[${currentUserRole != null and #strings.contains(currentUserRole, 'ADMIN')}]]*/ false
+    };
+</script>
 <script th:src="@{/js/ayuda-tutoriales.js}" src="/js/ayuda-tutoriales.js"></script>
 
 <div class="offcanvas offcanvas-end ayuda-off" tabindex="-1" id="ayudaPanel" aria-labelledby="ayudaPanelTitulo">
