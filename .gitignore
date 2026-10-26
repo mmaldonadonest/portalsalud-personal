@@ -47,3 +47,5 @@ cambios/
 sinuso/
 plan/
 respaldo-salud/
+# docker/ayuda (Meilisearch, buscador opcional de la ayuda; en produccion no se usa): fuera del repo 25-oct-2026
+docker/ayuda/
