@@ -39,3 +39,11 @@ __pycache__/
 php-old/
 datosdentales.csv
 *.local.html
+
+# Sacados del repo el 25-oct-2026: no los usa el portal (solo los citan comentarios). Se quedan en disco.
+# cambios = prototipo "Dashboard Salud" (ya migrado a Analisis); sinuso = copias viejas del tema;
+# plan = valoraciones en JSON/CSV; respaldo-salud = zip de respaldo.
+cambios/
+sinuso/
+plan/
+respaldo-salud/
