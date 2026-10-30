@@ -87,6 +87,112 @@ public class ExamenDocumentoService {
             return "1".equals(s) ? "Sí" : "0".equals(s) ? "No" : s;
         }
 
+        /** Fechas de los tags EXM_* (se guardan ISO, yyyy-MM-dd) como dd/MM/yyyy; otro formato sale tal cual. */
+        public String fecha(String var) {
+            String s = v(var).trim();
+            return s.matches("\\d{4}-\\d{2}-\\d{2}.*")
+                    ? s.substring(8, 10) + "/" + s.substring(5, 7) + "/" + s.substring(0, 4) : s;
+        }
+
+        /**
+         * Signo vital con su unidad; en blanco si no se midio (28-oct-2026, pedido del usuario: el WS
+         * devuelve "sin observaciones" o 0 y en el impreso salia "sin observaciones °C").
+         */
+        public String medida(String var, String unidad) {
+            String s = v(var).trim();
+            return esRelleno(s) ? "" : (unidad == null || unidad.isEmpty() ? s : s + " " + unidad);
+        }
+
+        // ---- Hojas con el diseno de cada formato EMLE (fragments/formato-emle.html, 29-oct-2026) ----
+
+        private static final java.util.Set<String> NEGATIVOS = java.util.Set.of("0", "no", "negado", "negados",
+                "negativo", "ninguno", "ninguna", "n/a", "na", "false", "ausente", "ausentes");
+
+        /** Respuesta afirmativa: capturado y no es un "no" (el WS guarda 1/0, Si/No o texto libre). */
+        public boolean afirma(String var) {
+            String s = v(var).trim().toLowerCase(Locale.ROOT);
+            return !esRelleno(s) && !NEGATIVOS.contains(s);
+        }
+
+        /** Respuesta negativa explicita (0, No, Negado...); vacio no cuenta como "no". */
+        public boolean niega(String var) {
+            String s = v(var).trim().toLowerCase(Locale.ROOT);
+            return !s.isEmpty() && (NEGATIVOS.contains(s) || "0".equals(s));
+        }
+
+        /** Casilla SI del formato. */
+        public String si(String var) {
+            return afirma(var) ? "X" : "";
+        }
+
+        /** Casilla NO del formato. */
+        public String no(String var) {
+            return niega(var) ? "X" : "";
+        }
+
+        /**
+         * Observacion de un campo SI/NO: la columna _OBS (los repetidos llevan el numero al final:
+         * EPILEPSIA2 -> EPILEPSIA_OBS2; alergias: ALRGNEWINP -> ALRGNEWINPOBS). Vacia si es relleno.
+         */
+        public String obs(String var) {
+            String mayus = var.toUpperCase(Locale.ROOT);   // "avc" guarda su observacion en AVC_OBS
+            java.util.List<String> candidatos = var.matches(".*\\d$")
+                    ? java.util.List.of(var.replaceFirst("(\\d+)$", "_OBS$1"), var + "_OBS")
+                    : java.util.List.of(var + "_OBS", var + "OBS", mayus + "_OBS");
+            for (String c : candidatos) {
+                String s = v(c).trim();
+                if (!esRelleno(s)) {
+                    return s;
+                }
+            }
+            return "";
+        }
+
+        /**
+         * Renglon del FT-SO-17 que junta varios campos del portal (el periodico pide "SIST NERVIOSO", el portal
+         * captura aneurisma, epilepsia...). Spec "VAR:Etiqueta,VAR:Etiqueta". Lo afirmado, con su observacion;
+         * "Negado" si todo se nego; vacio si nada se capturo.
+         */
+        public String resumen(String spec) {
+            java.util.List<String> afirmados = new java.util.ArrayList<>();
+            boolean alguno = false;
+            for (String par : spec.split(",")) {
+                String[] p = par.trim().split(":", 2);
+                String var = p[0].trim();
+                alguno |= afirma(var) || niega(var);
+                if (afirma(var)) {
+                    String etiqueta = p.length > 1 ? p[1].trim() : "";
+                    String o = obs(var);
+                    String valor = v(var).trim();
+                    String detalle = !o.isEmpty() ? o : (valor.matches("(?i)1|si|sí|positivo") ? "" : valor);
+                    afirmados.add(etiqueta.isEmpty() ? detalle : etiqueta + (detalle.isEmpty() ? "" : " (" + detalle + ")"));
+                }
+            }
+            return !afirmados.isEmpty() ? String.join(", ", afirmados) : (alguno ? "Negado" : "");
+        }
+
+        /** Imagen del diente {@code n} para el odontograma impreso (DIENTE_21 se guarda en la columna DIENTE_2). */
+        public String odonto(int n) {
+            return Odontograma.dataUri(n, v(n == 21 ? "DIENTE_2" : "DIENTE_" + n));
+        }
+
+        /** Casilla de dosis de COVID-19 (1, 2 o 3): el campo guarda el numero de dosis. */
+        public String dosis(String var, int n) {
+            String s = v(var).trim();
+            return s.matches("\\d+") && Integer.parseInt(s) >= n ? "X" : "";
+        }
+
+        /** Valor de un campo o vacio si es relleno ("sin observaciones", 0...). */
+        public String texto(String var) {
+            String s = v(var).trim();
+            return esRelleno(s) ? "" : s;
+        }
+
+        /** "X" si el valor del campo es la opcion (casillas del formato: ramo, tipo, dictamen). */
+        public String marca(String var, String opcion) {
+            return v(var).trim().equalsIgnoreCase(opcion) ? "X" : "";
+        }
+
         public String getFirmaTrabajador() {
             return firmaTrabajador;
         }
@@ -412,8 +518,12 @@ public class ExamenDocumentoService {
         String firma = data.get("SERV_MED_RESULTADO_EXAMEN.FIRMA_DIGITAL");
         String firmaTrabajador = firma != null && firma.startsWith("data:image") ? firma : null;
 
+        // "Impreso:" (29-oct-2026): era "dd/MM/yy, HH:mm a" con la zona del servidor -> en la tarde salia
+        // "15:56 p.m." y, si el Java del servidor esta en UTC, 6 horas adelantado. Se calcula aqui (servidor, no
+        // la PC que imprime), en hora de Mexico y 24 horas, igual que la fecha del consentimiento.
         return new Documento(v, firmaTrabajador,
-                LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yy, HH:mm a", new Locale("es", "MX"))));
+                java.time.ZonedDateTime.now(java.time.ZoneId.of("America/Mexico_City"))
+                        .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
     }
 
     /** Campos de $user->... del PHP (searchUser) sobre EmpleadoDto. */

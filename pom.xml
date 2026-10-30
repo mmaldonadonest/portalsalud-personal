@@ -104,6 +104,21 @@
             <version>5.5.1</version>
         </dependency>
 
+        <!-- Impreso del examen como PDF generado en el servidor (28-oct-2026): en la red corporativa la vista
+             previa de impresion del navegador tardaba demasiado. HTML de las mismas plantillas -> PDF.
+             OpenHTMLtoPDF es LGPL (como OpenPDF en docs/plan-descarga-documento-firmado.md, opcion B);
+             jsoup convierte el HTML de Thymeleaf (no siempre XML bien formado) al DOM que pide. -->
+        <dependency>
+            <groupId>io.github.openhtmltopdf</groupId>
+            <artifactId>openhtmltopdf-pdfbox</artifactId>
+            <version>1.1.22</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.17.2</version>
+        </dependency>
+
         <dependency>
             <groupId>com.oracle.database.jdbc</groupId>
             <artifactId>ojdbc11</artifactId>

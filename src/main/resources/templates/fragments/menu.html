@@ -9,7 +9,7 @@
             <a href="javascript:void(0)" class="nav-label">Portal Salud</a>
             <ul class="nav nav-sidebar">
                 <li class="nav-item">
-                    <a th:href="@{/nss}" href="/nss" class="nav-link" th:classappend="${currentPath == '/nss'} ? ' active' : ''"><i class="ri-user-search-line"></i> <span>Busqueda NSS</span></a>
+                    <a th:href="@{/nss}" href="/nss" class="nav-link" th:classappend="${currentPath == '/nss'} ? ' active' : ''"><i class="ri-user-search-line"></i> <span>Búsqueda NSS</span></a>
                 </li>
                 <!-- Modulos del expediente (U02). Oculto hasta que una busqueda NSS
                      encuentre empleado; el submenu se inyecta via /api/nss/modules. -->
@@ -40,7 +40,7 @@
                     <a th:href="@{/examen-inicial/bandeja}" href="/examen-inicial/bandeja" class="nav-link" th:classappend="${currentPath == '/examen-inicial/bandeja'} ? ' active' : ''"><i class="ri-inbox-line"></i> <span>Exámenes iniciales</span></a>
                 </li>
                 <li class="nav-item" th:if="${verAntidoping}">
-                    <a th:href="@{/antidoping-seleccion}" href="/antidoping-seleccion" class="nav-link" th:classappend="${currentPath == '/antidoping-seleccion'} ? ' active' : ''"><i class="ri-shuffle-line"></i> <span>Antidoping - Seleccion</span></a>
+                    <a th:href="@{/antidoping-seleccion}" href="/antidoping-seleccion" class="nav-link" th:classappend="${currentPath == '/antidoping-seleccion'} ? ' active' : ''"><i class="ri-shuffle-line"></i> <span>Antidoping - Selección</span></a>
                 </li>
                 <li class="nav-item" th:if="${verConsumibles}">
                     <a th:href="@{/consumibles}" href="/consumibles" class="nav-link" th:classappend="${currentPath == '/consumibles'} ? ' active' : ''"><i class="ri-file-list-3-line"></i> <span>Consumibles</span></a>

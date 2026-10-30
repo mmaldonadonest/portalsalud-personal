@@ -110,7 +110,7 @@
                                 <button type="button" class="btn btn-xs btn-outline-warning" th:if="${s.activa() and s.atendidoPor != null and s.atendidoPor != usuarioActual}"
                                         th:attr="data-id=${s.id}" onclick="bandejaTomar(this);">Tomar</button>
                                 <a class="btn btn-xs btn-outline-secondary" th:if="${s.estatus == 'FINALIZADO'}"
-                                   th:href="@{/api/nss/examen/imprimir(nss=${s.nss},auto=1)}" target="_blank" title="Abre el expediente y el diálogo de impresión"><i class="ri-printer-line"></i> Documento</a>
+                                   th:href="@{/api/nss/examen/imprimir-pdf(nss=${s.nss})}" target="_blank" title="Abre el expediente y el diálogo de impresión"><i class="ri-printer-line"></i> Documento</a>
                             </td>
                         </tr>
                     </tbody>

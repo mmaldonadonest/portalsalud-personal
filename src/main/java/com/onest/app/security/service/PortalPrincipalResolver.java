@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
@@ -61,6 +62,11 @@ public class PortalPrincipalResolver {
     }
 
     private PortalUserPrincipal resolve(String usuario, String email) {
+        // Bloqueo solo de este portal (Admin > Usuarios, 29-oct-2026): la baja del empleado tarda varios pasos y
+        // mientras tanto ORDS y el launcher lo siguen dejando pasar. Aqui pasan los dos logins (password y SSO).
+        if (estaBloqueado(usuario)) {
+            throw new LockedException("Usuario bloqueado en Portal Salud");
+        }
         Optional<AppSecUser> localUser = userRepository.findActiveByIdentifier(usuario);
         List<GrantedAuthority> authorities = resolveAuthorities(localUser);
         Long localId = localUser.map(AppSecUser::getId).orElse(null);
@@ -72,6 +78,15 @@ public class PortalPrincipalResolver {
                 .flatMap(intranetUserClient::avatarUrlPorEmail)
                 .orElse(AvatarDefaults.DEFAULT_AVATAR);
         return new PortalUserPrincipal(localId, usuario, displayName, avatar, null, authorities, email);
+    }
+
+    /** Valor de ACCOUNT_STATUS para el bloqueo; desbloquear lo regresa a ACTIVE y conserva sus roles. */
+    public static final String BLOQUEADO = "BLOCKED";
+
+    public boolean estaBloqueado(String usuario) {
+        return usuario != null && userRepository.findByUsernameIgnoreCase(usuario.trim())
+                .map(u -> BLOQUEADO.equalsIgnoreCase(u.getAccountStatus()))
+                .orElse(false);
     }
 
     /**

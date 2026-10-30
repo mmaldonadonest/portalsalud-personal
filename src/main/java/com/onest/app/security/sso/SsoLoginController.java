@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -115,7 +116,14 @@ public class SsoLoginController {
 
         // El avatar de Intranet SI necesita el email (identifier), no el NSS - ver
         // PortalPrincipalResolver.resolveConEmailConocido.
-        PortalUserPrincipal principal = principalResolver.resolveConEmailConocido(nss, identifier);
+        PortalUserPrincipal principal;
+        try {
+            principal = principalResolver.resolveConEmailConocido(nss, identifier);
+        } catch (LockedException ex) {
+            // bloqueado solo en este portal (Admin > Usuarios); el launcher todavia lo deja pasar
+            log.warn("[sso] nss={} bloqueado en Portal Salud - se rechaza", nss);
+            return "redirect:/login?bloqueado";
+        }
         Authentication authentication =
                 new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
 

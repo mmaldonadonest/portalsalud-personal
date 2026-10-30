@@ -41,7 +41,7 @@ public class FileStoreService {
 
     public int store(MultipartFile[] files, String nss, String relacion) {
         if (relacion == null || relacion.isBlank()) {
-            throw new IllegalArgumentException("La relacion (idArchivoRel) es obligatoria");
+            throw new IllegalArgumentException("La relación (idArchivoRel) es obligatoria");
         }
         if (files == null) {
             return 0;

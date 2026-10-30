@@ -43,7 +43,7 @@ public class AntidopingSeleccionController {
             @RequestParam(name = "tamanoPool", required = false) Integer tamanoPool) {
         try {
             String proceso = antidopingService.registrarSeleccion(nss, tamanoPool);
-            return (proceso == null || proceso.isBlank()) ? "Seleccion registrada." : proceso;
+            return (proceso == null || proceso.isBlank()) ? "Selección registrada." : proceso;
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }

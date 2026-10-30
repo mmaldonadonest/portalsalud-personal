@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!--
+      Estilos del impreso cuando lo convierte el servidor a PDF (HtmlPdfService, 28-oct-2026). OpenHTMLtoPDF
+      no entiende flexbox ni las variables del CSS del tema, asi que en modo pdf NO se carga style.min.css y
+      aqui se reproducen, con floats y valores fijos, las reglas del tema que usa el impreso. Valores tomados
+      de static/theme/assets/css/style.min.css y comparados con Playwright contra la version HTML (28-oct).
+      El encabezado y pie de cada hoja van en los margenes de la pagina (@page), no en thead/tfoot.
+    -->
+    <style th:fragment="estilos" th:inline="css">
+        @page {
+            size: A4;
+            margin: 12mm 12mm 10mm 12mm;
+            @top-left { content: "SISTEMA MEDICO ONEST"; font: bold 10px serif; color: #333; vertical-align: bottom; }
+            @top-right { content: "Impreso: [(${d.ahora})]"; font: 9px serif; color: #333; vertical-align: bottom; }
+            @bottom-left { content: "Portal Salud Personal · Examen médico"; font: 9px serif; color: #333; vertical-align: top; }
+            @bottom-right { content: "NSS [(${d.v('NSS')})]"; font: 9px serif; color: #333; vertical-align: top; }
+        }
+        body, body.container { font-family: serif; color: #000; background: #fff; margin: 0; padding: 0 !important;
+                               border: 0; line-height: 1.5; font-size: 14px; }
+        .barra-print { display: none; }
+        /* HtmlPdfService convierte cada tr.hoja en div.hoja-pdf: el convertidor no respeta el salto de pagina
+           en filas de tabla y todo el expediente salia en 2 paginas */
+        .hoja-pdf { page-break-after: always; }
+        .hoja-pdf.ultima { page-break-after: auto; }
+        td, th, p { font-size: 9px; }
+        p { margin: 0 0 16px 0; }
+        h4, h5, h6 { font-weight: normal; line-height: 1.2; margin: 0 0 8px 0; }
+        h6 { font-size: 14px; }
+        hr { border: 0; border-top: 1px solid #c8c8c8; margin: 16px 0; }
+        center { display: block; text-align: center; }
+        /* Rejilla de Bootstrap con floats: columnas con 12px de relleno; las hijas directas de la hoja sin el
+           (regla de impresion de examen-documento.html), igual que en el navegador */
+        .row { display: block; clear: both; overflow: hidden; width: 100%; margin: 0; }
+        .col-3, .col-4, .col-6, .col-9 { float: left; box-sizing: border-box; padding: 0 12px; }
+        .col-12 { clear: both; width: 100%; box-sizing: border-box; padding: 0 12px; }
+        .col-3 { width: 25%; }
+        .col-4 { width: 33.33%; }
+        .col-6 { width: 50%; }
+        .col-9 { width: 74.9%; }
+        .hoja-row > .col-3, .hoja-row > .col-4, .hoja-row > .col-6, .hoja-row > .col-9, .hoja-row > .col-12 { padding: 0; }
+        .container { padding: 0 12px; }
+        .col-3 img { width: 100%; }
+        .img-fluid { max-width: 100%; }
+        /* Tablas del tema: lineas grises claras; las del encabezado de calidad (border-dark), oscuras */
+        .table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+        /* line-height 1.4 y no 1.5: con 1.5 la ultima hoja (dientes a firmas) se pasaba a una pagina extra */
+        .table td, .table th { padding: 8px; text-align: left; vertical-align: top; border-bottom: 1px solid #e2e5ec; line-height: 1.4; }
+        .table-sm td, .table-sm th { padding: 4px; }
+        .table-bordered td, .table-bordered th { border: 1px solid #e2e5ec; }
+        .table.border-dark, .table.border-dark td, .table.border-dark th { border-color: #212830; }
+        .border-top { border-top: 1px solid #212830; }
+        .table th { font-weight: bold; }
+        .mt-2 { margin-top: 8px; }
+        .mt-3 { margin-top: 16px; }
+        .mb-3 { margin-bottom: 16px; }
+        .footerTxt { font-size: 7px; }
+    </style>
+</head>
+</html>

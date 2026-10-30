@@ -57,7 +57,7 @@ public class RoleMenuAdminService {
         }
         AppSecRole role = requireRole(roleId);
         AppMenu menu = menuRepository.findById(menuId)
-                .orElseThrow(() -> new IllegalArgumentException("Menu no encontrado (id=" + menuId + ")."));
+                .orElseThrow(() -> new IllegalArgumentException("Menú no encontrado (id=" + menuId + ")."));
         menuRoleRepository.save(new AppMenuRole(menu, role));
         permissionService.invalidar();
     }

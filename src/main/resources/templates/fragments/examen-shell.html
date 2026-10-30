@@ -109,11 +109,11 @@
                 </style>
                 <!-- Tipo de examen arriba (20-oct-2026): antes era solo una etiqueta y para cambiarlo habia que bajar
                      a "Datos generales del examen". Es el MISMO dato: los dos selectores se sincronizan
-                     (exAplicarTipo) y "Guardar tipo" usa el guardado de Datos generales. data-guardado = tipo en BD. -->
+                     (exAplicarTipo) y «Guardar examen» guarda el tipo si cambio (28-oct-2026). data-guardado = tipo en BD. -->
                 <select id="examenTipoArriba" class="form-select form-select-sm examen-tipo-select"
                         th:classappend="${'tipo-' + datosGenerales.tipoExamen}"
                         th:attr="data-guardado=${datosGenerales.tipoExamen}"
-                        aria-label="Tipo de examen" title="Tipo de examen: al cambiarlo se acomodan las secciones; se guarda con «Guardar tipo»"
+                        aria-label="Tipo de examen" title="Tipo de examen: al cambiarlo se acomodan las secciones; se guarda con «Guardar examen», al final"
                         onchange="exTipoDesdeArriba(this);">
                     <option value="" th:selected="${datosGenerales.tipoExamen == ''}">Sin tipo de examen</option>
                     <th:block th:each="t : ${tiposExamen}">
@@ -127,11 +127,10 @@
                       th:classappend="${datosGenerales.tipoExamen == ''} ? 'd-none' : ''"
                       th:attr="data-formatos=${#strings.listJoin(formatosExamen.entrySet().![key + '=' + value], ',')}"
                       th:text="${formatosExamen.get(datosGenerales.tipoExamen)}">FT-SO-17</span>
-                <span id="examenTipoSinGuardar" class="badge bg-warning text-dark d-none">Sin guardar</span>
-                <button type="button" id="examenTipoGuardar" class="btn btn-sm btn-primary d-none" onclick="exGuardarTipoArriba(this);">
-                    <i class="ri-save-line me-1"></i>Guardar tipo
-                </button>
-                <span id="examenTipoResultado" class="fs-sm"></span>
+                <!-- 28-oct-2026: sin boton "Guardar tipo" aqui (pedido del usuario): el tipo se guarda con
+                     «Guardar examen», hasta abajo, para que el medico recorra el formato antes de guardar -->
+                <span id="examenTipoSinGuardar" class="badge bg-warning text-dark d-none"
+                      title="El tipo se guarda con «Guardar examen», al final del formulario">Sin guardar · se guarda abajo</span>
             <!-- Mismas dos acciones que el menu "Examen medico" del PHP (Abrir / Imprimir expediente),
                  aqui en el card porque el sidebar del theme es global, no contextual por modulo. -->
             <div class="d-flex align-items-center flex-wrap gap-2 ms-auto">
@@ -141,9 +140,13 @@
                     <i class="ri-folder-open-line me-1"></i>Abrir todo
                 </button>
                 <button type="button" class="btn btn-sm btn-outline-primary"
-                        th:attr="data-url=@{/api/nss/examen/imprimir(nss=${nss},auto=1)}"
+                        th:attr="data-url=@{/api/nss/examen/imprimir-pdf(nss=${nss})}"
                         title="Abre el expediente completo en otra pestaña, listo para imprimir o guardar como PDF"
-                        onclick="window.open(this.dataset.url, '_blank');">
+                        onclick="if (!document.getElementById('examenTipoSinGuardar').classList.contains('d-none')) {
+                                     alert('El tipo de examen no está guardado. Presiona «Guardar examen» (al final del formulario) antes de imprimir: el impreso sale con el formato del tipo guardado.');
+                                     return;
+                                 }
+                                 window.open(this.dataset.url, '_blank');">
                     <i class="ri-printer-line me-1"></i>Imprimir expediente
                 </button>
             </div>
@@ -205,7 +208,7 @@
                                             th:classappend="${sStat.index == activo} ? ' active' : ''"
                                             th:attr="data-bs-target='#examenPane' + ${gStat.index} + '_' + ${sStat.index}, aria-controls='examenPane' + ${gStat.index} + '_' + ${sStat.index}, aria-selected=${sStat.index == activo}, data-seccion=${s}, data-nss=${nss}, data-checked=false">
                                         <i class="ri-checkbox-blank-circle-line examen-tab-check me-1"
-                                           title="Marcar seccion como revisada" onclick="toggleTabCheck(this, event);"></i>
+                                           title="Marcar sección como revisada" onclick="toggleTabCheck(this, event);"></i>
                                         <span th:text="${s}">Seccion</span>
                                     </button>
                                 </li>

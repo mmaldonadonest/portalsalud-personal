@@ -77,8 +77,8 @@ public class FileStoreController {
     // Tipos de archivo de expediente por NSS (Laboratorio U03 + Historico/Notas U06).
     private static final java.util.Map<String, String> TIPOS = java.util.Map.of(
             "laboratorio", "Estudios de laboratorio",
-            "examen_medico", "Historico de examen medico",
-            "nota_medica", "Notas medicas",
+            "examen_medico", "Histórico de examen médico",
+            "nota_medica", "Notas médicas",
             "nota_incapacidad", "Notas de incapacidad");
 
     /**

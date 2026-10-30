@@ -116,7 +116,7 @@ public class AuditoriaService {
     }
 
     /** "NSS · Nombre" cuando el principal trae nombre (PortalUserPrincipal); solo el NSS si no. */
-    private static String usuarioActual() {
+    static String usuarioActual() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null) {
             return null;
@@ -129,7 +129,7 @@ public class AuditoriaService {
     }
 
     /** Detras del nginx de QA la IP real viene en X-Forwarded-For (primer valor). */
-    private static String ipDe(HttpServletRequest request) {
+    static String ipDe(HttpServletRequest request) {
         if (request == null) {
             return null;
         }

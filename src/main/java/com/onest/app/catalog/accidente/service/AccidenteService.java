@@ -70,7 +70,7 @@ public class AccidenteService {
             throw new IllegalArgumentException("Las observaciones son obligatorias");
         }
         if (estadoDe(seguimientos(accidenteRegId)).equals("CERRADO")) {
-            throw new IllegalArgumentException("El caso ya esta cerrado, no admite mas seguimiento");
+            throw new IllegalArgumentException("El caso ya está cerrado, no admite más seguimiento");
         }
         BiowsAccidenteSeguimientoAltaRequest request = new BiowsAccidenteSeguimientoAltaRequest(
                 regId, tipo.trim().toUpperCase(), observaciones.trim(), USUARIO_FIJO, usuarioActual());
@@ -84,7 +84,7 @@ public class AccidenteService {
         try {
             return Long.parseLong(accidenteRegId.trim());
         } catch (NumberFormatException ex) {
-            throw new IllegalArgumentException("El identificador del caso no es valido", ex);
+            throw new IllegalArgumentException("El identificador del caso no es válido", ex);
         }
     }
 
@@ -169,7 +169,7 @@ public class AccidenteService {
         try {
             return new BigDecimal(value.trim());
         } catch (NumberFormatException ex) {
-            throw new IllegalArgumentException("El valor de " + etiqueta + " no es valido", ex);
+            throw new IllegalArgumentException("El valor de " + etiqueta + " no es válido", ex);
         }
     }
 

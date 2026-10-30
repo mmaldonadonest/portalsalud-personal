@@ -61,7 +61,7 @@ public class CausaConsultaService {
         try {
             return Long.parseLong(idRegistro.trim());
         } catch (NumberFormatException ex) {
-            throw new IllegalArgumentException("El identificador de la causa no es valido", ex);
+            throw new IllegalArgumentException("El identificador de la causa no es válido", ex);
         }
     }
 

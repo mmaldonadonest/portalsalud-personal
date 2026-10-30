@@ -158,7 +158,7 @@ public class PortalViewController {
     public String analisis(@PathVariable String modulo, Model model) {
         String titulo = MODULOS_ANALISIS.get(modulo);
         if (titulo == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Modulo de analisis desconocido: " + modulo);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Módulo de análisis desconocido: " + modulo);
         }
         // "ejecutivo" ya tiene contenido real (fase 2, 09-sep-2026) - reusa los mismos
         // endpoints /api/dashboard/** que /home, sin WS/controller nuevo. El resto de los

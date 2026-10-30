@@ -127,7 +127,7 @@ public class MaternidadService {
         try {
             return new BigDecimal(value.trim());
         } catch (NumberFormatException ex) {
-            throw new IllegalArgumentException("El valor de " + etiqueta + " no es valido", ex);
+            throw new IllegalArgumentException("El valor de " + etiqueta + " no es válido", ex);
         }
     }
 

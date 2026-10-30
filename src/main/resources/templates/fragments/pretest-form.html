@@ -49,43 +49,43 @@
                     <input type="text" class="form-control" name="fechN" th:value="${p['fechN']}"></div>
                 <div class="col-md-4"><label class="form-label">Estado civil</label>
                     <input type="text" class="form-control" name="ecivil" th:value="${p['ecivil']}"></div>
-                <div class="col-md-4"><label class="form-label">Numero IMSS</label>
+                <div class="col-md-4"><label class="form-label">Número IMSS</label>
                     <input type="text" class="form-control" name="num_imss" th:value="${p['num_imss']}"></div>
-                <div class="col-md-6"><label class="form-label">Telefono personal</label>
+                <div class="col-md-6"><label class="form-label">Teléfono personal</label>
                     <input type="text" class="form-control" name="tel_personal" th:value="${p['tel_personal']}"></div>
-                <div class="col-md-6"><label class="form-label">Telefono de casa</label>
+                <div class="col-md-6"><label class="form-label">Teléfono de casa</label>
                     <input type="text" class="form-control" name="tel_casa" th:value="${p['tel_casa']}"></div>
 
                 <div class="col-12"><h6 class="text-primary mb-0">Domicilio</h6></div>
                 <div class="col-md-6"><label class="form-label">Calle</label>
                     <input type="text" class="form-control" name="calleIn" th:value="${p['calleIn']}"></div>
-                <div class="col-md-2"><label class="form-label">Numero</label>
+                <div class="col-md-2"><label class="form-label">Número</label>
                     <input type="text" class="form-control" name="numeroCin" th:value="${p['numeroCin']}"></div>
                 <div class="col-md-4"><label class="form-label">Colonia</label>
                     <input type="text" class="form-control" name="coloniaInp" th:value="${p['coloniaInp']}"></div>
-                <div class="col-12"><label class="form-label">Delegacion o municipio</label>
+                <div class="col-12"><label class="form-label">Delegación o municipio</label>
                     <input type="text" class="form-control" name="delegOmUn" th:value="${p['delegOmUn']}"></div>
 
                 <div class="col-12"><h6 class="text-primary mb-0">Contactos de emergencia</h6></div>
-                <div class="col-md-6"><label class="form-label">Telefono (contacto 1)</label>
+                <div class="col-md-6"><label class="form-label">Teléfono (contacto 1)</label>
                     <input type="text" class="form-control" name="contacto_emergencia" th:value="${p['contacto_emergencia']}"></div>
                 <div class="col-md-6"><label class="form-label">Contactar a</label>
                     <input type="text" class="form-control" name="contactar_a" th:value="${p['contactar_a']}"></div>
-                <div class="col-md-6"><label class="form-label">Telefono (contacto 2)</label>
+                <div class="col-md-6"><label class="form-label">Teléfono (contacto 2)</label>
                     <input type="text" class="form-control" name="contacto_emergencia1" th:value="${p['contacto_emergencia1']}"></div>
                 <div class="col-md-6"><label class="form-label">Contactar a</label>
                     <input type="text" class="form-control" name="contactar_a1" th:value="${p['contactar_a1']}"></div>
 
                 <div class="col-12"><h6 class="text-primary mb-0">Cuestionario de salud</h6></div>
                 <div th:replace="~{:: pregunta('LHOP', '¿Lo han operado en menos de 6 meses?', true)}"></div>
-                <div th:replace="~{:: pregunta('TALMED', '¿Toma algun medicamento en especifico?', true)}"></div>
+                <div th:replace="~{:: pregunta('TALMED', '¿Toma algún medicamento en específico?', true)}"></div>
                 <div th:replace="~{:: pregunta('SUAA', '¿Sufre de alguna alergia?', true)}"></div>
                 <div th:replace="~{:: pregunta('SAFOPH', '¿Se ha fracturado o padece hernias?', true)}"></div>
                 <div th:replace="~{:: pregunta('ESEMB', '¿Esta embarazada (solo mujeres)?', true)}"></div>
                 <div th:replace="~{:: pregunta('PALENF', '¿Padece alguna enfermedad(es)?', true)}"></div>
                 <div th:replace="~{:: pregunta('CONDROG', '¿Actualmente consume drogas?', true)}"></div>
 
-                <div class="col-12"><h6 class="text-primary mb-0">Sintomas (COVID)</h6></div>
+                <div class="col-12"><h6 class="text-primary mb-0">Síntomas (COVID)</h6></div>
                 <div th:replace="~{:: pregunta('TOSIN', 'Tos', false)}"></div>
                 <div th:replace="~{:: pregunta('FIEBREIN', 'Fiebre', false)}"></div>
                 <div th:replace="~{:: pregunta('DOLOCABINP', 'Dolor de cabeza', false)}"></div>

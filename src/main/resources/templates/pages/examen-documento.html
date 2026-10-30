@@ -17,7 +17,8 @@
       (nuevos en la rev. 04 del FT-SO-04, el PHP no los tenia; valores de SERV_MED_TAG via
       ExamenDocumentoService). Si se regenera, volver a aplicar.
     -->
-    <link rel="stylesheet" th:href="@{/theme/assets/css/style.min.css}" href="/theme/assets/css/style.min.css">
+    <!--/* en PDF (pdf=true, HtmlPdfService) no se carga el tema: usa fragments/impreso-pdf */-->
+    <link rel="stylesheet" th:unless="${pdf == true}" th:href="@{/theme/assets/css/style.min.css}" href="/theme/assets/css/style.min.css">
     <style>
         /* El PHP usaba Bootstrap puro con la fuente por defecto del navegador (serif); el
            style.min.css del theme trae Bootstrap pero con su propia fuente y cabeceras de tabla
@@ -38,6 +39,13 @@
         .footerTxt {
             font-size: 7px;
         }
+
+        /* Aviso de privacidad FT-SO-32 en una sola hoja (29-oct-2026): el texto venia en 11px inline y
+           ocupaba dos hojas; !important para ganarle al style de cada parrafo */
+        .aviso-1h p, .aviso-1h b { font-size: 9px !important; line-height: 1.3 !important; }
+        .aviso-1h p { margin-bottom: 3px !important; margin-top: 0 !important; }
+        .aviso-1h h6 { font-size: 10px !important; margin: 0 0 3px 0 !important; }
+        .aviso-1h br + br { display: none; }
 
         .draggable {
 
@@ -82,6 +90,9 @@
             .hoja-row { margin: 0; }
         }
     </style>
+    <!--/* th:if en un th:block aparte: en el mismo elemento th:replace se ejecuta ANTES que th:if y lo ignoraba */-->
+    <style th:replace="~{fragments/formato-emle :: estilos}"></style>
+    <th:block th:if="${pdf == true}"><style th:replace="~{fragments/impreso-pdf :: estilos}"></style></th:block>
 
 </head>
 
@@ -156,7 +167,7 @@
         </p>
         <p style="font-size: 11px;">Por medio del presente autorizo la realización del Examen Médico de Admisión, Periódico o Especiales, el cual consiste en 2 etapas, exploración física e Interrogación Verbal que consta de: </p>
         <p style="font-size: 11px;">
-            Ficha de Identificación, Antecedentes Laborales, Antecedentes Heredo familiares, Antecedentes Personales no patológicos, Antecedentes Ginecoobstetricos, Antecedentes Personales Patológicos.
+            Ficha de Identificación, Antecedentes Laborales, Antecedentes Heredo familiares, Antecedentes Personales no patológicos, Antecedentes Ginecoobstétricos, Antecedentes Personales Patológicos.
         </p>
         <p style="font-size: 11px;">
             Exploración Física que consta de: Peso, Talla, Toma de Signos Vitales, revisión de Cráneo, Nariz, Boca, Oídos, Cuello, Tórax , Columna Vertebral, Abdomen, Urinario, Extremidades y Piel. Tomando en cuenta que para ello, me tendré que retirar la ropa conservando mi ropa interior, así como se me pedirá que realice algunos movimientos.
@@ -226,7 +237,7 @@
             </table>
         </div>
     </div>
-    <div class=" mt-3 mb-3 ">
+    <div class=" mt-3 mb-3 aviso-1h">
         <center>
             <h6>AVISO DE PRIVACIDAD</h6>
         </center>
@@ -293,49 +304,8 @@
             datos de contacto de la persona o departamento de datos personales, que está a cargo de dar trámite a las solicitudes de derechos
             ARCO, son los siguientes:
         </p>
-        <!-- AJUSTE MANUAL: en el PHP este encabezado caia "por casualidad" al inicio de la hoja
-             siguiente gracias a un margen fijo; aqui se fuerza el salto de hoja para que siempre
-             encabece la pagina. -->
-        </div></td></tr>
-<tr class="hoja"><td><div class="row hoja-row">
-        <div class="row" style="margin-top: 0;">
-            <div class="navbar-brand col-3 " href="#">
-                <center><img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" width="100%" class="mt-2"></center>
-            </div>
-
-            <div class="col-9">
-                <table class="table table-bordered table-sm border-top border-dark">
-                    <thead>
-                    </thead>
-                    <tbody>
-                        <!-- Hoja 2 del AVISO DE PRIVACIDAD: lleva el encabezado del FT-SO-32. En el PHP
-                             tenia por error el del examen (FT-SO-04); corregido 15-oct-2026. -->
-                        <tr>
-                            <td colspan="2">
-                                <center>AVISO DE PRIVACIDAD</center>
-                            </td>
-                        </tr>
-                        <tr class="">
-                            <td>F. Implementación: 14 de octubre de 2026</td>
-                            <td>Revisión: 03</td>
-
-
-                        </tr>
-                        <td>Clave de control: FT-SO-32</td>
-                        <td>Reemplaza a: 02</td>
-                        <tr>
-
-                        </tr>
-                        <tr class="">
-
-                            <td>Motivo del cambio: Actualización por vigencia</td>
-                            <td></td>
-
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        <!-- 29-oct-2026: el aviso va en UNA hoja (pedido del usuario): antes aqui se cortaba a una segunda hoja con
+             el encabezado del FT-SO-32 repetido; ahora sigue de corrido con letra mas chica (clase aviso-1h). -->
         <p style="font-size: 11px;">
             a) Nombre de la persona o departamento de datos personales: Salud Ocupacional
         </p>
@@ -392,6 +362,12 @@
         </center>
     </div>
 </div></td></tr>
+<!--/* 29-oct-2026: cada tipo imprime las hojas de SU formato EMLE 2026 (fragments/formato-emle); el consentimiento
+     y el aviso de arriba los llevan todos. Solo Especial (5) o sin tipo siguen con las hojas generales de abajo. */-->
+<th:block th:if="${d.v('TIPO_CODIGO') == '4'}"><tr th:replace="~{fragments/formato-emle :: ftso13}"></tr></th:block>
+<th:block th:if="${#lists.contains({'2','3','6','8'}, d.v('TIPO_CODIGO'))}"><th:block th:replace="~{fragments/formato-emle :: ftso17}"></th:block></th:block>
+<th:block th:if="${#lists.contains({'1','7'}, d.v('TIPO_CODIGO'))}"><th:block th:replace="~{fragments/formato-emle :: ftso04}"></th:block></th:block>
+<th:block th:unless="${#lists.contains({'1','2','3','4','6','7','8'}, d.v('TIPO_CODIGO'))}">
 <tr class="hoja"><td><div class="row hoja-row">
 
     <div class="row" style="margin-top: 20px;">
@@ -423,7 +399,7 @@
                     <tr class="">
 
                         <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
-                        <td>Hoja 1 de 5</td>
+                        <td class="hoja-num">Hoja 1 de 5</td>
 
                     </tr>
                 </tbody>
@@ -734,7 +710,7 @@
                         <tr class="">
 
                             <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
-                            <td>Hoja 1 de 5</td>
+                            <td class="hoja-num">Hoja 1 de 5</td>
 
                         </tr>
                     </tbody>
@@ -1005,7 +981,7 @@
                             <tr class="">
 
                                 <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
-                                <td>Hoja 2 de 5</td>
+                                <td class="hoja-num">Hoja 2 de 5</td>
 
                             </tr>
                         </tbody>
@@ -1134,11 +1110,11 @@
                         </tr>
                         <tr>
                             <td>Cambio de Ropa</td>
-                            <td>[[${d.v('CAMBIO_DE_ROPA')}]] veces por dia</td>
+                            <td>[[${d.v('CAMBIO_DE_ROPA')}]] veces por día</td>
                         </tr>
                         <tr>
                             <td>Aseo Bucal</td>
-                            <td>[[${d.v('ASEO_BUCAL')}]] veces por dia</td>
+                            <td>[[${d.v('ASEO_BUCAL')}]] veces por día</td>
                         </tr>
                         <tr>
                             <td>Alimentación</td>
@@ -1263,7 +1239,7 @@
                             <tr class="">
 
                                 <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
-                                <td>Hoja 2 de 5</td>
+                                <td class="hoja-num">Hoja 2 de 5</td>
 
                             </tr>
                         </tbody>
@@ -1495,7 +1471,7 @@
                             <tr class="">
 
                                 <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
-                                <td>Hoja 3 de 5</td>
+                                <td class="hoja-num">Hoja 3 de 5</td>
 
                             </tr>
                         </tbody>
@@ -1770,7 +1746,7 @@
                             <tr class="">
 
                                 <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
-                                <td>Hoja 3 de 5</td>
+                                <td class="hoja-num">Hoja 3 de 5</td>
 
                             </tr>
                         </tbody>
@@ -1795,43 +1771,43 @@
                 </tr>
                 <tr>
                     <td>Peso</td>
-                    <td>[[${d.v('PESO')}]] Kg</td>
+                    <td>[[${d.medida('PESO', 'kg')}]]</td>
                 </tr>
                 <tr>
                     <td>Talla</td>
-                    <td>[[${d.v('TALLA')}]] m</td>
+                    <td>[[${d.medida('TALLA', 'm')}]]</td>
                 </tr>
                 <tr>
                     <td>IMC (Índice de Masa Corporal)</td>
-                    <td>[[${d.v('IMC')}]]</td>
+                    <td>[[${d.medida('IMC', '')}]]</td>
                 </tr>
                 <tr>
                     <td>Frecuencia Cardíaca (FC)</td>
-                    <td>[[${d.v('FC')}]] x minuto</td>
+                    <td>[[${d.medida('FC', 'x minuto')}]]</td>
                 </tr>
                 <tr>
                     <td>Frecuencia Respiratoria (FR)</td>
-                    <td>[[${d.v('FR')}]] x minuto</td>
+                    <td>[[${d.medida('FR', 'x minuto')}]]</td>
                 </tr>
                 <tr>
                     <td>Tensión Arterial (TA)</td>
-                    <td>[[${d.v('TA')}]] mmHg</td>
+                    <td>[[${d.medida('TA', 'mmHg')}]]</td>
                 </tr>
                 <tr>
                     <td>Temperatura</td>
-                    <td>[[${d.v('TEMP')}]]°C</td>
+                    <td>[[${d.medida('TEMP', '°C')}]]</td>
                 </tr>
                 <tr>
                     <td>STPO2</td>
-                    <td>[[${d.v('STPO2')}]]%</td>
+                    <td>[[${d.medida('STPO2', '%')}]]</td>
                 </tr>
                 <tr>
                     <td>Cintura</td>
-                    <td>[[${d.v('CINTURA')}]] cm</td>
+                    <td>[[${d.medida('CINTURA', 'cm')}]]</td>
                 </tr>
                 <tr>
                     <td>Cadera</td>
-                    <td>[[${d.v('CADERA')}]] cm</td>
+                    <td>[[${d.medida('CADERA', 'cm')}]]</td>
                 </tr>
                 <tr>
                     <td>Constitución</td>
@@ -1881,6 +1857,8 @@
                     <td>Marcha</td>
                     <td>[[${d.v('PARKINSON2')}]]</td>
                 </tr>
+                <!--/* 28-oct-2026: el bloque LENGUAJE solo lo piden FT-SO-04 y FT-SO-19 (VisibilidadTipo) */-->
+                <th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('SERV_MED_EXPLORACION_FISICA.LENGUAJE', d.v('TIPO_CODIGO'))}">
                 <tr>
                     <td>Voz clara y fuerte</td>
                     <td>[[${d.v('VOZCLARAYFUERTE')}]]</td>
@@ -1897,6 +1875,7 @@
                     <td>Coherencia Palabras</td>
                     <td>[[${d.v('COHERENCIA_PALABLAS')}]]</td>
                 </tr>
+                </th:block>
             </table>
         </div>
 <th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Cráneo|Agudeza visual', d.v('TIPO_CODIGO'))}">
@@ -2003,7 +1982,7 @@
                                 <tr class="">
 
                                     <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
-                                    <td>Hoja 4 de 5</td>
+                                    <td class="hoja-num">Hoja 4 de 5</td>
 
                                 </tr>
                             </tbody>
@@ -2080,7 +2059,7 @@
             <table class="table table-bordered table-sm">
                 <tr>
                     <th class="table-primary">CAE</th>
-                    <th class="table-primary">Membrana Timpanica</th>
+                    <th class="table-primary">Membrana Timpánica</th>
                     <th class="table-primary">Agudeza Auditiva</th>
                     <th class="table-primary">Oído Derecho (OD)</th>
                     <th class="table-primary">Oído Izquierdo (OI)</th>
@@ -2191,7 +2170,7 @@
                                 <tr class="">
 
                                     <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
-                                    <td>Hoja 4 de 5</td>
+                                    <td class="hoja-num">Hoja 4 de 5</td>
 
                                 </tr>
                             </tbody>
@@ -2337,7 +2316,7 @@
                             <tr class="">
 
                                 <td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td>
-                                <td>Hoja 5 de 5</td>
+                                <td class="hoja-num">Hoja 5 de 5</td>
 
                             </tr>
                         </tbody>
@@ -2502,7 +2481,8 @@
         </div>
         <div class="col-6">
 <th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('Estudios realizados y resultados', d.v('TIPO_CODIGO'))}">
-            <h6>Resultados de Estudios Realizados</h6>
+            <!--/* FT-SO-18 (egreso) lo titula distinto: "durante su periodo laboral" (check 28-oct-2026) */-->
+            <h6 th:text="${d.v('TIPO_CODIGO') == '6'} ? 'Estudios realizados durante su periodo laboral y resultados' : 'Resultados de Estudios Realizados'">Resultados de Estudios Realizados</h6>
             <table class="table table-bordered table-sm">
                 <tr>
                     <th class="table-primary">Resultados</th>
@@ -2596,8 +2576,20 @@
     </div>
 
 
-    </div></td></tr></tbody>
+    </div></td></tr>
+</th:block></tbody>
 </table>
+<script>
+    // 28-oct-2026: el encabezado decia "Hoja N de 5" fijo para todos los tipos; los formatos 2026 tienen
+    // 2 o 3 hojas y cada tipo oculta las que no pide (tr.hoja.oculta). Se numeran solo las que salen.
+    (function () {
+        var celdas = Array.prototype.filter.call(document.querySelectorAll('td.hoja-num'), function (td) {
+            var hoja = td.closest('tr.hoja');
+            return !(hoja && hoja.classList.contains('oculta'));
+        });
+        celdas.forEach(function (td, i) { td.textContent = 'Hoja ' + (i + 1) + ' de ' + celdas.length; });
+    })();
+</script>
 <script th:if="${auto}">window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 400); });</script>
 </body>
 

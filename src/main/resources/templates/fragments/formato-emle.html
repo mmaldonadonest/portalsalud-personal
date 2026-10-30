@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!--
+      Hojas del examen medico con el DISENO de cada formato EMLE 2026 (docs/formatosnuevos/10202026), 29-oct-2026:
+      Servicio Medico pidio que cada tipo imprima SU formato y no el documento general con secciones ocultas.
+        tipo 1 Admision          FT-SO-04 (3 hojas)   tipo 7 Inicial mantenimiento  FT-SO-19 (3 hojas)
+        tipo 2 Periodico         FT-SO-17 (2 hojas)   tipo 3 Cambio de puesto       FT-SO-16 (2 hojas)
+        tipo 6 Egreso            FT-SO-18 (2 hojas)   tipo 8 Periodico mantenimiento FT-SO-20 (2 hojas)
+        tipo 4 Post incapacidad  FT-SO-13 (1 hoja)    tipo 5 Especial: sin formato, documento general
+      examen-documento.html las incluye despues del consentimiento FT-SO-11 y el aviso FT-SO-32 (todos los llevan).
+      Mismos valores que el documento general (ExamenDocumentoService.armar). Tablas y no flex: el PDF lo genera
+      OpenHTMLtoPDF (HtmlPdfService), que no entiende flexbox. Cada tr.hoja es una hoja del formato.
+    -->
+    <style th:fragment="estilos">
+        .emle { font-family: Arial, Helvetica, sans-serif; padding-top: 6px; }
+        .emle table.f { width: 100%; border-collapse: collapse; margin: 0; }
+        .emle table.f td { border: 1px solid #000; padding: 2px 4px; vertical-align: top; height: 15px; font-size: 8.5px; line-height: 1.25; }
+        .emle table.f td.e { font-weight: 700; white-space: nowrap; width: 1%; }
+        .emle table.f td.sec { background: #d9d9d9; font-weight: 700; text-align: center; }
+        .emle table.f td.sub { background: #f2f2f2; font-weight: 700; }
+        .emle table.f td.c { text-align: center; }
+        .emle table.f td.x { text-align: center; font-weight: 700; width: 18px; }
+        .emle table.f td.linea { height: 13px; }
+        .emle table.f td.caja { height: 34px; }
+        .emle .enc td { font-size: 9px; }
+        .emle .enc .titulo { font-weight: 700; font-size: 12px; text-align: center; }
+        .emle table.dos { width: 100%; border-collapse: collapse; }
+        .emle table.dos > tbody > tr > td, .emle table.dos > tr > td { width: 50%; vertical-align: top; padding: 0; border: 0; }
+        /* odontograma: sin rejilla entre dientes, como la imagen del formato; linea media vertical */
+        .emle table.dientes td { text-align: center; font-size: 7.5px; padding: 0 1px; border: 0; height: auto; }
+        .emle table.dientes td.sec { border: 1px solid #000; }
+        .emle table.dientes tr.num td { color: #555; font-size: 7px; height: 9px; }
+        .emle table.dientes tr.pieza img { width: 26px; height: 26px; }
+        .emle table.dientes td.medio { width: 6px; border-left: 1.5px solid #555; }
+        .emle table.dientes td.leyenda { text-align: left; font-size: 7px; color: #333; padding-top: 2px; border-top: 1px solid #000; }
+        .emle table.dientes { border: 1px solid #000; }
+        .emle .cuadro { display: inline-block; width: 8px; height: 8px; border: 1px solid #98A2B3; vertical-align: middle; }
+        /* una regla por renglon: el convertidor a PDF ignoraba la primera de cada par en el mismo renglon */
+        .emle .cuadro.cc { background-color: #F97066; }
+        .emle .cuadro.ca { background-color: #98A2B3; }
+        .emle .cuadro.ce { background-color: #9B8AFB; }
+        .emle .cuadro.cp { background-color: #D1E9FF; border-color: #0057A8; }
+        .emle .cert { font-weight: 700; }
+        .emle table.firmas { width: 100%; margin-top: 8px; border-collapse: collapse; }
+        .emle table.firmas td { width: 50%; text-align: center; vertical-align: bottom; padding: 0 8px; font-size: 8.5px; }
+        .emle .linea-firma { border-top: 1px solid #000; margin-top: 4px; padding-top: 2px; }
+        .emle table.firmas img { max-height: 44px; }
+    </style>
+</head>
+<body>
+<table>
+
+<!-- ======================================================================= piezas comunes -->
+
+<!--/* Encabezado de calidad (filas 1-4 de cada formato) */-->
+<th:block th:fragment="encabezado(hoja, total)">
+    <table class="f enc">
+        <tr>
+            <td rowspan="4" style="width:26%; vertical-align:middle; text-align:center">
+                <img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" style="max-width:100%; max-height:48px">
+            </td>
+            <td colspan="2" class="titulo" th:text="${d.v('ENC_TITULO')}">EXAMEN MÉDICO</td>
+        </tr>
+        <tr><td>F. Implementación: [[${d.v('ENC_IMPLEMENTACION')}]]</td><td>Revisión: [[${d.v('ENC_REVISION')}]]</td></tr>
+        <tr><td>Clave de control: [[${d.v('ENC_CLAVE')}]]</td><td>Reemplaza a: [[${d.v('ENC_REEMPLAZA')}]]</td></tr>
+        <tr><td>Motivo del cambio: [[${d.v('ENC_MOTIVO')}]]</td><td>Hoja [[${hoja}]] de [[${total}]]</td></tr>
+    </table>
+</th:block>
+
+<!--/* Fecha, agencia y ficha de identificacion. emergencia=true: renglon TEL. EMERGENCIA del FT-SO-04/19;
+     si no, DEPARTAMENTO / PUESTO / TURNO como el FT-SO-13/16/17/18/20 */-->
+<th:block th:fragment="ficha(emergencia)">
+    <table class="f" style="margin-top:5px">
+        <tr>
+            <td class="e">FECHA DE REALIZACIÓN DE EXAMEN</td><td th:text="${d.v('FECHA_EXAMEN')}"></td>
+            <td class="e">AGENCIA</td><td th:text="${d.v('AGENCIA')}"></td>
+        </tr>
+    </table>
+    <table class="f">
+        <tr><td class="sec" colspan="6">FICHA DE IDENTIFICACIÓN</td></tr>
+        <tr>
+            <td class="e">NOMBRE</td><td style="width:40%">[[${d.v('nombre')}]] [[${d.v('apellidoP')}]] [[${d.v('apellidoM')}]]</td>
+            <td class="e">EDAD</td><td th:text="${d.v('edad')}"></td>
+            <td class="e">SEXO</td><td th:text="${d.v('sexo')}"></td>
+        </tr>
+        <tr>
+            <td class="e">NUM. IMSS</td><td th:text="${d.v('NSS')}"></td>
+            <td class="e" colspan="2">FECHA DE NACIMIENTO</td><td colspan="2" th:text="${d.v('fechaNacimiento')}"></td>
+        </tr>
+        <tr>
+            <td class="e">EDO. CIVIL</td><td th:text="${d.v('edoCivil')}"></td>
+            <td class="e">ESCOLARIDAD</td><td th:text="${d.v('ESCOLARIDAD')}"></td>
+            <td class="e">PROFESIÓN U OFICIO</td><td th:text="${d.v('PROFESION')}"></td>
+        </tr>
+        <tr>
+            <td class="e">DOMICILIO</td><td colspan="3" th:text="${d.v('direccion')}"></td>
+            <td class="e">TEL</td><td>[[${d.v('telefono')}]] [[${d.v('telefonoF')}]]</td>
+        </tr>
+        <tr th:if="${emergencia}">
+            <td class="e">TEL. EMERGENCIA</td><td th:text="${d.v('contactoEmertelefono1')}"></td>
+            <td class="e">NOMBRE</td><td>[[${d.v('contactoEmernombre1')}]] [[${d.v('contactoEmerapellido_paterno1')}]] [[${d.v('contactoEmerapellido_materno1')}]]</td>
+            <td class="e">PARENTESCO</td><td th:text="${d.v('contactoEmerparentesco1')}"></td>
+        </tr>
+        <tr th:unless="${emergencia}">
+            <td class="e">DEPARTAMENTO</td><td th:text="${d.v('DEPARTAMENTO')}"></td>
+            <td class="e">PUESTO</td><td th:text="${d.v('puesto')}"></td>
+            <td class="e">TURNO</td><td th:text="${d.v('turno')}"></td>
+        </tr>
+    </table>
+</th:block>
+
+<!--/* Grupo de renglones SI / NO / Observaciones (heredofamiliares, patologicos). items: "VAR:Etiqueta" */-->
+<th:block th:fragment="grupoSiNo(titulo, items)">
+    <tr th:if="${titulo != null}"><td class="sub" th:text="${titulo}">GRUPO</td><td class="sub c">SI</td><td class="sub c">NO</td><td class="sub">Observaciones</td></tr>
+    <tr th:each="it : ${items}" th:with="var=${#strings.substringBefore(it, ':')}">
+        <td th:text="${#strings.substringAfter(it, ':')}"></td>
+        <td class="x" th:text="${d.si(var)}"></td>
+        <td class="x" th:text="${d.no(var)}"></td>
+        <td th:text="${d.obs(var)}"></td>
+    </tr>
+</th:block>
+
+<!--/* Antecedentes laborales del FT-SO-04/19: edad de inicio, trabajos previos y pension */-->
+<th:block th:fragment="laboralesInicial">
+    <table class="f">
+        <tr><td class="sec" colspan="10">ANTECEDENTES LABORALES</td></tr>
+        <tr>
+            <td class="e" colspan="3">EDAD A LA QUE INICIÓ A LABORAR</td><td colspan="2" th:text="${d.v('edad_inicio_laborar')}"></td>
+            <td class="e" colspan="3">¿CUÁNTOS TRABAJOS HA TENIDO?</td><td colspan="2" th:text="${d.v('cantidad_trabajos')}"></td>
+        </tr>
+        <tr>
+            <td class="sub">NOMBRE DE LA EMPRESA</td><td class="sub">GIRO INDUSTRIAL</td><td class="sub">PUESTO</td><td class="sub">TURNO</td>
+            <td class="sub">ANTIGÜEDAD</td><td class="sub">SALIDA</td><td class="sub">DESCRIPCIÓN DE PUESTO</td><td class="sub">RIESGOS</td>
+            <td class="sub">EPP UTILIZADO</td><td class="sub">OBS.</td>
+        </tr>
+        <tr th:each="n : ${#numbers.sequence(1, 4)}">
+            <td th:text="${d.texto('nombre' + n)}"></td><td th:text="${d.texto('giro' + n)}"></td>
+            <td th:text="${d.texto('puesto' + n)}"></td><td th:text="${d.texto('turno' + n)}"></td>
+            <td th:text="${d.texto('antiguedad' + n)}"></td><td th:text="${d.texto('salida' + n)}"></td>
+            <td th:text="${d.texto('descripcion' + n)}"></td><td th:text="${d.texto('riesgos' + n)}"></td>
+            <td th:text="${d.texto('epp' + n)}"></td><td th:text="${d.texto('observaciones' + n)}"></td>
+        </tr>
+        <tr>
+            <td colspan="7" class="e" th:text="${d.v('TIPO_CODIGO') == '7'} ? '¿ACTUALMENTE CUENTA CON UNA PENSIÓN POR EL IMSS O ALGÚN TRÁMITE ST2, ST3, ST4, ST7 O ST9?' : '¿ACTUALMENTE CUENTA CON UNA PENSIÓN POR EL IMSS O ALGÚN TRÁMITE PENDIENTE COMO ST2, ST3, ST4, ST7 O ST9?'"></td>
+            <td colspan="3" th:text="${d.v('pension')}"></td>
+        </tr>
+    </table>
+</th:block>
+
+<!--/* Antecedentes laborales especificos (FT-SO-19 y FT-SO-20) */-->
+<th:block th:fragment="laboralesEspecificos">
+    <table class="f">
+        <tr><td class="sec" colspan="7">ANTECEDENTES LABORALES ESPECÍFICOS</td></tr>
+        <tr>
+            <td class="sub"></td>
+            <td class="sub c" colspan="2">ALTURA</td><td class="sub c" colspan="2">EN CALIENTE</td><td class="sub c" colspan="2">ESPACIOS CONFINADOS</td>
+        </tr>
+        <tr>
+            <td class="e">¿ESTÁ CERTIFICADO EN TRABAJO DE...?</td>
+            <td class="c">SI</td><td class="x" th:text="${d.si('EXM_ESP_ALTURA')}"></td>
+            <td class="c">SI</td><td class="x" th:text="${d.si('EXM_ESP_CALIENTE')}"></td>
+            <td class="c">SI</td><td class="x" th:text="${d.si('EXM_ESP_CONFINADOS')}"></td>
+        </tr>
+        <tr th:each="q : ${ {'EXM_ESP_CERTIFICADO:¿Está certificado en trabajo de...?',
+                             'EXM_ESP_EXAMEN_ANIO:¿Aprobó el examen médico hace menos de un año?',
+                             'EXM_ESP_MEDICAMENTOS:¿Has tomado medicamentos en las últimas 24 hrs? ¿Cuáles?',
+                             'EXM_ESP_EPILEPSIA:¿Sufres de epilepsia, mareos o vértigo?',
+                             'EXM_ESP_AEROFOBIA:¿Miedo a las alturas (aerofobia)?',
+                             'EXM_ESP_ASMA:¿Sufres de asma, alergias o hiperactividad bronquial?',
+                             'EXM_ESP_PULMONAR_CARDIACA:¿Padeces de alguna enfermedad pulmonar cardiaca?',
+                             'EXM_ESP_CLAUSTROFOBIA:¿Miedo a áreas cerradas (claustrofobia)?'} }"
+            th:with="var=${#strings.substringBefore(q, ':')}">
+            <td colspan="3">[[${#strings.substringAfter(q, ':')}]]
+                <th:block th:if="${var == 'EXM_ESP_MEDICAMENTOS'}"> [[${d.texto('EXM_ESP_MEDICAMENTOS_CUALES')}]]</th:block></td>
+            <td class="c">SI</td><td class="x" th:text="${d.si(var)}"></td>
+            <td class="c">NO</td><td class="x" th:text="${d.no(var)}"></td>
+        </tr>
+    </table>
+</th:block>
+
+<!--/* Inmunizaciones (las piden todos los formatos salvo el FT-SO-13) */-->
+<th:block th:fragment="inmunizaciones(titulo)">
+    <table class="f">
+        <tr><td class="sec" colspan="16" th:text="${titulo}">INMUNIZACIONES</td></tr>
+        <tr>
+            <td class="e">BCG</td><td class="c">SI</td><td class="x" th:text="${d.si('BLG')}"></td><td class="c">NO</td><td class="x" th:text="${d.no('BLG')}"></td>
+            <td class="e">DPT</td><td class="c">SI</td><td class="x" th:text="${d.si('DPT')}"></td><td class="c">NO</td><td class="x" th:text="${d.no('DPT')}"></td>
+            <td class="e">SR</td><td class="c">SI</td><td class="x" th:text="${d.si('SR')}"></td><td class="c">NO</td><td class="x" th:text="${d.no('SR')}"></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td class="e">SABIN</td><td class="c">SI</td><td class="x" th:text="${d.si('SABIN')}"></td><td class="c">NO</td><td class="x" th:text="${d.no('SABIN')}"></td>
+            <td class="e">HEPATITIS B</td><td class="c">SI</td><td class="x" th:text="${d.si('HEPATITIS_B')}"></td><td class="c">NO</td><td class="x" th:text="${d.no('HEPATITIS_B')}"></td>
+            <td class="e">TD</td><td class="c">SI</td><td class="x" th:text="${d.si('TD')}"></td><td class="c">NO</td><td class="x" th:text="${d.no('TD')}"></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td class="e">INFLUENZA</td><td class="c">SI</td><td class="x" th:text="${d.si('INFLUENZA')}"></td><td class="c">NO</td><td class="x" th:text="${d.no('INFLUENZA')}"></td>
+            <td class="e">FECHA</td><td colspan="4" th:text="${d.texto('fechaINFLUEN')}"></td>
+            <td class="e">COVID-19 DOSIS</td><td class="c">1</td><td class="x" th:text="${d.dosis('COVID', 1)}"></td><td class="c">2</td><td class="x" th:text="${d.dosis('COVID', 2)}"></td>
+            <td>3 [[${d.dosis('COVID', 3)}]] · [[${d.texto('FECHA')}]]</td>
+        </tr>
+    </table>
+</th:block>
+
+<!--/* Antecedentes gineco-obstetricos; conFup: FT-SO-04/19/20 */-->
+<th:block th:fragment="gineco(conFup)">
+    <table class="f">
+        <tr><td class="sec" colspan="16">ANTECEDENTES GINECO-OBSTÉTRICOS</td></tr>
+        <tr>
+            <td class="e">MENARCA</td><td th:text="${d.texto('MENARCA')}"></td>
+            <td class="e">RITMO</td><td th:text="${d.texto('RITMO')}"></td>
+            <td class="e">IVSA</td><td th:text="${d.texto('IVSA')}"></td>
+            <!--/* el FT-SO-13 lo titula FUR; los demas FT-SO, FUM (es la misma fecha) */-->
+            <td class="e" th:text="${d.v('TIPO_CODIGO') == '4' ? 'FUR' : 'FUM'}">FUM</td><td th:text="${d.texto('FUM')}"></td>
+            <td class="e">G</td><td th:text="${d.negado('G')}"></td>
+            <td class="e">P</td><td th:text="${d.negado('P')}"></td>
+            <td class="e">A</td><td th:text="${d.negado('A')}"></td>
+            <td class="e">C</td><td th:text="${d.negado('C')}"></td>
+        </tr>
+        <tr>
+            <td class="e" colspan="2">PLANIFICACIÓN FAMILIAR</td><td colspan="2" th:text="${d.negado('MET_PLANIFICACION')}"></td>
+            <td class="e" colspan="2">PAPANICOLAOU</td><td colspan="2" th:text="${d.negado('PAPANICOLAOU')}"></td>
+            <td class="e" colspan="2">INFECC. REP.</td><td colspan="2" th:text="${d.negado('INFECC_REP')}"></td>
+            <th:block th:if="${conFup}"><td class="e">FUP</td><td colspan="3" th:text="${d.negado('FUP')}"></td></th:block>
+            <td th:unless="${conFup}" colspan="4"></td>
+        </tr>
+    </table>
+</th:block>
+
+<!--/* Padecimiento actual e interrogatorio por aparatos y sistemas */-->
+<th:block th:fragment="padecimiento">
+    <table class="f">
+        <tr><td class="sec">PADECIMIENTO ACTUAL</td></tr>
+        <tr><td class="caja" th:text="${d.texto('OBSERVACIONES')}"></td></tr>
+        <tr><td class="sec">INTERROGATORIO POR APARATOS Y SISTEMAS</td></tr>
+        <tr><td class="caja" th:text="${d.texto('OBSERVACIONES2')}"></td></tr>
+    </table>
+</th:block>
+
+<!--/* Exploracion fisica: signos vitales y aspecto general. completa=true: FT-SO-04/19 (lenguaje y orientacion
+     desglosada); los demas como el FT-SO-17 */-->
+<th:block th:fragment="exploracionGeneral(completa)">
+    <table class="f">
+        <tr><td class="sec" colspan="18">EXPLORACIÓN FÍSICA</td></tr>
+        <tr>
+            <td class="e">PESO</td><td th:text="${d.medida('PESO', 'kg')}"></td>
+            <td class="e">TALLA</td><td th:text="${d.medida('TALLA', 'm')}"></td>
+            <td class="e">IMC</td><td th:text="${d.medida('IMC', '')}"></td>
+            <td class="e">FC</td><td th:text="${d.medida('FC', '')}"></td>
+            <td class="e">FR</td><td th:text="${d.medida('FR', '')}"></td>
+            <td class="e">T/A</td><td th:text="${d.medida('TA', '')}"></td>
+            <td class="e">SAO2</td><td th:text="${d.medida('STPO2', '%')}"></td>
+            <td class="e">Tº</td><td th:text="${d.medida('TEMP', '°C')}"></td>
+            <td class="e">CINT/CAD</td><td>[[${d.medida('CINTURA', '')}]] / [[${d.medida('CADERA', '')}]]</td>
+        </tr>
+    </table>
+    <table class="f">
+        <tr>
+            <td class="e">CONSTITUCIÓN</td><td th:text="${d.texto('ECTOMORFICO')}"></td>
+            <td class="e">ACTITUD</td>
+            <td>Satisfacción: [[${d.texto('SATISFACCION')}]] · Compromiso con el trabajo: [[${d.texto('COMP_TRABAJO')}]] · Compromiso organizacional: [[${d.texto('COMP_ORGANIZACION')}]]</td>
+            <td class="e">ORIENTACIÓN</td>
+            <td>Tiempo: [[${d.texto('TIEMPO')}]] · Espacio: [[${d.texto('ESPACIO')}]] · Persona: [[${d.texto('PERSONA')}]]</td>
+        </tr>
+        <tr>
+            <td class="e">EDO. EMOCIONAL</td><td th:text="${d.texto('SERENIDAD')}"></td>
+            <td class="e">FASCIES</td><td th:text="${d.texto('HIPOCRITA')}"></td>
+            <td class="e">MARCHA</td><td th:text="${d.texto('PARKINSON2')}"></td>
+        </tr>
+        <tr th:if="${completa}">
+            <td class="e">LENGUAJE</td>
+            <td colspan="5">Voz clara y fuerte: [[${d.texto('VOZCLARAYFUERTE')}]] · Lenguaje: [[${d.texto('LENGUAJE')}]] · Conversación fluida: [[${d.texto('CONVER_FLUIDA')}]] · Coherencia de palabras: [[${d.texto('COHERENCIA_PALABLAS')}]]</td>
+        </tr>
+    </table>
+</th:block>
+
+<!--/* Exploracion por region, en 3 columnas como el formato (CRANEO | OIDOS | ABDOMEN, ...) */-->
+<th:block th:fragment="exploracionRegiones(completa)">
+    <table class="f">
+        <tr><td class="sub" colspan="2">CRÁNEO</td><td class="sub" colspan="2">OÍDOS</td><td class="sub" colspan="2">ABDOMEN</td></tr>
+        <tr><td class="e">OJOS</td><td th:text="${d.texto('OJOS')}"></td><td class="e">CONDUCTO AUDITIVO EXTERNO</td><td th:text="${d.texto('ODCAEINPEXP')}"></td><td class="e">FORMA</td><td th:text="${d.texto('FORMA')}"></td></tr>
+        <tr><td class="e">PUPILAS</td><td th:text="${d.texto('PUPILAS')}"></td><td class="e">MEM TIM</td><td>OD: [[${d.texto('ODMEMTIMINPEXP')}]] · OI: [[${d.texto('OIMEMTIMINPEXP')}]]</td><td class="e">VISCEROMEGALIAS</td><td th:text="${d.texto('VISCEROMEGALIAS')}"></td></tr>
+        <tr><td class="e">CONJUNTIVAS</td><td th:text="${d.texto('CONJUNTIVAS')}"></td><td class="e">AGUD AUDIT</td><td></td><td class="e">HERNIAS</td><td th:text="${d.texto('HERNIAS2')}"></td></tr>
+        <tr><td class="e">REFLEJOS</td><td th:text="${d.texto('REFLEJOS')}"></td><td class="e">OÍDO DERECHO</td><td th:text="${d.texto('ODAGAUDIINPEXP')}"></td><td class="e">DOLOR</td><td th:text="${d.texto('DOLOR')}"></td></tr>
+        <tr><td class="e">FONDO OJO</td><td th:text="${d.texto('FONDO_OJO')}"></td><td class="e">OÍDO IZQUIERDO</td><td th:text="${d.texto('OIAGAUDIINPEXP')}"></td><td class="e">PERISTALSIS</td><td th:text="${d.texto('PERISTALSIS')}"></td></tr>
+
+        <tr><td class="sub" colspan="2">AGUDEZA VISUAL (SL / CL)</td><td class="sub" colspan="2">CUELLO</td><td class="sub" colspan="2">GENITALES</td></tr>
+        <tr><td class="e">OJO DERECHO</td><td>SL: [[${d.texto('OD')}]] · CL: [[${d.texto('LENTEOJODERECHOEXP')}]]</td><td class="e">DEFORMACIONES</td><td th:text="${d.texto('DEFORMACIONES_OBS')}"></td><td class="e">MASCULINO</td><td th:text="${d.noValorado('MASCULINO')}"></td></tr>
+        <tr><td class="e">OJO IZQUIERDO</td><td>SL: [[${d.texto('OIZ')}]] · CL: [[${d.texto('LENTEOJOIZQUIERDOEXP')}]]</td><td class="e">TIROIDES</td><td th:text="${d.texto('TIROIDES_OBS')}"></td><td class="e">FEMENINO</td><td th:text="${d.noValorado('FEMENINO')}"></td></tr>
+        <tr><td class="e">COLORES</td><td th:text="${d.texto('COLORES')}"></td><td class="e">TRÁQUEA</td><td th:text="${d.texto('TRAQUEA_OBS')}"></td><td class="sub" colspan="2">URINARIO</td></tr>
+
+        <tr><td class="sub" colspan="2">NARIZ</td><td class="sub" colspan="2">TÓRAX</td><td class="e">PUNTOS URETERALES</td><td th:text="${d.texto('PUNTOS_URETRALES')}"></td></tr>
+        <tr><td class="e">CAVIDAD NASAL</td><td th:text="${d.texto('CAVIDAD_NASAL')}"></td><td class="e">RUIDOS CARDIACOS</td><td th:text="${d.texto('RUIDOS_CARDIACOS')}"></td><td class="e">FOSAS RENALES</td><td th:text="${d.texto('FOSAS_RENALES')}"></td></tr>
+        <tr><td class="e">MUCOSA</td><td th:text="${d.texto('MUCOSA')}"></td><td class="e">REG. PRECORDIAL</td><td th:text="${d.texto('REG_PRECORDIAL')}"></td><td class="sub" colspan="2">EXTREMIDADES</td></tr>
+        <tr th:if="${completa}"><td class="e">TABIQUE NASAL</td><td th:text="${d.texto('TABIQUE_NASAL')}"></td><td class="e">CAMPOS PULM.</td><td th:text="${d.texto('CAMPOS_PULM')}"></td><td class="e">SUPERIORES</td><td th:text="${d.texto('SUPERIOR')}"></td></tr>
+        <tr th:if="${completa}"><td class="e">OLFATO</td><td th:text="${d.texto('OLFATO')}"></td><td colspan="2"></td><td class="e">INFERIORES</td><td th:text="${d.texto('INFERIOR')}"></td></tr>
+        <tr th:unless="${completa}"><td class="e">OLFATO</td><td th:text="${d.texto('OLFATO')}"></td><td class="e">CAMPOS PULM.</td><td th:text="${d.texto('CAMPOS_PULM')}"></td><td class="e">SUPERIORES</td><td th:text="${d.texto('SUPERIOR')}"></td></tr>
+        <tr th:unless="${completa}"><td colspan="4"></td><td class="e">INFERIORES</td><td th:text="${d.texto('INFERIOR')}"></td></tr>
+    </table>
+</th:block>
+
+<!--/* Boca, columna, insuficiencia venosa y piel */-->
+<th:block th:fragment="exploracionInferior(completa)">
+    <table class="f">
+        <tr><td class="sub" colspan="2">BOCA</td><td class="sub" colspan="2">COLUMNA VERTEBRAL</td><td class="sub" colspan="2">INSUFICIENCIA VENOSA PERIFÉRICA</td></tr>
+        <tr><td class="e">LESIONES</td><td th:text="${d.texto('LESIONES')}"></td><td class="e">DEFORMACIONES</td><td th:text="${d.texto('DEFORMACIONES')}"></td><td class="e">IVP</td><td th:text="${d.texto('IVP')}"></td></tr>
+        <tr><td class="e">ENCÍAS</td><td th:text="${d.texto('ENCIAS')}"></td><td class="e">DOLOR</td><td th:text="${d.texto('DOLOR')}"></td><td class="e">EDEMA</td><td th:text="${d.texto('EDEMA')}"></td></tr>
+        <tr><td class="e">OROFARINGE</td><td th:text="${d.texto('OROIFARINGE')}"></td><td class="e">MOVIMIENTOS</td><td th:text="${d.texto('MOVIMIENTOS')}"></td><td class="sub" colspan="2">PIEL</td></tr>
+        <tr th:if="${completa}"><td class="e">CURVATURA FISIOLÓGICA</td><td>Cervical: [[${d.texto('CERVICAL')}]] · Dorsal: [[${d.texto('DORSAL')}]] · Lumbar: [[${d.texto('LUMBAR')}]]</td><td class="e">MARCHA</td><td th:text="${d.texto('MARCHA')}"></td><td class="e">LUNARES</td><td th:text="${d.texto('LUNARES')}"></td></tr>
+        <tr th:unless="${completa}"><td colspan="2"></td><td class="e">MARCHA</td><td th:text="${d.texto('MARCHA')}"></td><td class="e">LUNARES</td><td th:text="${d.texto('LUNARES')}"></td></tr>
+        <tr><td colspan="2"></td><td class="e">LASEGUE</td><td th:text="${d.texto('LASSEGUE')}"></td><td class="e">PIGMENTACIÓN</td><td th:text="${d.texto('PIGMENTACION')}"></td></tr>
+        <tr><td colspan="2"></td><td class="e">PUNTA TALÓN</td><td th:text="${d.texto('PUNTA_TALON')}"></td><td class="e">CICATRICES QUIRÚRGICAS</td><td th:text="${d.texto('CICATRICES_QUIRUR')}"></td></tr>
+        <tr th:if="${completa}"><td class="e">OBSERVACIONES</td><td colspan="5" th:text="${d.texto('OBSGENERALINPEX')}"></td></tr>
+    </table>
+</th:block>
+
+<!--/* Dientes: el odontograma del formato (circulo de 5 caras por pieza, 18-11 | 21-28 arriba y 48-41 | 31-38 abajo),
+     pintado con lo capturado: caries rojo, amalgama gris, endodoncia morado por cara; protesis azul y ausencia con
+     tache en el diente completo. Cada diente es una imagen que dibuja Odontograma.java */-->
+<th:block th:fragment="dientes">
+    <table class="f dientes">
+        <tr><td class="sec" colspan="17">DIENTES · CARIES (C) · AMALGAMAS (A) · ENDODONCIAS (E) · PRÓTESIS (P) · AUSENCIAS (X)</td></tr>
+        <tr class="num">
+            <th:block th:each="n, st : ${ {18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28} }">
+                <td th:if="${st.index == 8}" rowspan="4" class="medio"></td><td th:text="${n}"></td>
+            </th:block>
+        </tr>
+        <tr class="pieza"><td th:each="n : ${ {18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28} }"><img th:src="${d.odonto(n)}" alt=""></td></tr>
+        <tr class="pieza"><td th:each="n : ${ {48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38} }"><img th:src="${d.odonto(n)}" alt=""></td></tr>
+        <tr class="num"><td th:each="n : ${ {48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38} }" th:text="${n}"></td></tr>
+        <tr><td colspan="17" class="leyenda">
+            <!--/* la letra va tambien en la leyenda: impreso en blanco y negro los colores quedan del mismo gris */-->
+            <span class="cuadro cc"></span> <b>C</b> Caries · <span class="cuadro ca"></span> <b>A</b> Amalgama · <span class="cuadro ce"></span> <b>E</b> Endodoncia (por cara) ·
+            <span class="cuadro cp"></span> <b>P</b> Prótesis · <b>X</b> Ausencia (tache) · centro = oclusal, arriba/abajo = vestibular y lingual, lados = mesial y distal
+        </td></tr>
+    </table>
+</th:block>
+
+<!--/* Estudios, diagnostico, plan, resultado y firmas. conDx: no en FT-SO-19; conPlan: no en FT-SO-18;
+     estudios = titulo de la seccion, null en el FT-SO-13 (no la trae) */-->
+<th:block th:fragment="cierre(conDx, conPlan, estudios, certificacion)">
+    <table class="f">
+        <th:block th:if="${estudios != null}">
+            <tr><td class="sec" th:text="${estudios}">ESTUDIOS REALIZADOS Y RESULTADOS</td></tr>
+            <tr><td class="caja" th:text="${d.texto('RESULTADOS3')}"></td></tr>
+        </th:block>
+        <th:block th:if="${conDx}">
+            <tr><td class="sec">DIAGNÓSTICO</td></tr>
+            <tr><td class="caja" th:text="${d.texto('OBSERVACIONES3')}"></td></tr>
+        </th:block>
+        <th:block th:if="${conPlan}">
+            <tr><td class="sec">PLAN O TERAPÉUTICA EMPLEADA</td></tr>
+            <tr><td class="caja" th:text="${d.texto('OBSERVACIONES32')}"></td></tr>
+        </th:block>
+    </table>
+    <!--/* las CLAVES 15/45/60/30 no se imprimen (decision 16-oct-2026), solo el texto del dictamen */-->
+    <table class="f">
+        <tr><td class="sec" colspan="8">RESULTADO DEL EXAMEN</td></tr>
+        <tr>
+            <td class="c">APTO</td><td class="x" th:text="${d.marca('DICTAMEN', 'Apto')}"></td>
+            <td class="c">APTO CONDICIONADO</td><td class="x" th:text="${d.marca('DICTAMEN', 'Apto condicionado')}"></td>
+            <td class="c">APTO RESTRINGIDO (INCLUSIÓN)</td><td class="x" th:text="${d.marca('DICTAMEN', 'Apto restringido')}"></td>
+            <td class="c">NO APTO</td><td class="x" th:text="${d.marca('DICTAMEN', 'No apto')}"></td>
+        </tr>
+        <tr><td colspan="8" class="e">SI NO ES APTO O APTO RESTRINGIDO CITE LAS ANORMALIDADES DESCALIFICANTES</td></tr>
+        <tr><td colspan="8" class="caja" th:text="${d.v('OBSERVACIONESRESEXAM1')}"></td></tr>
+    </table>
+    <table class="firmas">
+        <tr>
+            <td>
+                <img th:if="${medico != null and medico.firmaDataUri != null}" th:src="${medico.firmaDataUri}" alt="Firma">
+                <div class="linea-firma" th:text="${medico != null} ? ${medico.nombre} + ' CP ' + ${medico.cedula} : 'Dr. Mauricio Cerón Solana CP 5154089'">Dr. Mauricio Cerón Solana CP 5154089</div>
+            </td>
+            <td>
+                <img th:if="${d.firmaTrabajador != null}" th:src="${d.firmaTrabajador}" alt="Firma del trabajador">
+                <div class="linea-firma">Firma del trabajador</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <!--/* 29-oct-2026: espacio para firmar arriba de la linea, como la del medico; pegada a la linea
+                     del medico no se distinguia una de otra (y la firma iba encimada al nombre) */-->
+                <div style="height:34px; margin-top:6px">
+                    <img th:if="${elaboro != null and elaboro.firmaDataUri != null}" th:src="${elaboro.firmaDataUri}" alt="Firma" style="max-height:34px">
+                </div>
+                <div class="linea-firma">
+                    Realizó<th:block th:if="${elaboro != null and elaboro.nombre != null and !elaboro.nombre.isBlank()}">: <b th:text="${elaboro.nombre}">Usuario</b></th:block>
+                </div>
+            </td>
+            <td class="cert" style="vertical-align:top" th:text="${certificacion}"></td>
+        </tr>
+    </table>
+</th:block>
+
+<!-- ======================================================================= FT-SO-13 (tipo 4) -->
+<tr class="hoja" th:fragment="ftso13"><td><div class="emle">
+    <th:block th:replace="~{fragments/formato-emle :: encabezado(1, 1)}"></th:block>
+    <th:block th:replace="~{fragments/formato-emle :: ficha(false)}"></th:block>
+    <table class="f">
+        <tr><td class="sec" colspan="12">ANTECEDENTES DE LA INCAPACIDAD</td></tr>
+        <tr><td class="e">DIAGNÓSTICO</td><td colspan="11" th:text="${d.v('EXM_INC_DIAGNOSTICO')}"></td></tr>
+        <tr>
+            <td class="e">DÍAS DE INCAPACIDAD</td><td colspan="2" th:text="${d.v('EXM_INC_DIAS')}"></td>
+            <td class="e">RAMO DEL SEGURO</td>
+            <td class="c">EG</td><td class="x" th:text="${d.marca('EXM_INC_RAMO', 'EG')}"></td>
+            <td class="c">MAT</td><td class="x" th:text="${d.marca('EXM_INC_RAMO', 'MAT')}"></td>
+            <td class="c">RT</td><td class="x" th:text="${d.marca('EXM_INC_RAMO', 'RT')}"></td>
+            <td class="c">ENLACE</td><td class="x" th:text="${d.marca('EXM_INC_RAMO', 'ENLACE')}"></td>
+        </tr>
+        <tr>
+            <td class="e">TIPO DE INCAPACIDAD</td>
+            <td class="c">IMSS</td><td class="x" th:text="${d.marca('EXM_INC_TIPO', 'IMSS')}"></td>
+            <td class="c">INTERNA</td><td class="x" th:text="${d.marca('EXM_INC_TIPO', 'INTERNA')}"></td>
+            <td class="e" colspan="2">FECHA DE INICIO</td><td colspan="2" th:text="${d.fecha('EXM_INC_INICIO')}"></td>
+            <td class="e" colspan="2">FECHA DE TÉRMINO</td><td th:text="${d.fecha('EXM_INC_TERMINO')}"></td>
+        </tr>
+        <tr><td class="e">TRATAMIENTO</td><td colspan="11" th:text="${d.v('EXM_INC_TRATAMIENTO')}"></td></tr>
+    </table>
+    <th:block th:replace="~{fragments/formato-emle :: gineco(false)}"></th:block>
+    <table class="f">
+        <tr><td class="sec" colspan="14">EXPLORACIÓN FÍSICA</td></tr>
+        <tr>
+            <td class="e">PESO</td><td th:text="${d.medida('PESO', 'kg')}"></td>
+            <td class="e">TALLA</td><td th:text="${d.medida('TALLA', 'm')}"></td>
+            <td class="e">IMC</td><td th:text="${d.medida('IMC', '')}"></td>
+            <td class="e">FC</td><td th:text="${d.medida('FC', '')}"></td>
+            <td class="e">FR</td><td th:text="${d.medida('FR', '')}"></td>
+            <td class="e">T/A</td><td th:text="${d.medida('TA', '')}"></td>
+            <td class="e">T°</td><td th:text="${d.medida('TEMP', '°C')}"></td>
+        </tr>
+        <tr th:each="i : ${#numbers.sequence(1, 8)}"><td class="linea" colspan="14"></td></tr>
+    </table>
+    <th:block th:replace="~{fragments/formato-emle :: cierre(true, true, null, 'YO CERTIFICO QUE LOS DATOS ANTERIORMENTE PROPORCIONADOS SON VERDADEROS Y ESTOY CONSCIENTE QUE CUALQUIER OMISIÓN O FALSIFICACIÓN PUEDEN SER MOTIVO DE DESPIDO, Y AUTORIZO AL SERVICIO MÉDICO DE LA COMPAÑÍA PARA QUE REALICE LOS EXÁMENES NECESARIOS CON MOTIVO DE MI TRABAJO PARA DETECCIÓN OPORTUNA Y ESTUDIO DE ENFERMEDADES O ACCIDENTES')}"></th:block>
+</div></td></tr>
+
+<!-- ======================================================================= FT-SO-17 y derivados (tipos 2, 3, 6, 8) -->
+<!--/* 17 periodico base; 16 cambia "Antecedentes laborales" por "Cambio de puesto"; 18 agrega turno, antiguedad y
+     motivo de salida, titula distinto los estudios y no lleva plan; 20 agrega laborales especificos y FUP */-->
+<th:block th:fragment="ftso17" th:with="t=${d.v('TIPO_CODIGO')},
+        cert='YO CERTIFICO QUE LOS DATOS ANTERIORMENTE PROPORCIONADOS SON VERDADEROS Y ESTOY CONSCIENTE QUE CUALQUIER OMISIÓN O FALSIFICACIÓN PUEDEN SER MOTIVO DE DESPIDO, Y AUTORIZO AL SERVICIO MÉDICO DE LA COMPAÑÍA PARA QUE REALICE LOS EXÁMENES NECESARIOS CON MOTIVO DE MI TRABAJO PARA DETECCIÓN OPORTUNA Y ESTUDIO DE ENFERMEDADES O ACCIDENTES'">
+<tr class="hoja"><td><div class="emle">
+    <th:block th:replace="~{fragments/formato-emle :: encabezado(1, 2)}"></th:block>
+    <th:block th:replace="~{fragments/formato-emle :: ficha(false)}"></th:block>
+    <table class="f" th:if="${t != '3'}">
+        <tr><td class="sec" colspan="6">ANTECEDENTES LABORALES</td></tr>
+        <tr><td class="e">PUESTO INICIAL</td><td colspan="5" th:text="${d.texto('EXM_PUESTO_INICIAL')}"></td></tr>
+        <tr><td class="e">PUESTO ACTUAL</td><td colspan="5" th:text="${d.texto('EXM_PUESTO_ACTUAL')}"></td></tr>
+        <tr th:if="${t == '6'}">
+            <td class="e">TURNO</td><td th:text="${d.texto('EXM_TURNO_SALIDA')}"></td>
+            <td class="e">ANTIGÜEDAD</td><td th:text="${d.texto('EXM_ANTIGUEDAD')}"></td>
+            <td class="e">MOTIVO DE SALIDA</td><td th:text="${d.texto('EXM_MOTIVO_SALIDA')}"></td>
+        </tr>
+    </table>
+    <table class="f" th:if="${t == '3'}">
+        <tr><td class="sec" colspan="6">CAMBIO DE PUESTO</td></tr>
+        <tr>
+            <td class="e">PUESTO ANTERIOR</td><td th:text="${d.texto('EXM_PUESTO_ANTERIOR')}"></td>
+            <td class="e">FECHA DE INGRESO</td><td th:text="${d.fecha('EXM_FECHA_ING_ANTERIOR')}"></td>
+            <td class="e">MOTIVO DEL CAMBIO</td><td th:text="${d.texto('EXM_MOTIVO_CAMBIO')}"></td>
+        </tr>
+        <tr>
+            <td class="e">PUESTO ACTUAL</td><td th:text="${d.texto('EXM_CAMBIO_PUESTO_ACTUAL')}"></td>
+            <td class="e">FECHA DE INGRESO</td><td th:text="${d.fecha('EXM_FECHA_ING_ACTUAL')}"></td>
+            <td colspan="2"></td>
+        </tr>
+    </table>
+    <th:block th:if="${t == '8'}"><th:block th:replace="~{fragments/formato-emle :: laboralesEspecificos}"></th:block></th:block>
+    <th:block th:replace="~{fragments/formato-emle :: inmunizaciones('ANTECEDENTES PERSONALES NO PATOLÓGICOS «INMUNIZACIONES»')}"></th:block>
+    <th:block th:replace="~{fragments/formato-emle :: gineco(${t == '8'})}"></th:block>
+    <table class="f">
+        <tr><td class="sec" colspan="4">ANTECEDENTES PERSONALES PATOLÓGICOS</td></tr>
+        <tr><td class="e">ENF CONGÉNITAS</td><td th:text="${d.resumen('ENF_CONGENITAS:')}"></td>
+            <td class="e">NEFROPATÍAS</td><td th:text="${d.resumen('INCONTINENSIA:Incontinencia,INSUFICIENCIA:Insuficiencia renal,LITIASIS:Litiasis')}"></td></tr>
+        <tr><td class="e">ENF PROP INF</td><td th:text="${d.resumen('ENF_PROP_INF:')}"></td>
+            <td class="e">GENITAL</td><td th:text="${d.resumen('GENITAL:')}"></td></tr>
+        <tr><td class="e">SIST NERVIOSO</td><td th:text="${d.resumen('ANEURISMA:Aneurisma,ENF_DEG_MUS_NEU:Enf. degenerativa,ACC_CER_VASCU:Accidente cerebrovascular,EPILEPSIA2:Epilepsia,PAR_FACIAL:Parálisis facial')}"></td>
+            <td class="e">MUSCULOESQUELÉTICO</td><td th:text="${d.resumen('ESCOLIOSIS:Escoliosis,XIFOSIS:Xifosis,LORDOSISI:Lordosis,LUMBALGIA:Lumbalgia,BASCULAMIENTO:Basculamiento,ALTERACION_DISCAL:Alteración discal')}"></td></tr>
+        <tr><td class="e">SIST ÓPTICO</td><td th:text="${d.resumen('USO_LENTES:Uso de lentes,MIOPIA:Miopía,ASTIGMATISMO:Astigmatismo,PRESBICIA:Presbicia,ESTRABISMO:Estrabismo,DALTONISMO:Daltonismo,DESPENDIMIENTO_RET:Desprendimiento de retina')}"></td>
+            <td class="e">DERMATOPATÍAS</td><td th:text="${d.resumen('DERMATOPATIAS:')}"></td></tr>
+        <tr><td class="e">SIST AUDITIVO</td><td th:text="${d.resumen('SIST_AUDITIVO:')}"></td>
+            <td class="e">HEMATOPATÍAS</td><td></td></tr>
+        <tr><td class="e">SIST OLFATORIO</td><td th:text="${d.resumen('SIS_OLFATIVO:')}"></td>
+            <td class="e">ALERGIAS</td><td th:text="${d.resumen('ALRGNEWINP:')}"></td></tr>
+        <tr><td class="e">CARDIOPATÍAS</td><td th:text="${d.resumen('ANEURISMA2:Aneurisma,HIPERTENSION2:Hipertensión,HIPOTENSION2:Hipotensión,INFARTOS:Infartos,INSUFIC_CAR:Insuficiencia cardiaca')}"></td>
+            <td class="e">TRANSFUSIONALES</td><td></td></tr>
+        <tr><td class="e">DIGESTIVO</td><td th:text="${d.resumen('HERNIAS:Hernias,CIRROSIS:Cirrosis,COLITIS:Colitis,GASTRITIS:Gastritis,HEMORROIDES:Hemorroides')}"></td>
+            <td class="e">QUIRÚRGICOS</td><td th:text="${d.resumen('CIRUGIAS:')}"></td></tr>
+        <tr><td class="e">NEUMOPATÍAS</td><td th:text="${d.resumen('RESPIRATORIO:')}"></td>
+            <td class="e">TRAUMÁTICOS</td><td th:text="${d.resumen('TRAUMATICOS:')}"></td></tr>
+        <tr><td class="e">ENDOCRINAS</td><td th:text="${d.resumen('DIABETES:Diabetes,HIPERTIROIDISMO2:Hipertiroidismo,HIPOTIROIDISMO2:Hipotiroidismo')}"></td>
+            <td class="e">TOXICOLÓGICOS</td><td th:text="${d.resumen('DROGAS2:Drogas')}"></td></tr>
+        <tr><td class="e">TABAQUISMO</td><td th:text="${d.resumen('TABAQUISMO2:')}"></td>
+            <td class="e">ALCOHOLISMO</td><td th:text="${d.resumen('ALCOHOLISMO2:')}"></td></tr>
+        <tr><td class="e">TATUAJES</td><td th:text="${d.resumen('TATUAJES:')}"></td>
+            <td class="e">PERFORACIONES</td><td th:text="${d.resumen('PERFORACIONES:')}"></td></tr>
+    </table>
+    <th:block th:replace="~{fragments/formato-emle :: padecimiento}"></th:block>
+    <!--/* el FT-SO-20 trae los laborales especificos en la hoja 1 y por eso empieza la exploracion en la hoja 2 */-->
+    <th:block th:if="${t != '8'}">
+        <th:block th:replace="~{fragments/formato-emle :: exploracionGeneral(false)}"></th:block>
+        <th:block th:replace="~{fragments/formato-emle :: exploracionRegiones(false)}"></th:block>
+    </th:block>
+</div></td></tr>
+<tr class="hoja"><td><div class="emle">
+    <th:block th:replace="~{fragments/formato-emle :: encabezado(2, 2)}"></th:block>
+    <div style="height:5px"></div>
+    <th:block th:if="${t == '8'}">
+        <th:block th:replace="~{fragments/formato-emle :: exploracionGeneral(false)}"></th:block>
+        <th:block th:replace="~{fragments/formato-emle :: exploracionRegiones(false)}"></th:block>
+    </th:block>
+    <th:block th:replace="~{fragments/formato-emle :: exploracionInferior(false)}"></th:block>
+    <th:block th:replace="~{fragments/formato-emle :: dientes}"></th:block>
+    <th:block th:replace="~{fragments/formato-emle :: cierre(true, ${t != '6'},
+            ${t == '6'} ? 'ESTUDIOS REALIZADOS DURANTE SU PERIODO LABORAL Y RESULTADOS' : 'ESTUDIOS REALIZADOS Y RESULTADOS', ${cert})}"></th:block>
+</div></td></tr>
+</th:block>
+
+<!-- ======================================================================= FT-SO-04 y FT-SO-19 (tipos 1 y 7) -->
+<!--/* 19 = 04 + antecedentes laborales especificos y sin diagnostico; reparte las hojas un poco distinto */-->
+<th:block th:fragment="ftso04" th:with="t=${d.v('TIPO_CODIGO')},
+        cert=${t == '7'} ? 'YO CERTIFICO QUE LOS DATOS ANTERIORMENTE PROPORCIONADOS SON VERDADEROS Y ESTOY CONSCIENTE QUE CUALQUIER OMISIÓN O FALSIFICACIÓN PUEDEN SER MOTIVO DE DESPIDO, Y AUTORIZO AL SERVICIO MÉDICO DE LA COMPAÑÍA PARA QUE REALICE LOS EXÁMENES NECESARIOS CON MOTIVO DE MI TRABAJO PARA DETECCIÓN OPORTUNA Y ESTUDIO DE ENFERMEDADES O ACCIDENTES' : 'BAJO PROTESTA DE DECIR VERDAD CERTIFICO QUE LOS DATOS ANTERIORMENTE PROPORCIONADOS SON VERDADEROS Y ESTOY CONSCIENTE QUE CUALQUIER OMISIÓN O FALSIFICACIÓN PUEDEN SER MOTIVO DE DESPIDO, Y AUTORIZO AL SERVICIO MÉDICO DE LA COMPAÑÍA PARA QUE REALICE LOS EXÁMENES NECESARIOS CON MOTIVO DE MI TRABAJO PARA DETECCIÓN OPORTUNA Y ESTUDIO DE ENFERMEDADES O ACCIDENTES'">
+<tr class="hoja"><td><div class="emle">
+    <th:block th:replace="~{fragments/formato-emle :: encabezado(1, 3)}"></th:block>
+    <th:block th:replace="~{fragments/formato-emle :: ficha(true)}"></th:block>
+    <th:block th:replace="~{fragments/formato-emle :: laboralesInicial}"></th:block>
+    <th:block th:if="${t == '7'}"><th:block th:replace="~{fragments/formato-emle :: laboralesEspecificos}"></th:block></th:block>
+    <table class="f"><tr><td class="sec">ANTECEDENTES HEREDOFAMILIARES</td></tr></table>
+    <table class="dos"><tr>
+        <td><table class="f">
+            <th:block th:replace="~{fragments/formato-emle :: grupoSiNo('NEUROLÓGICAS', ${ {'avc:Accidente vascular crónico','EPILEPSIA:Epilepsia','PARALISIS_FACIAL:Parálisis facial','PARKINSON:Parkinson','ALZHEIMER:Alzheimer','MIGRAÑA:Migraña'} })}"></th:block>
+            <th:block th:replace="~{fragments/formato-emle :: grupoSiNo('CARDIOPATÍA', ${ {'CARDIOPATIA_ISQUEMICA:Cardiopatía isquémica','HIPERTENSION:Hipertensión','HIPOTENSION:Hipotensión','INSUFICIENCIA_CARDIACA:Insuficiencia cardiaca','INSUFICIENCIA_VASCULAR_PERIFERICA:Insuficiencia vascular periférica'} })}"></th:block>
+            <th:block th:replace="~{fragments/formato-emle :: grupoSiNo('NEUMOPATÍAS', ${ {'BRONQUITIS:Bronquitis','TUBERCULOSIS:Tuberculosis','ASMA:Asma','INSUFICIENCIA_RESPIRATORIA:Insuficiencia respiratoria'} })}"></th:block>
+            <th:block th:replace="~{fragments/formato-emle :: grupoSiNo('TOXICOLÓGICOS', ${ {'ALCOHOLISMO:Alcoholismo','TABAQUISMO:Tabaquismo','DROGAS:Drogas'} })}"></th:block>
+        </table></td>
+        <td><table class="f">
+            <th:block th:replace="~{fragments/formato-emle :: grupoSiNo('NEFROPATÍAS', ${ {'IRC:Insuficiencia renal crónica','LITASIS:Litiasis'} })}"></th:block>
+            <th:block th:replace="~{fragments/formato-emle :: grupoSiNo('ENDOCRINAS', ${ {'DM:Diabetes mellitus','HIPERTIROIDISMO:Hipertiroidismo','HIPOTIROIDISMO:Hipotiroidismo'} })}"></th:block>
+            <th:block th:replace="~{fragments/formato-emle :: grupoSiNo('OBESIDAD', ${ {'TRANSTORNO_DE_CRECIMIENTO:Trastornos de crecimiento'} })}"></th:block>
+            <th:block th:replace="~{fragments/formato-emle :: grupoSiNo('MENTALES', ${ {'NEUROSIS:Neurosis','PSICOSIS:Psicosis','INTENTO_DE_SUICIDIO:Intento de suicidio','ESQUIZOFRENIA:Esquizofrenia'} })}"></th:block>
+            <th:block th:replace="~{fragments/formato-emle :: grupoSiNo('GENERALES', ${ {'CANCER:Cáncer','ALERGIAS:Alergias','MALFORMACIONES:Malformaciones'} })}"></th:block>
+            <tr><td class="sub">OTRAS</td><td class="sub" colspan="3">Observaciones</td></tr>
+            <tr><td colspan="4" th:text="${d.resumen('OTRAS:')}"></td></tr>
+        </table></td>
+    </tr></table>
+    <table class="f">
+        <tr><td class="sec" colspan="8">ANTECEDENTES PERSONALES NO PATOLÓGICOS</td></tr>
+        <tr><td class="e">HABITACIÓN</td><td th:text="${d.texto('HABITACION')}"></td><td class="e">NUM DORMITORIOS</td><td th:text="${d.texto('NO_DORMITORIOS')}"></td>
+            <td class="e">NUM HABITANTES</td><td th:text="${d.texto('NO_HABITANTES')}"></td><td class="e">RELIGIÓN</td><td th:text="${d.texto('RELIGION')}"></td></tr>
+        <tr><td class="e">PISO</td><td th:text="${d.texto('PISO')}"></td><td class="e">TECHO</td><td th:text="${d.texto('TECHO')}"></td>
+            <td class="e">AGUA POTABLE</td><td th:text="${d.texto('AGUA_POTABLE')}"></td><td class="e">LUZ / DRENAJE</td><td>[[${d.texto('LUZ')}]] / [[${d.texto('DRENAJE')}]]</td></tr>
+        <tr><td class="e">CONVIVENCIA CON ANIMALES</td><td th:text="${d.texto('CONVIVENCIA_CON_ANIMALES')}"></td><td class="e">AIRE ACONDICIONADO</td><td th:text="${d.texto('AIRE_ACONDICIONADO')}"></td>
+            <td class="e">HIGIENE PERSONAL</td><td colspan="3" th:text="${d.texto('HIGIENE_PERSONAL')}"></td></tr>
+        <tr><td class="e">BAÑO</td><td th:text="${d.texto('BAÑO')}"></td><td class="e">CAMBIO DE ROPA</td><td th:text="${d.texto('CAMBIO_DE_ROPA')}"></td>
+            <td class="e">ASEO BUCAL</td><td th:text="${d.texto('ASEO_BUCAL')}"></td><td class="e">NUM. COMIDAS POR DÍA</td><td th:text="${d.texto('NO_COMIDAS_AL_DIA')}"></td></tr>
+        <tr><td class="e">ALIMENTACIÓN</td><td th:text="${d.texto('ALIMENTACION')}"></td><td class="e">BALANCEADA</td><td th:text="${d.texto('BALANCEADA')}"></td>
+            <td class="e">SUFICIENTE</td><td colspan="3" th:text="${d.texto('SUFICIENTE')}"></td></tr>
+        <tr><td class="e">DEPORTE</td><td>[[${d.texto('DEPORTE')}]] <th:block th:if="${!#strings.isEmpty(d.texto('FC1'))}">· [[${d.texto('FC1')}]] veces por [[${d.texto('cadaCuandoDep')}]]</th:block></td>
+            <td class="e">HOBBIES O PASATIEMPOS</td><td colspan="5">[[${d.texto('HOBBIES_PASATIEMPOS')}]] <th:block th:if="${!#strings.isEmpty(d.texto('FC2'))}">· [[${d.texto('FC2')}]] veces por [[${d.texto('cadaCuandoPasa')}]]</th:block></td></tr>
+    </table>
+    <th:block th:if="${t == '1'}">
+        <th:block th:replace="~{fragments/formato-emle :: inmunizaciones('INMUNIZACIONES')}"></th:block>
+        <th:block th:replace="~{fragments/formato-emle :: gineco(true)}"></th:block>
+    </th:block>
+</div></td></tr>
+<tr class="hoja"><td><div class="emle">
+    <th:block th:replace="~{fragments/formato-emle :: encabezado(2, 3)}"></th:block>
+    <div style="height:5px"></div>
+    <th:block th:if="${t == '7'}">
+        <th:block th:replace="~{fragments/formato-emle :: inmunizaciones('INMUNIZACIONES')}"></th:block>
+        <th:block th:replace="~{fragments/formato-emle :: gineco(true)}"></th:block>
+    </th:block>
+    <table class="f"><tr><td class="sec">ANTECEDENTES PERSONALES PATOLÓGICOS</td></tr></table>
+    <table class="dos"><tr>
+        <td><table class="f">
+            <th:block th:replace="~{fragments/formato-emle :: grupoSiNo(null, ${ {'ENF_CONGENITAS:Enf. congénitas','ENF_PROP_INF:Enf. propias de la infancia','SIST_AUDITIVO:Sist. auditivo (sordera, perforación de tímpano)','SIS_OLFATIVO:Sist. olfatorio'} })}"></th:block>
+            <th:block th:replace="~{fragments/formato-emle :: grupoSiNo('OFTALMOLÓGICO', ${ {'USO_LENTES:Uso de lentes','MIOPIA:Miopía','ASTIGMATISMO:Astigmatismo','PRESBICIA:Presbicia','ESTRABISMO:Estrabismo','DALTONISMO:Daltonismo','DESPENDIMIENTO_RET:Desprendimiento de retina'} })}"></th:block>
+            <th:block th:replace="~{fragments/formato-emle :: grupoSiNo('CARDIOPATÍAS', ${ {'ANEURISMA2:Aneurismas','HIPERTENSION2:Hipertensión','HIPOTENSION2:Hipotensión','INFARTOS:Infartos','INSUFIC_CAR:Insuficiencia cardiaca'} })}"></th:block>
+            <th:block th:replace="~{fragments/formato-emle :: grupoSiNo('DIGESTIVO', ${ {'HERNIAS:Hernias','CIRROSIS:Cirrosis','COLITIS:Colitis','GASTRITIS:Gastritis y esofagitis','HEMORROIDES:Hemorroides','CIRUGIAS:Cirugías'} })}"></th:block>
+            <th:block th:replace="~{fragments/formato-emle :: grupoSiNo('ENDOCRINAS', ${ {'DIABETES:Diabetes','HIPERTIROIDISMO2:Hipertiroidismo','HIPOTIROIDISMO2:Hipotiroidismo'} })}"></th:block>
+        </table></td>
+        <td><table class="f">
+            <th:block th:replace="~{fragments/formato-emle :: grupoSiNo(null, ${ {'GENITAL:Genital (prolapsos)','DERMATOPATIAS:Dermatopatías','RESPIRATORIO:Respiratorio','TRAUMATICOS:Traumáticos'} })}"></th:block>
+            <th:block th:replace="~{fragments/formato-emle :: grupoSiNo('RENAL', ${ {'INCONTINENSIA:Incontinencia','INSUFICIENCIA:Insuficiencia','LITIASIS:Litiasis'} })}"></th:block>
+            <th:block th:replace="~{fragments/formato-emle :: grupoSiNo('ALERGIAS', ${ {'ALRGNEWINP:Alergias'} })}"></th:block>
+            <th:block th:replace="~{fragments/formato-emle :: grupoSiNo('SISTEMA NERVIOSO', ${ {'ANEURISMA:Aneurismas','ENF_DEG_MUS_NEU:Enf. degenerativas musculares y neuronales','ACC_CER_VASCU:Accidente cerebro-vascular','EPILEPSIA2:Epilepsia','PAR_FACIAL:Parálisis facial'} })}"></th:block>
+            <th:block th:replace="~{fragments/formato-emle :: grupoSiNo('MÚSCULO ESQUELÉTICO', ${ {'ESCOLIOSIS:Escoliosis','XIFOSIS:Xifosis','LORDOSISI:Lordosis','LUMBALGIA:Lumbalgia','BASCULAMIENTO:Basculamiento','ALTERACION_DISCAL:Alteración discal'} })}"></th:block>
+            <th:block th:replace="~{fragments/formato-emle :: grupoSiNo('TOXICOLÓGICAS', ${ {'TABAQUISMO2:Tabaquismo','ALCOHOLISMO2:Alcoholismo','DROGAS2:Drogas'} })}"></th:block>
+        </table></td>
+    </tr></table>
+    <table class="f">
+        <th:block th:replace="~{fragments/formato-emle :: grupoSiNo(null, ${ {'ALT_CARGA:¿Algún trastorno que repercuta en la manipulación de cargas manuales?','PERFORACIONES:Perforaciones','TATUAJES:Tatuajes'} })}"></th:block>
+    </table>
+    <th:block th:replace="~{fragments/formato-emle :: padecimiento}"></th:block>
+</div></td></tr>
+<tr class="hoja"><td><div class="emle">
+    <th:block th:replace="~{fragments/formato-emle :: encabezado(3, 3)}"></th:block>
+    <div style="height:5px"></div>
+    <th:block th:replace="~{fragments/formato-emle :: exploracionGeneral(true)}"></th:block>
+    <th:block th:replace="~{fragments/formato-emle :: exploracionRegiones(true)}"></th:block>
+    <th:block th:replace="~{fragments/formato-emle :: exploracionInferior(true)}"></th:block>
+    <th:block th:replace="~{fragments/formato-emle :: dientes}"></th:block>
+    <th:block th:replace="~{fragments/formato-emle :: cierre(${t != '7'}, true, 'ESTUDIOS REALIZADOS Y RESULTADOS', ${cert})}"></th:block>
+</div></td></tr>
+</th:block>
+
+</table>
+</body>
+</html>

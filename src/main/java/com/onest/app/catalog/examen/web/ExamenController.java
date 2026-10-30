@@ -42,6 +42,7 @@ public class ExamenController {
     private final com.onest.app.catalog.formato.service.FormatosImpresosService formatos;
     private final com.onest.app.catalog.examen.service.CertificacionAptitudService certificacion;
     private final com.onest.app.catalog.predio.service.PredioService predios;
+    private final com.onest.app.catalog.formato.service.HtmlPdfService htmlPdf;
 
     /**
      * FT-SO-31 Dictamen de certificacion de aptitud medica laboral (20-oct-2026, formato B "opcional"):
@@ -147,7 +148,9 @@ public class ExamenController {
             com.onest.app.catalog.examen.service.PrecargaFormato precarga,
             com.onest.app.catalog.formato.service.FormatosImpresosService formatos,
             com.onest.app.catalog.examen.service.CertificacionAptitudService certificacion,
-            com.onest.app.catalog.predio.service.PredioService predios) {
+            com.onest.app.catalog.predio.service.PredioService predios,
+            com.onest.app.catalog.formato.service.HtmlPdfService htmlPdf) {
+        this.htmlPdf = htmlPdf;
         this.certificacion = certificacion;
         this.predios = predios;
         this.examenService = examenService;
@@ -173,6 +176,51 @@ public class ExamenController {
     public String imprimir(@RequestParam("nss") String nss,
                            @RequestParam(name = "auto", required = false) String auto,
                            @RequestParam(name = "tipo", required = false) String tipo, Model model) {
+        return armarImpreso(nss, auto, tipo, model);
+    }
+
+    /**
+     * El mismo expediente como PDF hecho en el servidor (28-oct-2026): en la red corporativa la vista previa
+     * de impresion del navegador tardaba mucho. Se abre en otra pestana y se imprime desde el visor de PDF.
+     * Misma plantilla y mismos datos que /examen/imprimir; {@code pdf=true} le quita el CSS del tema.
+     */
+    @GetMapping(path = "/examen/imprimir-pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @Auditado(modulo = "Examenes", accion = "export", entidad = "Expediente impreso (PDF)", registro = "nss")
+    public org.springframework.http.ResponseEntity<byte[]> imprimirPdf(@RequestParam("nss") String nss,
+            @RequestParam(name = "tipo", required = false) String tipo,
+            jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response) {
+        org.springframework.ui.ExtendedModelMap model = new org.springframework.ui.ExtendedModelMap();
+        String plantilla = armarImpreso(nss, null, tipo, model);
+        model.addAttribute("pdf", true);
+        // WebContext (no Context simple): las plantillas usan @{/...} y Thymeleaf pide un contexto web para eso
+        var exchange = org.thymeleaf.web.servlet.JakartaServletWebApplication
+                .buildApplication(request.getServletContext()).buildExchange(request, response);
+        String html = templateEngine.process(plantilla,
+                new org.thymeleaf.context.WebContext(exchange, new java.util.Locale("es", "MX"), model));
+        byte[] pdf = htmlPdf.pdf(html, ExamenController::numerarHojas);
+        String nombre = "examen-" + nss.trim() + ".pdf";
+        return org.springframework.http.ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + nombre + "\"")
+                .header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "no-store")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
+    }
+
+    /** Lo que en el navegador hace el script del impreso: "Hoja N de M" solo con las hojas que salen. */
+    private static void numerarHojas(org.jsoup.nodes.Document doc) {
+        java.util.List<org.jsoup.nodes.Element> celdas = doc.select("td.hoja-num").stream()
+                .filter(td -> {
+                    org.jsoup.nodes.Element hoja = td.closest("tr.hoja");
+                    return hoja == null || !hoja.hasClass("oculta");
+                }).toList();
+        for (int i = 0; i < celdas.size(); i++) {
+            celdas.get(i).text("Hoja " + (i + 1) + " de " + celdas.size());
+        }
+        // en el PDF las hojas que el tipo no pide se quitan (en el navegador las oculta el CSS de impresion)
+        doc.select("tr.hoja.oculta").remove();
+    }
+
+    private String armarImpreso(String nss, String auto, String tipo, Model model) {
         String nssLimpio = nss == null ? "" : nss.trim();
         if (nssLimpio.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "nss es obligatorio");
@@ -185,6 +233,7 @@ public class ExamenController {
         // static/img/examen/firmaDoc.png heredada del PHP, que se quito del proyecto
         formatos.aplicarFirmas(model, "EXAMEN", registroExamen(nssLimpio, d), nssLimpio);
         model.addAttribute("auto", auto != null && !auto.isBlank() && !"0".equals(auto));
+        // Post incapacidad (tipo 4) usa la misma plantilla: ella cambia las hojas del FT-SO-04 por la del FT-SO-13
         return "pages/examen-documento";
     }
 

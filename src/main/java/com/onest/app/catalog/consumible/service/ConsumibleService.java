@@ -61,7 +61,7 @@ public class ConsumibleService {
         }
         int maximo = LocalDate.now().getYear() + 1;
         if (anio < ANIO_MINIMO || anio > maximo) {
-            throw new IllegalArgumentException("El año no es valido");
+            throw new IllegalArgumentException("El año no es válido");
         }
         return anio;
     }

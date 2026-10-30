@@ -134,7 +134,7 @@
                       th:text="${v.borrador != null} ? 'Borrador del ' + ${#temporals.format(v.borrador.updatedAt, 'dd/MM HH:mm')} : 'Sin borrador'">Sin borrador</span>
                 <span class="badge bg-primary" th:text="'Avance ' + ${v.avance} + '%'">Avance 0%</span>
                 <button type="button" class="btn btn-sm btn-outline-primary" th:if="${v.ultimoFinalizado != null}"
-                        th:attr="data-url=@{/api/nss/examen/imprimir(nss=${v.nss},auto=1)}"
+                        th:attr="data-url=@{/api/nss/examen/imprimir-pdf(nss=${v.nss})}"
                         onclick="window.open(this.dataset.url, '_blank');">
                     <i class="ri-printer-line me-1"></i>Imprimir
                 </button>
@@ -489,8 +489,7 @@
                                     <div th:if="${s.nombre == 'Diagnóstico'}" id="examenIcdResult" class="mb-2"></div>
                                     <textarea class="form-control form-control-sm" rows="3" th:name="${it.fieldName}"
                                               th:id="${s.nombre == 'Diagnóstico'} ? 'examenDiagnostico'"
-                                              th:readonly="${s.nombre == 'Diagnóstico'}"
-                                              th:placeholder="${s.nombre == 'Diagnóstico'} ? 'Se llena desde el buscador ICD de arriba' : ''"
+                                              th:placeholder="${s.nombre == 'Diagnóstico'} ? 'Agrega claves con el buscador ICD de arriba o escribe el diagnóstico' : ''"
                                               th:text="${it.value}"></textarea>
                                 </div>
                                 <!-- Dictamen como 4 botones grandes de color (mismos valores que el select del

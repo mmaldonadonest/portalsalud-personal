@@ -2,7 +2,7 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layouts/app :: layout(~{::title}, ~{:: nssContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
 <head>
-    <title>Busqueda NSS | Portal Salud Personal</title>
+    <title>Búsqueda NSS | Portal Salud Personal</title>
 </head>
 <body>
 
@@ -159,7 +159,7 @@
                     });
 
                     if (!response.ok) {
-                        status.textContent = 'Error al consultar. Codigo HTTP: ' + response.status;
+                        status.textContent = 'Error al consultar. Código HTTP: ' + response.status;
                         result.style.display = 'none';
                         return;
                     }
@@ -229,16 +229,16 @@
                         } else {
                             // El WS respondio bien pero sin modulos: el usuario logueado
                             // no tiene rol/menus en el ORDS (consulta_app_rol_usuario) para app 13.
-                            status.textContent = 'Ficha cargada, pero el usuario logueado no tiene modulos'
+                            status.textContent = 'Ficha cargada, pero el usuario logueado no tiene módulos'
                                 + ' asignados en el ORDS (validateModules). Revisa el rol del usuario.';
                         }
                     } else {
-                        status.textContent = 'Ficha cargada, pero no se pudieron cargar los modulos'
-                            + ' del menu (HTTP ' + response.status + ').';
+                        status.textContent = 'Ficha cargada, pero no se pudieron cargar los módulos'
+                            + ' del menú (HTTP ' + response.status + ').';
                     }
                 } catch (error) {
                     // Los modulos son complementarios: si fallan, no rompemos la ficha.
-                    status.textContent = 'Ficha cargada, pero fallo la carga de modulos del menu: ' + error;
+                    status.textContent = 'Ficha cargada, pero falló la carga de módulos del menú: ' + error;
                 }
             }
 
@@ -287,10 +287,10 @@
                             toggleFormatosConsulta();
                         }
                     } else {
-                        mc.innerHTML = '<div class="alert alert-danger mb-0">Error al cargar el modulo (HTTP ' + response.status + ').</div>';
+                        mc.innerHTML = '<div class="alert alert-danger mb-0">Error al cargar el módulo (HTTP ' + response.status + ').</div>';
                     }
                 } catch (error) {
-                    mc.innerHTML = '<div class="alert alert-danger mb-0">Error de red al cargar el modulo.</div>';
+                    mc.innerHTML = '<div class="alert alert-danger mb-0">Error de red al cargar el módulo.</div>';
                 }
             }
 
@@ -356,7 +356,7 @@
                     return;
                 }
                 var idMenu = btn.getAttribute('data-id-menu');
-                status.textContent = 'Modulo "' + btn.textContent.trim() + '" (id ' + idMenu +
+                status.textContent = 'Módulo "' + btn.textContent.trim() + '" (id ' + idMenu +
                     ', NSS ' + nss + ') disponible en una proxima entrega.';
             };
 
@@ -1040,16 +1040,6 @@
                 exAplicarTipo(arriba.value, false);
             };
 
-            // "Guardar tipo" de arriba: el mismo guardado de Datos generales (manda tambien SpO2, cintura,
-            // cadera y agencia tal como esten en ese formulario). El resultado se pinta junto al boton.
-            window.exGuardarTipoArriba = function (btn) {
-                guardarRegistro(btn, { formId: 'datosGeneralesExamenForm', savePath: 'api/nss/examen/datos-generales/save', fileInputId: '__none__', label: 'tipo de examen', resultElId: 'examenTipoResultado',
-                    onSuccess: function () {
-                        var sel = document.getElementById('examenTipo');
-                        if (sel) { exAplicarTipo(sel.value, true); }
-                    } });
-            };
-
             // Acomoda el modulo al formato del tipo (16-oct-2026): al ELEGIR el tipo (vista previa,
             // "(sin guardar)") y al guardarlo. Cada tipo ve lo de su formato (VisibilidadTipo.java,
             // clases "ocultar-en-N"); si la pestana activa quedo oculta pasa a la primera visible y
@@ -1072,8 +1062,6 @@
                 }
                 var sinGuardar = document.getElementById('examenTipoSinGuardar');
                 if (sinGuardar) { sinGuardar.classList.toggle('d-none', !pendiente); }
-                var btnGuardarTipo = document.getElementById('examenTipoGuardar');
-                if (btnGuardarTipo) { btnGuardarTipo.classList.toggle('d-none', !pendiente); }
                 // aviso: Admision (1) es el examen inicial y se captura en su propio menu
                 var aviso = document.getElementById('examenAvisoInicial');
                 if (aviso) { aviso.classList.toggle('d-none', valor !== '1'); }
@@ -1921,7 +1909,7 @@
                     return;
                 }
                 if (diag && !diag.value.trim()) {
-                    pintarResultadoInline(resultEl, 'Captura el diagnóstico desde el catálogo ICD antes de finalizar.', true);
+                    pintarResultadoInline(resultEl, 'Captura el diagnóstico actual (buscador ICD o escrito) antes de finalizar.', true);
                     var buscador = document.getElementById('examenIcdConsult');
                     if (buscador) { buscador.focus(); }
                     return;
@@ -1983,7 +1971,7 @@
                         return !!(canvasFirma && canvasFirma.dataset.firmaGuardada);
                     },
                     documentoUrl: function () {
-                        return contextPath + 'api/nss/examen/imprimir?nss=' + encodeURIComponent(nss) + '&auto=1';
+                        return contextPath + 'api/nss/examen/imprimir-pdf?nss=' + encodeURIComponent(nss);
                     },
                     abrirAlTerminar: true,
                     textoBoton: 'Finalizando y generando el documento…',
@@ -2895,6 +2883,98 @@
             document.addEventListener('input', function (e) { exListaTrasCaptura(e, false); });
             document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('button')) { exListaTrasCaptura(e, true); } });
 
+            // Post incapacidad (29-oct-2026): fecha de termino = inicio + dias - 1 (el dia de inicio cuenta como
+            // dia de incapacidad: 1 dia desde el 05 termina el 05). Se calcula y queda de solo lectura para que no
+            // contradiga a los dias; si falta el inicio o los dias, el campo queda libre como antes.
+            // Las fechas se teclean como texto dd/mm/aaaa (mas rapido que el control de fecha del navegador); lo
+            // que se guarda es el hidden con el name del campo, en ISO (examen-seccion.html).
+            function exIncIso(txt) {
+                var m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(txt || '');
+                if (!m || +m[3] < 1900) { return ''; }
+                var f = new Date(Date.UTC(+m[3], +m[2] - 1, +m[1]));
+                // 31/02 no existe: Date lo pasaria a marzo
+                if (f.getUTCDate() !== +m[1] || f.getUTCMonth() !== +m[2] - 1) { return ''; }
+                return m[3] + '-' + m[2] + '-' + m[1];
+            }
+            function exIncDmy(iso) {
+                return /^\d{4}-\d{2}-\d{2}$/.test(iso || '') ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : (iso || '');
+            }
+            function exIncOculto(vis) { return vis.parentElement.querySelector('input[type="hidden"]'); }
+            function exIncTermino(raiz) {
+                // al cargar la seccion el texto visible se llena con lo guardado
+                raiz.querySelectorAll('.exinc-fecha').forEach(function (v) {
+                    var h = exIncOculto(v);
+                    if (h && !v.value && h.value) { v.value = exIncDmy(h.value); }
+                });
+                var ini = raiz.querySelector('[name="TAG.EXM_INC_INICIO"]');
+                var dias = raiz.querySelector('[name="TAG.EXM_INC_DIAS"]');
+                var fin = raiz.querySelector('[name="TAG.EXM_INC_TERMINO"]');
+                var finVis = raiz.querySelector('.exinc-fecha[data-para="TAG.EXM_INC_TERMINO"]');
+                if (!ini || !dias || !fin) { return; }
+                var n = /^\s*\d+\s*$/.test(dias.value) ? parseInt(dias.value, 10) : 0;
+                var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ini.value || '');
+                var resumen = raiz.querySelector('.exinc-resumen');
+                var cal = finVis ? finVis.parentElement.querySelector('.exinc-cal') : null;
+                if (!m || n < 1) {
+                    if (finVis) { finVis.readOnly = false; finVis.title = ''; }
+                    if (cal) { cal.disabled = false; }
+                    if (resumen) { resumen.textContent = ''; }
+                    return;
+                }
+                // UTC para que el cambio de horario no corra el dia
+                var f = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3] + n - 1));
+                fin.value = f.toISOString().slice(0, 10);
+                if (finVis) {
+                    finVis.value = exIncDmy(fin.value);
+                    finVis.classList.remove('is-invalid');
+                    finVis.readOnly = true;
+                    finVis.title = 'Se calcula: fecha de inicio + días de incapacidad - 1';
+                }
+                if (cal) { cal.disabled = true; }
+                if (resumen) {
+                    resumen.innerHTML = '<i class="ri-information-line me-1"></i><b>' + n + (n === 1 ? ' día' : ' días')
+                        + '</b> de incapacidad: del <b>' + exIncDmy(ini.value) + '</b> al <b>' + exIncDmy(fin.value) + '</b>';
+                }
+            }
+            // Teclear solo digitos: las diagonales se ponen solas (11122025 -> 11/12/2025)
+            function exIncFecha(vis) {
+                var d = vis.value.replace(/\D/g, '').slice(0, 8);
+                vis.value = d.slice(0, 2) + (d.length > 2 ? '/' + d.slice(2, 4) : '') + (d.length > 4 ? '/' + d.slice(4) : '');
+                var iso = exIncIso(vis.value);
+                var h = exIncOculto(vis);
+                if (h) { h.value = iso; }
+                vis.classList.toggle('is-invalid', d.length === 8 && !iso);
+                return iso;
+            }
+            window.exIncCalendario = function (btn) {
+                var grupo = btn.parentElement;
+                var picker = grupo.querySelector('.exinc-picker');
+                var vis = grupo.querySelector('.exinc-fecha');
+                var h = exIncOculto(vis);
+                picker.value = h ? h.value : '';
+                picker.onchange = function () {
+                    vis.value = exIncDmy(picker.value);
+                    vis.dispatchEvent(new Event('input', { bubbles: true }));
+                };
+                try { picker.showPicker(); } catch (err) { vis.focus(); }
+            };
+            document.addEventListener('input', function (e) {
+                var t = e.target;
+                if (!t || !t.closest) { return; }
+                var raiz = t.closest('.exsec') || document;
+                if (t.classList.contains('exinc-fecha')) {
+                    var iso = exIncFecha(t);
+                    exIncTermino(raiz);
+                    // captura fluida: con la fecha de inicio completa el foco pasa a los dias
+                    if (iso && t.getAttribute('data-para') === 'TAG.EXM_INC_INICIO') {
+                        var dias = raiz.querySelector('[name="TAG.EXM_INC_DIAS"]');
+                        if (dias) { dias.focus(); dias.select(); }
+                    }
+                } else if (t.name === 'TAG.EXM_INC_DIAS') {
+                    exIncTermino(raiz);
+                }
+            });
+
             // Carga el formulario de una seccion dentro de su tab-pane (una sola vez -
             // si ya tiene data-loaded="true" no vuelve a pedirlo al servidor).
             async function cargarPaneExamen(pane) {
@@ -2928,13 +3008,14 @@
                         body: body.toString()
                     });
                     if (!response.ok) {
-                        pane.innerHTML = '<div class="alert alert-danger mb-0">Error al cargar la seccion (HTTP ' + response.status + ').</div>';
+                        pane.innerHTML = '<div class="alert alert-danger mb-0">Error al cargar la sección (HTTP ' + response.status + ').</div>';
                         return;
                     }
                     pane.innerHTML = await response.text();
                     pane.dataset.loaded = 'true';
+                    exIncTermino(pane);
                 } catch (error) {
-                    pane.innerHTML = '<div class="alert alert-danger mb-0">Error de red al cargar la seccion.</div>';
+                    pane.innerHTML = '<div class="alert alert-danger mb-0">Error de red al cargar la sección.</div>';
                 } finally {
                     pane.dataset.loading = 'false';
                 }
@@ -3162,9 +3243,9 @@
                 // FT-SO-19 no trae Diagnostico: en ese tipo no se exige (VisibilidadTipo)
                 if (diagEl && !exOcultoTipo(diagEl) && !diagEl.value.trim() && dictamenEl && dictamenEl.value) {
                     pintarResultadoInline(document.getElementById('examenGuardarResult'),
-                            'Para guardar un dictamen selecciona al menos un diagnóstico del catálogo ICD (Cierre → Diagnóstico → Buscar diagnóstico).', true);
+                            'Para guardar un dictamen captura el diagnóstico actual (Cierre → Diagnóstico: buscador ICD o escrito).', true);
                     // Llevar al usuario al campo: abrir el grupo y la pestana de Diagnostico, y
-                    // enfocar el buscador ICD (el cuadro de diagnostico es solo lectura).
+                    // enfocar el buscador ICD (el cuadro tambien se puede escribir desde 29-oct-2026).
                     var paneDiag = diagEl.closest('.tab-pane');
                     var grupoDiag = diagEl.closest('.accordion-collapse');
                     if (grupoDiag && !grupoDiag.classList.contains('show')) {
@@ -3236,7 +3317,7 @@
                 var firmaAlmacenada = !!(canvasFirma && canvasFirma.dataset.firmaGuardada);
                 var conDictamen = !!(dictamenEl && dictamenEl.value);
                 var conFirma = firmaNueva || (firmaAlmacenada && conDictamen);
-                var urlDocumento = contextPath + 'api/nss/examen/imprimir?nss=' + encodeURIComponent(nss) + '&auto=1';
+                var urlDocumento = contextPath + 'api/nss/examen/imprimir-pdf?nss=' + encodeURIComponent(nss);
                 var ventanaDoc = null;
                 if (conFirma) {
                     try {
@@ -3246,7 +3327,31 @@
                         }
                     } catch (e) { ventanaDoc = null; }
                 }
+                // 28-oct-2026: ya no hay "Guardar tipo" arriba. Si el tipo cambio, se guarda AQUI primero (mismo
+                // guardado de Datos generales: tambien SpO2, cintura, cadera y agencia como esten), para que el
+                // examen y el expediente que se abre salgan con el formato del tipo nuevo.
+                var arribaTipo = document.getElementById('examenTipoArriba');
+                var tipoPendiente = !!arribaTipo && arribaTipo.value !== (arribaTipo.getAttribute('data-guardado') || '');
                 try {
+                    if (tipoPendiente) {
+                        var dgForm = document.getElementById('datosGeneralesExamenForm');
+                        var dgBody = new URLSearchParams(new FormData(dgForm));
+                        if (csrf && csrf.name) { dgBody.append(csrf.name, csrf.value); }
+                        var rTipo = await fetch(contextPath + 'api/nss/examen/datos-generales/save', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'text/plain' },
+                            body: dgBody.toString()
+                        });
+                        if (!rTipo.ok) {
+                            var txtTipo = await rTipo.text();
+                            if (ventanaDoc) { ventanaDoc.close(); }
+                            mostrarResultadoExamen('No se guardó el tipo de examen (HTTP ' + rTipo.status + '): ' + txtTipo
+                                    + '. El examen tampoco se guardó.', true);
+                            return;
+                        }
+                        var selTipo = document.getElementById('examenTipo');
+                        if (selTipo) { exAplicarTipo(selTipo.value, true); }
+                    }
                     var response = await fetch(contextPath + 'api/nss/examen/save', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'text/plain' },
@@ -3320,7 +3425,7 @@
                 var observaciones = obsEl ? obsEl.value.trim() : '';
                 if (!observaciones) {
                     if (statusEl) {
-                        statusEl.innerHTML = '<span class="text-danger">Escribe una observacion.</span>';
+                        statusEl.innerHTML = '<span class="text-danger">Escribe una observación.</span>';
                     }
                     return;
                 }

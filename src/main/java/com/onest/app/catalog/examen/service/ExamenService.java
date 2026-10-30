@@ -272,10 +272,11 @@ public class ExamenService {
         // la ultima incapacidad del NSS (PrecargaFormato); diagnostico y tratamiento los escribe el medico
         CATALOGO.put("Antecedentes de la incapacidad", new Seccion("SERV_MED_EXM_INCAPACIDAD", List.of(
                 tagCampo("AREA", "EXM_INC_DIAGNOSTICO", "Diagnóstico"),
-                tagSolo("EXM_INC_DIAS", "Días de incapacidad"),
                 tagCampo("OPCION", "EXM_INC_RAMO", "Ramo del seguro"),
                 tagCampo("OPCION", "EXM_INC_TIPO", "Tipo de incapacidad"),
+                // en este orden y en un solo renglon: termino = inicio + dias - 1 (nss-search.html :: exIncTermino)
                 tagCampo("DATE", "EXM_INC_INICIO", "Fecha de inicio"),
+                tagSolo("EXM_INC_DIAS", "Días de incapacidad"),
                 tagCampo("DATE", "EXM_INC_TERMINO", "Fecha de término"),
                 tagCampo("AREA", "EXM_INC_TRATAMIENTO", "Tratamiento"))));
 
@@ -548,7 +549,7 @@ public class ExamenService {
         CATALOGO.put("Estudios realizados", new Seccion("SERV_MED_ESTUDIOS_REALIZADOS", List.of(
                 area("RESULTADOS", "Resultados"))));
         CATALOGO.put("Diagnóstico", new Seccion("SERV_MED_DIAGNOSTICO", List.of(
-                area("OBSERVACIONES", "Diagnóstico"))));
+                area("OBSERVACIONES", "Diagnóstico actual"))));
         CATALOGO.put("Plan terapéutico", new Seccion("SERV_MED_PLAN_TERAPIA", List.of(
                 area("OBSERVACIONES", "Plan terapéutico"))));
         CATALOGO.put("Resultado del examen", new Seccion("SERV_MED_RESULTADO_EXAMEN", List.of(
@@ -684,7 +685,7 @@ public class ExamenService {
     public List<ExamItem> itemsDeSeccion(String seccion, String nss) {
         Seccion sec = CATALOGO.get(seccion);
         if (sec == null) {
-            throw new IllegalArgumentException("Seccion desconocida: " + seccion);
+            throw new IllegalArgumentException("Sección desconocida: " + seccion);
         }
         Map<String, String> data = new java.util.LinkedHashMap<>(datosExamen(normalizeNss(nss)));
         if ("SERV_ANTECEDENTESLAB".equals(sec.dataKey())) {

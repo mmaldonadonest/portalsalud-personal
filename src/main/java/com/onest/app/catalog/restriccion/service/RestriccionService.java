@@ -107,7 +107,7 @@ public class RestriccionService {
         try {
             return new BigDecimal(value.trim());
         } catch (NumberFormatException ex) {
-            throw new IllegalArgumentException("El valor limite no es valido", ex);
+            throw new IllegalArgumentException("El valor límite no es válido", ex);
         }
     }
 

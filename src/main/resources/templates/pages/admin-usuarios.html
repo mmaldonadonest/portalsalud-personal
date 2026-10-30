@@ -16,7 +16,7 @@
                 <li class="breadcrumb-item"><a th:href="@{/admin/roles}" href="/admin/roles">Roles</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Usuarios</li>
             </ol>
-            <h4 class="main-title mb-0">Asignacion de rol por NSS</h4>
+            <h4 class="main-title mb-0">Asignación de rol por NSS</h4>
         </div>
     </div>
 
@@ -52,6 +52,14 @@
             <h6 class="card-title mb-0" id="tituloEmpleado">Roles</h6>
         </div>
         <div class="card-body">
+            <!-- Bloqueo solo de este portal (29-oct-2026): la baja tarda varios pasos y mientras tanto ORDS y el
+                 launcher lo siguen dejando entrar. Conserva sus roles para desbloquearlo tal como estaba. -->
+            <div id="cajaBloqueo" class="d-flex flex-wrap align-items-center gap-3 border rounded p-3 mb-3">
+                <span id="estadoAcceso" class="badge fs-sm"></span>
+                <span id="textoAcceso" class="fs-sm text-muted flex-grow-1"></span>
+                <button type="button" id="btnBloqueo" class="btn btn-sm"></button>
+            </div>
+            <p class="fs-12 mb-2" id="resultadoBloqueo"></p>
             <div class="row g-2" id="filasRoles"></div>
         </div>
     </div>
@@ -86,12 +94,64 @@
                     nssActual = datos.nss;
                     estado.textContent = '';
                     document.getElementById('tituloEmpleado').textContent = datos.nombre + ' (NSS ' + datos.nss + ')';
+                    document.getElementById('resultadoBloqueo').textContent = '';
+                    pintarBloqueo(datos.bloqueado);
                     pintarRoles(datos.roles);
                     card.style.display = '';
                 } catch (err) {
                     estado.textContent = 'Error de red al consultar.';
                 }
             }
+
+            var bloqueadoActual = false;
+            function pintarBloqueo(bloqueado) {
+                bloqueadoActual = bloqueado;
+                var badge = document.getElementById('estadoAcceso');
+                var btn = document.getElementById('btnBloqueo');
+                badge.className = 'badge fs-sm ' + (bloqueado ? 'bg-danger' : 'bg-success');
+                badge.innerHTML = bloqueado ? '<i class="ri-lock-line me-1"></i>Bloqueado' : '<i class="ri-check-line me-1"></i>Con acceso';
+                document.getElementById('textoAcceso').textContent = bloqueado
+                    ? 'No puede entrar a Portal Salud (ni con contraseña ni por el launcher). Sus roles se conservan.'
+                    : 'Puede entrar a Portal Salud con los roles marcados abajo.';
+                btn.className = 'btn btn-sm ' + (bloqueado ? 'btn-outline-success' : 'btn-danger');
+                btn.innerHTML = bloqueado ? '<i class="ri-lock-unlock-line me-1"></i>Desbloquear' : '<i class="ri-lock-line me-1"></i>Bloquear en este portal';
+                document.querySelectorAll('#filasRoles input').forEach(function (i) { i.disabled = bloqueado; });
+            }
+
+            document.getElementById('btnBloqueo').addEventListener('click', async function () {
+                var btn = this;
+                var res = document.getElementById('resultadoBloqueo');
+                var bloquear = !bloqueadoActual;
+                if (bloquear && !window.confirm('¿Bloquear el acceso de NSS ' + nssActual + ' a Portal Salud?\n\n'
+                        + 'Se cierra su sesión si está conectado y ya no podrá entrar hasta que lo desbloquees. '
+                        + 'Solo afecta a este portal: la baja en los demás sistemas sigue su proceso.')) {
+                    return;
+                }
+                btn.disabled = true;
+                try {
+                    var response = await fetch(contextPath + 'api/admin/usuarios/' + encodeURIComponent(nssActual) + '/bloqueo',
+                        { method: bloquear ? 'POST' : 'DELETE', headers: { 'X-CSRF-TOKEN': csrfToken } });
+                    if (!response.ok) {
+                        var msg = '';
+                        // ApiExceptionHandler regresa el motivo como texto plano
+                        try { msg = (await response.text()).trim(); } catch (e) { /* sin cuerpo */ }
+                        res.className = 'fs-12 mb-2 text-danger';
+                        res.textContent = msg || ('No se pudo ' + (bloquear ? 'bloquear' : 'desbloquear') + ' (HTTP ' + response.status + ').');
+                        return;
+                    }
+                    var cerradas = bloquear ? ((await response.json()).sesionesCerradas || 0) : 0;
+                    pintarBloqueo(bloquear);
+                    res.className = 'fs-12 mb-2 text-success';
+                    res.textContent = bloquear
+                        ? 'Bloqueado. ' + (cerradas ? 'Se cerró ' + (cerradas === 1 ? '1 sesión abierta.' : cerradas + ' sesiones abiertas.') : 'No tenía sesiones abiertas.')
+                        : 'Desbloqueado: ya puede entrar con los roles que tenía.';
+                } catch (err) {
+                    res.className = 'fs-12 mb-2 text-danger';
+                    res.textContent = 'Error de red.';
+                } finally {
+                    btn.disabled = false;
+                }
+            });
 
             function pintarRoles(roles) {
                 var cont = document.getElementById('filasRoles');
@@ -113,6 +173,7 @@
                     input.setAttribute('role', 'switch');
                     input.id = 'rol' + r.roleId;
                     input.checked = r.asignado;
+                    input.disabled = bloqueadoActual;   // bloqueado: los roles quedan como estaban
                     input.addEventListener('change', function () { toggle(r.roleId, input); });
                     switchWrap.appendChild(input);
                     wrap.appendChild(label);

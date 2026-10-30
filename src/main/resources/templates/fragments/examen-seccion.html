@@ -118,7 +118,109 @@
         <th:block th:if="${seccion == 'Dientes'}">
             <div th:replace="~{fragments/examen-seccion :: odontograma(${valores})}"></div>
         </th:block>
-        <div class="row g-3" th:unless="${seccion == 'Inmunizaciones' or seccion == 'Dientes'}">
+        <!-- Incapacidad (29-oct-2026, FT-SO-13): captura agrupada en vez de la rejilla generica (se veia gris y
+             larga). Mismos name que la rejilla: el guardado no cambia. Origen (ramo + tipo) arriba; el periodo en
+             un renglon inicio -> dias -> termino, que se calcula (exIncTermino en nss-search.html); diagnostico y
+             tratamiento lado a lado. Dias es texto y no number: un valor viejo no numerico se veria vacio y se perderia. -->
+        <th:block th:if="${seccion == 'Antecedentes de la incapacidad'}"
+                  th:with="dx=${items.^[fieldName == 'TAG.EXM_INC_DIAGNOSTICO']}, ramo=${items.^[fieldName == 'TAG.EXM_INC_RAMO']},
+                           tipoInc=${items.^[fieldName == 'TAG.EXM_INC_TIPO']}, ini=${items.^[fieldName == 'TAG.EXM_INC_INICIO']},
+                           dias=${items.^[fieldName == 'TAG.EXM_INC_DIAS']}, fin=${items.^[fieldName == 'TAG.EXM_INC_TERMINO']},
+                           trat=${items.^[fieldName == 'TAG.EXM_INC_TRATAMIENTO']}">
+            <style>
+                .exinc-lbl { font-size: .8rem; font-weight: 600; color: #475467; text-transform: uppercase; letter-spacing: .03em; margin-bottom: 6px; }
+                .exinc-lbl i { color: #0057A8; margin-right: 4px; }
+                .exinc-chip small { display: block; font-size: .7rem; color: #475467; line-height: 1.1; }
+                /* el tema pinta small en gris: sobre el azul del boton elegido no se leia */
+                .exinc-chip.activo small { color: #fff; }
+                .exinc-chip { min-width: 74px; min-height: 40px; line-height: 1.2; }
+                .exinc-periodo { background: #F0F6FC; border: 1px solid #C7DDF2; border-left: 4px solid #0057A8; border-radius: 8px; padding: 12px 14px; }
+                .exinc-flecha { color: #0057A8; font-size: 1.3rem; align-self: flex-end; padding-bottom: 4px; }
+                .exinc-fin[readonly] { background: #ECFDF3; border-color: #75E0A7; font-weight: 600; color: #067647; }
+                .exinc-resumen { font-size: .85rem; color: #344054; margin-top: 8px; }
+                .exinc-resumen:empty { display: none; }
+                .exinc-fecha.is-invalid { background-image: none; }
+                /* el date real solo sirve para abrir el calendario: invisible, debajo del boton */
+                .exinc-picker { position: absolute; right: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0; pointer-events: none; }
+            </style>
+            <div class="row g-3 mb-3">
+                <div class="col-md-8" th:if="${ramo != null}">
+                    <div class="exinc-lbl"><i class="ri-shield-cross-line"></i>Ramo del seguro</div>
+                    <div class="exini-chips">
+                        <input type="hidden" th:name="${ramo.fieldName}" th:value="${ramo.value}">
+                        <button type="button" th:each="o : ${ {{'EG','Enf. general'},{'MAT','Maternidad'},{'RT','Riesgo de trabajo'},{'ENLACE','Enlace'}} }"
+                                class="btn btn-sm btn-outline-secondary exinc-chip" th:classappend="${ramo.value == o[0]} ? 'activo' : ''"
+                                th:attr="data-val=${o[0]}" onclick="exIniChip(this);">
+                            <span th:text="${o[0] == 'ENLACE' ? 'Enlace' : o[0]}">EG</span><small th:unless="${o[0] == 'ENLACE'}" th:text="${o[1]}">Enf. general</small>
+                        </button>
+                    </div>
+                    <small class="text-muted" th:if="${!#strings.isEmpty(ramo.value) and !#lists.contains({'EG','MAT','RT','ENLACE'}, ramo.value)}"
+                           th:text="|Capturado antes: ${ramo.value}|">Capturado antes</small>
+                </div>
+                <div class="col-md-4" th:if="${tipoInc != null}">
+                    <div class="exinc-lbl"><i class="ri-hospital-line"></i>Tipo de incapacidad</div>
+                    <div class="exini-chips">
+                        <input type="hidden" th:name="${tipoInc.fieldName}" th:value="${tipoInc.value}">
+                        <button type="button" th:each="o : ${ {{'IMSS','IMSS'},{'INTERNA','Interna'}} }"
+                                class="btn btn-sm btn-outline-secondary exinc-chip" th:classappend="${tipoInc.value == o[0]} ? 'activo' : ''"
+                                th:attr="data-val=${o[0]}" th:text="${o[1]}" onclick="exIniChip(this);">IMSS</button>
+                    </div>
+                </div>
+            </div>
+            <div class="exinc-periodo mb-3">
+                <div class="exinc-lbl"><i class="ri-calendar-2-line"></i>Periodo de incapacidad</div>
+                <div class="d-flex flex-wrap gap-2 align-items-end">
+                    <!-- Fechas tecleables (29-oct-2026): se escriben solo los digitos (11122025 -> 11/12/2025) y el
+                         boton abre el calendario. Lo que se guarda va en el hidden con el mismo name, en ISO como
+                         antes; el texto visible no tiene name. Ver exIncFecha en nss-search.html. -->
+                    <div style="flex: 1 1 150px;" th:if="${ini != null}">
+                        <label class="form-label mb-1 fs-sm">Fecha de inicio</label>
+                        <div class="input-group input-group-sm position-relative">
+                            <input type="text" class="form-control exinc-fecha" inputmode="numeric" maxlength="10"
+                                   placeholder="dd/mm/aaaa" autocomplete="off" th:attr="data-para=${ini.fieldName}">
+                            <button type="button" class="btn btn-outline-secondary exinc-cal" tabindex="-1" title="Elegir en el calendario"
+                                    onclick="exIncCalendario(this);"><i class="ri-calendar-line"></i></button>
+                            <input type="date" class="exinc-picker" tabindex="-1" aria-hidden="true">
+                            <input type="hidden" th:name="${ini.fieldName}" th:value="${ini.value}">
+                        </div>
+                    </div>
+                    <i class="ri-arrow-right-line exinc-flecha d-none d-md-inline"></i>
+                    <div style="flex: 0 1 140px;" th:if="${dias != null}">
+                        <label class="form-label mb-1 fs-sm">Días de incapacidad</label>
+                        <div class="input-group input-group-sm">
+                            <input type="text" inputmode="numeric" class="form-control" th:name="${dias.fieldName}" th:value="${dias.value}">
+                            <span class="input-group-text">días</span>
+                        </div>
+                    </div>
+                    <i class="ri-arrow-right-line exinc-flecha d-none d-md-inline"></i>
+                    <div style="flex: 1 1 150px;" th:if="${fin != null}">
+                        <label class="form-label mb-1 fs-sm">Fecha de término</label>
+                        <div class="input-group input-group-sm position-relative">
+                            <input type="text" class="form-control exinc-fecha exinc-fin" inputmode="numeric" maxlength="10"
+                                   placeholder="dd/mm/aaaa" autocomplete="off" th:attr="data-para=${fin.fieldName}">
+                            <button type="button" class="btn btn-outline-secondary exinc-cal" tabindex="-1" title="Elegir en el calendario"
+                                    onclick="exIncCalendario(this);"><i class="ri-calendar-line"></i></button>
+                            <input type="date" class="exinc-picker" tabindex="-1" aria-hidden="true">
+                            <input type="hidden" th:name="${fin.fieldName}" th:value="${fin.value}">
+                        </div>
+                    </div>
+                </div>
+                <div class="exinc-resumen"></div>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6" th:if="${dx != null}">
+                    <div class="exinc-lbl"><i class="ri-stethoscope-line"></i>Diagnóstico</div>
+                    <textarea class="form-control form-control-sm" rows="3" th:name="${dx.fieldName}" th:text="${dx.value}"
+                              placeholder="Diagnóstico que originó la incapacidad"></textarea>
+                </div>
+                <div class="col-md-6" th:if="${trat != null}">
+                    <div class="exinc-lbl"><i class="ri-capsule-line"></i>Tratamiento</div>
+                    <textarea class="form-control form-control-sm" rows="3" th:name="${trat.fieldName}" th:text="${trat.value}"
+                              placeholder="Tratamiento recibido"></textarea>
+                </div>
+            </div>
+        </th:block>
+        <div class="row g-3" th:unless="${seccion == 'Inmunizaciones' or seccion == 'Dientes' or seccion == 'Antecedentes de la incapacidad'}">
             <!-- la pregunta de pension (SINO_TEXTO) es larga: va a todo el ancho -->
             <div th:each="it : ${items}" th:unless="${it.type == 'OCULTO'}"
                  th:class="${it.type == 'SINO_TEXTO'} ? 'col-12' : 'col-md-6'"
@@ -195,10 +297,12 @@
                 <input th:if="${it.type == 'DATE'}" type="date" class="form-control form-control-sm"
                        th:name="${it.fieldName}" th:value="${it.value}">
 
-                <textarea th:if="${it.type == 'AREA'}" class="form-control form-control-sm" rows="2"
+                <!-- Diagnostico actual (29-oct-2026): editable; el buscador ICD agrega claves al final sin borrar lo
+                     escrito (addIcd). Sigue obligatorio para guardar un dictamen (guardarExamen en nss-search.html). -->
+                <textarea th:if="${it.type == 'AREA'}" class="form-control form-control-sm"
+                          th:rows="${seccion == 'Diagnóstico'} ? 4 : 2"
                           th:id="${seccion == 'Diagnóstico'} ? 'examenDiagnostico'"
-                          th:readonly="${seccion == 'Diagnóstico'}"
-                          th:placeholder="${seccion == 'Diagnóstico'} ? 'Selecciona una o mas claves del buscador ICD de arriba...'"
+                          th:placeholder="${seccion == 'Diagnóstico'} ? 'Agrega claves con el buscador ICD de arriba o escribe el diagnóstico...'"
                           th:name="${it.fieldName}" th:text="${it.value}"></textarea>
 
                 <!-- data-guardado = dictamen en BD: la carta FT-SO-25 se habilita solo cuando el elegido ya esta guardado -->

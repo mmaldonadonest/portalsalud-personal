@@ -541,7 +541,7 @@
                 ];
                 ultimoExport.kpis.forEach(function (k) { filas.push([k.etiqueta, k.valor]); });
                 filas.push([]);
-                filas.push(['Predio', 'Atenciones', 'Dias incap.', 'Accidentes', 'Examenes']);
+                filas.push(['Predio', 'Atenciones', 'Días incap.', 'Accidentes', 'Exámenes']);
                 (ultimoExport.porPredio || []).forEach(function (r) {
                     var busca = function (lista, campo) {
                         var f = (lista || []).find(function (x) { return x.clave === r.clave; });

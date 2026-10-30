@@ -2,8 +2,10 @@ package com.onest.app.audit.web;
 
 import com.onest.app.audit.dto.AuditoriaDto;
 import com.onest.app.audit.service.AuditoriaService;
+import com.onest.app.audit.service.UsuariosEnLinea;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.format.DateTimeParseException;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,9 +20,11 @@ import org.springframework.web.server.ResponseStatusException;
 public class AuditoriaController {
 
     private final AuditoriaService auditoriaService;
+    private final UsuariosEnLinea usuariosEnLinea;
 
-    public AuditoriaController(AuditoriaService auditoriaService) {
+    public AuditoriaController(AuditoriaService auditoriaService, UsuariosEnLinea usuariosEnLinea) {
         this.auditoriaService = auditoriaService;
+        this.usuariosEnLinea = usuariosEnLinea;
     }
 
     @GetMapping
@@ -43,6 +47,12 @@ public class AuditoriaController {
     @GetMapping("/filtros")
     public AuditoriaDto.Filtros filtros() {
         return auditoriaService.filtros();
+    }
+
+    /** Usuarios en linea y desconectados de las ultimas horas (memoria del servidor, no bitacora). */
+    @GetMapping("/en-linea")
+    public List<UsuariosEnLinea.Usuario> enLinea() {
+        return usuariosEnLinea.usuarios();
     }
 
     /**

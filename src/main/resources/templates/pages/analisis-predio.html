@@ -533,18 +533,18 @@
                 }
                 var ejes = [
                     { nombre: 'Atenciones', valor: consultas.totalConsultas, max: maximo(corp.consultas, 'cantidad') },
-                    { nombre: 'Dias incap.', valor: incap.totalDiasAutorizados, max: maximo(corp.incap, 'diasAutorizados') },
+                    { nombre: 'Días incap.', valor: incap.totalDiasAutorizados, max: maximo(corp.incap, 'diasAutorizados') },
                     { nombre: 'Accidentes', valor: accid.totalAccidentes, max: maximo(corp.accid, 'cantidad') },
                     { nombre: 'Examenes', valor: examen.totalExamenes, max: maximo(corp.examen, 'cantidad') },
                     { nombre: 'Antidoping', valor: antidoping ? antidoping.totalPruebas : 0, max: maximo(corp.antidoping, 'cantidad') }
                 ];
                 if (!ejes.some(function (e) { return e.max > 0; })) {
-                    vaciar('chartRadar', 'Todavia no hay otros predios con actividad contra los cuales comparar.');
+                    vaciar('chartRadar', 'Todavía no hay otros predios con actividad contra los cuales comparar.');
                     return;
                 }
                 var options = {
                     chart: { type: 'radar', height: 340, toolbar: { show: false } },
-                    series: [{ name: '% del maximo corporativo', data: ejes.map(function (e) {
+                    series: [{ name: '% del máximo corporativo', data: ejes.map(function (e) {
                         return e.max ? Math.round((e.valor / e.max) * 100) : 0; }) }],
                     labels: ejes.map(function (e) { return e.nombre; }),
                     colors: ['#2563EB'],
@@ -555,7 +555,7 @@
                     dataLabels: { enabled: false },
                     tooltip: { y: { formatter: function (v, opt) {
                         var e = ejes[opt.dataPointIndex];
-                        return v + '% (' + numero(e.valor) + ' de un maximo de ' + numero(e.max) + ')';
+                        return v + '% (' + numero(e.valor) + ' de un máximo de ' + numero(e.max) + ')';
                     } } }
                 };
                 document.getElementById('chartRadar').innerHTML = '';

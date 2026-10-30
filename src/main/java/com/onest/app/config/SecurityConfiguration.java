@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.ProviderManager;
@@ -127,10 +128,12 @@ public class SecurityConfiguration {
      */
     private AuthenticationFailureHandler loginFailureHandler() {
         SimpleUrlAuthenticationFailureHandler delegate = new SimpleUrlAuthenticationFailureHandler("/login?error");
+        SimpleUrlAuthenticationFailureHandler bloqueado = new SimpleUrlAuthenticationFailureHandler("/login?bloqueado");
         return (request, response, exception) -> {
             String usuario = request.getParameter("username");
             log.warn("[login] FALLIDO usuario={} causa={}", usuario, exception.getMessage());
-            delegate.onAuthenticationFailure(request, response, exception);
+            // bloqueado en Admin > Usuarios (PortalPrincipalResolver): mensaje propio, no "credenciales invalidas"
+            (exception instanceof LockedException ? bloqueado : delegate).onAuthenticationFailure(request, response, exception);
         };
     }
 

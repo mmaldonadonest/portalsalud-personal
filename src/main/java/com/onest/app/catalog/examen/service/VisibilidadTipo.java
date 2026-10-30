@@ -56,6 +56,27 @@ public final class VisibilidadTipo {
             Map.entry("Diagnóstico", Set.of("7")),
             Map.entry("Plan o terapéutica empleada", Set.of("6")));
 
+    /** Lenguaje (voz clara, conversacion fluida, coherencia): solo lo piden FT-SO-04 y FT-SO-19 (check 28-oct-2026). */
+    private static final Set<String> SIN_LENGUAJE = Set.of("2", "3", "4", "6", "8");
+    /** FT-SO-13: de la exploracion solo signos vitales; constitucion, actitud, orientacion, etc. no van. */
+    private static final Set<String> SOLO_SIGNOS = Set.of("4");
+
+    // Campos sueltos de la seccion "Exploracion fisica" (tabla SERV_MED_EXPLORACION_FISICA), 28-oct-2026
+    private static final Map<String, Set<String>> OCULTAR_CAMPOS = Map.ofEntries(
+            Map.entry("SERV_MED_EXPLORACION_FISICA.LENGUAJE", SIN_LENGUAJE),
+            Map.entry("SERV_MED_EXPLORACION_FISICA.CONVER_FLUIDA", SIN_LENGUAJE),
+            Map.entry("SERV_MED_EXPLORACION_FISICA.COHERENCIA_PALABLAS", SIN_LENGUAJE),
+            Map.entry("SERV_MED_EXPLORACION_FISICA.ECTOMORFICO", SOLO_SIGNOS),
+            Map.entry("SERV_MED_EXPLORACION_FISICA.SATISFACCION", SOLO_SIGNOS),
+            Map.entry("SERV_MED_EXPLORACION_FISICA.COMP_TRABAJO", SOLO_SIGNOS),
+            Map.entry("SERV_MED_EXPLORACION_FISICA.COMP_ORGANIZACION", SOLO_SIGNOS),
+            Map.entry("SERV_MED_EXPLORACION_FISICA.TIEMPO", SOLO_SIGNOS),
+            Map.entry("SERV_MED_EXPLORACION_FISICA.ESPACIO", SOLO_SIGNOS),
+            Map.entry("SERV_MED_EXPLORACION_FISICA.PERSONA", SOLO_SIGNOS),
+            Map.entry("SERV_MED_EXPLORACION_FISICA.SERENIDAD", SOLO_SIGNOS),
+            Map.entry("SERV_MED_EXPLORACION_FISICA.HIPOCRITA", SOLO_SIGNOS),
+            Map.entry("SERV_MED_EXPLORACION_FISICA.PARKINSON", SOLO_SIGNOS));
+
     /** El titulo de no patologicos lleva «"Inmunizaciones"» donde el formato solo pide inmunizaciones. */
     public static final String TITULO_INMUNIZACIONES = "ocultar-en-1 ocultar-en-4 ocultar-en-5 ocultar-en-7 ocultar-en-";
 
@@ -63,7 +84,11 @@ public final class VisibilidadTipo {
     }
 
     private static Set<String> ocultoEn(String clave) {
-        return clave == null ? Set.of() : OCULTAR.getOrDefault(clave, Set.of());
+        if (clave == null) {
+            return Set.of();
+        }
+        Set<String> s = OCULTAR.get(clave);
+        return s != null ? s : OCULTAR_CAMPOS.getOrDefault(clave, Set.of());
     }
 
     /**

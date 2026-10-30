@@ -9,7 +9,7 @@
 <div th:fragment="form">
     <div class="card card-one">
         <div class="card-header d-flex align-items-center justify-content-between">
-            <h6 class="card-title mb-0">Nueva consulta medica</h6>
+            <h6 class="card-title mb-0">Nueva consulta médica</h6>
             <span class="badge bg-primary" th:text="'NSS ' + ${nss}">NSS</span>
         </div>
         <div class="card-body">
@@ -26,15 +26,15 @@
                         <option value="pase_salida">Pase de Salida</option>
                         <!-- FT-SO-23 (respuesta de SM 20-oct-2026): pruebas especiales como tipo de consulta -->
                         <option value="pruebas_especiales">Pruebas Especiales</option>
-                        <option value="cronico_degenerativo">Cronico Degenerativo</option>
-                        <option value="campana">Campana</option>
+                        <option value="cronico_degenerativo">Crónico Degenerativo</option>
+                        <option value="campana">Campaña</option>
                         <option value="entrega_incapacidad">Entrega de Incapacidad</option>
                         <option value="st7">ST7</option>
                         <option value="otros_consulta">Otros</option>
                     </select>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label" for="areaAccidente">Area accidente</label>
+                    <label class="form-label" for="areaAccidente">Área accidente</label>
                     <select class="form-select" name="areaAccidente" id="areaAccidente">
                         <option value="oficinas">Oficinas</option>
                         <option value="patio_maniobras">Patio de Maniobras</option>
@@ -50,24 +50,24 @@
                         <option value="via_publica">Via Publica</option>
                         <option value="trayecto_empresa">Trayecto a Empresa</option>
                         <option value="trayecto_domicilio">Trayecto a Domicilio</option>
-                        <option value="comision">En Comision</option>
+                        <option value="comision">En Comisión</option>
                         <option value="trabajos_especiales">En Trabajos Especiales</option>
                         <option value="otros_accidente">Otros</option>
                     </select>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label" for="areaAnatomica">Area anatomica</label>
+                    <label class="form-label" for="areaAnatomica">Área anatómica</label>
                     <select class="form-select" name="areaAnatomica" id="areaAnatomica">
                         <option value="cabeza">Cabeza</option>
                         <option value="cuello">Cuello</option>
-                        <option value="torax">Torax</option>
+                        <option value="torax">Tórax</option>
                         <option value="abdomen">Abdomen</option>
                         <option value="pelvis">Pelvis</option>
                         <option value="extremidad_superior_derecha">Extremidad Superior Derecha</option>
                         <option value="extremidad_superior_izquierda">Extremidad Superior Izquierda</option>
                         <option value="extremidad_inferior_derecha">Extremidad Inferior Derecha</option>
                         <option value="extremidad_inferior_izquierda">Extremidad Inferior Izquierda</option>
-                        <option value="dos_o_mas_segmentos">Dos o mas Segmentos Corporales</option>
+                        <option value="dos_o_mas_segmentos">Dos o más Segmentos Corporales</option>
                     </select>
                 </div>
                 <div class="col-md-6">
@@ -117,13 +117,13 @@
                     <textarea class="form-control" name="motivo" id="motivo" rows="2"></textarea>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label" for="exploracion">Exploracion fisica</label>
+                    <label class="form-label" for="exploracion">Exploración física</label>
                     <textarea class="form-control" name="exploracion" id="exploracion" rows="3"></textarea>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label" for="diagnostico">Diagnostico (catálogo ICD/CIE)</label>
+                    <label class="form-label" for="diagnostico">Diagnóstico (catálogo ICD/CIE)</label>
                     <textarea class="form-control" name="diagnostico" id="diagnostico" rows="3" readonly
-                              placeholder="Selecciona una o mas claves del buscador ICD de abajo..."></textarea>
+                              placeholder="Selecciona una o más claves del buscador ICD de abajo..."></textarea>
                 </div>
                 <div class="col-12">
                     <label class="form-label" for="icdConsult">Buscar diagnóstico (obligatorio, catálogo ICD/CIE)</label>

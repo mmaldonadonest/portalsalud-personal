@@ -2,7 +2,7 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layouts/app :: layout(~{::title}, ~{:: adminRoleMenusContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
 <head>
-    <title>Menus del rol | Portal Salud Personal</title>
+    <title>Menús del rol | Portal Salud Personal</title>
 </head>
 <body>
 
@@ -14,9 +14,9 @@
             <ol class="breadcrumb fs-sm mb-1">
                 <li class="breadcrumb-item"><a th:href="@{/home}" href="/home">Dashboard</a></li>
                 <li class="breadcrumb-item"><a th:href="@{/admin/roles}" href="/admin/roles">Roles</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Menus</li>
+                <li class="breadcrumb-item active" aria-current="page">Menús</li>
             </ol>
-            <h4 class="main-title mb-0" id="tituloRol">Menus del rol</h4>
+            <h4 class="main-title mb-0" id="tituloRol">Menús del rol</h4>
         </div>
         <a th:href="@{/admin/roles}" href="/admin/roles" class="btn btn-outline-secondary btn-sm">
             <i class="ri-arrow-left-line me-1"></i> Volver a roles
@@ -25,9 +25,9 @@
 
     <div class="alert alert-info fs-sm" role="alert">
         <i class="ri-information-line me-1"></i>
-        Marca los modulos que este rol puede ver en el submenu "Expediente General" al buscar
+        Marca los módulos que este rol puede ver en el submenu "Expediente General" al buscar
         un NSS. El catalogo de 14 modulos es fijo (cada uno tiene una pantalla ya construida) -
-        aqui solo se decide <strong>quien ve cuales</strong>, via <code>SERV_MED_MENU_ROLE</code>.
+        aquí solo se decide <strong>quién ve cuáles</strong>, vía <code>SERV_MED_MENU_ROLE</code>.
     </div>
 
     <input type="hidden" id="roleId" th:value="${roleId}">
@@ -35,7 +35,7 @@
 
     <div class="card card-one">
         <div class="card-header">
-            <h6 class="card-title mb-0">Modulos</h6>
+            <h6 class="card-title mb-0">Módulos</h6>
         </div>
         <div class="card-body">
             <div id="estadoLista" class="fs-12 text-muted mb-3">Cargando...</div>
@@ -67,12 +67,12 @@
                         return;
                     }
                     var datos = await response.json();
-                    document.getElementById('tituloRol').textContent = 'Menus de ' + datos.role.name + ' (' + datos.role.code + ')';
+                    document.getElementById('tituloRol').textContent = 'Menús de ' + datos.role.name + ' (' + datos.role.code + ')';
                     pintar(datos.menus);
                     var asignados = datos.menus.filter(function (m) { return m.asignado; }).length;
                     estado.textContent = asignados + ' de ' + datos.menus.length + ' modulo(s) asignado(s).';
                 } catch (e) {
-                    estado.textContent = 'Error de red al consultar los menus.';
+                    estado.textContent = 'Error de red al consultar los menús.';
                 }
             }
 

@@ -44,6 +44,18 @@
         .aviso-vacio { border-left: 4px solid #3B82F6; background: #EFF6FF; border-radius: 8px; padding: 12px 16px; }
         .aviso-vacio strong { color: #1E40AF; }
         .pag { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #64748b; }
+        .enl-punto { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; }
+        .enl-punto.on { background: #12B76A; box-shadow: 0 0 0 3px #D1FADF; }
+        .enl-punto.off { background: #475467; box-shadow: 0 0 0 3px #EAECF0; }
+        .enl-pill { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; border-radius: 999px;
+            padding: 2px 11px 2px 9px; margin-left: 8px; vertical-align: middle; }
+        .enl-pill--on { background: #ECFDF3; color: #067647; }
+        .enl-pill--off { background: #F2F4F7; color: #344054; }
+        .enl-estado { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; white-space: nowrap; }
+        .enl-estado.on { color: #067647; }
+        .enl-estado.off { color: #475467; }
+        .enl-fila-off td { color: #667085; }
+        .enl-nota { display: block; color: #94a3b8; font-size: 11px; font-weight: 400; }
     </style>
 </th:block>
 
@@ -65,6 +77,28 @@
             <button type="button" id="btnRefrescar" class="btn btn-primary btn-sm">
                 <i class="ri-refresh-line me-1"></i>Actualizar
             </button>
+        </div>
+    </div>
+
+    <!-- Usuarios en linea (29-oct-2026): sesiones con actividad en los ultimos 5 min, de la memoria del
+         servidor (UsuariosEnLinea), no de la bitacora. Se refresca solo cada 60 s. -->
+    <div class="card card-one mb-3">
+        <div class="card-header d-flex align-items-center justify-content-between" style="border-bottom:none;padding-bottom:0">
+            <div>
+                <div class="card-title-lg">Usuarios conectados
+                    <span class="enl-pill enl-pill--on"><span class="enl-punto on"></span><span id="enlOn">0</span> en línea</span>
+                    <span class="enl-pill enl-pill--off"><span class="enl-punto off"></span><span id="enlOff">0</span> desconectados</span>
+                </div>
+                <p class="fs-11 text-muted mb-0">En línea = actividad en los últimos 5 minutos · desconectados de las últimas 12 horas · se actualiza cada minuto</p>
+            </div>
+            <span id="enlEstado" class="fs-11 text-muted"></span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive"><table class="aud-tabla">
+                <thead><tr><th>Estado</th><th>Usuario</th><th>Rol</th><th>Última acción</th><th>Dónde</th><th>Entró</th><th>IP</th></tr></thead>
+                <tbody id="enlCuerpo"></tbody>
+            </table></div>
+            <div id="enlVacio" class="vacio" hidden>Nadie ha entrado al portal en las últimas 12 horas.</div>
         </div>
     </div>
 
@@ -239,6 +273,54 @@
 
             function aplicar() { pagina = 0; cargar(); }
 
+            // Hora de Mexico como el resto del portal; "hace N min" para la ultima accion
+            function horaMx(iso) {
+                return iso ? new Date(iso).toLocaleString('es-MX', { timeZone: 'America/Mexico_City', day: '2-digit', month: '2-digit',
+                    hour: '2-digit', minute: '2-digit', hour12: false }) : '—';
+            }
+            function hace(iso) {
+                if (!iso) { return null; }
+                var min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+                if (min < 1) { return 'hace menos de 1 min'; }
+                return min < 60 ? 'hace ' + min + ' min' : 'hace ' + Math.floor(min / 60) + ' h ' + (min % 60) + ' min';
+            }
+            async function cargarEnLinea() {
+                var est = document.getElementById('enlEstado');
+                try {
+                    var res = await fetch(contextPath + 'api/auditoria/en-linea', { cache: 'no-store' });
+                    if (!res.ok) { est.textContent = 'No se pudo consultar (HTTP ' + res.status + ').'; return; }
+                    var lista = await res.json();
+                    var on = lista.filter(function (s) { return s.enLinea; }).length;
+                    document.getElementById('enlOn').textContent = numero(on);
+                    document.getElementById('enlOff').textContent = numero(lista.length - on);
+                    document.getElementById('enlVacio').hidden = lista.length > 0;
+                    document.getElementById('enlCuerpo').innerHTML = lista.map(function (s) {
+                        var estado = s.enLinea
+                            ? '<span class="enl-estado on"><span class="enl-punto on"></span>En línea</span>'
+                                + (s.sesionesAbiertas > 1 ? '<span class="enl-nota">' + s.sesionesAbiertas + ' sesiones abiertas</span>' : '')
+                            : '<span class="enl-estado off"><span class="enl-punto off"></span>Desconectado</span>'
+                                + '<span class="enl-nota">Última vez ' + escapar(horaMx(s.ultimaPeticion).split(', ').pop()) + '</span>';
+                        // en linea sin accion reciente: solo tiene la pestana abierta (la campanita la mantiene viva)
+                        var accion = s.ultimaAccion ? escapar(hace(s.ultimaAccion)) : '—';
+                        if (s.enLinea && (!s.ultimaAccion || Date.now() - new Date(s.ultimaAccion).getTime() > 300000)) {
+                            accion += '<span class="enl-nota">Pestaña abierta, sin movimiento</span>';
+                        }
+                        return '<tr' + (s.enLinea ? '' : ' class="enl-fila-off"') + '>'
+                            + '<td>' + estado + '</td>'
+                            + '<td class="usr">' + escapar(s.usuario || '—') + '</td>'
+                            + '<td>' + escapar(s.roles || '—') + '</td>'
+                            + '<td>' + accion + '</td>'
+                            + '<td class="mono">' + escapar(s.ultimaRuta || '—') + '</td>'
+                            + '<td class="mono">' + escapar(horaMx(s.inicio)) + '</td>'
+                            + '<td class="mono">' + escapar(s.ip || '—') + '</td>'
+                            + '</tr>';
+                    }).join('');
+                    est.textContent = 'Actualizado ' + horaMx(new Date().toISOString()).split(', ').pop();
+                } catch (e) {
+                    est.textContent = 'Error de red al consultar.';
+                }
+            }
+
             async function exportarCsv() {
                 if (!ultimo) { return; }
                 // Exporta lo filtrado completo (hasta 200 por pagina del API, varias paginas).
@@ -281,7 +363,9 @@
                 document.getElementById('fTexto').addEventListener('input', function () {
                     clearTimeout(timer); timer = setTimeout(aplicar, 400);
                 });
-                document.getElementById('btnRefrescar').addEventListener('click', function () { cargarFiltros(); cargar(); });
+                document.getElementById('btnRefrescar').addEventListener('click', function () { cargarFiltros(); cargar(); cargarEnLinea(); });
+                cargarEnLinea();
+                setInterval(cargarEnLinea, 60000);
                 document.getElementById('btnExportar').addEventListener('click', exportarCsv);
                 document.getElementById('btnAnterior').addEventListener('click', function () { if (pagina > 0) { pagina--; cargar(); } });
                 document.getElementById('btnSiguiente').addEventListener('click', function () { pagina++; cargar(); });

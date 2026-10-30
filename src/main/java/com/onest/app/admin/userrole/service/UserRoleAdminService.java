@@ -2,6 +2,7 @@ package com.onest.app.admin.userrole.service;
 
 import com.onest.app.admin.userrole.dto.UserRoleDto;
 import com.onest.app.admin.userrole.dto.UserRoleDto.RoleAssignmentDto;
+import com.onest.app.audit.service.UsuariosEnLinea;
 import com.onest.app.catalog.nss.client.NssSearchClient;
 import com.onest.app.catalog.nss.dto.EmpleadoDto;
 import com.onest.app.security.model.AppSecRole;
@@ -9,6 +10,7 @@ import com.onest.app.security.permission.PermissionService;
 import com.onest.app.security.model.AppSecUser;
 import com.onest.app.security.repository.AppSecRoleRepository;
 import com.onest.app.security.repository.AppSecUserRepository;
+import com.onest.app.security.service.PortalPrincipalResolver;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -33,27 +35,31 @@ public class UserRoleAdminService {
     private final AppSecUserRepository userRepository;
     private final AppSecRoleRepository roleRepository;
     private final PermissionService permissionService;
+    private final UsuariosEnLinea usuariosEnLinea;
 
     public UserRoleAdminService(
             NssSearchClient nssSearchClient, AppSecUserRepository userRepository, AppSecRoleRepository roleRepository,
-            PermissionService permissionService) {
+            PermissionService permissionService, UsuariosEnLinea usuariosEnLinea) {
         this.nssSearchClient = nssSearchClient;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.permissionService = permissionService;
+        this.usuariosEnLinea = usuariosEnLinea;
     }
 
     @Transactional(readOnly = true)
     public UserRoleDto buscar(String nss) {
         EmpleadoDto empleado = nssSearchClient.findUsuario(nss, "ADMIN")
                 .orElseThrow(() -> new IllegalArgumentException("NSS no encontrado en ORDS."));
-        Set<Long> asignados = userRepository.findByUsernameIgnoreCase(nss)
+        Optional<AppSecUser> local = userRepository.findByUsernameIgnoreCase(nss);
+        Set<Long> asignados = local
                 .map(u -> u.getRoles().stream().map(AppSecRole::getId).collect(Collectors.toSet()))
                 .orElseGet(Set::of);
+        boolean bloqueado = local.map(u -> PortalPrincipalResolver.BLOQUEADO.equalsIgnoreCase(u.getAccountStatus())).orElse(false);
         List<RoleAssignmentDto> roles = roleRepository.findByActiveOrderByName("Y").stream()
                 .map(r -> new RoleAssignmentDto(r.getId(), r.getCode(), r.getName(), asignados.contains(r.getId())))
                 .toList();
-        return new UserRoleDto(nss, nombreCompleto(empleado), roles);
+        return new UserRoleDto(nss, nombreCompleto(empleado), roles, bloqueado);
     }
 
     @Transactional
@@ -74,6 +80,31 @@ public class UserRoleAdminService {
         user.get().getRoles().removeIf(r -> r.getId().equals(roleId));
         userRepository.save(user.get());
         permissionService.invalidar();
+    }
+
+    /**
+     * Bloqueo solo de este portal (29-oct-2026): la baja del empleado tarda varios pasos y mientras tanto ORDS y el
+     * launcher lo siguen dejando entrar. ACCOUNT_STATUS = BLOCKED (PortalPrincipalResolver lo rechaza en los dos
+     * logins), sus roles se conservan para desbloquearlo tal como estaba, y sus sesiones abiertas se cierran ya.
+     * Si nunca tuvo registro en el portal se le crea, ya bloqueado. Regresa cuantas sesiones se cerraron.
+     */
+    @Transactional
+    public int bloquear(String nss, String quienBloquea) {
+        if (quienBloquea != null && quienBloquea.trim().equalsIgnoreCase(nss.trim())) {
+            throw new IllegalArgumentException("No puedes bloquear tu propio usuario.");
+        }
+        AppSecUser user = requireOrCreateUser(nss);
+        user.setAccountStatus(PortalPrincipalResolver.BLOQUEADO);
+        userRepository.save(user);
+        return usuariosEnLinea.cerrarSesionesDe(nss.trim());
+    }
+
+    @Transactional
+    public void desbloquear(String nss) {
+        userRepository.findByUsernameIgnoreCase(nss).ifPresent(user -> {
+            user.setAccountStatus("ACTIVE");
+            userRepository.save(user);
+        });
     }
 
     /** Crea el usuario local en la primera asignacion (migracion incremental, sin password local). */

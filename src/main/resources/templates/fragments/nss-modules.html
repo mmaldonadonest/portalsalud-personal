@@ -59,7 +59,7 @@
        th:attr="data-id-menu=${m.idMenu}, data-nss=${nss}, data-action=${actions.get(k)}, data-tipo=${tipos.get(k)}"
        onclick="abrirModulo(this);">
         <i class="me-2" th:classappend="${m.icon} ?: (${icons.get(k)} ?: 'ri-file-list-2-line')"></i>
-        <span th:text="${m.nombreMenu} ?: ${labels.get(k)}">Modulo</span>
+        <span th:text="${m.nombreMenu} ?: ${labels.get(k)}">Módulo</span>
     </a>
     </th:block>
 </th:block>

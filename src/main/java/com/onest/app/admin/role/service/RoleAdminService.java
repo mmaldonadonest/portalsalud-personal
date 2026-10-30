@@ -35,10 +35,10 @@ public class RoleAdminService {
 
     @Transactional
     public RoleAdminDto crear(String code, String name, String description) {
-        String codeNorm = requireNonBlank(code, "El codigo es obligatorio.").trim();
+        String codeNorm = requireNonBlank(code, "El código es obligatorio.").trim();
         String nameNorm = requireNonBlank(name, "El nombre es obligatorio.").trim();
         if (roleRepository.existsByCode(codeNorm)) {
-            throw new IllegalArgumentException("Ya existe un rol con el codigo '" + codeNorm + "'.");
+            throw new IllegalArgumentException("Ya existe un rol con el código '" + codeNorm + "'.");
         }
         AppSecRole role = new AppSecRole();
         role.setCode(codeNorm);
