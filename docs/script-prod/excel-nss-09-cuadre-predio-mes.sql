@@ -101,7 +101,8 @@ SELECT CASE WHEN GROUPING(predio_c) = 1 THEN '== TODOS ==' ELSE predio_c END pre
        SUM(CASE WHEN FUENTE = 'PORTAL' THEN 1 ELSE 0 END) portal,
        COUNT(DISTINCT NSS) personas,
        SUM(CASE WHEN RAMO = 'ENF GRAL'          THEN 1 ELSE 0 END) enf_gral,
-       SUM(CASE WHEN RAMO = 'SEGUIMIENTO SALUD' THEN 1 ELSE 0 END) seguimiento,
+       -- SEG SALUD desde el 2-nov-2026 (respuesta de SM); SEGUIMIENTO SALUD por lo cargado antes
+       SUM(CASE WHEN RAMO IN ('SEG SALUD', 'SEGUIMIENTO SALUD') THEN 1 ELSE 0 END) seguimiento,
        SUM(CASE WHEN RAMO = 'PASE SALIDA'       THEN 1 ELSE 0 END) pase_salida,
        SUM(CASE WHEN RAMO = 'RT'                THEN 1 ELSE 0 END) rt,
        SUM(CASE WHEN LESION_ME IS NOT NULL      THEN 1 ELSE 0 END) musculoesq

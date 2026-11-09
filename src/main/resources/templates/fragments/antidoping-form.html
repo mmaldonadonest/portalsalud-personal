@@ -26,7 +26,8 @@
                             onchange="toggleAntidopingSustancia();">
                         <option value="">Seleccionar</option>
                         <option value="ANTIDOPING">Antidoping</option>
-                        <option value="ALCOHOLEMIA">Alcoholemia</option>
+                        <!-- C-032: SM lo llama Alcoholimetria; el valor guardado sigue siendo ALCOHOLEMIA -->
+                        <option value="ALCOHOLEMIA">Alcoholimetría</option>
                     </select>
                 </div>
 
@@ -60,7 +61,8 @@
                     <label class="form-label" for="antidopingStatusConclusion">Status / conclusión</label>
                     <select class="form-select" name="statusConclusion" id="antidopingStatusConclusion">
                         <option value="N/A">N/A</option>
-                        <option value="CAPA">CAPA</option>
+                        <!-- C-035: SM lo llama Tratamiento aplicado; el valor guardado sigue siendo CAPA -->
+                        <option value="CAPA">Tratamiento aplicado</option>
                         <option value="LABORANDO">Laborando</option>
                         <option value="RECAIDA">Recaida</option>
                         <option value="NO_INTERESADO_BAJA">No interesado / Baja</option>

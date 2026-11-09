@@ -339,6 +339,19 @@ public class ExamenDocumentoService {
      * del FT-SO-04 o "Otro" especificando (el texto del formato). Se guarda en este tag.
      */
     public static final String TAG_AGENCIA = "AGENCIAEXAMEN";
+
+    /** Telefono del trabajador actualizado en el examen: solo Portal Salud, no toca el biometrico. */
+    public static final String TAG_TELEFONO = "TELSALUD";
+
+    /** Telefono capturado en Portal Salud, o vacio si no hay. */
+    public String telefonoSalud(String nss) {
+        try {
+            return limpio(tags.latestByNssAndTypePrefix(nss.trim(), TAG_TELEFONO).get(TAG_TELEFONO));
+        } catch (RuntimeException ex) {
+            log.warn("[examen-doc] sin telefono de Portal Salud para {}: {}", nss, ex.getMessage());
+            return "";
+        }
+    }
     public static final String AGENCIA_PREDETERMINADA = "Grupo Logístico Integral SAPI de CV";
 
     /** Agencia de la base y, si no hay, la que se eligio en el examen (tag); vacio si ninguna. */
@@ -415,15 +428,24 @@ public class ExamenDocumentoService {
             v.put(c.var(), valor == null ? "" : valor);
         }
 
+        // Correcciones EMNI (6-nov-2026): telefono de Portal Salud, observaciones de APP y fecha de Td
+        String telefonoSalud = limpio(tagValues.get(TAG_TELEFONO));
+        if (!telefonoSalud.isEmpty()) {
+            v.put("telefono", telefonoSalud);
+        }
+        for (Map.Entry<String, String> e : ExamenService.OBS_TAG_APP.entrySet()) {
+            v.put(e.getKey() + "_OBS", limpio(tagValues.get(e.getValue())));
+        }
+        v.put("fechaTD", limpio(tagValues.get("fechaTD")));
+
         // --- valores que el PHP imprimia crudos y se decidio humanizar (13-sep-2026)
         v.put("sexo", switch (limpio(v.get("sexo"))) {
             case "1" -> "Masculino";
             case "2" -> "Femenino";
             default -> limpio(v.get("sexo"));
         });
-        if ("0".equals(limpio(v.get("edoCivil")))) {
-            v.put("edoCivil", "");
-        }
+        // 4-nov-2026: el estado civil ya llega con etiqueta (EstadoCivil, en el cliente del WS). Antes aqui se
+        // borraba el "0", pero el 0 es Soltero (lo confirman las vistas del biometrico), no "sin dato".
         if (limpio(v.get("puesto")).toLowerCase(Locale.ROOT).contains("no existe")) {
             v.put("puesto", "");
         }

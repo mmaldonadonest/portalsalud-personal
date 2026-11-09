@@ -86,6 +86,10 @@ public class ClinicalAccessFilter extends OncePerRequestFilter {
         // /admin/ayuda y /api/admin/ayuda no entran aqui (los protege el rol ADMIN)
         RUTAS_EXAMENES_LOCAL.put("/ayuda", "AYUDA");
         RUTAS_EXAMENES_LOCAL.put("/api/ayuda", "AYUDA");
+        // Carga de Excel (2-nov-2026): la usan MEDICO_ANALISTA y Servicio Medico, por eso no vive
+        // bajo /analisis/** (solo MEDICO_ANALISTA); se asigna por rol como las demas
+        RUTAS_EXAMENES_LOCAL.put("/carga-excel", "CARGA_EXCEL");
+        RUTAS_EXAMENES_LOCAL.put("/api/carga-excel", "CARGA_EXCEL");
     }
 
     private final PermissionService permissionService;

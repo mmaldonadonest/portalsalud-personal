@@ -115,6 +115,15 @@ public class PortalViewController {
     }
 
     /**
+     * Carga de Excel por layout (docs/plan-carga-excel-pantalla.md). Menu CARGA_EXCEL asignable por
+     * rol; el bloqueo real de la ruta lo hace ClinicalAccessFilter.
+     */
+    @GetMapping("/carga-excel")
+    public String cargaExcel() {
+        return "pages/carga-excel";
+    }
+
+    /**
      * /admin/** protegido con hasRole("ADMIN") en SecurityConfiguration. Roles locales
      * (SERV_MED_SEC_ROLE) - primera de las 3 pantallas admin del plan RBAC local
      * (docs/plan-rbac-local.md): roles, roles/{id}/menus, usuarios.
@@ -205,8 +214,10 @@ public class PortalViewController {
         if ("auditoria".equals(modulo)) {
             return "pages/analisis-auditoria";
         }
+        // El importador generico se reemplazo por Carga de Excel (2-nov-2026); la URL vieja sigue
+        // sirviendo para quien la tenga guardada
         if ("importar".equals(modulo)) {
-            return "pages/analisis-importar";
+            return "redirect:/carga-excel";
         }
         if ("empleados".equals(modulo)) {
             return "pages/analisis-empleados";

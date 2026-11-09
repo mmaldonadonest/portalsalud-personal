@@ -28,7 +28,7 @@
                     {'Tipo de riesgo', accidente.tipoRiesgo},
                     {'Causa RT', accidente.causaRt},
                     {'Diagnostico', accidente.diagnostico},
-                    {'Status calificación', accidente.statusCalificacion},
+                    {'Status calificación', #strings.replace(accidente.statusCalificacion, '_', ' / ')},
                     {'Observaciones del alta', accidente.observaciones}
                 } }">
                 <label class="form-label mb-1 text-muted fs-sm" th:text="${campo[0]}">Campo</label>

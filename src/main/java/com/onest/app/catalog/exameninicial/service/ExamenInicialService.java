@@ -70,7 +70,8 @@ public class ExamenInicialService {
                         Borrador borrador, Finalizado ultimoFinalizado, int avance, int capturados, int total,
                         boolean tablaBorrador, Candado candado, boolean candidatoOcr,
                         com.onest.app.integration.ocr.SolicitudExamen solicitud, boolean atendidoPorOtro,
-                        String agencia, String agenciaElegida) {
+                        String agencia, String agenciaElegida, String telefonoSalud,
+                        Map<String, String> oknoElegidos) {
 
         /** Predeterminado del FT-SO-04 para el selector de agencia. */
         public String agenciaPredeterminada() {
@@ -113,6 +114,12 @@ public class ExamenInicialService {
     /** Clave del borrador con la agencia elegida (solo existe si la base no trae agencia). */
     private static final String CAMPO_AGENCIA = "agenciaExamen";
 
+    /** Clave del borrador con el telefono actualizado del trabajador (solo Portal Salud). */
+    private static final String CAMPO_TELEFONO = "telefonoSalud";
+
+    /** Sí/No elegido en exploracion: solo vive en el borrador, lo que se guarda es el texto. */
+    private static final String PREFIJO_OKNO = "OKNO.";
+
     /**
      * Candado: el inicial es de nuevo ingreso. Si la persona ya tiene un examen capturado desde
      * el modulo general (o del PHP) y nunca uno inicial, finalizar aqui pisaria un examen
@@ -145,9 +152,9 @@ public class ExamenInicialService {
                             "APP: músculo-esquelético", "APP: cardiovascular", "APP: toxicológico", "APP: endocrino")),
             new Hoja(6, "Padecimiento", "Padecimiento actual e interrogatorio", "", "SECCIONES",
                     List.of("Padecimiento actual", "Interrogatorio por aparatos")),
-            new Hoja(7, "Exploración", "Exploración física", "Signos vitales, cabeza y cuello. OK pone el texto del formato («SIN AGREGADOS», «AUSENTES»...); NO pide escribir el hallazgo.", "EXPLORACION",
+            new Hoja(7, "Exploración", "Exploración física", "Signos vitales, cabeza y cuello. Sí pone el texto del formato («SIN AGREGADOS», «AUSENTES»...); con No escribe el hallazgo.", "EXPLORACION",
                     List.of("Exploración física", "Cráneo", "Agudeza visual", "Oídos", "Cuello", "Nariz", "Tórax")),
-            new Hoja(8, "Columna y piel", "Columna, abdomen, extremidades y piel", "OK pone el texto del formato; NO pide escribir el hallazgo. «Todo normal» pone OK en lo que esté vacío.", "SECCIONES",
+            new Hoja(8, "Columna y piel", "Columna, abdomen, extremidades y piel", "Sí pone el texto del formato; con No escribe el hallazgo. «Todo normal» pone Sí en lo que esté vacío.", "SECCIONES",
                     List.of("Columna vertebral", "Columna (movilidad)", "Abdomen", "Genitales", "Urinario", "Extremidades", "Piel")),
             new Hoja(9, "Boca y dientes", "Boca y dientes", "Dientes en notación FDI (11-48). Solo anota los que tengan hallazgo.", "SECCIONES",
                     List.of("Boca", "Dientes")),
@@ -335,7 +342,8 @@ public class ExamenInicialService {
                     }
                     items.add(new ExamItem(it.type(), it.label(), it.fieldName(), value, it.obsName(), obs));
                     valores.put(it.fieldName(), value == null ? "" : value);
-                    if ("OCULTO".equals(it.type())) {
+                    // E-022 (9-nov): un diente vacio es "sano" (asi lo imprime el formato): no es un faltante
+                    if ("OCULTO".equals(it.type()) || it.fieldName().startsWith("SERV_MED_DIENTES.DIENTE_")) {
                         continue;   // no se captura en pantalla: no cuenta para el avance
                     }
                     n++;
@@ -415,7 +423,19 @@ public class ExamenInicialService {
                 // Agencia del FT-SO-04 rev. 05: la de la base (solo lectura) y, si no hay, la que
                 // elige el medico (borrador > ultima elegida en un examen; vacio = predeterminado)
                 documentoService.agencia(limpio, solicitud == null ? null : solicitud.agencia()),
-                b.containsKey(CAMPO_AGENCIA) ? b.get(CAMPO_AGENCIA) : documentoService.agenciaCapturada(limpio));
+                b.containsKey(CAMPO_AGENCIA) ? b.get(CAMPO_AGENCIA) : documentoService.agenciaCapturada(limpio),
+                b.containsKey(CAMPO_TELEFONO) ? b.get(CAMPO_TELEFONO) : documentoService.telefonoSalud(limpio),
+                oknoDelBorrador(b));
+    }
+
+    private static Map<String, String> oknoDelBorrador(Map<String, String> b) {
+        Map<String, String> out = new LinkedHashMap<>();
+        b.forEach((k, val) -> {
+            if (k.startsWith(PREFIJO_OKNO)) {
+                out.put(k, val);
+            }
+        });
+        return out;
     }
 
     /** Autoguardado: funde los campos recibidos con el borrador existente y recuerda la hoja. */
@@ -547,6 +567,13 @@ public class ExamenInicialService {
         if (!agenciaElegida.isEmpty()) {
             tags.upsert(limpio, com.onest.app.catalog.examen.service.ExamenDocumentoService.TAG_AGENCIA,
                     agenciaElegida, "PERMISO_EXAMEN", usuario);
+        }
+
+        // 6) Telefono actualizado del trabajador: solo Portal Salud, el biometrico no se toca
+        String telefono = b.getOrDefault(CAMPO_TELEFONO, "").trim();
+        if (!telefono.isEmpty()) {
+            tags.upsert(limpio, com.onest.app.catalog.examen.service.ExamenDocumentoService.TAG_TELEFONO,
+                    telefono, "PERMISO_EXAMEN", usuario);
         }
 
         borradores.finalizar(limpio, usuario);

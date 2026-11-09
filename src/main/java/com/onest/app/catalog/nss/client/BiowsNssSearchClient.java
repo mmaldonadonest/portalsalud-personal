@@ -163,7 +163,8 @@ public class BiowsNssSearchClient implements NssSearchClient {
                 dato.rfc(),
                 dato.cuenta(),
                 dato.fechaNacimiento(),
-                dato.estadoCivil(),
+                // codigo de SAP o texto libre -> etiqueta (Soltero, Casado...); 4-nov-2026
+                com.onest.app.catalog.nss.dto.EstadoCivil.etiqueta(dato.estadoCivil()),
                 dato.sexo(),
                 dato.direccion(),
                 dato.celular(),

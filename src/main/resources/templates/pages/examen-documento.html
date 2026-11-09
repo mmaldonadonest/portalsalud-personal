@@ -1189,7 +1189,7 @@
                 </tr>
                 <tr>
                     <td>Fecha Influenza</td>
-                    <td>[[${d.v('fechaINFLUEN')}]]</td>
+                    <td>[[${d.fecha('fechaINFLUEN')}]]</td>
                 </tr>
                 <tr>
                     <td>TD</td>
@@ -2551,7 +2551,8 @@
                     <img th:if="${medico != null and medico.firmaDataUri != null}" th:src="${medico.firmaDataUri}" class="img-fluid" width="70px" alt="Firma">
                     <br>
                     <hr>
-                <p class="footerTxt">Realizó</p>
+                <!--/* 3-nov-2026: "Autorizó" en lugar de "Realizó" (pedido del usuario, todos los impresos) */-->
+                <p class="footerTxt">Autorizó</p>
                 <p class="footerTxt" th:if="${elaboro != null}" style="margin-top:6px">
                     Elaboró: <b th:text="${elaboro.nombre}">Usuario</b>
                     <img th:if="${elaboro.firmaDataUri != null}" th:src="${elaboro.firmaDataUri}" alt="Firma" style="max-height:34px; vertical-align:middle; margin-left:6px">

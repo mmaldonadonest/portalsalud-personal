@@ -321,10 +321,21 @@
                 }
             }
 
+            // E-018: los negativos se contaban en el total pero no se veian en ningun lado. Salen del
+            // desglose por resultado; lo que no es positivo ni negativo es "sin resultado".
+            function porResultado(d, valor) {
+                return (d.porResultado || []).filter(function (r) { return String(r.clave || '').trim().toUpperCase() === valor; })
+                    .reduce(function (a, r) { return a + r.cantidad; }, 0);
+            }
+
             function pintarKpis(d, alcohol, kits, hayPredio) {
                 document.getElementById('kpiPruebas').textContent = numero(d.totalPruebas);
-                document.getElementById('kpiPruebasSub').textContent = d.totalPositivos
-                    ? numero(d.totalPositivos) + ' positivos' : (d.totalPruebas ? 'sin positivos' : 'sin registros');
+                var negativos = porResultado(d, 'NEGATIVO');
+                var sinResultado = d.totalPruebas - d.totalPositivos - negativos;
+                document.getElementById('kpiPruebasSub').textContent = d.totalPruebas
+                    ? numero(d.totalPositivos) + ' positivos · ' + numero(negativos) + ' negativos'
+                      + (sinResultado > 0 ? ' · ' + numero(sinResultado) + ' sin resultado' : '')
+                    : 'sin registros';
                 document.getElementById('kpiAlcohol').textContent = numero(alcohol);
                 document.getElementById('kpiAlcoholSub').textContent = d.totalPruebas
                     ? Math.round((alcohol / d.totalPruebas) * 100) + '% de las pruebas' : '';
@@ -429,6 +440,8 @@
                     ['Pruebas aplicadas', d.totalPruebas],
                     ['Alcoholimetrías', ultimoExport.alcohol],
                     ['Positivos', d.totalPositivos],
+                    ['Negativos', porResultado(d, 'NEGATIVO')],
+                    ['Sin resultado', d.totalPruebas - d.totalPositivos - porResultado(d, 'NEGATIVO')],
                     ['Kits suministrados (corporativo)', ultimoExport.kits.total],
                     [],
                     ['Predio', 'Pruebas']

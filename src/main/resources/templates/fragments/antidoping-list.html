@@ -52,14 +52,15 @@
                             <tr th:each="a : ${antidopings}">
                                 <td th:text="${a.fechaRegistro}">-</td>
                                 <td th:text="${a.folio}">-</td>
-                                <td th:text="${a.tipoPrueba}">-</td>
+                                <!--/* C-032 / C-035: se guarda ALCOHOLEMIA y CAPA; se muestra con el nombre de SM */-->
+                                <td th:text="${a.tipoPrueba == 'ALCOHOLEMIA' ? 'ALCOHOLIMETRÍA' : a.tipoPrueba}">-</td>
                                 <td th:text="${a.sustancia}">-</td>
                                 <td>
                                     <span class="badge"
                                           th:classappend="${a.resultado == 'POSITIVO'} ? 'bg-danger' : 'bg-success'"
                                           th:text="${a.resultado}">-</span>
                                 </td>
-                                <td th:text="${a.statusConclusion}">-</td>
+                                <td th:text="${a.statusConclusion == 'CAPA' ? 'TRATAMIENTO APLICADO' : a.statusConclusion}">-</td>
                                 <td th:text="${a.observaciones}">-</td>
                                 <td th:text="${a.usuario}">-</td>
                                 <!-- FT-SO-22 Aceptacion a CECOSAMA (20-oct-2026): solo pruebas positivas; el servidor lo vuelve a revisar -->

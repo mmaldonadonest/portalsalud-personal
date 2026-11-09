@@ -193,11 +193,12 @@
             <td class="e">SABIN</td><td class="c">SI</td><td class="x" th:text="${d.si('SABIN')}"></td><td class="c">NO</td><td class="x" th:text="${d.no('SABIN')}"></td>
             <td class="e">HEPATITIS B</td><td class="c">SI</td><td class="x" th:text="${d.si('HEPATITIS_B')}"></td><td class="c">NO</td><td class="x" th:text="${d.no('HEPATITIS_B')}"></td>
             <td class="e">TD</td><td class="c">SI</td><td class="x" th:text="${d.si('TD')}"></td><td class="c">NO</td><td class="x" th:text="${d.no('TD')}"></td>
-            <td></td>
+            <!--/* 9-nov: el calendario guarda aaaa-mm-dd; d.fecha lo imprime dd/mm/aaaa */-->
+            <td th:text="${d.texto('fechaTD') == '' ? '' : d.fecha('fechaTD')}"></td>
         </tr>
         <tr>
             <td class="e">INFLUENZA</td><td class="c">SI</td><td class="x" th:text="${d.si('INFLUENZA')}"></td><td class="c">NO</td><td class="x" th:text="${d.no('INFLUENZA')}"></td>
-            <td class="e">FECHA</td><td colspan="4" th:text="${d.texto('fechaINFLUEN')}"></td>
+            <td class="e">FECHA</td><td colspan="4" th:text="${d.texto('fechaINFLUEN') == '' ? '' : d.fecha('fechaINFLUEN')}"></td>
             <td class="e">COVID-19 DOSIS</td><td class="c">1</td><td class="x" th:text="${d.dosis('COVID', 1)}"></td><td class="c">2</td><td class="x" th:text="${d.dosis('COVID', 2)}"></td>
             <td>3 [[${d.dosis('COVID', 3)}]] · [[${d.texto('FECHA')}]]</td>
         </tr>
@@ -386,7 +387,8 @@
                     <img th:if="${elaboro != null and elaboro.firmaDataUri != null}" th:src="${elaboro.firmaDataUri}" alt="Firma" style="max-height:34px">
                 </div>
                 <div class="linea-firma">
-                    Realizó<th:block th:if="${elaboro != null and elaboro.nombre != null and !elaboro.nombre.isBlank()}">: <b th:text="${elaboro.nombre}">Usuario</b></th:block>
+                    <!--/* 3-nov-2026: "Autorizó" en lugar de "Realizó" (pedido del usuario, todos los impresos) */-->
+                    Autorizó<th:block th:if="${elaboro != null and elaboro.nombre != null and !elaboro.nombre.isBlank()}">: <b th:text="${elaboro.nombre}">Usuario</b></th:block>
                 </div>
             </td>
             <td class="cert" style="vertical-align:top" th:text="${certificacion}"></td>

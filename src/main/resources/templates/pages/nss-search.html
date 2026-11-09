@@ -1322,6 +1322,36 @@
                 });
             }
 
+            // Empleos anteriores (hoja 2). "No aplica" (9-nov, E-023, opcion a del usuario): llena el
+            // empleo con N/A y 0 en Salida, como SM lo capturaba a mano, y se guarda asi. Apagarlo solo
+            // borra lo que sea N/A o 0: si alguien escribio un dato real, no se pierde.
+            function exIniCamposEmpleo(raiz, n) {
+                return (raiz || document).querySelectorAll('[name^="trabajo' + n + '."]');
+            }
+            function exIniEsRellenoEmpleo(v) {
+                var t = String(v || '').trim().toUpperCase();
+                return t === 'N/A' || t === '0';
+            }
+            function exIniEmpleoVacio(raiz, n) {
+                return Array.prototype.every.call(exIniCamposEmpleo(raiz, n), function (el) { return !String(el.value || '').trim(); });
+            }
+            function exIniEmpleoNoAplica(raiz, n) {
+                var c = exIniCamposEmpleo(raiz, n);
+                return c.length > 0 && Array.prototype.every.call(c, function (el) { return exIniEsRellenoEmpleo(el.value); });
+            }
+            window.exIniNoAplicaEmpleo = function (chk) {
+                var n = chk.getAttribute('data-empleo');
+                exIniCamposEmpleo(document.getElementById('exIniForm'), n).forEach(function (el) {
+                    if (chk.checked) {
+                        el.value = /\.salida$/.test(el.name) ? '0' : 'N/A';
+                    } else if (exIniEsRellenoEmpleo(el.value)) {
+                        el.value = '';
+                    }
+                });
+                exIniProgramarAutosave();
+                exIniPintarStepper();
+            };
+
             // Barra de avance de cada hoja del stepper, calculada en el navegador con lo que hay
             // en pantalla (el servidor la calcula igual al recargar).
             function exIniPintarStepper() {
@@ -1331,7 +1361,17 @@
                 }
                 root.querySelectorAll('section.exini-hoja').forEach(function (s) {
                     var n = parseInt(s.getAttribute('data-hoja'), 10);
-                    var campos = s.querySelectorAll('input[name]:not([type=hidden]), select[name], textarea[name], input[type=hidden][name]:not([name=nss]):not([name=hoja]):not([name=firma])');
+                    var todos = s.querySelectorAll('input[name]:not([type=hidden]), select[name], textarea[name], input[type=hidden][name]:not([name=nss]):not([name=hoja]):not([name=firma])');
+                    // 9-nov: no cuentan como faltantes los dientes sin hallazgo (vacio = sano, el impreso dice
+                    // "Diente sano"; E-022) ni los empleos anteriores que no se empezaron (no son obligatorios; E-023)
+                    var campos = Array.prototype.filter.call(todos, function (el) {
+                        if (/^SERV_MED_DIENTES\.DIENTE_/.test(el.name)) { return false; }
+                        var m = /^trabajo(\d+)\./.exec(el.name);
+                        return !(m && exIniEmpleoVacio(s, m[1]));
+                    });
+                    s.querySelectorAll('input[data-empleo]').forEach(function (chk) {
+                        chk.checked = exIniEmpleoNoAplica(s, chk.getAttribute('data-empleo'));
+                    });
                     var llenos = 0;
                     campos.forEach(function (el) { if (el.value && String(el.value).trim() !== '') { llenos++; } });
                     var btn = root.querySelector('#exIniStepper button[data-ir="' + n + '"]');
@@ -1451,10 +1491,31 @@
                 return v !== '' && (v === (fila.getAttribute('data-normal') || '').toUpperCase() || v === 'NORMAL' || v === '20/20');
             }
 
+            // Examen inicial (CORRECION EMNI, 6-nov-2026): Sí o No se eligen; escribir ya no cambia la
+            // seleccion. El modulo Examen medico no trae este hidden y sigue con la regla anterior.
+            function exIniOkNoSel(fila) {
+                return fila.querySelector('input[data-okno-sel]');
+            }
+
+            function exIniOkNoPoner(fila, valor) {
+                var sel = exIniOkNoSel(fila);
+                if (sel) { sel.value = valor; }
+            }
+
             function exIniOkNoPintar(fila) {
                 var inp = fila.querySelector('input[data-tipo="OKNO"]');
                 var b = fila.querySelectorAll('.exini-okno-btns button');
                 var v = inp.value.trim();
+                var elegido = exIniOkNoSel(fila);
+                if (elegido) {
+                    b[0].classList.toggle('activo-ok', elegido.value === 'SI');
+                    b[1].classList.toggle('activo-hallazgo', elegido.value === 'NO');
+                    // Solo avisa: no impide guardar
+                    var falta = elegido.value !== '' && v === '';
+                    inp.classList.toggle('is-invalid', falta);
+                    inp.title = falta ? 'Falta escribir el agregado' : '';
+                    return;
+                }
                 var ok = exIniOkNoEsOk(fila, v);
                 var pide = fila.classList.contains('pide-hallazgo');
                 var alterno = (fila.getAttribute('data-alterno') || '').toUpperCase();
@@ -1472,6 +1533,38 @@
                 var normal = fila.getAttribute('data-normal') || '';
                 var alterno = fila.getAttribute('data-alterno') || '';
                 var esOk = exIniOkNoEsOk(fila, inp.value);
+                var elegido = exIniOkNoSel(fila);
+                if (elegido) {
+                    var nuevo = ok ? 'SI' : 'NO';
+                    var texto = inp.value.trim();
+                    var predeterminado = texto === '' || esOk || (alterno !== '' && texto.toUpperCase() === alterno.toUpperCase());
+                    if (elegido.value === nuevo) {
+                        // segundo clic en el activo = sin contestar; lo escrito a mano se conserva
+                        elegido.value = '';
+                        if (predeterminado) { inp.value = ''; }
+                    } else {
+                        elegido.value = nuevo;
+                        if (predeterminado) { inp.value = ok ? normal : (alterno ? alterno + ' ' : ''); }
+                        if (!ok) {
+                            inp.focus();
+                            inp.setSelectionRange(inp.value.length, inp.value.length);
+                        }
+                        // Genitales: solo uno
+                        if (fila.hasAttribute('data-exclusivo')) {
+                            fila.closest('.exini-bloque').querySelectorAll('.exini-okno[data-exclusivo]').forEach(function (otra) {
+                                if (otra === fila) { return; }
+                                var otroInp = otra.querySelector('input[data-tipo="OKNO"]');
+                                exIniOkNoPoner(otra, '');
+                                otroInp.value = '';
+                                exIniOkNoPintar(otra);
+                                otroInp.dispatchEvent(new Event('change', { bubbles: true }));
+                            });
+                        }
+                    }
+                    exIniOkNoPintar(fila);
+                    inp.dispatchEvent(new Event('change', { bubbles: true }));
+                    return;
+                }
                 // NO activo = lo que se ve en el boton (un texto viejo sin marca no cuenta: no se borra)
                 var esNo = fila.querySelectorAll('.exini-okno-btns button')[1].classList.contains('activo-hallazgo');
                 fila.classList.remove('pide-hallazgo');
@@ -1493,8 +1586,23 @@
                 inp.dispatchEvent(new Event('change', { bubbles: true }));
             };
 
+            // Solo numeros (No patologicos y gineco-obstetricos): el WS guarda texto
+            window.exIniSoloNumero = function (inp) {
+                var limpio = inp.value.replace(/[^0-9]/g, '');
+                if (inp.value !== limpio) { inp.value = limpio; }
+            };
+
+            // Fecha visible (aaaa-mm-dd) -> texto dd/mm/aaaa, como se ha guardado siempre en FUM y FUP
+            window.exIniFechaTexto = function (inp) {
+                var hidden = inp.previousElementSibling;
+                var m = inp.value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                hidden.value = m ? m[3] + '/' + m[2] + '/' + m[1] : '';
+                hidden.dispatchEvent(new Event('change', { bubbles: true }));
+            };
+
             window.exIniOkNoEscribe = function (inp) {
                 var fila = inp.closest('.exini-okno');
+                if (exIniOkNoSel(fila)) { exIniOkNoPintar(fila); return; }
                 if (exIniOkNoEsOk(fila, inp.value)) { fila.classList.remove('pide-hallazgo'); }
                 else if (inp.value.trim() !== '') { fila.classList.add('pide-hallazgo'); }
                 exIniOkNoPintar(fila);
@@ -1548,6 +1656,9 @@
                     if (!s || b.length < 2) { return; }
                     b[0].classList.toggle('activo-si', s.value === '1');
                     b[1].classList.toggle('activo-no', s.value !== '' && s.value !== '1');
+                    // C-010: la caja de observaciones de una sola pregunta solo se ve con Si
+                    var obs = c.querySelector('input[data-solo-si]');
+                    if (obs) { obs.style.display = s.value === '1' ? '' : 'none'; }
                 });
                 // odontograma (Dientes): se colorea desde el texto de cada DIENTE_nn al mostrarse
                 if (raiz.querySelectorAll) { raiz.querySelectorAll('.exini-odonto .diente').forEach(exIniPintarDiente); }
@@ -1752,6 +1863,7 @@
                         if (inp.value.trim() === '') {
                             fila.classList.remove('pide-hallazgo');
                             inp.value = fila.getAttribute('data-normal');
+                            exIniOkNoPoner(fila, 'SI');
                             exIniOkNoPintar(fila);
                             cambiados++;
                         }
@@ -1800,6 +1912,7 @@
                     bloque.querySelectorAll('.exini-okno').forEach(function (fila) {
                         fila.classList.remove('pide-hallazgo');
                         fila.querySelector('input[data-tipo="OKNO"]').value = '';
+                        exIniOkNoPoner(fila, '');
                         exIniOkNoPintar(fila);
                     });
                     bloque.querySelectorAll('.exini-chips[data-normal]').forEach(function (g) {
@@ -3581,7 +3694,18 @@
                 if (!table) {
                     return;
                 }
-                var q = (input.value || '').toLowerCase();
+                // 4-nov-2026: tambien lo llaman los filtros de fecha (Historico E.M.); el texto a buscar
+                // es siempre el del buscador de la tarjeta, no el valor de quien lo llama
+                var textoEl = input.type === 'date' ? card.querySelector('input[type="text"][oninput]') : input;
+                var q = textoEl ? (textoEl.value || '').toLowerCase() : '';
+                // Rango de fechas opcional: filas con data-fecha=yyyy-MM-dd; sin fecha no pasan si hay rango
+                var desdeEl = card.querySelector('[data-filtro-desde]');
+                var hastaEl = card.querySelector('[data-filtro-hasta]');
+                var desde = desdeEl ? desdeEl.value : '';
+                var hasta = hastaEl ? hastaEl.value : '';
+                // Origen opcional (Historico E.M.: subido a mano / portal / Excel), filas con data-origen
+                var origenEl = card.querySelector('[data-filtro-origen]');
+                var origen = origenEl ? origenEl.value : '';
                 // Si la misma tarjeta tiene un filtro de ramo y/o rubro (Incapacidades), se
                 // combinan con el buscador de texto; en el resto de las tablas no existen esos
                 // selects y no cambia nada.
@@ -3593,8 +3717,55 @@
                     var matchTexto = tr.textContent.toLowerCase().indexOf(q) >= 0;
                     var matchRamo = !ramo || tr.getAttribute('data-ramo') === ramo;
                     var matchRubro = !rubro || (tr.getAttribute('data-rubro') || '').toLowerCase() === rubro;
-                    tr.style.display = (matchTexto && matchRamo && matchRubro) ? '' : 'none';
+                    var matchOrigen = !origen || tr.getAttribute('data-origen') === origen;
+                    var f = tr.getAttribute('data-fecha') || '';
+                    var matchFecha = (!desde && !hasta) || (f !== '' && (!desde || f >= desde) && (!hasta || f <= hasta));
+                    tr.style.display = (matchTexto && matchRamo && matchRubro && matchFecha && matchOrigen) ? '' : 'none';
                 });
+                // Contador "N de M" si la tarjeta lo trae
+                var cont = card.querySelector('[data-filtro-contador]');
+                if (cont) {
+                    var filas = table.querySelectorAll('tbody tr');
+                    var visibles = Array.prototype.filter.call(filas, function (tr) { return tr.style.display !== 'none'; }).length;
+                    cont.textContent = visibles === filas.length ? '' : (visibles + ' de ' + filas.length);
+                }
+            };
+
+            // Botones de origen (Historico E.M.): marca el elegido y filtra junto con texto y fechas
+            window.filtrarPorOrigen = function (btn) {
+                var card = btn.closest('.card');
+                if (!card) {
+                    return;
+                }
+                var origenEl = card.querySelector('[data-filtro-origen]');
+                if (origenEl) {
+                    origenEl.value = btn.getAttribute('data-origen-btn') || '';
+                }
+                card.querySelectorAll('[data-origen-btn]').forEach(function (b) {
+                    b.classList.toggle('active', b === btn);
+                });
+                var ref = card.querySelector('input[type="text"][oninput]') || card.querySelector('[data-filtro-desde]');
+                if (ref) {
+                    window.filtrarConsultas(ref);
+                }
+            };
+
+            // Quita texto, rango de fechas y origen de la tarjeta y vuelve a mostrar todo
+            window.limpiarFiltrosTarjeta = function (btn) {
+                var card = btn.closest('.card');
+                if (!card) {
+                    return;
+                }
+                card.querySelectorAll('input[type="text"][oninput], [data-filtro-desde], [data-filtro-hasta], [data-filtro-origen]').forEach(function (el) {
+                    el.value = '';
+                });
+                card.querySelectorAll('[data-origen-btn]').forEach(function (b) {
+                    b.classList.toggle('active', b.getAttribute('data-origen-btn') === '');
+                });
+                var ref = card.querySelector('input[type="text"][oninput]') || card.querySelector('[data-filtro-desde]');
+                if (ref) {
+                    window.filtrarConsultas(ref);
+                }
             };
 
             // Filtro de ramo (Incapacidades): reusa filtrarConsultas para combinarse con el

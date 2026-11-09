@@ -33,7 +33,11 @@ public class BiowsExamenClient implements ExamenClient {
     private static final Logger log = LoggerFactory.getLogger(BiowsExamenClient.class);
     private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("dd/MM/yy HH:mm:ss");
     private static final String PATH = "/Servcio/consulta_examen";
-    private static final String PATH_SAVE = "/Servcio/Medico";
+    // E-024 (9-nov-2026): clon de Servcio/Medico que llama a PR_SERVICIO_MED_EXAMEN1/2_V2, iguales al
+    // original pero anotan el error real de Oracle en SERV_MED_LOG_PROC (el original solo responde
+    // "Problema en el procedimiento"). El original sigue publicado e intacto.
+    // docs/script-prod/e024-bitacora-examen-medico-v2.sql DEBE correrse antes de subir este WAR.
+    private static final String PATH_SAVE = "/Servcio/Medico_v2";
     // _cta = clon del WS original que ademas devuelve CUENTA por registro (10-sep-2026,
     // docs/ords-cuenta-en-reportes.sql). El original sigue publicado e intacto.
     private static final String PATH_REPORTE_FECHA = "/Servcio/consulta_examen_fecha_cta";

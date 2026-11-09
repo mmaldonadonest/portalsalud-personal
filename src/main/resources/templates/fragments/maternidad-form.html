@@ -35,8 +35,19 @@
                 </div>
 
                 <div class="col-md-6">
-                    <label class="form-label" for="maternidadEstatus">Estatus</label>
-                    <input type="text" class="form-control" name="estatus" id="maternidadEstatus" placeholder="Estatus">
+                    <label class="form-label" for="maternidadEstatus">Estatus laboral</label>
+                    <!-- C-039: lista de la columna STATUS LABORAL del reporte de maternidad de SM. Los valores
+                         son los mismos que acepta la carga de Excel (CatalogosNss ESTATUS_LABORAL) para que el
+                         portal y el historico cuenten igual. Lo capturado antes como texto libre no se toca. -->
+                    <select class="form-select" name="estatus" id="maternidadEstatus">
+                        <option value="">Seleccionar</option>
+                        <option value="LABORANDO EMBARAZADA">Laborando embarazada</option>
+                        <option value="INCAPACIDAD">Incapacidad</option>
+                        <option value="LACTANCIA">Lactancia</option>
+                        <option value="ABORTO">Aborto</option>
+                        <option value="BAJA">Baja</option>
+                        <option value="TERMINO">Término</option>
+                    </select>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="maternidadReincorporacion">Fecha de reincorporación</label>

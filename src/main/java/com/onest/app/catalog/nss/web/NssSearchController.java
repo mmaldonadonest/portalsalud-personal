@@ -52,6 +52,7 @@ public class NssSearchController {
                 model.addAttribute("escolaridad", escolaridadOcr.isEmpty() ? extra.escolaridad() : escolaridadOcr);
                 model.addAttribute("profesion", sol == null || sol.profesionOficio() == null ? "" : sol.profesionOficio().trim());
                 model.addAttribute("departamento", extra.departamento());
+                model.addAttribute("telefonoSalud", documentoService.telefonoSalud(result.empleado().nss()));
             }
         } catch (IllegalArgumentException ex) {
             model.addAttribute("result", null);

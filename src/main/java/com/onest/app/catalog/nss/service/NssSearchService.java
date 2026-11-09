@@ -90,7 +90,7 @@ public class NssSearchService {
         // EmpleadoDto.sexo usa la convencion del biometrico: 1 = hombre, 2 = mujer
         String sexo = "M".equals(s.sexo()) ? "1" : ("F".equals(s.sexo()) ? "2" : null);
         return new EmpleadoDto(s.nss(), s.nombre(), s.apellidoPaterno(), s.apellidoMaterno(), s.rfc(), s.cuenta(),
-                nacimiento, s.estadoCivil(), sexo, s.domicilio(), s.telefono(), null, null,
+                nacimiento, com.onest.app.catalog.nss.dto.EstadoCivil.etiqueta(s.estadoCivil()), sexo, s.domicilio(), s.telefono(), null, null,
                 s.nombreCompleto(), s.puestoSolicitado(), s.empresa(), edad, null);
     }
 

@@ -27,11 +27,25 @@ public class ExamenService {
     // type: SINO (Si/No + OBS opcional) | TEXT | DATE
     // tag: si no es null, el campo se lee/escribe en SERV_MED_TAG con ese TYPE (no en el WS) y
     // field es la columna del WS que se muestra como respaldo cuando el tag esta vacio.
-    private record Campo(String field, String label, String type, boolean hasObs, String tag) {
+    private record Campo(String field, String label, String type, boolean hasObs, String tag, String obsTag) {
         Campo(String field, String label, String type, boolean hasObs) {
-            this(field, label, type, hasObs, null);
+            this(field, label, type, hasObs, null, null);
+        }
+
+        Campo(String field, String label, String type, boolean hasObs, String tag) {
+            this(field, label, type, hasObs, tag, null);
         }
     }
+
+    /**
+     * Observaciones de APP personales patologicos (CORRECION EMNI, 6-nov-2026). La tabla
+     * SERV_MED_ANT_PER_PATOLOGICOS no tiene columnas _OBS y el WS no las recibe: viven en SERV_MED_TAG.
+     * Columna -> TYPE del tag.
+     */
+    public static final Map<String, String> OBS_TAG_APP = Map.of(
+            "ENF_CONGENITAS", "APOBCONG", "GENITAL", "APOBGENI", "ENF_PROP_INF", "APOBINFA",
+            "DERMATOPATIAS", "APOBDERM", "SIST_AUDITIVO", "APOBAUDI", "RESPIRATORIO", "APOBRESP",
+            "SIS_OLFATIVO", "APOBOLFA", "TRAUMATICOS", "APOBTRAU");
 
     private record Seccion(String dataKey, List<Campo> campos) {
     }
@@ -42,6 +56,11 @@ public class ExamenService {
 
     private static Campo sino0(String f, String l) {
         return new Campo(f, l, "SINO", false);
+    }
+
+    /** Si/No en su columna; la observacion va en SERV_MED_TAG (ver OBS_TAG_APP). */
+    private static Campo sinoObsTag(String f, String l) {
+        return new Campo(f, l, "SINO", false, null, OBS_TAG_APP.get(f));
     }
 
     private static Campo text(String f, String l) {
@@ -378,6 +397,7 @@ public class ExamenService {
                 sino0("INFLUENZA", "Influenza"),
                 sino0("TD", "Td"),
                 tagFecha("fechaINFLUEN", "Fecha influenza"),
+                tagFecha("fechaTD", "Fecha Td"),
                 dosis("COVID", "COVID-19 (dosis)"),
                 date("FECHA", "Fecha COVID"))));
 
@@ -399,15 +419,15 @@ public class ExamenService {
 
         // ---- Antecedentes personales patologicos (APP): Si/No (+ obs) ----
         CATALOGO.put("APP: personales patológicos", new Seccion("SERV_MED_ANT_PER_PATOLOGICOS", List.of(
-                sino0("ENF_CONGENITAS", "Enf. congénitas"),
+                sinoObsTag("ENF_CONGENITAS", "Enf. congénitas"),
                 // etiquetas como el FT-SO-04 rev. 05 (filas 66-69), con su aclaracion entre parentesis
-                sino0("GENITAL", "Genital (prolapsos)"),
-                sino0("ENF_PROP_INF", "Enf. propias de la infancia"),
-                sino0("DERMATOPATIAS", "Dermatopatías"),
-                sino0("SIST_AUDITIVO", "Sistema auditivo (sordera, perforación de tímpano)"),
-                sino0("RESPIRATORIO", "Respiratorio"),
-                sino0("SIS_OLFATIVO", "Sistema olfativo"),
-                sino0("TRAUMATICOS", "Traumáticos"))));
+                sinoObsTag("GENITAL", "Genital (prolapsos)"),
+                sinoObsTag("ENF_PROP_INF", "Enf. propias de la infancia"),
+                sinoObsTag("DERMATOPATIAS", "Dermatopatías"),
+                sinoObsTag("SIST_AUDITIVO", "Sistema auditivo (sordera, perforación de tímpano)"),
+                sinoObsTag("RESPIRATORIO", "Respiratorio"),
+                sinoObsTag("SIS_OLFATIVO", "Sistema olfativo"),
+                sinoObsTag("TRAUMATICOS", "Traumáticos"))));
         CATALOGO.put("APP: oftalmológico", new Seccion("SERV_MED_OFTALMOLOGICO", List.of(
                 sino("USO_LENTES", "Uso de lentes"),
                 sino("ASTIGMATISMO", "Astigmatismo"),
@@ -691,7 +711,7 @@ public class ExamenService {
         if ("SERV_ANTECEDENTESLAB".equals(sec.dataKey())) {
             completarDesdeTags(data, normalizeNss(nss));
         }
-        if (sec.campos().stream().anyMatch(c -> c.tag() != null)) {
+        if (sec.campos().stream().anyMatch(c -> c.tag() != null || c.obsTag() != null)) {
             cargarCamposTag(data, normalizeNss(nss));
         }
         return itemsDesde(sec, data);
@@ -704,6 +724,9 @@ public class ExamenService {
             for (Campo c : sec.campos()) {
                 if (c.tag() != null) {
                     out.add(c.tag());
+                }
+                if (c.obsTag() != null) {
+                    out.add(c.obsTag());
                 }
             }
         }
@@ -842,6 +865,10 @@ public class ExamenService {
             // ExamenClaves.leer(): el WS de lectura devuelve varias claves con nombre distinto
             // al de escritura (espacios, typos) - ver esa clase.
             String obsValue = campo.hasObs() ? mostrable(ExamenClaves.leer(data, base + "_OBS")) : null;
+            if (campo.obsTag() != null) {
+                obsName = PREFIJO_TAG + campo.obsTag();
+                obsValue = mostrable(data.get(obsName));
+            }
             String value = "RESULTADO".equals(campo.type())
                     ? dictamenDesdeFlags(data, sec.dataKey())
                     : mostrable(ExamenClaves.leer(data, base));

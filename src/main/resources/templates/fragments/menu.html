@@ -51,6 +51,19 @@
             </ul>
         </div>
         </th:block>
+        <!-- Carga de Excel (2-nov-2026): reemplaza a Analisis > Importar Excel. Grupo propio porque
+             la usan MEDICO_ANALISTA y Servicio Medico; se asigna por rol con el menu CARGA_EXCEL y
+             el bloqueo real de la ruta lo hace ClinicalAccessFilter. -->
+        <div class="nav-group"
+             th:if="${menusPermitidos == null or menusPermitidos.contains('CARGA_EXCEL')}"
+             th:classappend="${currentPath == '/carga-excel'} ? ' show' : ''">
+            <a href="javascript:void(0)" class="nav-label">Carga de datos</a>
+            <ul class="nav nav-sidebar">
+                <li class="nav-item">
+                    <a th:href="@{/carga-excel}" href="/carga-excel" class="nav-link" th:classappend="${currentPath == '/carga-excel'} ? ' active' : ''"><i class="ri-file-excel-2-line"></i> <span>Carga de Excel</span></a>
+                </li>
+            </ul>
+        </div>
         <!-- Analisis como grupo propio del sidebar (igual que "Portal Salud"), pedido 14-sep:
              antes era un submenu (.has-sub) dentro de Portal Salud. Gate visual por rol
              MEDICO_ANALISTA (la seguridad real la hace SecurityConfiguration sobre /analisis/**).
@@ -107,9 +120,6 @@
                 <li class="nav-item"><span class="nav-group-sub">Sistema</span></li>
                 <li class="nav-item">
                     <a th:href="@{/analisis/empleados}" href="/analisis/empleados" class="nav-link" th:classappend="${currentPath == '/analisis/empleados'} ? ' active' : ''"><i class="ri-team-line"></i> <span>Empleados</span></a>
-                </li>
-                <li class="nav-item">
-                    <a th:href="@{/analisis/importar}" href="/analisis/importar" class="nav-link" th:classappend="${currentPath == '/analisis/importar'} ? ' active' : ''"><i class="ri-file-excel-2-line"></i> <span>Importar Excel</span></a>
                 </li>
                 <li class="nav-item">
                     <a th:href="@{/analisis/reportes}" href="/analisis/reportes" class="nav-link" th:classappend="${currentPath == '/analisis/reportes'} ? ' active' : ''"><i class="ri-file-chart-line"></i> <span>Reportes</span></a>

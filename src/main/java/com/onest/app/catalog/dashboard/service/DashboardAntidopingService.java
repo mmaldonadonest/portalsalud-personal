@@ -66,9 +66,43 @@ public class DashboardAntidopingService {
     /** Con corte opcional por predio y/o cuenta. Posible desde el 11-sep-2026 (WS _cta). */
     public DashboardAntidopingDto resumen(String fechaInicial, String fechaFinal, String predio, String cuenta) {
         VistaAntidopingRepository vista = vistaAntidoping.getIfAvailable();
-        if (vista != null) {
-            return resumenDesdeVista(vista, fechaInicial, fechaFinal, predio, cuenta);
-        }
+        return conNombresSm(vista != null
+                ? resumenDesdeVista(vista, fechaInicial, fechaFinal, predio, cuenta)
+                : resumenDesdeWs(fechaInicial, fechaFinal, predio, cuenta));
+    }
+
+    /**
+     * C-032 y C-035 (control de cambios, nov-2026): Servicio Medico renombro ALCOHOLEMIA a
+     * ALCOHOLIMETRIA y CAPA a TRATAMIENTO APLICADO. Solo cambia lo que se muestra: en el WS, las
+     * vistas y el Excel historico se siguen guardando los valores de siempre, asi que se traducen
+     * aqui, al final, para cubrir los dos caminos (vista y WS) y el historico de una vez.
+     */
+    static final Map<String, String> NOMBRES_SM = Map.of(
+            "ALCOHOLEMIA", "ALCOHOLIMETRÍA",
+            "CAPA", "TRATAMIENTO APLICADO");
+
+    private static DashboardAntidopingDto conNombresSm(DashboardAntidopingDto d) {
+        return new DashboardAntidopingDto(d.fechaInicial(), d.fechaFinal(), d.totalPruebas(), d.totalPositivos(),
+                renombrar(d.porTipoPrueba()), d.porSustancia(), d.porResultado(), renombrar(d.porStatusConclusion()),
+                d.porPredio(),
+                d.porPredioTipo().stream()
+                        .map(c -> new ConteoCruzadoDto(c.fila(), nombreSm(c.columna()), c.cantidad(), c.costo()))
+                        .toList(),
+                d.tendenciaMensual());
+    }
+
+    /** Renombra y vuelve a juntar: si el historico trae el nombre viejo y el nuevo, se suman. */
+    private static List<ConteoSimpleDto> renombrar(List<ConteoSimpleDto> conteos) {
+        Map<String, Long> junto = new LinkedHashMap<>();
+        conteos.forEach(c -> junto.merge(nombreSm(c.clave()), c.cantidad(), Long::sum));
+        return aConteo(junto);
+    }
+
+    static String nombreSm(String valor) {
+        return valor == null ? null : NOMBRES_SM.getOrDefault(valor.trim().toUpperCase(), valor);
+    }
+
+    private DashboardAntidopingDto resumenDesdeWs(String fechaInicial, String fechaFinal, String predio, String cuenta) {
         List<AntidopingReporteDto> filas = antidopingService.reportePorFecha(fechaInicial, fechaFinal).stream()
                 // Mismo bug de "fila fantasma" ya visto en Accidentes/Consulta: sin datos en
                 // el rango, el WS regresa un objeto con todos los campos null.

@@ -106,7 +106,7 @@
                     avanzaCon: '#moduleContent button[onclick^="nuevoAntidoping"]' }),
                 { el: '#moduleContent button[onclick^="nuevoAntidoping"]', titulo: 'Nueva prueba', texto: 'Para registrar una prueba pulsa «Nuevo registro».', siNoEsta: 'Abre el módulo «Antidoping».',
                     avanzaCon: '#antidopingCustodia' },
-                { el: '#antidopingTipoPrueba', titulo: 'Tipo de prueba', texto: 'Antidoping o alcoholemia. En antidoping eliges la sustancia; en alcoholemia capturas el % de alcohol en la custodia.' },
+                { el: '#antidopingTipoPrueba', titulo: 'Tipo de prueba', texto: 'Antidoping o alcoholimetría. En antidoping eliges la sustancia; en alcoholimetría capturas el % de alcohol en la custodia.' },
                 { el: '#antidopingCustodia', titulo: 'Cadena de custodia (FT-SO-14)', texto: 'Identificación, razón de la prueba, elementos a detectar (desmarca los que tu kit no detecta), tratamiento médico, hora, lugar y responsable. Lo vacío sale en blanco para llenarse a mano.' },
                 { el: '#antidopingAltaForm button[onclick^="guardarAntidoping"]', titulo: 'Guarda la prueba', texto: 'Después, en la lista, la columna «Formato» trae el FT-SO-14 en todas las pruebas y el FT-SO-22 (aceptación a CECOSAMA) solo en las positivas.' }
             ]
@@ -215,7 +215,7 @@
                 { el: '#moduleContent button[onclick^="nuevoMaternidad"]', titulo: 'Nuevo registro', texto: 'Pulsa para capturar una revisión.', avanzaCon: '#maternidadAltaForm',
                     siNoEsta: 'Solo se registra en personas de sexo femenino.' },
                 { el: '#maternidadSemanasGestacion', titulo: 'Semanas y fecha probable de parto', texto: 'Semanas de gestación y fecha probable de parto.' },
-                { el: '#maternidadEstatus', titulo: 'Estatus', texto: 'En qué etapa está y la fecha de la próxima revisión.' },
+                { el: '#maternidadEstatus', titulo: 'Estatus laboral', texto: 'Elige de la lista en qué etapa está: laborando embarazada, incapacidad, lactancia, aborto, baja o término.' },
                 { el: '#maternidadRestricciones', titulo: 'Restricciones', texto: 'Las tareas que no debe realizar durante el embarazo.' },
                 { el: '#maternidadAltaForm button[onclick^="guardarMaternidad"]', titulo: 'Guarda', texto: 'Cada revisión queda en la lista.' }
             ]
@@ -249,6 +249,22 @@
                 { el: '#formCausa button[type="submit"]', titulo: 'Guardar', texto: 'La causa aparece desde ese momento en el alta de consulta.' },
                 { el: '#filasCausas', titulo: 'Catálogo', texto: 'Desde cada renglón desactivas una causa que ya no se use; no se borra para no perder el histórico.' },
                 { el: '#verInactivas', titulo: 'Ver inactivas', texto: 'Muestra también las desactivadas, para volver a activarlas.' }
+            ]
+        },
+        'carga-excel': {
+            titulo: 'Cargar un Excel de Servicio Médico',
+            pagina: 'carga-excel', menu: ['CARGA_EXCEL'],
+            pasos: [
+                { el: '#selTipo', titulo: 'Tipo de archivo', texto: 'Elige qué vas a cargar (Atenciones, Incapacidades...). Si el archivo es de otro tipo, el portal lo rechaza sin cargar nada.' },
+                { el: '#dropzone', titulo: 'El archivo', texto: 'Arrastra o selecciona el Excel (.xlsx). El orden de las columnas no importa; los encabezados deben ser los de la plantilla.' },
+                { el: '#inputCorrecciones', titulo: 'Correcciones de NSS (opcional)', texto: 'Si Servicio Médico encontró a mano el NSS de renglones que llegaron sin él, sube aquí ese Excel. Solo se aplica si el predio y la fecha del renglón coinciden.' },
+                { el: '#btnValidar', titulo: 'Validar', texto: 'Revisa catálogos y NSS contra el biométrico SIN escribir nada. Con archivos grandes tarda un par de minutos.' },
+                { el: '#resCal', titulo: 'Resultado', texto: 'Cuántos renglones entran y cuántos se rechazan. «Excel de errores» trae cada rechazo con su renglón y motivo, para corregirlo en el original.',
+                    siNoEsta: 'Primero valida un archivo.' },
+                { el: '#tabs', titulo: 'Pestañas del resultado', texto: '«No entran»: renglones que no se cargarán, corrígelos y vuelve a validar. «Entran con ajuste»: se cargan, revisa el ajuste. «Resumen del archivo»: avisos generales con qué hacer. «Lo que ya estaba cargado»: lo que esta carga sustituye de ese predio y mes.',
+                    siNoEsta: 'Aparece después de validar.' },
+                { el: '#btnCargar', titulo: 'Cargar', texto: 'Escribe en la base los renglones válidos. Queda en el historial con tu usuario y una copia del archivo original.',
+                    siNoEsta: 'Aparece cuando el archivo ya se validó y tiene renglones válidos.' }
             ]
         },
         'bandeja': {

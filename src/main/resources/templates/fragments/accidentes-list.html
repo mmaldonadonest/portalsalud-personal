@@ -58,7 +58,8 @@
                                 <td th:text="${a.causaRt}">-</td>
                                 <td th:text="${a.diagnostico}">-</td>
                                 <td th:text="${a.sdi}">-</td>
-                                <td th:text="${a.statusCalificacion}">-</td>
+                                <!--/* C-042: se guarda el codigo BAJA_INCONCLUSO; se muestra como en el catalogo de SM */-->
+                                <td th:text="${#strings.replace(a.statusCalificacion, '_', ' / ')}">-</td>
                                 <td th:text="${a.dias ?: '-'}">-</td>
                                 <td th:text="${a.costo}">-</td>
                                 <td th:text="${a.observaciones}">-</td>
@@ -132,7 +133,7 @@
                                 <td th:text="${h.causaRt ?: '-'}">-</td>
                                 <td th:text="${h.dxImss ?: '-'}">-</td>
                                 <td th:text="${h.sdi != null ? '$' + #numbers.formatDecimal(h.sdi, 1, 'COMMA', 2, 'POINT') : '-'}">-</td>
-                                <td th:text="${h.statusCalificacion ?: '-'}">-</td>
+                                <td th:text="${h.statusCalificacion != null ? #strings.replace(h.statusCalificacion, '_', ' / ') : '-'}">-</td>
                                 <td th:text="${h.status ?: '-'}">-</td>
                                 <td th:text="${h.dias ?: '-'}">-</td>
                                 <td th:text="${h.costo != null ? '$' + #numbers.formatDecimal(h.costo, 1, 'COMMA', 2, 'POINT') : '-'}">-</td>

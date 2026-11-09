@@ -146,15 +146,20 @@ a {
 .ficha-hero .sub { font-size: 11.5px; opacity: .92; margin-top: 3px; }
 .ficha-datos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; margin-bottom: 12px; }
 @media (min-width: 992px) { .ficha-datos { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+/* 9-nov (reporte de SM "se ve incompleto y pequeno"): la ficha compacta cortaba con "..." el telefono,
+   el puesto y lo largo, y usaba 12px. Ahora cada dato baja de renglon si no cabe (nada se corta) y la
+   letra es mas grande; las columnas son mas anchas para que casi todo quepa en una linea. */
 .ficha-datos.compacta {
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px 10px;
-    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px 16px;
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px;
 }
+/* los 10 datos de la ficha en 5 x 2 en pantalla ancha (auto-fill dejaba "Turno" solo en un renglon) */
+@media (min-width: 1200px) { .ficha-datos.compacta { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 .ficha-datos .dato { min-width: 0; }
-.ficha-datos .dato .l { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #94a3b8; }
-.ficha-datos .dato .v { font-size: 12.5px; font-weight: 600; color: #0f172a; overflow-wrap: anywhere; }
+.ficha-datos .dato .l { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #64748b; margin-bottom: 2px; }
+.ficha-datos .dato .v { font-size: 13px; font-weight: 600; color: #0f172a; overflow-wrap: anywhere; }
 .ficha-datos .dato.ancho { grid-column: 1 / -1; }
-.ficha-datos.compacta .dato .v { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ficha-datos.compacta .dato .v { font-size: 13px; white-space: normal; }
 
 a:hover {
     color: var(--onest-blue-dark);

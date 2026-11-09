@@ -320,6 +320,18 @@ PR_SERV_MED_AYUDA_UP('consumibles', 'CONSUMIBLES', 'Consumibles de antidoping', 
  'consumibles, inventario, kits, tiras, entradas, salidas, existencia',
  '**Exámenes → Consumibles**: entradas y salidas de los consumibles de antidoping con existencia actual. Cada movimiento queda registrado con fecha y usuario; el resumen alimenta el Dashboard.', 'consumibles', 81);
 
+-- 2-nov-2026: tambien en docs/script-prod/carga-excel-pantalla-01-menu-y-ayuda.sql (para no re-sembrar todo)
+PR_SERV_MED_AYUDA_UP('carga-excel', 'CARGA_EXCEL', 'Cargar un Excel de Servicio Médico', '¿Cómo cargo un Excel de atenciones, exámenes, incapacidades u otro layout?',
+ 'excel, carga, cargar, layout, atenciones, examen, incapacidades, accidentes, antidoping, maternidad, consumibles, errores, nss, correcciones',
+ '**Carga de datos → Carga de Excel** recibe los 10 layouts por NSS (Atenciones, exámenes, incapacidades, accidentes, antidoping, maternidad y consumibles). El layout se reconoce por los encabezados: el orden de las columnas no importa y las columnas de más se ignoran (la pantalla las avisa).
+
+1. Sube el **.xlsx** y, si hace falta, el Excel de **correcciones de NSS**.
+2. **Validar** revisa catálogos y NSS contra el biométrico **sin escribir nada**. Con archivos grandes tarda un par de minutos.
+3. Revisa el resultado: cuántos renglones entran, el **Excel de errores** (renglón, columna y motivo) y lo que se **sustituye**: lo que llega de un predio para un mes reemplaza lo ya cargado de ese predio y mes.
+4. **Cargar en la base** escribe los renglones válidos. Queda en el historial con tu usuario y una copia del archivo original.
+
+Si el mismo archivo ya se había cargado, no se vuelve a cargar; «Cargar de nuevo» lo fuerza.', 'carga-excel', 82);
+
 PR_SERV_MED_AYUDA_UP('dashboard', 'GENERAL', 'Dashboard de inicio', '¿Qué muestran las gráficas del inicio?',
  'dashboard, inicio, kpi, graficas, indicadores, consultas por mes, genero, edad',
  'La pantalla de inicio muestra indicadores del servicio médico: consultas por periodo, desglose por género, edad y cuenta, consumibles y, para el rol de análisis, el **Análisis Ejecutivo** con morbilidad y exámenes. Los datos salen de lo que se captura en el portal; no hay nada que configurar.', 'home', 82);

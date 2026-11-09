@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: cargaExcelContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Carga de Excel | Portal Salud Personal</title>
+</head>
+<body>
+
+<!--
+  Carga de Excel (2-nov-2026, docs/plan-carga-excel-pantalla.md). Reemplaza al importador generico
+  de Analisis > Importar Excel. Misma logica que el cargador de consola: reconoce cual de los 10
+  layouts es por sus encabezados, valida contra catalogos y biometrico, y al confirmar escribe en
+  SERV_MED_XLS_* (reemplazo por predio y mes). El proceso corre en segundo plano: la pagina sube,
+  recibe un id y consulta el avance cada segundo y medio.
+  Menu CARGA_EXCEL (MEDICO_ANALISTA y Servicio Medico).
+-->
+<th:block id="pageStyles">
+    <style>
+        .dropzone {
+            border: 2px dashed #cbd5e1; border-radius: 12px; background: #f8fafc; padding: 26px 16px; text-align: center;
+            cursor: pointer; transition: border-color .15s, background .15s;
+        }
+        .dropzone:hover, .dropzone.over { border-color: #1D4ED8; background: #EFF6FF; }
+        .dropzone .ico { font-size: 28px; color: #1D4ED8; line-height: 1; margin-bottom: 6px; }
+        .dropzone .t { font-weight: 600; color: #0f172a; font-size: 13.5px; }
+        .dropzone .s { font-size: 11.5px; color: #64748b; margin-top: 3px; }
+        .tipo-select { font-weight: 600; }
+        .tipo-select.falta { border-color: #d97706; box-shadow: 0 0 0 2px #fde68a; }
+        .dropzone.lleno { border-style: solid; border-color: #047857; background: #ECFDF5; }
+        .pasos { list-style: none; padding: 0; margin: 0; }
+        .pasos li { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 12.5px; color: #475569; }
+        .pasos .n {
+            width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 10.5px; font-weight: 700;
+            background: #f1f5f9; color: #64748b; flex: 0 0 20px;
+        }
+        .pasos li.activo .n { background: #1D4ED8; color: #fff; }
+        .pasos li.hecho .n { background: #047857; color: #fff; }
+        .pasos li.hecho { color: #0f172a; }
+        .pasos li.error .n { background: #B91C1C; color: #fff; }
+        .cal { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .cal .c { border: 1px solid #e5e9f2; border-radius: 10px; padding: 12px 6px; text-align: center; background: #fff; }
+        .cal .v { font-family: ui-monospace, monospace; font-size: 18px; font-weight: 700; color: #0f172a; }
+        .cal .l { font-size: 10.5px; color: #64748b; }
+        .cal .c.ok .v { color: #047857; }
+        .cal .c.mal .v { color: #B91C1C; }
+        .tabla { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .tabla th {
+            font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #64748b;
+            text-align: left; padding: 8px 10px; border-bottom: 1px solid #e5e9f2; white-space: nowrap;
+        }
+        .tabla td { padding: 7px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: top; color: #334155; }
+        .tabla td.num { text-align: right; font-family: ui-monospace, monospace; }
+        .tabla-wrap { overflow: auto; max-height: 460px; }
+        .tipo { font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+        .tipo--ERROR { background: #FEF2F2; color: #B91C1C; }
+        .tipo--AVISO { background: #FFFBEB; color: #B45309; }
+        .est { font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 6px; white-space: nowrap; background: #f1f5f9; color: #64748b; }
+        .est--OK { background: #ECFDF5; color: #047857; }
+        .est--CON_ERRORES { background: #FFFBEB; color: #B45309; }
+        .est--REEMPLAZADO { background: #F5F3FF; color: #6D28D9; }
+        .est--EN_CURSO { background: #EFF6FF; color: #1D4ED8; }
+        .aviso { border-left: 4px solid #3B82F6; background: #EFF6FF; border-radius: 8px; padding: 10px 14px; font-size: 12px; }
+        .aviso strong { color: #1E40AF; }
+        .aviso--warn { border-left-color: #F59E0B; background: #FFFBEB; }
+        .aviso--warn strong { color: #92400E; }
+        .aviso--mal { border-left-color: #B91C1C; background: #FEF2F2; }
+        .aviso--mal strong { color: #991B1B; }
+        #filasAyuda { font-size: 12.5px; font-weight: 600; }
+        .entro { display: inline-block; padding: 2px 8px; border-radius: 6px; background: #DCFCE7; color: #166534; font-weight: 600; }
+        .tabla-revisar tbody tr.fila-entro td { background: #F0FDF4; }
+        .descarga-todos { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 12px; color: #475569; }
+        #filasAyuda.aviso--mal { color: #7f1d1d; }
+        #filasAyuda.aviso--warn { color: #78350f; }
+        .aviso--ok { border-left-color: #047857; background: #ECFDF5; }
+        .aviso--ok strong { color: #065F46; }
+        .avisos { margin: 0; padding-left: 18px; font-size: 12px; color: #334155; }
+        .avisos li { margin-bottom: 3px; white-space: pre-wrap; }
+        .layout-chip { display: inline-block; font-size: 11px; padding: 2px 9px; border-radius: 999px; border: 1px solid #e5e9f2; margin: 0 4px 4px 0; color: #475569; background: #fff; }
+        .vacio { text-align: center; padding: 22px 16px; color: #94a3b8; font-size: 12.5px; }
+        .mono { font-family: ui-monospace, monospace; font-size: 11.5px; }
+        /* El mensaje de estado es la instruccion del siguiente paso: en gris no se veia */
+        .estado-msg { font-size: 13px; font-weight: 600; padding: 9px 12px; border-radius: 6px; border-left: 4px solid; }
+        .estado-msg:empty { display: none; }
+        .estado-info { color: #1e3a8a; background: #EFF6FF; border-left-color: #2563eb; }
+        .estado-aviso { color: #78350f; background: #FEF3C7; border-left-color: #d97706; }
+        .estado-ok { color: #065F46; background: #ECFDF5; border-left-color: #047857; }
+        .estado-error { color: #7f1d1d; background: #FEE2E2; border-left-color: #b91c1c; }
+        /* Subiendo / validando / cargando: el giro dice que sigue trabajando (validar tarda minutos) */
+        .estado-trabajando { color: #1e3a8a; background: #EFF6FF; border-left-color: #2563eb; }
+        .estado-trabajando::before { content: ""; display: inline-block; width: 14px; height: 14px; margin-right: 8px;
+            vertical-align: -2px; border: 2px solid #93c5fd; border-top-color: #1d4ed8; border-radius: 50%;
+            animation: estado-giro .8s linear infinite; }
+        @keyframes estado-giro { to { transform: rotate(360deg); } }
+        /* Resultado: secciones con titulo claro; la tabla de renglones va primero */
+        .seccion { border: 1px solid #e5e9f2; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; background: #fff; }
+        .seccion-titulo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+            font-size: 13.5px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
+        .seccion-ayuda { font-size: 12px; color: #475569; margin: 0 0 8px; }
+        .tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 2px solid #e5e9f2; margin-bottom: 12px; }
+        .tab { font-size: 13px; font-weight: 600; padding: 8px 14px; border: 0; background: transparent; color: #64748b;
+            border-bottom: 3px solid transparent; margin-bottom: -2px; cursor: pointer; }
+        .tab:hover { color: #0f172a; }
+        .tab.activo { color: #1D4ED8; border-bottom-color: #1D4ED8; }
+        /* Los rechazados en rojo y los ajustes en ambar, activos o no: se distinguen de un vistazo */
+        .tab[data-tab="ERROR"], .tab[data-tab="ERROR"]:hover { color: #B91C1C; }
+        .tab[data-tab="ERROR"].activo { color: #B91C1C; border-bottom-color: #B91C1C; }
+        .tab[data-tab="AVISO"], .tab[data-tab="AVISO"]:hover { color: #B45309; }
+        .tab[data-tab="AVISO"].activo { color: #B45309; border-bottom-color: #D97706; }
+        .cuenta { display: inline-block; min-width: 22px; padding: 1px 7px; margin-left: 4px; border-radius: 999px; font-size: 11px; background: #f1f5f9; color: #475569; }
+        .cuenta--mal { background: #FEE2E2; color: #B91C1C; }
+        .cuenta--warn { background: #FEF3C7; color: #B45309; }
+        .tabla-revisar { font-size: 12.5px; }
+        .tabla-revisar thead th { position: sticky; top: 0; z-index: 1; background: #1e3a8a; color: #fff; font-size: 11.5px;
+            letter-spacing: 0; text-transform: none; padding: 8px 10px; border-right: 1px solid #2c4a9e; vertical-align: bottom; }
+        .tabla-revisar thead th small { display: block; font-weight: 400; font-size: 10px; color: #c7d2fe; }
+        .tabla-revisar thead th.num { text-align: right; }
+        .tabla-revisar tbody tr:nth-child(even) td { background: #f8fafc; }
+        .tabla-revisar tbody tr:hover td { background: #eef2ff; }
+        .tabla-revisar td { border-right: 1px solid #eef2f7; }
+        .tabla-revisar td.col-col { font-weight: 600; color: #0f172a; white-space: nowrap; }
+        .tabla-revisar td.col-valor { font-family: ui-monospace, monospace; font-size: 11.5px; color: #0f172a; }
+        .tabla-revisar td.col-baja { white-space: nowrap; color: #6D28D9; }
+        .tabla-revisar .tipo { font-size: 11px; }
+        .avisos { list-style: none; padding-left: 0; }
+        .avisos li { padding: 6px 0 6px 22px; border-bottom: 1px solid #f1f5f9; position: relative; }
+        .avisos li::before { content: "i"; position: absolute; left: 0; top: 7px; width: 15px; height: 15px; border-radius: 50%;
+            background: #dbeafe; color: #1d4ed8; font-size: 10px; font-weight: 700; text-align: center; line-height: 15px; }
+        .avisos li:last-child { border-bottom: 0; }
+        .accion { border-left: 4px solid #B91C1C; background: #FEF2F2; border-radius: 8px; padding: 9px 12px; font-size: 12.5px; color: #7f1d1d; margin-bottom: 8px; }
+        .accion strong { display: block; margin-bottom: 2px; }
+        .que-hacer { display: block; margin-top: 2px; font-weight: 600; }
+        .renglones { margin-top: 6px; }
+        .renglones summary { cursor: pointer; font-size: 12px; font-weight: 600; color: #1D4ED8; }
+        .renglones div { margin-top: 4px; max-height: 140px; overflow: auto; padding: 6px 8px; background: #fff;
+            border: 1px solid #e5e9f2; border-radius: 6px; font-family: ui-monospace, monospace; font-size: 11.5px; color: #334155; }
+        .renglones-uno { display: block; margin-top: 4px; font-family: ui-monospace, monospace; font-size: 11.5px; }
+    </style>
+</th:block>
+
+<th:block th:fragment="cargaExcelContent">
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
+        <div>
+            <h4 class="main-title mb-0">Carga de Excel</h4>
+            <p class="fs-12 text-muted mb-0">Layouts por NSS · primero se valida sin escribir nada; luego se confirma la carga</p>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-7">
+            <div class="card card-one h-100">
+                <div class="card-header">
+                    <div class="card-title-lg"><i class="ri-upload-2-line me-1 text-primary"></i>Archivo</div>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="selTipo" class="form-label fs-12 fw-semibold mb-1">1. Tipo de archivo que vas a cargar <span class="text-danger">*</span></label>
+                        <select id="selTipo" class="form-select form-select-sm tipo-select">
+                            <option value="">— Elige el tipo de archivo —</option>
+                        </select>
+                        <p class="fs-11 text-muted mb-0 mt-1">El portal revisa que el archivo sea de este tipo; si es de otro, lo rechaza sin cargar nada.</p>
+                    </div>
+                    <label class="form-label fs-12 fw-semibold mb-1">2. Archivo Excel</label>
+                    <div id="dropzone" class="dropzone">
+                        <div class="ico"><i class="ri-file-excel-2-line"></i></div>
+                        <div class="t" id="dzTitulo">Arrastra el Excel o selecciónalo</div>
+                        <div class="s" id="dzSub">Solo .xlsx · máximo 25 MB</div>
+                        <input type="file" id="inputArchivo" accept=".xlsx" hidden>
+                    </div>
+                    <div class="mt-3">
+                        <label for="inputCorrecciones" class="form-label fs-12 fw-semibold mb-1">Excel de correcciones de NSS (opcional)</label>
+                        <input type="file" id="inputCorrecciones" accept=".xlsx" class="form-control form-control-sm">
+                        <p class="fs-11 text-muted mb-0 mt-1">Para renglones que llegaron sin NSS: columnas «Renglón del Excel», «NSS correcto», PREDIO y FECHA.
+                            Solo se aplica si el renglón no traía NSS y el predio y la fecha coinciden.</p>
+                    </div>
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="button" id="btnValidar" class="btn btn-primary btn-sm" disabled>
+                            <i class="ri-search-eye-line me-1"></i>Validar
+                        </button>
+                        <button type="button" id="btnLimpiar" class="btn btn-outline-secondary btn-sm">
+                            <i class="ri-refresh-line me-1"></i>Empezar de nuevo
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card card-one h-100">
+                <div class="card-header">
+                    <div class="card-title-lg"><i class="ri-list-check-2 me-1 text-primary"></i>Proceso</div>
+                </div>
+                <div class="card-body">
+                    <ol class="pasos" id="pasos">
+                        <li data-paso="1"><span class="n">1</span>Subir el archivo</li>
+                        <li data-paso="2"><span class="n">2</span>Validar layout, catálogos y NSS contra el biométrico</li>
+                        <li data-paso="3"><span class="n">3</span>Revisar rechazos y lo que se va a sustituir</li>
+                        <li data-paso="4"><span class="n">4</span>Cargar en la base</li>
+                    </ol>
+                    <p id="estado" class="estado-msg estado-info mt-2 mb-2"></p>
+                    <p class="fs-11 text-muted mb-1">Layouts que reconoce:</p>
+                    <div>
+                        <span class="layout-chip">ATENCIONES</span><span class="layout-chip">EXAMEN NUEVO INGRESO</span>
+                        <span class="layout-chip">EXAMEN PERIODICO</span><span class="layout-chip">EXAMEN POS INCAPACIDAD</span>
+                        <span class="layout-chip">INCAPACIDADES</span><span class="layout-chip">ACCIDENTES</span>
+                        <span class="layout-chip">ANTIDOPING</span><span class="layout-chip">MATERNIDAD</span>
+                        <span class="layout-chip">CONSUMIBLES MEDICAMENTOS</span><span class="layout-chip">CONSUMIBLES MATERIAL FIJO</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resultado de la validacion / carga -->
+    <div id="resultado" hidden>
+        <div class="card card-one mb-3">
+            <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div>
+                    <div class="card-title-lg"><i class="ri-check-double-line me-1 text-success"></i><span id="resTitulo">Resultado</span></div>
+                    <p class="fs-11 text-muted mb-0" id="resSub"></p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" id="btnErrores" class="btn btn-success btn-sm btn-errores" hidden>
+                        <i class="ri-file-excel-2-line me-1"></i>Descargar errores en Excel
+                    </button>
+                    <button type="button" id="btnDescartar" class="btn btn-outline-danger btn-sm" hidden>
+                        <i class="ri-close-line me-1"></i>Descartar
+                    </button>
+                    <button type="button" id="btnCargar" class="btn btn-primary btn-sm" hidden>
+                        <i class="ri-database-2-line me-1"></i>Cargar en la base
+                    </button>
+                    <button type="button" id="btnForzar" class="btn btn-warning btn-sm" hidden>
+                        <i class="ri-repeat-line me-1"></i>Cargar de nuevo
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="resMensaje" class="aviso mb-3" hidden></div>
+                <div class="cal mb-3" id="resCal">
+                    <div class="c"><div class="v" id="cLeidas">—</div><div class="l">Renglones leídos</div></div>
+                    <div class="c ok"><div class="v" id="cValidas">—</div><div class="l">Entran</div></div>
+                    <div class="c mal"><div class="v" id="cError">—</div><div class="l">Rechazados</div></div>
+                    <div class="c"><div class="v" id="cPct">—</div><div class="l">% aceptado</div></div>
+                </div>
+                <div id="resCarga" class="aviso aviso--ok mb-3" hidden></div>
+
+                <!-- Pestanas: primero lo que NO entra, luego lo que entra con ajuste, el resumen y lo que se sustituye -->
+                <div class="tabs" id="tabs" role="tablist">
+                    <button type="button" class="tab activo" data-tab="ERROR" role="tab">No entran <b class="cuenta cuenta--mal" id="nError">0</b></button>
+                    <button type="button" class="tab" data-tab="AVISO" role="tab">Entran con ajuste <b class="cuenta cuenta--warn" id="nAviso">0</b></button>
+                    <button type="button" class="tab" data-tab="RESUMEN" role="tab">Resumen del archivo</button>
+                    <button type="button" class="tab" data-tab="REEMPLAZO" role="tab" id="tabReemplazo">Lo que ya estaba cargado</button>
+                </div>
+
+                <div class="tab-panel" data-panel="ERROR AVISO">
+                    <p class="seccion-ayuda" id="filasAyuda"></p>
+                    <div class="descarga-todos" id="descargaTodos" hidden>
+                        <button type="button" class="btn btn-success btn-sm btn-errores">
+                            <i class="ri-file-excel-2-line me-1"></i>Descargar errores
+                        </button>
+                        <span id="descargaTexto"></span>
+                    </div>
+                    <div class="tabla-wrap" id="filasWrap"><table class="tabla tabla-revisar">
+                        <thead><tr>
+                            <th>Renglón<small>del Excel</small></th>
+                            <th>Columna<small>del Excel</small></th>
+                            <th>Lo que trae<small>el archivo</small></th>
+                            <th>Qué pasó<small>y por qué</small></th>
+                            <th>Baja del empleado<small>según el biométrico</small></th>
+                        </tr></thead>
+                        <tbody id="filas"></tbody>
+                    </table></div>
+                    <div class="vacio" id="filasVacio" hidden></div>
+                </div>
+
+                <div class="tab-panel" data-panel="RESUMEN" hidden>
+                    <div id="avisosAccion"></div>
+                    <ul class="avisos" id="resAvisos"></ul>
+                </div>
+
+                <div class="tab-panel" data-panel="REEMPLAZO" hidden>
+                    <div class="aviso mb-2" id="reemplazoAviso"></div>
+                    <div class="tabla-wrap" id="reemplazoWrap"><table class="tabla tabla-revisar">
+                        <thead><tr><th>Predio</th><th>Mes</th><th class="num">Renglones en el archivo</th><th class="num">Ya cargados que se sustituyen</th></tr></thead>
+                        <tbody id="reemplazos"></tbody>
+                    </table></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card-one">
+        <div class="card-header">
+            <div class="card-title-lg"><i class="ri-history-line me-1 text-secondary"></i>Historial de cargas</div>
+            <p class="fs-11 text-muted mb-0">Últimos 50 lotes (pantalla y consola) · el original solo existe para los cargados desde aquí</p>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive"><table class="tabla">
+                <thead><tr><th>Lote</th><th>Fecha</th><th>Layout</th><th>Archivo</th><th>Predio</th><th>Periodo</th>
+                    <th>Leídos</th><th>Válidos</th><th>Dup.</th><th>Error</th><th>Estado</th><th>Usuario</th></tr></thead>
+                <tbody id="historial"></tbody>
+            </table></div>
+            <div id="histVacio" class="vacio" hidden>Todavía no hay cargas.</div>
+        </div>
+    </div>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:inline="javascript">
+        (function () {
+            var contextPath = /*[[@{/}]]*/ '/';
+            var csrfToken = /*[[${_csrf.token}]]*/ '';
+            var csrfHeader = /*[[${_csrf.headerName}]]*/ 'X-CSRF-TOKEN';
+            var API = contextPath + 'api/carga-excel';
+            var CLAVE = 'cargaExcelTrabajo';
+            var EN_PROCESO = ['EN_COLA', 'VALIDANDO', 'CARGANDO'];
+            var archivo = null, trabajo = null, sondeo = null;
+
+            function numero(n) { return (n || 0).toLocaleString('es-MX'); }
+            function escapar(s) {
+                return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+            function fecha(iso) { return iso ? String(iso).replace('T', ' ').substring(0, 16) : '—'; }
+            function dia(iso) { return iso ? String(iso).substring(0, 10) : ''; }
+            function mes(iso) {
+                if (!iso) { return ''; }
+                var p = String(iso).split('-');
+                var nombres = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+                return nombres[parseInt(p[1], 10) - 1] + ' ' + p[0];
+            }
+            function headers() { var h = {}; h[csrfHeader] = csrfToken; return h; }
+            function guardar(id) { try { if (id) { sessionStorage.setItem(CLAVE, id); } else { sessionStorage.removeItem(CLAVE); } } catch (e) { /* sin storage */ } }
+            function recordado() { try { return sessionStorage.getItem(CLAVE); } catch (e) { return null; } }
+            async function textoError(res) {
+                var msg = 'HTTP ' + res.status;
+                try { var t = (await res.text()).trim(); if (t && t.length < 800 && t.charAt(0) !== '<') { msg = t; } } catch (e) { /* sin cuerpo */ }
+                if (res.status === 403) { msg = 'No tienes permiso para la carga de Excel.'; }
+                return msg;
+            }
+
+            function pasos(hechos, activo, clase) {
+                document.querySelectorAll('#pasos li').forEach(function (li) {
+                    var p = parseInt(li.dataset.paso, 10);
+                    li.className = p <= hechos ? 'hecho' : (p === activo ? (clase || 'activo') : '');
+                });
+            }
+            // tipo: info (azul, default), trabajando (azul con giro), aviso (amarillo), ok (verde), error (rojo)
+            function estado(t, tipo) {
+                var p = document.getElementById('estado');
+                p.textContent = t || '';
+                p.className = 'estado-msg estado-' + (tipo || 'info') + ' mt-2 mb-2';
+            }
+
+            // ---------- archivo
+            function elegir(f) {
+                if (!f) { return; }
+                if (!/\.xlsx$/i.test(f.name)) { estado('Solo se aceptan archivos .xlsx (en Excel: Guardar como > Libro de Excel).', 'error'); return; }
+                archivo = f;
+                var dz = document.getElementById('dropzone');
+                dz.classList.add('lleno');
+                document.getElementById('dzTitulo').textContent = f.name;
+                document.getElementById('dzSub').textContent = Math.round(f.size / 1024) + ' KB · clic para cambiarlo';
+                pasos(1, 2);
+                listoParaValidar();
+            }
+
+            // Validar solo con tipo Y archivo: que el usuario diga que esta cargando antes de subirlo
+            function listoParaValidar() {
+                var tipo = document.getElementById('selTipo').value;
+                document.getElementById('selTipo').classList.toggle('falta', !tipo && !!archivo);
+                document.getElementById('btnValidar').disabled = !(archivo && tipo);
+                if (archivo && !tipo) { estado('Elige el tipo de archivo que vas a cargar.', 'aviso'); }
+                else if (archivo) { estado('Archivo listo. Pulsa «Validar»: no se escribe nada en la base.'); }
+            }
+
+            async function cargarTipos() {
+                try {
+                    var res = await fetch(API + '/tipos', { headers: headers() });
+                    if (!res.ok) { return; }
+                    var sel = document.getElementById('selTipo');
+                    (await res.json()).forEach(function (x) {
+                        var o = document.createElement('option');
+                        o.value = x.clave; o.textContent = x.nombre;
+                        sel.appendChild(o);
+                    });
+                } catch (e) { /* sin lista no se puede validar: el boton queda deshabilitado */ }
+            }
+
+            function limpiar() {
+                if (sondeo) { clearTimeout(sondeo); sondeo = null; }
+                tabActiva = null;
+                if (trabajo && EN_PROCESO.indexOf(trabajo.estado) < 0 && trabajo.estado !== 'CARGADO') {
+                    fetch(API + '/trabajos/' + trabajo.id + '/descartar', { method: 'POST', headers: headers() }).catch(function () { /* se vence solo */ });
+                }
+                archivo = null; trabajo = null; guardar(null);
+                var dz = document.getElementById('dropzone');
+                dz.classList.remove('lleno');
+                document.getElementById('dzTitulo').textContent = 'Arrastra el Excel o selecciónalo';
+                document.getElementById('dzSub').textContent = 'Solo .xlsx · máximo 25 MB';
+                document.getElementById('selTipo').value = '';
+                document.getElementById('inputCorrecciones').value = '';
+                document.getElementById('btnValidar').disabled = true;
+                document.getElementById('resultado').hidden = true;
+                pasos(0, 1);
+                estado('');
+            }
+
+            async function validar() {
+                if (!archivo) { return; }
+                var body = new FormData();
+                body.append('file', archivo);
+                var corr = document.getElementById('inputCorrecciones').files[0];
+                if (corr) { body.append('correcciones', corr); }
+                body.append('tipo', document.getElementById('selTipo').value);
+                document.getElementById('btnValidar').disabled = true;
+                pasos(1, 2);
+                estado('Subiendo ' + archivo.name + '…', 'trabajando');
+                try {
+                    var res = await fetch(API, { method: 'POST', headers: headers(), body: body });
+                    if (!res.ok) { pasos(0, 1, 'error'); estado('No se pudo subir: ' + await textoError(res), 'error'); document.getElementById('btnValidar').disabled = false; return; }
+                    seguir(await res.json());
+                } catch (e) {
+                    pasos(0, 1, 'error'); estado('Error de red: ' + e.message, 'error'); document.getElementById('btnValidar').disabled = false;
+                }
+            }
+
+            // ---------- seguimiento del trabajo
+            function seguir(t) {
+                trabajo = t;
+                guardar(t.id);
+                pintar(t);
+                if (EN_PROCESO.indexOf(t.estado) >= 0) {
+                    sondeo = setTimeout(consultar, 1500);
+                } else if (t.estado === 'CARGADO') {
+                    cargarHistorial();
+                }
+            }
+
+            async function consultar() {
+                sondeo = null;
+                if (!trabajo) { return; }
+                try {
+                    var res = await fetch(API + '/trabajos/' + trabajo.id);
+                    if (!res.ok) {
+                        if (res.status === 400) { guardar(null); }
+                        estado(await textoError(res), 'error');
+                        return;
+                    }
+                    seguir(await res.json());
+                } catch (e) {
+                    // red intermitente: se vuelve a intentar
+                    sondeo = setTimeout(consultar, 4000);
+                }
+            }
+
+            function pintar(t) {
+                var r = t.carga || t.validacion;
+                var textos = {
+                    EN_COLA: 'En cola: hay otra carga en proceso, empieza en cuanto termine…',
+                    VALIDANDO: 'Validando ' + t.archivo + ' (con el biométrico puede tardar un par de minutos)…',
+                    CARGANDO: 'Cargando ' + t.archivo + ' en la base…'
+                };
+                if (EN_PROCESO.indexOf(t.estado) >= 0) {
+                    pasos(t.validacion ? 3 : 1, t.validacion ? 4 : 2);
+                    estado(textos[t.estado], 'trabajando');
+                } else if (t.estado === 'ERROR') {
+                    pasos(t.validacion ? 3 : 1, t.validacion ? 4 : 2, 'error');
+                    estado('Falló: ' + (t.mensaje || 'error sin detalle'), 'error');
+                } else if (t.estado === 'VALIDADO') {
+                    pasos(2, 3);
+                    if (r && r.motivoRechazo) { estado('El archivo no se puede cargar: revisa el motivo.', 'error'); }
+                    else { estado('Validado. Revisa el resultado y, si está bien, pulsa «Cargar en la base».', 'aviso'); }
+                } else if (t.estado === 'CARGADO') {
+                    pasos(4, 0);
+                    if (r && r.omitido) { estado('No se cargó: el mismo archivo ya estaba cargado.', 'aviso'); }
+                    else { estado('Carga terminada.', 'ok'); }
+                }
+                if (!r) { document.getElementById('resultado').hidden = true; return; }
+                pintarResultado(t, r);
+            }
+
+            function pintarResultado(t, r) {
+                document.getElementById('resultado').hidden = false;
+                var cargado = t.estado === 'CARGADO';
+                document.getElementById('resTitulo').textContent = cargado ? 'Resultado de la carga' : 'Resultado de la validación';
+                document.getElementById('resSub').textContent = t.archivo + (r.layout ? ' · layout ' + r.layout : '')
+                    + (t.correcciones ? ' · correcciones: ' + t.correcciones : '');
+
+                var msg = document.getElementById('resMensaje');
+                msg.hidden = true;
+                if (r.motivoRechazo) {
+                    msg.className = 'aviso aviso--mal mb-3'; msg.hidden = false;
+                    msg.innerHTML = '<strong>No se reconoce o no se puede leer el archivo.</strong><div style="white-space:pre-wrap">' + escapar(r.motivoRechazo) + '</div>';
+                } else if (t.mensaje) {
+                    msg.className = 'aviso aviso--warn mb-3'; msg.hidden = false;
+                    msg.innerHTML = '<strong>Atención:</strong> ' + escapar(t.mensaje);
+                }
+                document.getElementById('resCal').hidden = !!r.motivoRechazo;
+                document.getElementById('cLeidas').textContent = numero(r.leidas);
+                document.getElementById('cValidas').textContent = numero(r.validas);
+                document.getElementById('cError').textContent = numero(r.renglonesConError);
+                document.getElementById('cPct').textContent = r.leidas ? r.porcentaje.toLocaleString('es-MX') + '%' : '—';
+
+                var carga = document.getElementById('resCarga');
+                carga.hidden = !(cargado && r.escritura);
+                if (cargado && r.escritura) {
+                    var e = r.escritura;
+                    carga.innerHTML = '<strong>Lote ' + e.loteId + ' cargado.</strong> Insertados ' + numero(e.insertados)
+                        + ' · sustituidos de cargas anteriores ' + numero(e.reemplazados)
+                        + ' · ya estaban en el portal (no cuentan) ' + numero(e.duplicados)
+                        + (e.aviso ? '<div>' + escapar(e.aviso) + '</div>' : '');
+                }
+
+                // Resumen: primero lo que pide accion (marcado [revisar] por el servidor), luego lo informativo
+                var REVISAR = '[revisar] ';
+                var accion = [], info = [];
+                (r.avisos || []).forEach(function (a) {
+                    if (a.indexOf(REVISAR) === 0) { accion.push(a.substring(REVISAR.length)); } else { info.push(a); }
+                });
+                function conQueHacer(a) {
+                    // La lista de renglones viene al final ("\nRenglones: 3-480, 482..."): va en un desplegable
+                    var lista = '', r = a.indexOf('\nRenglones: ');
+                    if (r >= 0) {
+                        var rangos = a.substring(r + 12);
+                        a = a.substring(0, r);
+                        var n = rangos.split(', ').length;
+                        lista = n > 1 || rangos.length > 60
+                            ? '<details class="renglones"><summary>Ver renglones (' + numero(n) + (n === 1 ? ' rango' : ' rangos') + ')</summary>'
+                              + '<div>' + escapar(rangos) + '</div></details>'
+                            : '<span class="renglones-uno">Renglones: ' + escapar(rangos) + '</span>';
+                    }
+                    var i = a.indexOf('Qué hacer:');
+                    return (i < 0 ? escapar(a) : escapar(a.substring(0, i)) + '<span class="que-hacer">' + escapar(a.substring(i)) + '</span>') + lista;
+                }
+                document.getElementById('avisosAccion').innerHTML = accion.map(function (a) {
+                    return '<div class="accion"><strong>Requiere acción</strong>' + conQueHacer(a) + '</div>';
+                }).join('');
+                document.getElementById('resAvisos').innerHTML = info.length
+                    ? info.map(function (a) { return '<li>' + conQueHacer(a) + '</li>'; }).join('')
+                    : (accion.length ? '' : '<li class="text-muted">Sin avisos.</li>');
+
+                // Lo que ya estaba cargado (reemplazo por predio y mes)
+                var reemp = r.reemplazos || [];
+                var conExistentes = reemp.filter(function (x) { return x.existentes > 0; });
+                document.getElementById('tabReemplazo').hidden = cargado || !reemp.length;
+                if (reemp.length && !cargado) {
+                    var total = conExistentes.reduce(function (s, x) { return s + x.existentes; }, 0);
+                    var ra = document.getElementById('reemplazoAviso');
+                    ra.className = 'aviso mb-2 ' + (conExistentes.length ? 'aviso--warn' : 'aviso--ok');
+                    ra.innerHTML = conExistentes.length
+                        ? '<strong>Al cargar se borran ' + numero(total) + ' renglones que ya estaban cargados</strong> de '
+                          + conExistentes.length + ' predio(s) y mes(es), y en su lugar quedan los de este archivo.'
+                          + '<span class="que-hacer">Qué hacer: si este archivo es la versión corregida de esos meses, está bien. '
+                          + 'Si no, revisa que el predio y el mes del archivo sean los correctos antes de cargar.</span>'
+                        : '<strong>Este archivo no borra nada.</strong> En la base no había renglones de estos predios y meses: todo se agrega como nuevo.'
+                          + '<span class="que-hacer">Qué hacer: nada.</span>';
+                    document.getElementById('reemplazos').innerHTML = reemp.map(function (x) {
+                        return '<tr><td>' + escapar(x.predio) + '</td><td>' + escapar(mes(x.mes)) + '</td><td class="num">' + numero(x.nuevos)
+                            + '</td><td class="num"' + (x.existentes ? ' style="color:#B45309;font-weight:700"' : '') + '>' + numero(x.existentes) + '</td></tr>';
+                    }).join('');
+                }
+
+                // Renglones: una pestana para los que no entran y otra para los que entran con ajuste
+                filasPorTipo = { ERROR: r.errores || [], AVISO: r.avisosFila || [] };
+                totalesPorTipo = { ERROR: r.totalErrores || 0, AVISO: r.totalAvisosFila || 0 };
+                // La pestana cuenta RENGLONES, igual que la tarjeta "Rechazados" (5-nov-2026: decia 2,910 motivos
+                // contra 2,863 renglones y no se entendia); un renglon puede traer mas de un motivo.
+                renglonesError = r.renglonesConError || 0;
+                document.getElementById('nError').textContent = numero(renglonesError);
+                document.getElementById('nAviso').textContent = numero(totalesPorTipo.AVISO);
+                var totalFilas = totalesPorTipo.ERROR + totalesPorTipo.AVISO;
+                if (!tabActiva || (tabActiva === 'REEMPLAZO' && document.getElementById('tabReemplazo').hidden)) {
+                    tabActiva = totalesPorTipo.ERROR ? 'ERROR' : (totalesPorTipo.AVISO ? 'AVISO' : 'RESUMEN');
+                }
+                mostrarTab(tabActiva);
+
+                var validado = t.estado === 'VALIDADO';
+                document.getElementById('btnErrores').hidden = !totalFilas;
+                document.getElementById('btnDescartar').hidden = !validado;
+                document.getElementById('btnCargar').hidden = !(validado && !r.motivoRechazo && r.validas > 0);
+                document.getElementById('btnForzar').hidden = !(cargado && r.omitido);
+            }
+
+            var ENTRO_COMO = 'Entró como ';
+            var filasPorTipo = { ERROR: [], AVISO: [] }, totalesPorTipo = { ERROR: 0, AVISO: 0 }, tabActiva = null, renglonesError = 0;
+            var AYUDA_TAB = {
+                ERROR: 'Estos renglones NO se van a cargar. Corrígelos en tu archivo (el número de renglón es el de Excel) y vuelve a validar.',
+                AVISO: 'Estos renglones SÍ se cargan. Los marcados en verde (✓ Entró como…) están bien: usan otro nombre que el catálogo de Servicio Médico ya reconoce. Revisa solo los demás.'
+            };
+
+            function mostrarTab(tab) {
+                tabActiva = tab;
+                document.querySelectorAll('#tabs .tab').forEach(function (b) { b.classList.toggle('activo', b.getAttribute('data-tab') === tab); });
+                document.querySelectorAll('.tab-panel').forEach(function (p) {
+                    p.hidden = p.getAttribute('data-panel').split(' ').indexOf(tab) < 0;
+                });
+                if (tab !== 'ERROR' && tab !== 'AVISO') { return; }
+                var lista = filasPorTipo[tab], total = totalesPorTipo[tab];
+                // Mismo color que su pestana: rojo = no entran, ambar = entran con ajuste
+                document.getElementById('filasAyuda').className = 'aviso mb-2 ' + (tab === 'ERROR' ? 'aviso--mal' : 'aviso--warn');
+                // La tabla tiene un renglon por MOTIVO: si hay renglones con mas de un motivo, se dice
+                var masDeUno = tab === 'ERROR' && total > renglonesError && renglonesError > 0;
+                document.getElementById('filasAyuda').innerHTML = escapar(AYUDA_TAB[tab])
+                    + (masDeUno ? ' Son ' + numero(renglonesError) + ' renglones con ' + numero(total)
+                        + ' motivos: un renglón puede fallar en más de una columna y sale una vez por cada una.' : '')
+                    + (total > lista.length ? ' Aquí se muestran los primeros ' + numero(lista.length) + ' de ' + numero(total)
+                        + (tab === 'ERROR' ? ' motivos.' : '.') : '');
+                var todos = totalesPorTipo.ERROR + totalesPorTipo.AVISO;
+                document.getElementById('descargaTodos').hidden = !todos;
+                document.getElementById('descargaTexto').textContent = 'Un solo Excel con todos: ' + numero(renglonesError)
+                    + ' renglones que no entran (' + numero(totalesPorTipo.ERROR) + ' motivos) y ' + numero(totalesPorTipo.AVISO)
+                    + ' que entran con ajuste, con renglón, columna, valor y motivo.';
+                document.getElementById('filasWrap').hidden = !lista.length;
+                var vacio = document.getElementById('filasVacio');
+                vacio.hidden = !!lista.length;
+                vacio.textContent = tab === 'ERROR' ? 'Todos los renglones entran.' : 'Ningún renglón requiere ajuste.';
+                document.getElementById('filas').innerHTML = lista.map(function (f) {
+                    // Equivalencia aprobada por SM: entro sin problema, en verde para que no parezca error
+                    var entro = (f.motivo || '').indexOf(ENTRO_COMO) === 0;
+                    var motivo = entro ? '<span class="entro">✓ ' + escapar(f.motivo) + '</span>' : escapar(f.motivo);
+                    return '<tr' + (entro ? ' class="fila-entro"' : '') + '><td class="mono">' + f.renglon + '</td><td class="col-col">' + escapar(f.columna) + '</td>'
+                        + '<td class="col-valor">' + escapar(f.valor) + '</td><td>' + motivo + '</td>'
+                        + '<td class="col-baja">' + escapar(f.baja || '') + '</td></tr>';
+                }).join('');
+            }
+
+            document.getElementById('tabs').addEventListener('click', function (ev) {
+                var b = ev.target.closest('.tab');
+                if (b) { mostrarTab(b.getAttribute('data-tab')); }
+            });
+
+            async function confirmar(forzar) {
+                if (!trabajo) { return; }
+                var r = trabajo.validacion;
+                var reemp = ((r && r.reemplazos) || []).filter(function (x) { return x.existentes > 0; });
+                var total = reemp.reduce(function (s, x) { return s + x.existentes; }, 0);
+                var pregunta = forzar
+                    ? '¿Cargar otra vez el mismo archivo? Sustituye lo que ya había de esos predios y meses.'
+                    : '¿Cargar ' + numero(r.validas) + ' renglones de ' + trabajo.archivo + '?'
+                      + (total ? '\n\nSe sustituyen ' + numero(total) + ' renglones ya cargados de los mismos predios y meses.' : '');
+                if (!window.confirm(pregunta)) { return; }
+                try {
+                    var res = await fetch(API + '/trabajos/' + trabajo.id + '/confirmar' + (forzar ? '?forzar=true' : ''),
+                        { method: 'POST', headers: headers() });
+                    if (!res.ok) { estado('No se pudo cargar: ' + await textoError(res), 'error'); return; }
+                    seguir(await res.json());
+                } catch (e) { estado('Error de red: ' + e.message, 'error'); }
+            }
+
+            async function forzarCarga() {
+                // "Cargar de nuevo" solo aparece tras una carga omitida por archivo identico
+                if (trabajo) { await confirmar(true); }
+            }
+
+            // ---------- historial
+            async function cargarHistorial() {
+                try {
+                    var res = await fetch(API + '/lotes');
+                    if (!res.ok) { return; }
+                    var lista = await res.json();
+                    document.getElementById('histVacio').hidden = lista.length > 0;
+                    document.getElementById('historial').innerHTML = lista.map(function (l) {
+                        var nombre = escapar(l.archivo ? String(l.archivo).split(/[\\/]/).pop() : '');
+                        var archivoCelda = l.archivoId
+                            ? '<a href="' + API + '/archivos/' + l.archivoId + '" title="Descargar el original"><i class="ri-download-2-line"></i> ' + nombre + '</a>'
+                            : nombre;
+                        var periodo = l.desde ? dia(l.desde) + (l.hasta && l.hasta !== l.desde ? ' a ' + dia(l.hasta) : '') : '';
+                        return '<tr><td class="mono">' + l.id + '</td><td class="mono">' + escapar(fecha(l.creado)) + '</td>'
+                            + '<td>' + escapar(l.layout) + '</td><td>' + archivoCelda + '</td><td>' + escapar(l.predio || '') + '</td>'
+                            + '<td class="mono">' + escapar(periodo) + '</td><td class="num">' + numero(l.leidas) + '</td>'
+                            + '<td class="num">' + numero(l.validas) + '</td><td class="num">' + numero(l.duplicadas) + '</td>'
+                            + '<td class="num">' + numero(l.conError) + '</td>'
+                            + '<td><span class="est est--' + escapar(l.estado) + '">' + escapar(l.estado) + '</span></td>'
+                            + '<td class="fs-11">' + escapar(l.creadoPor || '') + '</td></tr>';
+                    }).join('');
+                } catch (e) { /* el historial no bloquea */ }
+            }
+
+            document.addEventListener('DOMContentLoaded', function () {
+                var dz = document.getElementById('dropzone');
+                var input = document.getElementById('inputArchivo');
+                dz.addEventListener('click', function () { input.click(); });
+                input.addEventListener('change', function () { elegir(input.files[0]); input.value = ''; });
+                ['dragenter', 'dragover'].forEach(function (ev) { dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.add('over'); }); });
+                ['dragleave', 'drop'].forEach(function (ev) { dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.remove('over'); }); });
+                dz.addEventListener('drop', function (e) { elegir(e.dataTransfer.files[0]); });
+                document.getElementById('btnValidar').addEventListener('click', validar);
+                document.getElementById('btnLimpiar').addEventListener('click', limpiar);
+                document.getElementById('btnCargar').addEventListener('click', function () { confirmar(false); });
+                document.getElementById('btnForzar').addEventListener('click', forzarCarga);
+                document.getElementById('btnDescartar').addEventListener('click', function () {
+                    if (window.confirm('¿Descartar este archivo? No se cargó nada.')) { limpiar(); }
+                });
+                document.querySelectorAll('.btn-errores').forEach(function (b) {
+                    b.addEventListener('click', function () {
+                        if (trabajo) { window.location.href = API + '/trabajos/' + trabajo.id + '/errores'; }
+                    });
+                });
+                document.getElementById('selTipo').addEventListener('change', listoParaValidar);
+                cargarTipos();
+                pasos(0, 1);
+                cargarHistorial();
+                // Si se recargo la pagina a media validacion o carga, se retoma el mismo trabajo
+                var previo = recordado();
+                if (previo) { trabajo = { id: previo }; consultar(); }
+            });
+        })();
+    </script>
+</th:block>
+</body>
+</html>

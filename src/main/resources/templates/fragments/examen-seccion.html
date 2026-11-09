@@ -89,11 +89,15 @@
                     <small th:if="${!#strings.isEmpty(it.value) and it.value != '0' and it.value != '1'}"
                            class="text-muted" th:text="|(antes: ${it.value})|"></small>
                   </div>
+                  <!--/* C-009: la fecha va junto a Influenza y con su nombre; al final y como "Fecha" no se
+                       sabia de que vacuna era (parecia de Td). */-->
+                  <th:block th:if="${f == 'INFLUENZA'}">
+                    <div class="celda" th:each="it : ${items}" th:if="${it.fieldName == 'TAG.fechaINFLUEN'}">
+                        <span class="lbl" style="flex: 0 0 auto;">Fecha influenza</span>
+                        <input type="date" class="form-control form-control-sm" th:name="${it.fieldName}" th:value="${it.value}">
+                    </div>
+                  </th:block>
                 </th:block>
-                <div class="celda" th:each="it : ${items}" th:if="${it.fieldName == 'TAG.fechaINFLUEN'}">
-                    <span class="lbl" style="flex: 0 0 auto;" title="Fecha de la vacuna de influenza">Fecha</span>
-                    <input type="date" class="form-control form-control-sm" th:name="${it.fieldName}" th:value="${it.value}">
-                </div>
             </div>
             <div class="row g-3">
                 <div class="col-md-7" th:each="it : ${items}" th:if="${it.type == 'DOSIS'}">
@@ -263,8 +267,13 @@
                         <button type="button" class="btn btn-sm btn-outline-secondary" data-val="0"
                                 th:classappend="${it.value != null and it.value != '' and it.value != '1'} ? 'activo-no' : ''" onclick="exSecSinoBtn(this);">No</button>
                     </div>
+                    <!--/* C-010: en los antecedentes de una sola pregunta (observacion en tag APOB*) la caja solo
+                         se ve con Sí. Ocultarla no la borra: con No conserva el "NEGADOS" de Todo normal. */-->
                     <input th:if="${it.obsName != null}" type="text" class="form-control form-control-sm"
-                           placeholder="Observaciones" th:name="${it.obsName}" th:value="${it.obsValue}">
+                           placeholder="Observaciones" th:name="${it.obsName}" th:value="${it.obsValue}"
+                           th:with="soloSi=${#strings.startsWith(it.obsName, 'TAG.APOB')}"
+                           th:attr="data-solo-si=${soloSi} ? 'si' : null"
+                           th:style="${soloSi and it.value != '1'} ? 'display:none' : null">
                 </div>
 
                 <!-- Exploracion con ayuda del formato (mismo control que el examen inicial: exIniOkNo) -->
