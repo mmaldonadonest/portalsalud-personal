@@ -52,6 +52,18 @@ public class ExamenBorradorRepository {
         return rows.stream().findFirst();
     }
 
+    /**
+     * true si el NSS se finalizo hace menos de 2 minutos. Compara con la hora de la BASE (SYSTIMESTAMP),
+     * la misma que puso FINALIZADO_AT: la del servidor de aplicaciones puede estar en otra zona horaria.
+     */
+    public boolean finalizadoHaceMenosDe2Min(String nss) {
+        Integer n = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM SERV_MED_EXAMEN_BORRADOR"
+                        + " WHERE NSS = ? AND ESTATUS = 'FINALIZADO' AND FINALIZADO_AT > SYSTIMESTAMP - INTERVAL '2' MINUTE",
+                Integer.class, nss);
+        return n != null && n > 0;
+    }
+
     public Optional<Finalizado> ultimoFinalizado(String nss) {
         List<Finalizado> rows = jdbc.query(
                 "SELECT FINALIZADO_AT, FINALIZADO_BY FROM SERV_MED_EXAMEN_BORRADOR"

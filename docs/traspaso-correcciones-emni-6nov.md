@@ -59,7 +59,7 @@ El detalle exacto de cada reemplazo y la prueba estática están en:
 
 ## Decisiones técnicas por revisar
 
-- **Higiene personal y Alimentación:** ~~son subtítulos, como marca el PPTX~~. DECIDIDO 9-nov: son subtítulo de su bloque **y** siguen como campo de captura, como en producción (se quitó `SOLO_SUBTITULO`).
+- **Higiene personal y Alimentación:** ~~son subtítulos, como marca el PPTX~~. DECIDIDO 9-nov (tarde, tras probarlo en pantalla): quedan **solo como título**, como marcaba el PPTX. El valor viejo se conserva en un hidden (`data-solo-titulo`) y no cuenta para el avance. De paso, los Sí/No viejos con espacio o acento («SI », «Sí») ya se reconocen.
 - **Inmunizaciones (9-nov):** la cuadrícula de 7 columnas se salía del recuadro; quedan 5 columnas y COVID con su fecha en un tercer renglón.
 - **Caja de la hoja 5:** queda siempre visible, igual que en las demás secciones de esa hoja.
 - **Examen médico:** comparte el catálogo, así que también muestra esa caja y su "Todo normal" ahora escribe NEGADOS en esas 8 observaciones. Esto cubre parte del #10, pero el #10 pedía mostrarla solo con Sí.

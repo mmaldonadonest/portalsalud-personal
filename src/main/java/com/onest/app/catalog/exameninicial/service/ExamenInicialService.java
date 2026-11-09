@@ -343,7 +343,10 @@ public class ExamenInicialService {
                     items.add(new ExamItem(it.type(), it.label(), it.fieldName(), value, it.obsName(), obs));
                     valores.put(it.fieldName(), value == null ? "" : value);
                     // E-022 (9-nov): un diente vacio es "sano" (asi lo imprime el formato): no es un faltante
-                    if ("OCULTO".equals(it.type()) || it.fieldName().startsWith("SERV_MED_DIENTES.DIENTE_")) {
+                    // Higiene personal y Alimentacion (9-nov tarde): solo titulo en pantalla, no se capturan
+                    if ("OCULTO".equals(it.type()) || it.fieldName().startsWith("SERV_MED_DIENTES.DIENTE_")
+                            || "SERV_MED_ANT_PATOLOGICOS.HIGIENE_PERSONAL".equals(it.fieldName())
+                            || "SERV_MED_ANT_PATOLOGICOS.ALIMENTACION".equals(it.fieldName())) {
                         continue;   // no se captura en pantalla: no cuenta para el avance
                     }
                     n++;
@@ -446,7 +449,21 @@ public class ExamenInicialService {
         // leian el mismo borrador viejo y el segundo pisaba lo del primero (lo detecto la suite
         // E2E: el peso de Exploracion se perdia). Un solo nodo de Tomcat, basta el candado en JVM.
         synchronized (candadoBorrador(limpio)) {
-            Map<String, String> fusion = new LinkedHashMap<>(borradores.buscar(limpio).map(Borrador::datos).orElse(Map.of()));
+            Optional<Borrador> vivo = borradores.buscar(limpio);
+            // 9-nov: en un examen ya finalizado y bloqueado, mover un boton creaba un borrador NUEVO (lo vio el
+            // usuario con 62159808518). Si no hay borrador abierto y el candado esta cerrado, no se crea nada.
+            // Solo se revisa al ir a crear: un borrador abierto es un examen en captura.
+            if (vivo.isEmpty()) {
+                // Autoguardado que ya iba en camino al finalizar (en prod se abrieron borradores 1.6 a 11 s
+                // despues de finalizar): en los 2 minutos siguientes no se abre un borrador nuevo.
+                if (borradores.finalizadoHaceMenosDe2Min(limpio)) {
+                    throw new IllegalArgumentException("El examen se acaba de finalizar: no se abre un borrador nuevo.");
+                }
+                if (candado(limpio, borradores.ultimoFinalizado(limpio).isPresent()).bloqueado()) {
+                    throw new IllegalArgumentException("Examen inicial bloqueado: no se guardan cambios.");
+                }
+            }
+            Map<String, String> fusion = new LinkedHashMap<>(vivo.map(Borrador::datos).orElse(Map.of()));
             if (datos != null) {
                 datos.forEach((k, v) -> {
                     if (k != null && !k.isBlank() && !"nss".equals(k) && !"_csrf".equals(k)) {

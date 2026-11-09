@@ -13,7 +13,7 @@
   JS: exIniInit / exIniIr / exIniSino / exIniSwitchNormal / exIniAutosave / exIniFinalizar
   en pages/nss-search.html (loadModuleView llama exIniInit si encuentra #exIni).
 -->
-<div th:fragment="shell" id="exIni" th:attr="data-nss=${v.nss}, data-hoja=${v.hojaActual}, data-total-hojas=${#lists.size(v.hojas)}, data-tiene-inicial=${v.ultimoFinalizado != null}">
+<div th:fragment="shell" id="exIni" th:attr="data-nss=${v.nss}, data-hoja=${v.hojaActual}, data-total-hojas=${#lists.size(v.hojas)}, data-tiene-inicial=${v.ultimoFinalizado != null}, data-bloqueado=${v.candado.bloqueado and v.borrador == null} ? 'si' : null">
     <style>
         /* Estilos locales del asistente: nada de esto afecta al modulo Examen medico. */
         /* Cuadricula uniforme 5 x 2: las 10 pestanas del mismo tamano, nombre corto en una
@@ -492,25 +492,28 @@
                             </th:block>
                         </div>
 
-                        <!-- No patologicos por bloques (control de cambios C-011 y CORRECION EMNI). 9-nov (usuario):
-                             Higiene personal y Alimentacion son subtitulo Y campo de captura, como en produccion;
-                             el campo va primero en su bloque. -->
+                        <!-- No patologicos por bloques (control de cambios C-011 y CORRECION EMNI). 9-nov tarde (usuario,
+                             ya probado en pantalla): Higiene personal y Alimentacion quedan SOLO como titulo del bloque.
+                             Lo que ya tenian capturado se conserva en un hidden (abajo) y no cuenta para el avance. -->
                         <th:block th:if="${esApnp}"
                                   th:with="etq=${ {'BAÑO':'Baño (veces por semana)','CAMBIO_DE_ROPA':'Cambio de ropa (veces por semana)','ASEO_BUCAL':'Aseo bucal (veces al día)','FC1':'Frecuencia deporte (veces por semana)','FC2':'Frecuencia hobbies (veces)'} }">
-                            <th:block th:each="g : ${ {{'Vivienda','HABITACION,NO_DORMITORIOS,NO_HABITANTES,PISO,TECHO,AGUA_POTABLE,LUZ,DRENAJE,AIRE_ACONDICIONADO,CONVIVENCIA_CON_ANIMALES'},{'Higiene personal','HIGIENE_PERSONAL,BAÑO,CAMBIO_DE_ROPA,ASEO_BUCAL'},{'Alimentación','ALIMENTACION,NO_COMIDAS_AL_DIA,BALANCEADA,SUFICIENTE'},{'Actividad física y recreación','DEPORTE,FC1,HOBBIES_PASATIEMPOS,FC2'},{'Otros','RELIGION'}} }">
+                            <th:block th:each="g : ${ {{'Vivienda','HABITACION,NO_DORMITORIOS,NO_HABITANTES,PISO,TECHO,AGUA_POTABLE,LUZ,DRENAJE,AIRE_ACONDICIONADO,CONVIVENCIA_CON_ANIMALES'},{'Higiene personal','BAÑO,CAMBIO_DE_ROPA,ASEO_BUCAL'},{'Alimentación','NO_COMIDAS_AL_DIA,BALANCEADA,SUFICIENTE'},{'Actividad física y recreación','DEPORTE,FC1,HOBBIES_PASATIEMPOS,FC2'},{'Otros','RELIGION'}} }">
                                 <div class="exini-sub" th:text="${g[0]}">Bloque</div>
                                 <div class="exini-grid">
                                     <th:block th:each="f : ${#strings.arraySplit(g[1], ',')}">
                                         <th:block th:each="it : ${s.items}" th:if="${it.fieldName == 'SERV_MED_ANT_PATOLOGICOS.' + f}">
                                             <div th:with="esSiNo=${#lists.contains({'AGUA_POTABLE','LUZ','DRENAJE','AIRE_ACONDICIONADO','BALANCEADA','SUFICIENTE'}, f)},
                                                           esNum=${#lists.contains({'NO_DORMITORIOS','BAÑO','CAMBIO_DE_ROPA','ASEO_BUCAL','FC1','FC2'}, f)},
-                                                          val=${it.value ?: ''}">
+                                                          val=${it.value ?: ''},
+                                                          sn=${#strings.replace(#strings.toUpperCase(#strings.trim(it.value ?: '')), 'Í', 'I')}">
                                                 <label th:text="${etq[f] ?: it.label}">Campo</label>
+                                                <!--/* 9-nov: "SI ", "Si" o "SÍ" del dato viejo cuentan como Si (antes salian como "capturado antes"
+                                                     junto al boton); el hidden guarda el valor limpio. Solo lo que no es Si/No se conserva aparte. */-->
                                                 <div th:if="${esSiNo}" class="exini-chips">
-                                                    <input type="hidden" th:name="${it.fieldName}" th:value="${val}">
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary" th:classappend="${#strings.equalsIgnoreCase(val, 'SI')} ? 'activo' : ''" data-val="SI" onclick="exIniChip(this);">Sí</button>
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary" th:classappend="${#strings.equalsIgnoreCase(val, 'NO')} ? 'activo' : ''" data-val="NO" onclick="exIniChip(this);">No</button>
-                                                    <button type="button" th:if="${!#strings.isEmpty(val) and !#strings.equalsIgnoreCase(val, 'SI') and !#strings.equalsIgnoreCase(val, 'NO')}"
+                                                    <input type="hidden" th:name="${it.fieldName}" th:value="${sn == 'SI' or sn == 'NO' ? sn : val}">
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" th:classappend="${sn == 'SI'} ? 'activo' : ''" data-val="SI" onclick="exIniChip(this);">Sí</button>
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" th:classappend="${sn == 'NO'} ? 'activo' : ''" data-val="NO" onclick="exIniChip(this);">No</button>
+                                                    <button type="button" th:if="${sn != '' and sn != 'SI' and sn != 'NO'}"
                                                             class="btn btn-sm btn-outline-secondary activo" th:attr="data-val=${val}" th:text="|${val} (capturado antes)|" onclick="exIniChip(this);">otro</button>
                                                 </div>
                                                 <input th:if="${esNum}" type="text" inputmode="numeric" class="form-control form-control-sm" data-tipo="TEXT" th:name="${it.fieldName}" th:value="${val}" oninput="exIniSoloNumero(this);">
@@ -519,6 +522,9 @@
                                         </th:block>
                                     </th:block>
                                 </div>
+                            </th:block>
+                            <th:block th:each="it : ${s.items}" th:if="${it.fieldName == 'SERV_MED_ANT_PATOLOGICOS.HIGIENE_PERSONAL' or it.fieldName == 'SERV_MED_ANT_PATOLOGICOS.ALIMENTACION'}">
+                                <input type="hidden" data-solo-titulo th:name="${it.fieldName}" th:value="${it.value}">
                             </th:block>
                         </th:block>
 

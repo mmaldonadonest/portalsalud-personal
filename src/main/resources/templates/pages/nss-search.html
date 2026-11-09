@@ -1215,6 +1215,12 @@
             };
 
             function exIniProgramarAutosave() {
+                // 9-nov: examen finalizado y bloqueado = solo consulta; no se guarda nada (el servidor tambien lo rechaza)
+                var r = exIniRoot();
+                if (r && r.getAttribute('data-bloqueado') === 'si') {
+                    exIniMarcarGuardado('Solo consulta: el examen está bloqueado, los cambios no se guardan', false);
+                    return;
+                }
                 exIniPendiente = true;
                 exIniMarcarGuardado('Cambios sin guardar…', false);
                 if (exIniTimer) {
@@ -1229,8 +1235,8 @@
             var exIniCola = Promise.resolve();
             window.exIniAutosave = function (hojaForzada) {
                 var root = exIniRoot();
-                if (!root) {
-                    return exIniCola;
+                if (!root || root.getAttribute('data-bloqueado') === 'si') {
+                    return exIniCola;   // bloqueado = solo consulta (ver exIniProgramarAutosave)
                 }
                 if (exIniTimer) {
                     clearTimeout(exIniTimer);
@@ -1366,6 +1372,11 @@
                     // "Diente sano"; E-022) ni los empleos anteriores que no se empezaron (no son obligatorios; E-023)
                     var campos = Array.prototype.filter.call(todos, function (el) {
                         if (/^SERV_MED_DIENTES\.DIENTE_/.test(el.name)) { return false; }
+                        // OKNO.* = que boton Si/No se eligio (solo ayuda de pantalla); lo que se guarda y cuenta es
+                        // el texto. Un texto capturado que no es el "normal" del formato deja el boton sin marcar.
+                        if (/^OKNO\./.test(el.name)) { return false; }
+                        // Higiene personal y Alimentacion ahora son solo titulo: su valor viejo viaja oculto
+                        if (el.hasAttribute('data-solo-titulo')) { return false; }
                         var m = /^trabajo(\d+)\./.exec(el.name);
                         return !(m && exIniEmpleoVacio(s, m[1]));
                     });
@@ -2068,6 +2079,11 @@
                     return;
                 }
                 var nss = exIniRoot().getAttribute('data-nss');
+                // 9-nov: el autoguardado programado se disparaba despues de finalizar y abria un borrador nuevo
+                // (borradores 122, 147 y 150 en prod, segundos despues de su finalizacion). Se cancela aqui y,
+                // al terminar bien, la pantalla queda en solo consulta.
+                if (exIniTimer) { clearTimeout(exIniTimer); exIniTimer = null; }
+                exIniPendiente = false;
                 guardarRegistro(btn, {
                     formId: 'exIniForm',
                     savePath: 'api/nss/examen-inicial/finalizar',
@@ -2089,6 +2105,8 @@
                     abrirAlTerminar: true,
                     textoBoton: 'Finalizando y generando el documento…',
                     onSuccess: function () {
+                        exIniRoot().setAttribute('data-bloqueado', 'si');
+                        if (exIniTimer) { clearTimeout(exIniTimer); exIniTimer = null; }
                         exIniMarcarGuardado('Examen finalizado', false);
                         var fin = document.getElementById('exIniFinalizarBtn');
                         if (fin) { fin.disabled = true; }
