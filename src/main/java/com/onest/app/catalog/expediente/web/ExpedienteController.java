@@ -46,6 +46,8 @@ public class ExpedienteController {
     private final com.onest.app.catalog.formato.service.FormatosImpresosService formatos;
     private final com.onest.app.catalog.examen.service.ExamenDocumentoService examenDocumento;
     private final com.onest.app.catalog.expediente.service.FormatosConsultaService formatosConsulta;
+    private final com.onest.app.catalog.expediente.service.FisioterapiaService fisioterapia;
+    private final com.onest.app.catalog.examen.repository.FichaBiometricoRepository fichaBiometrico;
 
     public ExpedienteController(
             ExpedienteService expedienteService, FileStoreService fileStoreService,
@@ -54,8 +56,12 @@ public class ExpedienteController {
             com.onest.app.catalog.expediente.service.PaseSalidaService paseSalida,
             com.onest.app.catalog.formato.service.FormatosImpresosService formatos,
             com.onest.app.catalog.examen.service.ExamenDocumentoService examenDocumento,
-            com.onest.app.catalog.expediente.service.FormatosConsultaService formatosConsulta) {
+            com.onest.app.catalog.expediente.service.FormatosConsultaService formatosConsulta,
+            com.onest.app.catalog.expediente.service.FisioterapiaService fisioterapia,
+            com.onest.app.catalog.examen.repository.FichaBiometricoRepository fichaBiometrico) {
         this.formatosConsulta = formatosConsulta;
+        this.fisioterapia = fisioterapia;
+        this.fichaBiometrico = fichaBiometrico;
         this.expedienteService = expedienteService;
         this.fileStoreService = fileStoreService;
         this.causaConsultaService = causaConsultaService;
@@ -132,6 +138,10 @@ public class ExpedienteController {
             model.addAttribute("medDet", medDet);
             model.addAttribute("medicamentosDet", com.onest.app.catalog.expediente.service.FormatosConsultaService.medicamentosGuardados(medDet));
             model.addAttribute("pruebaDet", pruebaDet);
+            // FT-SO-38: boton y resumen solo si la consulta trae nota de fisioterapia
+            var fisioDet = detalle == null ? java.util.Map.<String, String>of() : fisioFechas(nssDet, relDet);
+            model.addAttribute("tieneFisio", !fisioDet.isEmpty());
+            model.addAttribute("fisioDet", fisioDet);
             model.addAttribute("nss", data == null ? "" : data.trim());
             model.addAttribute("serieId", serieId);
             model.addAttribute("adjuntos",
@@ -313,6 +323,56 @@ public class ExpedienteController {
         return "pages/formato-ft-so-23";
     }
 
+    /** Nota de fisioterapia con las fechas ISO en dd/MM/yyyy. */
+    private java.util.Map<String, String> fisioFechas(String nss, String rel) {
+        java.util.Map<String, String> m = new java.util.LinkedHashMap<>();
+        fisioterapia.leer(nss, rel).forEach((k, v) -> m.put(k, DocumentoImpresoService.fecha(v)));
+        return m;
+    }
+
+    /**
+     * FT-SO-38 Nota de fisioterapia (rev. 00, C-065, 9-nov-2026): sale de una consulta de tipo
+     * Fisioterapia. Ficha = busqueda por NSS + biometrico (escolaridad, departamento) + telefono de
+     * Portal Salud; lo de la nota = FisioterapiaService (SERV_MED_TAG FTSO38.&lt;rel&gt;.*).
+     */
+    @GetMapping(path = "/consulta/fisioterapia", produces = MediaType.TEXT_HTML_VALUE)
+    @Auditado(modulo = "Consultas", accion = "export", entidad = "Nota de fisioterapia FT-SO-38", registro = "nss")
+    public String notaFisioterapia(@RequestParam("nss") String nss,
+                                   @RequestParam(name = "id", required = false) String id,
+                                   @RequestParam(name = "rel", required = false) String rel,
+                                   @RequestParam(name = "auto", required = false) String auto, Model model) {
+        String nssLimpio = nss == null ? "" : nss.trim();
+        var detalle = consultaPorIdORel(nssLimpio, id, rel);
+        var fisio = fisioFechas(nssLimpio, detalle.consultaRelacionada());
+        if (fisio.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Esta consulta no tiene nota de fisioterapia.");
+        }
+        modeloFormatoConsulta(model, nssLimpio, detalle, "FT-SO-38", auto);
+        model.addAttribute("fisio", fisio);
+        model.addAttribute("tomas", com.onest.app.catalog.expediente.service.FisioterapiaService.tomas(fisio));
+        // ficha: como la del FT-SO-17 (escolaridad y profesion del OCR si es candidato; si no, biometrico)
+        com.onest.app.catalog.nss.dto.NssSearchResponse busqueda = null;
+        try {
+            busqueda = nssSearchService.findByNss(nssLimpio).orElse(null);
+        } catch (RuntimeException ex) {
+            log.warn("[fisio] sin busqueda por NSS: {}", ex.getMessage());
+        }
+        var sol = busqueda == null ? null : busqueda.solicitudOcr();
+        var extra = fichaBiometrico.extra(nssLimpio);
+        String escolaridadOcr = sol == null || sol.escolaridad() == null ? "" : sol.escolaridad().trim();
+        model.addAttribute("escolaridad", escolaridadOcr.isEmpty() ? extra.escolaridad() : escolaridadOcr);
+        model.addAttribute("profesion", sol == null || sol.profesionOficio() == null ? "" : sol.profesionOficio().trim());
+        model.addAttribute("departamento", extra.departamento());
+        String tel = "";
+        try {
+            tel = examenDocumento.telefonoSalud(nssLimpio);
+        } catch (RuntimeException ex) {
+            log.warn("[fisio] sin telefono de Portal Salud: {}", ex.getMessage());
+        }
+        model.addAttribute("telefono", tel == null ? "" : tel);
+        return "pages/formato-ft-so-38";
+    }
+
     /**
      * Formulario de alta de consulta medica (viewConsulMedic -> consultaMedica.php).
      * Genera el id de relacion consulta<->adjuntos (como el md5 del legacy).
@@ -344,6 +404,9 @@ public class ExpedienteController {
             if (faltante == null) {
                 faltante = com.onest.app.catalog.expediente.service.FormatosConsultaService.errorObligatorios(form);
             }
+            if (faltante == null) {
+                faltante = com.onest.app.catalog.expediente.service.FisioterapiaService.errorObligatorios(form);
+            }
             if (faltante != null) {
                 throw new IllegalArgumentException(faltante);
             }
@@ -366,6 +429,12 @@ public class ExpedienteController {
             } catch (RuntimeException ex) {
                 log.error("[formatos-consulta] NSS {}", form.getNss(), ex);
                 mensaje += " Aviso: no se guardaron los datos del pase de medicamento o de pruebas especiales.";
+            }
+            try {
+                fisioterapia.guardar(form);
+            } catch (RuntimeException ex) {
+                log.error("[fisioterapia] NSS {}", form.getNss(), ex);
+                mensaje += " Aviso: no se guardó la nota de fisioterapia (FT-SO-38).";
             }
             return mensaje;
         } catch (IllegalArgumentException ex) {

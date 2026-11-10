@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--/*
+  FT-SO-05 Cuestionario de sintomas osteomusculares (9-nov-2026, en TODOS los examenes). Lo usan el examen
+  inicial (examen-inicial-shell, hoja 8) y el modulo Examen medico (examen-seccion), con el item tipo OSTEO.
+
+  Referencia de SM ("osteomuscular para plataforma.xlsx"): cada seccion con un "todo normal" que pone 0; si hay
+  anormalidad, se anota el grado de la escala (1 a 4). Las celdas NO llevan name: el valor que se guarda es el
+  hidden TAG.EXM_OSTEO (JSON con todas las celdas), que osteoCambio() reescribe y dispara change para que el
+  autoguardado del inicial y el guardado del modulo lo tomen igual. Claves: ver Osteomuscular.java.
+*/-->
+<th:block th:fragment="captura(it)"
+          th:with="O=${T(com.onest.app.catalog.examen.service.Osteomuscular).INSTANCIA}, j=${it.value}">
+<div class="osteo" data-osteo-raiz>
+    <input type="hidden" class="osteo-json" th:name="${it.fieldName}" th:value="${it.value}">
+
+    <div class="osteo-top">
+        <div class="osteo-escala">
+            <strong>Escala:</strong>
+            <span th:each="g : ${O.grados}"><b th:text="${g.clave}">0</b> <span th:text="${g.texto}">texto</span></span>
+        </div>
+        <!-- boton y su ayuda en un renglon a todo lo ancho (10-nov: en columna dejaban hueco a la derecha) -->
+        <div class="osteo-accion">
+            <button type="button" class="btn btn-sm btn-success" onclick="osteoNormal(this, '');" title="Pone 0 (normal) en todo lo vacío; lo anormal no se toca">
+                <i class="ri-check-double-line me-1"></i>Todo normal
+            </button>
+            <span class="osteo-ayuda"><i class="ri-information-line me-1"></i>Marca todo en 0 y cambia solo lo anormal: clic sube el grado, clic derecho lo baja (también flechas ↑ ↓ y teclas 0 a 4).</span>
+        </div>
+    </div>
+
+    <!-- Columna vertebral: curvatura y desviacion (opcion + grado si no es normal) -->
+    <div class="osteo-sec" data-osteo-sec="CURV.,DESV.">
+        <div class="osteo-sec-h"><span>Columna vertebral</span>
+            <button type="button" class="btn btn-xs btn-outline-success" onclick="osteoNormal(this, 'sec');">Normal</button></div>
+        <div class="osteo-sub">Curvatura fisiológica antero-posterior</div>
+        <div class="osteo-fila" th:each="r : ${O.curvatura}" th:with="k=${'CURV.' + r.clave}, v=${O.v(j, k)}">
+            <span class="osteo-lbl" th:text="${r.texto}">Cervical</span>
+            <select class="form-select form-select-sm osteo-op" th:attr="data-osteo=${k}" onchange="osteoCambio(this);">
+                <option value="">—</option>
+                <option th:each="o : ${O.curvaturaOpciones}" th:value="${o.clave}" th:text="${o.texto}" th:selected="${v == o.clave}">Normal</option>
+            </select>
+            <!--/* grado como celda (10-nov): solo con opcion anormal; arranca en 1 y cicla 1-4 (data-min) */-->
+            <button type="button" class="osteo-cel" data-min="1" th:with="g=${O.v(j, k + '.G')}"
+                    th:classappend="${g != ''} ? ${'g-' + g} : ''" th:value="${g}" th:text="${g == ''} ? '—' : ${g}"
+                    th:disabled="${v == '' or v == 'NORMAL'}"
+                    th:attr="data-osteo=${k + '.G'}, aria-label=|Grado ${r.texto}|, title=|Grado ${r.texto} · clic sube, clic derecho baja|">—</button>
+        </div>
+        <div class="osteo-sub">Desviación del eje lateral</div>
+        <div class="osteo-fila" th:each="r : ${O.desviacion}" th:with="k=${'DESV.' + r.clave}, v=${O.v(j, k)}">
+            <span class="osteo-lbl" th:text="${r.texto}">Dorsal</span>
+            <select class="form-select form-select-sm osteo-op" th:attr="data-osteo=${k}" onchange="osteoCambio(this);">
+                <option value="">—</option>
+                <option th:each="o : ${O.desviacionOpciones}" th:value="${o.clave}" th:text="${o.texto}" th:selected="${v == o.clave}">Normal</option>
+            </select>
+            <!--/* grado como celda (10-nov): solo con opcion anormal; arranca en 1 y cicla 1-4 (data-min) */-->
+            <button type="button" class="osteo-cel" data-min="1" th:with="g=${O.v(j, k + '.G')}"
+                    th:classappend="${g != ''} ? ${'g-' + g} : ''" th:value="${g}" th:text="${g == ''} ? '—' : ${g}"
+                    th:disabled="${v == '' or v == 'NORMAL'}"
+                    th:attr="data-osteo=${k + '.G'}, aria-label=|Grado ${r.texto}|, title=|Grado ${r.texto} · clic sube, clic derecho baja|">—</button>
+        </div>
+    </div>
+
+    <!-- Tablas de grados 0-4: movilidad-dolor, palpacion y articulaciones -->
+    <div class="osteo-sec" data-osteo-sec="MOV.">
+        <div class="osteo-sec-h"><span>Movilidad - dolor</span>
+            <button type="button" class="btn btn-xs btn-outline-success" onclick="osteoNormal(this, 'sec');">Normal</button></div>
+        <div class="table-responsive">
+            <table class="osteo-tabla">
+                <thead><tr><th></th><th th:each="c : ${O.movilidadColumnas}" th:attr="data-col=${c.clave}" th:text="${c.texto}">Flexión</th></tr></thead>
+                <tbody>
+                <tr th:each="r : ${O.movilidad}">
+                    <th th:text="${r.texto}">Cervical</th>
+                    <td th:each="c : ${O.movilidadColumnas}" th:attr="data-col=${c.clave}" th:with="k=${'MOV.' + r.clave + '.' + c.clave}">
+                        <th:block th:replace="~{fragments/osteomuscular :: grado(${k}, ${O.v(j, k)}, ${r.texto + ' ' + c.texto})}"></th:block>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="osteo-sec" data-osteo-sec="EXP.">
+        <div class="osteo-sec-h"><span>Exploración</span>
+            <button type="button" class="btn btn-xs btn-outline-success" onclick="osteoNormal(this, 'sec');">Normal</button></div>
+        <div class="osteo-nota">0 = negativo (-); 1 a 4 = positivo (+) con ese grado.</div>
+        <div class="table-responsive">
+            <table class="osteo-tabla">
+                <thead><tr><th></th><th th:each="l : ${O.lados}" th:attr="data-col=${l.clave}" th:text="${l.texto}">Der.</th></tr></thead>
+                <tbody>
+                <tr th:each="r : ${O.exploracion}">
+                    <th th:text="${r.texto}">Lasègue</th>
+                    <td th:each="l : ${O.lados}" th:attr="data-col=${l.clave}" th:with="k=${'EXP.' + r.clave + '.' + l.clave}">
+                        <th:block th:replace="~{fragments/osteomuscular :: grado(${k}, ${O.v(j, k)}, ${r.texto + ' ' + l.texto})}"></th:block>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="osteo-sec" data-osteo-sec="PALP.">
+        <div class="osteo-sec-h"><span>Palpación</span>
+            <button type="button" class="btn btn-xs btn-outline-success" onclick="osteoNormal(this, 'sec');">Normal</button></div>
+        <div class="table-responsive">
+            <table class="osteo-tabla">
+                <thead><tr><th></th><th th:each="c : ${O.palpacionColumnas}" th:attr="data-col=${c.clave}" th:text="${c.texto}">Apófisis</th></tr></thead>
+                <tbody>
+                <tr th:each="r : ${O.palpacion}">
+                    <th th:text="${r.texto}">Columna cervical</th>
+                    <td th:each="c : ${O.palpacionColumnas}" th:attr="data-col=${c.clave}" th:with="k=${'PALP.' + r.clave + '.' + c.clave}">
+                        <th:block th:replace="~{fragments/osteomuscular :: grado(${k}, ${O.v(j, k)}, ${r.texto + ' ' + c.texto})}"></th:block>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="osteo-sec" data-osteo-sec="ART.">
+        <div class="osteo-sec-h"><span>Articulaciones - movilidad y dolor</span>
+            <button type="button" class="btn btn-xs btn-outline-success" onclick="osteoNormal(this, 'sec');">Normal</button></div>
+        <div class="table-responsive">
+            <table class="osteo-tabla osteo-tabla-art">
+                <thead><tr><th></th><th></th><th th:each="c : ${O.articulacionColumnas}" th:attr="data-col=${c.clave}" th:text="${c.texto}">Abducc.</th></tr></thead>
+                <tbody>
+                <th:block th:each="a : ${O.articulaciones}">
+                    <tr th:each="l, ls : ${O.lados}" th:classappend="${ls.first} ? 'osteo-art-ini' : ''">
+                        <th th:if="${ls.first}" rowspan="2" th:text="${a.texto}">Hombro</th>
+                        <th class="osteo-lado" th:text="${l.texto}">Der.</th>
+                        <td th:each="c : ${O.articulacionColumnas}" th:attr="data-col=${c.clave}" th:with="k=${'ART.' + a.clave + '.' + l.clave + '.' + c.clave}">
+                            <th:block th:replace="~{fragments/osteomuscular :: grado(${k}, ${O.v(j, k)}, ${a.texto + ' ' + l.texto + ' ' + c.texto})}"></th:block>
+                        </td>
+                    </tr>
+                </th:block>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</th:block>
+
+<!--/* Una celda de grado 0-4 (vacio = sin capturar). Opcion A elegida por el usuario (10-nov): boton que cambia
+     con cada clic (sube), clic derecho (baja), flechas arriba/abajo, teclas 0-4 y Supr; color por grado.
+     El valor va en el value del boton: osteoGuardar lo lee igual que antes leia el select. */-->
+<button th:fragment="grado(k, v, etiqueta)" type="button" class="osteo-cel"
+        th:classappend="${v != ''} ? ${'g-' + v} : ''" th:value="${v}" th:text="${v == ''} ? '—' : ${v}"
+        th:attr="data-osteo=${k}, aria-label=${etiqueta},
+                 title=${etiqueta + ' · clic sube, clic derecho baja; también flechas ↑ ↓ y teclas 0 a 4'}">—</button>
+
+<!--/* ===================== IMPRESO FT-SO-05 (una hoja, en todos los examenes). Usa d (ExamenDocumentoService.Documento),
+     medico y el estilo .emle de fragments/formato-emle. Vacio = celda en blanco para llenar a mano. */-->
+<tr class="hoja" th:fragment="impreso"
+    th:with="O=${T(com.onest.app.catalog.examen.service.Osteomuscular).INSTANCIA}, j=${d.v('EXM_OSTEO')}"><td><div class="emle">
+    <table class="f enc">
+        <tr>
+            <td rowspan="4" style="width:26%; vertical-align:middle; text-align:center">
+                <img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" style="max-width:100%; max-height:48px">
+            </td>
+            <td colspan="2" class="titulo">CUESTIONARIO SÍNTOMAS OSTEOMUSCULARES</td>
+        </tr>
+        <tr><td>F. Implementación: 14 de octubre de 2026</td><td>Revisión: 05</td></tr>
+        <tr><td>Clave de control: FT-SO-05</td><td>Reemplaza a: 04</td></tr>
+        <tr><td>Motivo del cambio: Actualización por vigencia</td><td>Hoja 1 de 1</td></tr>
+    </table>
+    <table class="f" style="margin-top:5px">
+        <tr><td class="sec" colspan="6">DATOS DEL TRABAJADOR</td></tr>
+        <tr>
+            <td class="e">NOMBRE</td><td style="width:42%">[[${d.v('nombre')}]] [[${d.v('apellidoP')}]] [[${d.v('apellidoM')}]]</td>
+            <td class="e">EDAD</td><td th:text="${d.v('edad')}"></td>
+            <td class="e">PUESTO</td><td th:text="${d.v('puesto')}"></td>
+        </tr>
+        <tr>
+            <td class="e">CUENTA</td><td th:text="${d.v('cuenta')}"></td>
+            <td class="e">AGENCIA</td><td th:text="${d.v('AGENCIA')}"></td>
+            <td class="e">FECHA</td><td th:text="${d.v('FECHA_EXAMEN')}"></td>
+        </tr>
+    </table>
+
+    <!-- Columna vertebral: el grado va en la columna de la opcion elegida (Normal = 0) -->
+    <table class="f">
+        <tr><td class="sec" colspan="4">COLUMNA VERTEBRAL</td></tr>
+        <tr><td class="sub">CURVATURA FISIOLÓGICA ANTERO-POSTERIOR</td>
+            <td class="sub c" th:each="o : ${O.curvaturaOpciones}" th:text="${#strings.toUpperCase(o.texto)}">NORMAL</td></tr>
+        <tr th:each="r : ${O.curvatura}" th:with="op=${O.v(j, 'CURV.' + r.clave)}, g=${O.v(j, 'CURV.' + r.clave + '.G')}">
+            <td class="e" th:text="${#strings.toUpperCase(r.texto)}">CERVICAL</td>
+            <td class="c" th:each="o : ${O.curvaturaOpciones}" th:text="${op == o.clave} ? (${o.clave == 'NORMAL'} ? '0' : (${g == ''} ? 'X' : ${g})) : ''"></td>
+        </tr>
+        <tr><td class="sub">DESVIACIÓN DEL EJE LATERAL</td>
+            <td class="sub c" th:each="o : ${O.desviacionOpciones}" th:text="${o.texto}">Normal</td></tr>
+        <tr th:each="r : ${O.desviacion}" th:with="op=${O.v(j, 'DESV.' + r.clave)}, g=${O.v(j, 'DESV.' + r.clave + '.G')}">
+            <td class="e" th:text="${r.texto}">Dorsal</td>
+            <td class="c" th:each="o : ${O.desviacionOpciones}" th:text="${op == o.clave} ? (${o.clave == 'NORMAL'} ? '0' : (${g == ''} ? 'X' : ${g})) : ''"></td>
+        </tr>
+    </table>
+
+    <table class="f">
+        <tr><td class="sec" th:colspan="${#lists.size(O.movilidadColumnas) + 1}">MOVILIDAD - DOLOR</td></tr>
+        <tr><td class="sub"></td><td class="sub c" th:each="c : ${O.movilidadColumnas}" th:text="${c.texto}">Flexión</td></tr>
+        <tr th:each="r : ${O.movilidad}">
+            <td class="e" th:text="${r.texto}">Cervical</td>
+            <td class="c" th:each="c : ${O.movilidadColumnas}" th:text="${O.v(j, 'MOV.' + r.clave + '.' + c.clave)}"></td>
+        </tr>
+    </table>
+
+    <table class="dos"><tr>
+        <td>
+            <!-- Lasegue y Schober: 0 = negativo (columna -); 1-4 = positivo con su grado (columna +) -->
+            <table class="f">
+                <tr><td class="sec" colspan="4">EXPLORACIÓN</td></tr>
+                <tr><td class="sub"></td><td class="sub"></td><td class="sub c">+</td><td class="sub c">-</td></tr>
+                <th:block th:each="r : ${O.exploracion}">
+                    <tr th:each="l, ls : ${O.lados}" th:with="g=${O.v(j, 'EXP.' + r.clave + '.' + l.clave)}">
+                        <td class="e" th:if="${ls.first}" rowspan="2" th:text="${r.texto}">Lasègue</td>
+                        <td class="e" th:text="${l.texto}">Der.</td>
+                        <td class="c" th:text="${g != '' and g != '0'} ? ${g} : ''"></td>
+                        <td class="c" th:text="${g == '0'} ? '0' : ''"></td>
+                    </tr>
+                </th:block>
+            </table>
+        </td>
+        <td>
+            <table class="f">
+                <tr><td class="sec" colspan="3">PALPACIÓN</td></tr>
+                <tr><td class="sub"></td><td class="sub c" th:each="c : ${O.palpacionColumnas}" th:text="${c.texto}">Apófisis</td></tr>
+                <tr th:each="r : ${O.palpacion}">
+                    <td class="e" th:text="${r.texto}">Columna cervical</td>
+                    <td class="c" th:each="c : ${O.palpacionColumnas}" th:text="${O.v(j, 'PALP.' + r.clave + '.' + c.clave)}"></td>
+                </tr>
+            </table>
+        </td>
+    </tr></table>
+
+    <table class="f">
+        <tr><td class="sec" th:colspan="${#lists.size(O.articulacionColumnas) + 2}">ARTICULACIONES MOVILIDAD - DOLOR</td></tr>
+        <tr><td class="sub">Articulación</td><td class="sub"></td>
+            <td class="sub c" th:each="c : ${O.articulacionColumnas}" th:text="${c.texto}">Abducc.</td></tr>
+        <th:block th:each="a : ${O.articulaciones}">
+            <tr th:each="l, ls : ${O.lados}">
+                <td class="e" th:if="${ls.first}" rowspan="2" th:text="${a.texto}">Hombro</td>
+                <td class="e" th:text="${l.texto}">Der.</td>
+                <td class="c" th:each="c : ${O.articulacionColumnas}" th:text="${O.v(j, 'ART.' + a.clave + '.' + l.clave + '.' + c.clave)}"></td>
+            </tr>
+        </th:block>
+    </table>
+
+    <table class="f">
+        <tr><td class="sec" colspan="2">SIGNOS Y SÍNTOMAS</td></tr>
+        <tr th:each="g : ${O.grados}"><td class="e" th:text="'Grado ' + ${g.clave}">Grado 0</td><td th:text="${g.texto}"></td></tr>
+    </table>
+
+    <table class="firmas">
+        <tr>
+            <td>
+                <img th:if="${medico != null and medico.firmaDataUri != null}" th:src="${medico.firmaDataUri}" alt="Firma">
+                <div class="linea-firma" th:text="${medico != null} ? ${medico.nombre} + ' CP ' + ${medico.cedula} : 'Dr. Mauricio Cerón Solana CP 5154089'">Dr. Mauricio Cerón Solana CP 5154089</div>
+                <div>Realizó</div>
+            </td>
+            <td>
+                <img th:if="${d.firmaTrabajador != null}" th:src="${d.firmaTrabajador}" alt="Firma del trabajador">
+                <div class="linea-firma">Nombre y firma del trabajador</div>
+            </td>
+        </tr>
+        <tr><td class="cert" colspan="2" style="padding-top:6px">YO CERTIFICO QUE LOS DATOS ANTERIORMENTE PROPORCIONADOS SON VERDADEROS Y ESTOY CONSCIENTE QUE CUALQUIER OMISIÓN O FALSIFICACIÓN PUEDEN SER MOTIVO DE DESPIDO, Y AUTORIZO AL SERVICIO MÉDICO DE LA COMPAÑÍA PARA QUE REALICE LOS EXÁMENES NECESARIOS CON MOTIVO DE MI TRABAJO PARA DETECCIÓN OPORTUNA Y ESTUDIO DE ENFERMEDADES O ACCIDENTES</td></tr>
+    </table>
+</div></td></tr>
+</body>
+</html>

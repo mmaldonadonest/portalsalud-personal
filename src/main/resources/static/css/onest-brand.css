@@ -220,3 +220,49 @@ a:hover {
 .chk-ficha .form-check-input { width: 1.3em; height: 1.3em; margin: 0; cursor: pointer; flex-shrink: 0; }
 .chk-ficha:has(input:checked) { background: #eaf2fb; border-color: #003E75; color: #003E75; }
 .chk-ficha:has(input:focus-visible) { outline: 2px solid #003E75; outline-offset: 2px; }
+
+/* FT-SO-05 Cuestionario osteomuscular (9-nov, fragments/osteomuscular.html): captura compacta por grados 0-4 */
+/* 10-nov: escala a todo lo ancho (dos columnas) y abajo el boton con su ayuda en el mismo renglon */
+.osteo-top { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 10px; }
+.osteo-escala { font-size: 11.5px; color: #475569; display: grid; grid-template-columns: auto 1fr 1fr; gap: 2px 16px; }
+.osteo-escala > strong { grid-row: span 3; }
+@media (max-width: 767.98px) { .osteo-escala { grid-template-columns: 1fr; } .osteo-escala > strong { grid-row: auto; } }
+.osteo-accion { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: #f1f7fd; border: 1px solid #dce6f2;
+    border-radius: 6px; padding: 6px 10px; }
+.osteo-escala b { color: #003E75; }
+.osteo-sec { border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px 10px; margin-bottom: 10px; background: #fff; }
+.osteo-sec-h { display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: #003E75;
+    font-size: .82rem; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+.osteo-sub { font-size: 12px; font-weight: 600; color: #334155; margin: 6px 0 4px; }
+.osteo-nota { font-size: 11.5px; color: #64748b; margin-bottom: 4px; }
+.osteo-fila { display: grid; grid-template-columns: 110px minmax(150px, 220px) 44px; gap: 8px; align-items: center; margin-bottom: 4px; }
+.osteo-lbl { font-size: 13px; }
+.osteo-tabla { border-collapse: collapse; font-size: 12px; }
+.osteo-tabla th { font-weight: 600; color: #334155; padding: 3px 6px; white-space: nowrap; text-align: left; }
+/* encabezados en dos renglones si no caben ("Alteración muscular" se salia del cuadro y ensanchaba su columna) */
+/* 10-nov: nunca partir una palabra ("Contractur a"); solo Articulaciones (8 columnas) va angosta */
+.osteo-tabla thead th { text-align: center; font-size: 11px; white-space: normal; max-width: 140px; line-height: 1.15;
+    vertical-align: bottom; overflow-wrap: normal; word-break: keep-all; hyphens: none; padding: 3px 8px; }
+.osteo-tabla-art thead th { max-width: 72px; }
+.osteo-tabla td { padding: 2px 3px; text-align: center; }
+.osteo-tabla .osteo-lado { color: #64748b; font-weight: 500; }
+.osteo-tabla tr.osteo-art-ini th, .osteo-tabla tr.osteo-art-ini td { border-top: 1px solid #e2e8f0; }
+.osteo .osteo-g { min-width: 58px; padding-left: 6px; padding-right: 22px; text-align: center; }
+/* celda de grado (opcion A, 10-nov): boton que cicla; color por grado (verde 0 ... rojo 4) */
+.osteo-cel { width: 40px; height: 32px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; font-weight: 700;
+    font-size: 14px; color: #94a3b8; cursor: pointer; user-select: none; padding: 0; }
+.osteo-cel:hover { border-color: #0057A8; }
+/* 10-nov: cruz renglon/columna de la celda bajo el cursor o con foco (osteoCruz en nss-search) */
+.osteo-tabla tr.osteo-fila-on > th, .osteo-tabla tr.osteo-fila-on > td, .osteo-tabla .osteo-col-on { background: #e3eefa; }
+.osteo-tabla tr.osteo-fila-on > th, .osteo-tabla thead th.osteo-col-on, .osteo-tabla th.osteo-art-on { color: #0057A8; }
+.osteo-tabla th.osteo-art-on { background: #e3eefa; }
+.osteo-tabla td.osteo-col-on.osteo-cruce .osteo-cel { box-shadow: 0 0 0 2px #0057A8; }
+.osteo-cel:disabled { background: #f1f5f9; color: #cbd5e1; border-color: #e2e8f0; cursor: not-allowed; }
+.osteo-cel:focus-visible { outline: 3px solid #93c5fd; outline-offset: 1px; }
+.osteo-cel.g-0 { background: #e8f5e9; color: #1b6e2a; border-color: #b7dfbf; }
+.osteo-cel.g-1 { background: #fff7d6; color: #8a6100; border-color: #ecd27a; }
+.osteo-cel.g-2 { background: #ffe9c7; color: #9a4d00; border-color: #f0b46a; }
+.osteo-cel.g-3 { background: #ffd9cc; color: #a3330f; border-color: #ec9a7f; }
+.osteo-cel.g-4 { background: #fbd5d5; color: #9f1239; border-color: #e48a9b; font-weight: 800; }
+.osteo-ayuda { font-size: 12px; color: #334155; flex: 1; min-width: 200px; }
+.osteo .osteo-g.osteo-alto { background-color: #fde2e2; border-color: #B42318; color: #B42318; font-weight: 700; }

@@ -24,6 +24,8 @@
                         <option value="enfermedad_general">Enfermedad General</option>
                         <option value="incidente_accidente">Incidente/Accidente</option>
                         <option value="pase_salida">Pase de Salida</option>
+                        <!-- FT-SO-38 (SM 9-nov-2026): otra opcion de la consulta, despues del pase; no depende de el -->
+                        <option value="fisioterapia">Fisioterapia</option>
                         <!-- FT-SO-23 (respuesta de SM 20-oct-2026): pruebas especiales como tipo de consulta -->
                         <option value="pruebas_especiales">Pruebas Especiales</option>
                         <option value="cronico_degenerativo">Crónico Degenerativo</option>
@@ -310,6 +312,96 @@
                                 </select>
                             </div>
                             <div class="col-md-8 fs-sm text-muted align-self-end">El resultado se guarda, se ve en el detalle de la consulta y sale en la carta.</div>
+                        </div>
+                    </fieldset>
+                </div>
+
+                <!-- Solo con tipo de consulta «Fisioterapia» (FT-SO-38, C-065, 9-nov-2026). Lo que la consulta ya
+                     pide arriba no se repite: motivo, signos vitales + exploracion (1a toma) y tratamiento (plan);
+                     al guardar se copian a la nota (FisioterapiaService). -->
+                <div class="col-12" id="fisioWrap" style="display:none">
+                    <fieldset class="pase-fs">
+                        <legend><i class="ri-walk-line me-1"></i>Nota de fisioterapia (FT-SO-38)</legend>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <div class="alert alert-info py-2 px-3 mb-0 fs-sm">
+                                    <i class="ri-information-line me-1"></i>El <b>motivo de consulta</b> y el <b>plan o terapéutica</b> de la nota se toman de «Motivo de consulta» y «Tratamiento» de arriba.
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="pase-grupo">
+                                    <div class="pase-grupo-tit">Antecedentes de lesión</div>
+                                    <div class="row g-2">
+                                        <div class="col-md-8">
+                                            <label class="form-label" for="fisioDxMedico">Diagnóstico médico</label>
+                                            <input type="text" class="form-control" name="fisioDxMedico" id="fisioDxMedico">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label" for="fisioEvolucion">Tiempo de evolución</label>
+                                            <input type="text" class="form-control" name="fisioEvolucion" id="fisioEvolucion" placeholder="Ej. 3 semanas">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label" for="fisioTratPrevio">Tratamiento previo</label>
+                                            <input type="text" class="form-control" name="fisioTratPrevio" id="fisioTratPrevio">
+                                        </div>
+                                        <!-- 4/2/3/3 en pantalla ancha; en mediana van de dos en dos para que no se encimen -->
+                                        <div class="col-md-6 col-xl-4">
+                                            <label class="form-label d-block">Incapacidad</label>
+                                            <div class="btn-group w-100" role="group" aria-label="Incapacidad">
+                                                <input type="radio" class="btn-check" name="fisioIncapTipo" id="fisioIncapNo" value="" checked onchange="fisioIncapacidad();">
+                                                <label class="btn btn-outline-secondary" for="fisioIncapNo">No</label>
+                                                <input type="radio" class="btn-check" name="fisioIncapTipo" id="fisioIncapImss" value="IMSS" onchange="fisioIncapacidad();">
+                                                <label class="btn btn-outline-primary" for="fisioIncapImss">IMSS</label>
+                                                <input type="radio" class="btn-check" name="fisioIncapTipo" id="fisioIncapInterna" value="INTERNA" onchange="fisioIncapacidad();">
+                                                <label class="btn btn-outline-primary" for="fisioIncapInterna">Interna</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 col-xl-2">
+                                            <label class="form-label" for="fisioIncapDias">Días</label>
+                                            <input type="number" min="1" class="form-control" name="fisioIncapDias" id="fisioIncapDias" oninput="fisioIncapacidad();" disabled>
+                                        </div>
+                                        <div class="col-md-6 col-xl-3">
+                                            <label class="form-label" for="fisioIncapInicio">Fecha de inicio</label>
+                                            <input type="date" class="form-control" name="fisioIncapInicio" id="fisioIncapInicio" oninput="fisioIncapacidad();" disabled>
+                                        </div>
+                                        <div class="col-md-6 col-xl-3">
+                                            <!-- anotacion de SM: termino = inicio + dias - 1; se calcula (el servidor lo recalcula) -->
+                                            <label class="form-label" for="fisioIncapTermino">Fecha de término <span class="text-muted fs-sm">(se calcula)</span></label>
+                                            <input type="date" class="form-control" id="fisioIncapTermino" readonly tabindex="-1">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="pase-grupo">
+                                    <div class="pase-grupo-tit">Exploración física: 2a y 3a toma <span class="text-muted fw-normal" style="text-transform: none;">(la 1a son los signos vitales y la exploración de arriba)</span></div>
+                                    <th:block th:each="n : ${ {2, 3} }">
+                                        <div class="row g-2 mb-2 fisio-toma">
+                                            <div class="col-12 fs-sm fw-semibold text-secondary" th:text="${n} + 'a toma'">2a toma</div>
+                                            <!-- pantalla ancha (xl): 3+2+2+1+1+1+2 = 12 en un renglon; mediana: dos renglones (4+4+4 y 3+3+3+3) para que nada se corte -->
+                                            <div class="col-md-4 col-xl-3"><label class="form-label fs-sm mb-1">Fecha</label>
+                                                <input type="date" class="form-control form-control-sm" name="fisioTomaFecha"></div>
+                                            <div class="col-md-4 col-xl-2"><label class="form-label fs-sm mb-1">Peso (Kg)</label>
+                                                <input type="number" step="0.01" class="form-control form-control-sm" name="fisioTomaPeso" oninput="fisioImc(this);"></div>
+                                            <div class="col-md-4 col-xl-2"><label class="form-label fs-sm mb-1">Talla (m)</label>
+                                                <input type="number" step="0.01" class="form-control form-control-sm" name="fisioTomaTalla" oninput="fisioImc(this);"></div>
+                                            <div class="col-md-3 col-xl-1"><label class="form-label fs-sm mb-1">IMC</label>
+                                                <input type="text" class="form-control form-control-sm bg-light" name="fisioTomaImc" readonly tabindex="-1"></div>
+                                            <div class="col-md-3 col-xl-1"><label class="form-label fs-sm mb-1">FC</label>
+                                                <input type="number" class="form-control form-control-sm" name="fisioTomaFc"></div>
+                                            <div class="col-md-3 col-xl-1"><label class="form-label fs-sm mb-1">FR</label>
+                                                <input type="number" class="form-control form-control-sm" name="fisioTomaFr"></div>
+                                            <div class="col-md-3 col-xl-2"><label class="form-label fs-sm mb-1">T/A</label>
+                                                <input type="text" class="form-control form-control-sm" name="fisioTomaTa" placeholder="120/80"></div>
+                                            <div class="col-12"><textarea class="form-control form-control-sm" name="fisioTomaNota" rows="2" placeholder="Notas de esta toma"></textarea></div>
+                                        </div>
+                                    </th:block>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="fisioDxFisio">Diagnóstico fisioterapéutico <span class="text-danger">*</span></label>
+                                <textarea class="form-control" name="fisioDxFisio" id="fisioDxFisio" rows="3" oninput="this.classList.remove('is-invalid');"></textarea>
+                            </div>
                         </div>
                     </fieldset>
                 </div>

@@ -28,6 +28,11 @@
                th:href="@{/api/nss/consulta/pruebas-especiales(nss=${nss}, id=${serieId}, auto=1)}">
                 <i class="ri-printer-line me-1"></i> Pruebas especiales (FT-SO-23)
             </a>
+            <!-- FT-SO-38 (C-065): solo en consultas de tipo Fisioterapia que guardaron su nota -->
+            <a th:if="${tieneFisio}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener"
+               th:href="@{/api/nss/consulta/fisioterapia(nss=${nss}, id=${serieId}, auto=1)}">
+                <i class="ri-printer-line me-1"></i> Nota de fisioterapia (FT-SO-38)
+            </a>
             <a class="btn btn-sm btn-outline-secondary" target="_blank"
                th:href="@{/api/nss/consulta/imprimir(nss=${nss}, id=${serieId})}">
                 <i class="ri-printer-line me-1"></i> Imprimir / PDF
@@ -66,6 +71,19 @@
                 <div class="col-md-2">Autoriza: <b th:text="${pruebaDet['AUTORIZA'] == 'SI'} ? 'Sí' : (${pruebaDet['AUTORIZA'] == 'NO'} ? 'No' : '—')">Sí</b></div>
                 <div class="col-md-3">Realización: <b th:text="${pruebaDet['FECHA'] ?: '—'}">fecha</b></div>
                 <div class="col-md-3">Resultado: <b th:text="${pruebaDet['RESULTADO'] == 'SOSPECHOSO'} ? 'Sospechoso' : (${pruebaDet['RESULTADO'] == 'NEGATIVO'} ? 'Negativo' : 'Pendiente')">Negativo</b></div>
+            </div>
+        </div>
+        <div th:if="${tieneFisio}" class="mt-4">
+            <h6 class="mb-2"><i class="ri-walk-line me-1"></i> Nota de fisioterapia (FT-SO-38)</h6>
+            <div class="row g-2 fs-sm">
+                <div class="col-md-6">Diagnóstico médico: <b th:text="${fisioDet['DX_MEDICO'] ?: '—'}">dx</b></div>
+                <div class="col-md-6">Tiempo de evolución: <b th:text="${fisioDet['EVOLUCION'] ?: '—'}">evolucion</b></div>
+                <div class="col-12">Incapacidad:
+                    <b th:if="${fisioDet['INCAP_TIPO'] == null}">No</b>
+                    <b th:unless="${fisioDet['INCAP_TIPO'] == null}"
+                       th:text="${fisioDet['INCAP_TIPO'] == 'IMSS' ? 'IMSS' : 'Interna'} + ' · ' + ${fisioDet['INCAP_DIAS'] ?: '—'} + ' días · del '
+                                + ${fisioDet['INCAP_INICIO'] ?: '—'} + ' al ' + ${fisioDet['INCAP_TERMINO'] ?: '—'}">IMSS</b></div>
+                <div class="col-12">Diagnóstico fisioterapéutico: <b th:text="${fisioDet['DX_FISIO']}">dx</b></div>
             </div>
         </div>
         <div th:if="${tieneMedicamento}" class="mt-4">

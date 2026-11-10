@@ -763,6 +763,7 @@
                     var algunMed = Array.prototype.some.call(fc.querySelectorAll('#medFilas input[name="medMedicamento"]'), function (i) { return i.value.trim(); });
                     if (fc.medGenerar.checked && !algunMed) { falta = [primerMed, 'En el pase de medicamento anota al menos un medicamento.']; }
                     else if (esPruebas && !fc.pruebaAnticuerpos.value.trim()) { falta = [fc.pruebaAnticuerpos, 'En pruebas especiales indica la prueba (anticuerpos contra...).']; }
+                    else if (fc.tipoConsulta.value === 'fisioterapia' && !fc.fisioDxFisio.value.trim()) { falta = [fc.fisioDxFisio, 'En la nota de fisioterapia anota el diagnóstico fisioterapéutico.']; }
                     if (falta) {
                         falta[0].classList.add('is-invalid');
                         var resF = document.getElementById('consultaGuardarResult');
@@ -799,10 +800,12 @@
                         });
                     },
                     // el WS no devuelve el ID_CONSULTA: el documento se ubica por idArchivoRel. Un pase de
-                    // salida abre el FT-SO-02 (la nota medica sigue en el detalle de la consulta).
+                    // salida abre el FT-SO-02 y una de fisioterapia el FT-SO-38 (la nota medica sigue en el
+                    // detalle de la consulta).
                     documentoUrl: function (f) {
                         var rel = f.querySelector('input[name="idArchivoRel"]');
-                        var doc = f.tipoConsulta && f.tipoConsulta.value === 'pase_salida' ? 'pase-salida' : 'imprimir';
+                        var tipoDoc = f.tipoConsulta ? f.tipoConsulta.value : '';
+                        var doc = tipoDoc === 'pase_salida' ? 'pase-salida' : (tipoDoc === 'fisioterapia' ? 'fisioterapia' : 'imprimir');
                         return rel && rel.value ? contextPath + 'api/nss/consulta/' + doc + '?nss=' + encodeURIComponent((input.value || '').trim())
                                 + '&rel=' + encodeURIComponent(rel.value) + '&auto=1' : null;
                     }
@@ -840,7 +843,40 @@
                 if (pruebas && !f.pruebaFecha.value) {
                     f.pruebaFecha.value = hoyIso();
                 }
+                var fisioWrap = document.getElementById('fisioWrap');
+                if (fisioWrap) {
+                    fisioWrap.style.display = f.tipoConsulta.value === 'fisioterapia' ? '' : 'none';
+                    fisioIncapacidad();
+                }
                 medVigenciaPermanente();
+            };
+            // FT-SO-38 (C-065, 9-nov-2026). Incapacidad: dias e inicio solo con IMSS o Interna; termino =
+            // inicio + dias - 1 (anotacion de SM: 05/11 con 7 dias = 11/11). El servidor lo recalcula.
+            window.fisioIncapacidad = function () {
+                var f = document.getElementById('consultaAltaForm');
+                if (!f || !f.fisioIncapDias) { return; }
+                var tipo = f.querySelector('input[name="fisioIncapTipo"]:checked');
+                var con = !!(tipo && tipo.value);
+                f.fisioIncapDias.disabled = !con;
+                f.fisioIncapInicio.disabled = !con;
+                var term = document.getElementById('fisioIncapTermino');
+                var dias = parseInt(f.fisioIncapDias.value, 10);
+                if (!con) { f.fisioIncapDias.value = ''; f.fisioIncapInicio.value = ''; }
+                if (con && dias > 0 && f.fisioIncapInicio.value) {
+                    var p = f.fisioIncapInicio.value.split('-');
+                    var d = new Date(+p[0], +p[1] - 1, +p[2] + dias - 1);
+                    term.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                } else {
+                    term.value = '';
+                }
+            };
+            // IMC de la 2a y 3a toma, como en el examen y la consulta
+            window.fisioImc = function (el) {
+                var fila = el.closest('.fisio-toma');
+                if (!fila) { return; }
+                var peso = parseFloat(fila.querySelector('[name="fisioTomaPeso"]').value);
+                var talla = parseFloat(fila.querySelector('[name="fisioTomaTalla"]').value);
+                fila.querySelector('[name="fisioTomaImc"]').value = peso > 0 && talla > 0 ? (peso / (talla * talla)).toFixed(2) : '';
             };
             // Varios medicamentos por pase (SM 20-oct-2026): un renglon por medicamento, mismos nombres de campo
             // (el servidor los recibe como listas en el mismo orden). Se arma con DOM, sin plantilla Thymeleaf.
@@ -2253,6 +2289,128 @@
             };
 
             // Muestra/oculta el select de sustancia segun el tipo de prueba (solo aplica a ANTIDOPING).
+            // FT-SO-05 Cuestionario osteomuscular (9-nov, fragments/osteomuscular.html). Las celdas no tienen name:
+            // aqui se arma el JSON en el hidden TAG.EXM_OSTEO y se le dispara change (autoguardado del inicial y
+            // guardado del modulo lo toman como cualquier campo).
+            function osteoGuardar(raiz) {
+                var datos = {};
+                raiz.querySelectorAll('[data-osteo]').forEach(function (el) {
+                    if (el.value !== '' && !el.disabled) { datos[el.getAttribute('data-osteo')] = el.value; }
+                });
+                var oculto = raiz.querySelector('.osteo-json');
+                var nuevo = Object.keys(datos).length ? JSON.stringify(datos) : '';
+                if (oculto.value !== nuevo) {
+                    oculto.value = nuevo;
+                    oculto.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+            function osteoPintar(el) {
+                // curvatura / desviacion: el grado solo aplica si la opcion no es Normal
+                if (el.classList.contains('osteo-op')) {
+                    // 10-nov: el grado es celda (osteo-cel con data-min=1), ya no select
+                    var g = el.parentElement.querySelector('.osteo-cel');
+                    var anormal = el.value !== '' && el.value !== 'NORMAL';
+                    g.disabled = !anormal;
+                    if (!anormal) { osteoCelda(g, ''); }
+                    if (anormal && g.value === '') { osteoCelda(g, '1'); }
+                }
+                // un grado mayor a 0 se resalta (anormalidad)
+                if (el.classList.contains('osteo-g')) {
+                    el.classList.toggle('osteo-alto', el.value !== '' && el.value !== '0');
+                }
+            }
+            window.osteoCambio = function (el) {
+                osteoPintar(el);
+                osteoGuardar(el.closest('[data-osteo-raiz]'));
+                // 10-nov: al elegir una opcion anormal, el foco pasa a su grado (captura fluida: teclas 1-4 o clic)
+                if (el.classList.contains('osteo-op')) {
+                    var g = el.parentElement.querySelector('.osteo-cel');
+                    if (g && !g.disabled) { g.focus(); }
+                }
+            };
+            // "Normal" de una seccion ('sec') o "Todo normal" (''): como dice el formato de SM (decision del usuario
+            // 10-nov, "el formato manda"), pone NORMAL / 0 en TODO, tambien en lo anormal. Si hay hallazgos
+            // anormales pide confirmacion antes, para que un clic accidental no los borre.
+            window.osteoNormal = function (btn, alcance) {
+                var raiz = btn.closest('[data-osteo-raiz]');
+                var zona = alcance === 'sec' ? btn.closest('.osteo-sec') : raiz;
+                var anormales = 0;
+                zona.querySelectorAll('.osteo-op').forEach(function (el) { if (el.value !== '' && el.value !== 'NORMAL') { anormales++; } });
+                zona.querySelectorAll('.osteo-cel:not([data-min])').forEach(function (el) { if (el.value !== '' && el.value !== '0') { anormales++; } });
+                if (anormales > 0 && !window.confirm('Hay ' + anormales + (anormales === 1 ? ' hallazgo anormal' : ' hallazgos anormales')
+                        + (alcance === 'sec' ? ' en esta sección' : ' en el cuestionario') + '. ¿Poner todo en normal (0)?')) {
+                    return;
+                }
+                zona.querySelectorAll('.osteo-op').forEach(function (el) {
+                    el.value = 'NORMAL'; osteoPintar(el);
+                });
+                // el grado de curvatura/desviacion (data-min) ya lo bloqueo y vacio osteoPintar al quedar Normal
+                zona.querySelectorAll('.osteo-cel:not([data-min])').forEach(function (el) { osteoCelda(el, '0'); });
+                osteoGuardar(raiz);
+            };
+            // Celda de grado 0-4 (opcion A, 10-nov): clic sube (vacio -> 0 -> ... -> 4 -> 0), clic derecho baja,
+            // flechas arriba/abajo, teclas 0-4 directo, Supr/Retroceso la deja sin capturar. Por delegacion: las
+            // celdas llegan por AJAX con el examen.
+            function osteoCelda(b, v) {
+                b.value = v;
+                b.textContent = v === '' ? '—' : v;
+                b.classList.remove('g-0', 'g-1', 'g-2', 'g-3', 'g-4');
+                if (v !== '') { b.classList.add('g-' + v); }
+            }
+            function osteoPaso(b, d) {
+                // data-min=1: grado de curvatura/desviacion anormal (cicla 1-4); el resto cicla 0-4
+                var min = parseInt(b.getAttribute('data-min') || '0', 10);
+                var v = b.value === '' ? min - 1 : parseInt(b.value, 10);
+                v = d > 0 ? (v >= 4 ? min : v + 1) : (v <= min ? 4 : v - 1);
+                osteoCelda(b, String(v));
+                osteoGuardar(b.closest('[data-osteo-raiz]'));
+            }
+            document.addEventListener('click', function (e) {
+                var b = e.target.closest ? e.target.closest('.osteo-cel') : null;
+                if (b) { osteoPaso(b, 1); }
+            });
+            // 10-nov: cruz de renglon y columna de la celda bajo el cursor (o con foco, al usar Tab): resalta el
+            // renglon, su articulacion (th con rowspan del renglon anterior) y la columna con su encabezado
+            function osteoCruz(cel) {
+                document.querySelectorAll('.osteo-fila-on, .osteo-col-on, .osteo-art-on, .osteo-cruce').forEach(function (x) {
+                    x.classList.remove('osteo-fila-on', 'osteo-col-on', 'osteo-art-on', 'osteo-cruce');
+                });
+                var td = cel ? cel.closest('.osteo-tabla td') : null;
+                if (!td) { return; }
+                var tr = td.parentElement;
+                tr.classList.add('osteo-fila-on');
+                td.classList.add('osteo-cruce');
+                var art = tr.querySelector('th[rowspan]') || (tr.previousElementSibling && tr.previousElementSibling.querySelector('th[rowspan]'));
+                if (art) { art.classList.add('osteo-art-on'); }
+                var col = td.getAttribute('data-col');
+                td.closest('table').querySelectorAll('[data-col="' + col + '"]').forEach(function (x) { x.classList.add('osteo-col-on'); });
+            }
+            document.addEventListener('mouseover', function (e) {
+                if (!e.target.closest) { return; }
+                var cel = e.target.closest('.osteo-tabla .osteo-cel');
+                if (cel) { osteoCruz(cel); return; }
+                if (!e.target.closest('.osteo-tabla')) {
+                    // fuera de la tabla: queda la cruz de la celda con foco, si la hay
+                    var a = document.activeElement;
+                    osteoCruz(a && a.classList && a.classList.contains('osteo-cel') ? a : null);
+                }
+            });
+            document.addEventListener('focusin', function (e) {
+                if (e.target.classList && e.target.classList.contains('osteo-cel')) { osteoCruz(e.target); }
+            });
+            document.addEventListener('contextmenu', function (e) {
+                var b = e.target.closest ? e.target.closest('.osteo-cel') : null;
+                if (b) { e.preventDefault(); osteoPaso(b, -1); }
+            });
+            document.addEventListener('keydown', function (e) {
+                var b = e.target.closest ? e.target.closest('.osteo-cel') : null;
+                if (!b) { return; }
+                if (e.key === 'ArrowUp') { e.preventDefault(); osteoPaso(b, 1); }
+                else if (e.key === 'ArrowDown') { e.preventDefault(); osteoPaso(b, -1); }
+                else if (/^[0-4]$/.test(e.key) && +e.key >= +(b.getAttribute('data-min') || 0)) { e.preventDefault(); osteoCelda(b, e.key); osteoGuardar(b.closest('[data-osteo-raiz]')); }
+                else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); osteoCelda(b, ''); osteoGuardar(b.closest('[data-osteo-raiz]')); }
+            });
+
             // C-041 / B3 (9-nov): SDI y costo con dos decimales al salir del campo (1234.5 -> 1234.50)
             window.acDosDecimales = function (el) {
                 var n = parseFloat(el.value);

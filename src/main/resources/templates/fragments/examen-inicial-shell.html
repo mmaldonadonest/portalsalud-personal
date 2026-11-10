@@ -532,6 +532,11 @@
                             </th:block>
                         </th:block>
 
+                        <!--/* FT-SO-05 (9-nov-2026): cuestionario osteomuscular, captura propia (fragments/osteomuscular) */-->
+                        <th:block th:each="it : ${s.items}" th:if="${it.type == 'OSTEO'}">
+                            <th:block th:replace="~{fragments/osteomuscular :: captura(${it})}"></th:block>
+                        </th:block>
+
                         <!-- Resto: texto / fecha / area / resultado en cuadricula -->
                         <div class="exini-grid" th:if="${!esDientes and !esExploracion and !esApnp and s.nombre != 'Inmunizaciones'}" th:with="otros=${s.items.?[type != 'SINO']}">
                             <th:block th:each="it : ${otros}" th:if="${v.ayudas[it.fieldName] == null}">

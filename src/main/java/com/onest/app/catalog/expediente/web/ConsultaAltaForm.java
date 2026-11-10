@@ -61,4 +61,23 @@ public class ConsultaAltaForm {
     private String pruebaFecha;
     private String pruebaLugar;
     private String pruebaResultado;
+
+    // Nota de fisioterapia FT-SO-38 (C-065, 9-nov-2026): tipo de consulta "fisioterapia" (FisioterapiaService).
+    // Motivo, 1a toma (signos + exploracion) y plan (tratamiento) salen de los campos de la consulta;
+    // las listas fisioToma* traen la 2a y 3a toma en ese orden.
+    private String fisioDxMedico;
+    private String fisioEvolucion;
+    private String fisioTratPrevio;
+    private String fisioIncapTipo;
+    private String fisioIncapDias;
+    private String fisioIncapInicio;
+    private String fisioDxFisio;
+    private java.util.List<String> fisioTomaFecha;
+    private java.util.List<String> fisioTomaPeso;
+    private java.util.List<String> fisioTomaTalla;
+    private java.util.List<String> fisioTomaImc;
+    private java.util.List<String> fisioTomaFc;
+    private java.util.List<String> fisioTomaFr;
+    private java.util.List<String> fisioTomaTa;
+    private java.util.List<String> fisioTomaNota;
 }

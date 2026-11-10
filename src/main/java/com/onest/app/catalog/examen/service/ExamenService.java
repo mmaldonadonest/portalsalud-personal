@@ -553,6 +553,10 @@ public class ExamenService {
                 text("SUPERIOR", "Superior"), text("INFERIOR", "Inferior"), text("IVP", "IVP"), text("EDEMA", "Edema"))));
         CATALOGO.put("Piel", new Seccion("SERV_MED_PIEL", List.of(
                 text("LUNARES", "Lunares"), text("PIGMENTACION", "Pigmentación"), text("CICATRICES_QUIRUR", "Cicatrices quirúrgicas"))));
+        // FT-SO-05 (9-nov-2026, en TODOS los examenes): el cuestionario completo en un solo tag JSON (ver Osteomuscular).
+        // Tipo OSTEO = su propia captura (fragments/osteomuscular.html). No hay tabla: el nombre es solo de referencia.
+        CATALOGO.put(Osteomuscular.SECCION, new Seccion("SERV_MED_OSTEOMUSCULAR", List.of(
+                tagCampo("OSTEO", Osteomuscular.TAG, "Cuestionario de síntomas osteomusculares"))));
         CATALOGO.put("Cuello", new Seccion("SERV_MED_CUELLO", List.of(
                 text("DEFORMACIONES_OBS", "Deformaciones"), text("TIROIDES_OBS", "Tiroides"), text("TRAQUEA_OBS", "Tráquea"))));
         CATALOGO.put("Dientes", new Seccion("SERV_MED_DIENTES", List.of(
@@ -618,6 +622,8 @@ public class ExamenService {
                     "Exploración física", "Cráneo", "Agudeza visual", "Nariz", "Columna vertebral",
                     "Boca", "Oídos", "Cuello", "Tórax", "Columna (movilidad)", "Abdomen", "Genitales",
                     "Urinario", "Extremidades", "Piel", "Dientes")),
+            // FT-SO-05 (9-nov-2026): grupo propio, en todos los tipos de examen (no va en VisibilidadTipo)
+            Map.entry("Cuestionario osteomuscular (FT-SO-05)", List.of(Osteomuscular.SECCION)),
             Map.entry("Estudios realizados y resultados", List.of(
                     "Estudios realizados")),
             Map.entry("Diagnóstico", List.of(

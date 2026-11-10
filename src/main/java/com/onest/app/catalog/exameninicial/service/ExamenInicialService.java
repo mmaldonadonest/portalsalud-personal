@@ -155,8 +155,10 @@ public class ExamenInicialService {
                     List.of("Padecimiento actual", "Interrogatorio por aparatos")),
             new Hoja(7, "Exploración", "Exploración física", "Signos vitales, cabeza y cuello. Sí pone el texto del formato («SIN AGREGADOS», «AUSENTES»...); con No escribe el hallazgo.", "EXPLORACION",
                     List.of("Exploración física", "Cráneo", "Agudeza visual", "Oídos", "Cuello", "Nariz", "Tórax")),
-            new Hoja(8, "Columna y piel", "Columna, abdomen, extremidades y piel", "Sí pone el texto del formato; con No escribe el hallazgo. «Todo normal» pone Sí en lo que esté vacío.", "SECCIONES",
-                    List.of("Columna vertebral", "Columna (movilidad)", "Abdomen", "Genitales", "Urinario", "Extremidades", "Piel")),
+            new Hoja(8, "Columna y piel", "Columna, abdomen, extremidades, piel y osteomuscular", "Sí pone el texto del formato; con No escribe el hallazgo. «Todo normal» pone Sí en lo que esté vacío. Al final, el cuestionario osteomuscular (FT-SO-05).", "SECCIONES",
+                    // FT-SO-05 (9-nov-2026): el cuestionario osteomuscular va en todos los examenes; aqui, junto a columna y extremidades
+                    List.of("Columna vertebral", "Columna (movilidad)", "Abdomen", "Genitales", "Urinario", "Extremidades", "Piel",
+                            com.onest.app.catalog.examen.service.Osteomuscular.SECCION)),
             new Hoja(9, "Boca y dientes", "Boca y dientes", "Dientes en notación FDI (11-48). Solo anota los que tengan hallazgo.", "SECCIONES",
                     List.of("Boca", "Dientes")),
             new Hoja(10, "Cierre", "Estudios, diagnóstico, plan y resultado", "Diagnóstico del catálogo ICD, dictamen y firma del trabajador.", "CIERRE",
@@ -348,7 +350,9 @@ public class ExamenInicialService {
                     // Higiene personal y Alimentacion (9-nov tarde): solo titulo en pantalla, no se capturan
                     if ("OCULTO".equals(it.type()) || it.fieldName().startsWith("SERV_MED_DIENTES.DIENTE_")
                             || "SERV_MED_ANT_PATOLOGICOS.HIGIENE_PERSONAL".equals(it.fieldName())
-                            || "SERV_MED_ANT_PATOLOGICOS.ALIMENTACION".equals(it.fieldName())) {
+                            || "SERV_MED_ANT_PATOLOGICOS.ALIMENTACION".equals(it.fieldName())
+                            // FT-SO-05 (10-nov, decision del usuario): cuestionario opcional, no baja el avance
+                            || "OSTEO".equals(it.type())) {
                         continue;   // no se captura en pantalla: no cuenta para el avance
                     }
                     n++;

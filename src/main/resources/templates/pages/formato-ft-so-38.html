@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <!--
+      FT-SO-38 Nota de fisioterapia (rev. 00, 14-oct-2026; C-065, 9-nov-2026): sale de una consulta de tipo
+      Fisioterapia (ExpedienteController#notaFisioterapia). Orden y textos de «NOTA DE FISIO plataforma.xlsx».
+      Ficha = busqueda por NSS + biometrico + telefono de Portal Salud; lo demas = SERV_MED_TAG FTSO38.<rel>.*
+      (FisioterapiaService). Lo vacio sale en blanco para llenarse a mano.
+    -->
+    <title th:text="'FT-SO-38 Nota de fisioterapia · NSS ' + ${nss}">FT-SO-38 Nota de fisioterapia</title>
+    <th:block th:replace="~{fragments/formato-impreso :: estilos}"></th:block>
+    <style>
+        table.f { width: 100%; border-collapse: collapse; margin-top: 6px; }
+        table.f td { border: 1px solid #000; padding: 3px 5px; vertical-align: top; font-size: 10.5px; }
+        table.f td.sec { background: #d9d9d9; font-weight: 700; text-align: center; }
+        table.f td.e { font-weight: 700; white-space: nowrap; width: 1%; }
+        table.f td.c { text-align: center; }
+        table.f td.nota { height: 36px; white-space: pre-wrap; }
+        table.f td.texto { height: 34px; white-space: pre-wrap; }
+        .opc { display: inline-flex; align-items: center; margin-right: 14px; }
+        .cert { font-size: 8.5px; line-height: 1.2; text-align: justify; }
+        /* el formato es "Hoja 1 de 1": firmas mas pegadas para que todo quepa en una carta */
+        .firmas { margin-top: 12px; gap: 24px; align-items: end; }
+        .firma .espacio { height: 30px; }
+        .elaboro { margin-top: 8px; }
+    </style>
+</head>
+<body th:with="e=${empleado}, f=${fisio}, DI=${T(com.onest.app.catalog.expediente.service.DocumentoImpresoService)},
+               incap=${fisio['INCAP_TIPO'] ?: ''},
+               puesto=${e == null or #strings.containsIgnoreCase(e.nombrePuesto() ?: '', 'no existe') ? '' : e.nombrePuesto()},
+               sexo=${e == null ? '' : (e.sexo() == '1' ? 'Masculino' : (e.sexo() == '2' ? 'Femenino' : ''))},
+               tel=${!#strings.isEmpty(telefono) ? telefono : (e == null ? '' : (!#strings.isEmpty(DI.texto(e.celular())) ? DI.texto(e.celular()) : DI.texto(e.telFijo())))}">
+<div th:replace="~{fragments/formato-impreso :: barra}"></div>
+<div class="hoja">
+    <div th:replace="~{fragments/formato-impreso :: encabezado(${enc})}"></div>
+
+    <table class="f">
+        <tr><td class="sec" colspan="6">FICHA DE IDENTIFICACIÓN</td></tr>
+        <tr>
+            <td class="e">NOMBRE</td><td th:text="${nombreTrabajador}"></td>
+            <td class="e">EDAD</td><td th:text="${e?.edad()}"></td>
+            <td class="e">SEXO</td><td th:text="${sexo}"></td>
+        </tr>
+        <tr>
+            <td class="e">NUM. IMSS</td><td th:text="${nss}"></td>
+            <td class="e">FECHA DE NACIMIENTO</td><td colspan="3" th:text="${e == null ? '' : DI.fecha(DI.texto(e.fechaNacimiento()))}"></td>
+        </tr>
+        <tr>
+            <td class="e">EDO. CIVIL</td><td th:text="${e == null ? '' : DI.texto(e.estadoCivil())}"></td>
+            <td class="e">ESCOLARIDAD</td><td th:text="${escolaridad}"></td>
+            <td class="e">PROFESIÓN U OFICIO</td><td th:text="${profesion}"></td>
+        </tr>
+        <tr>
+            <td class="e">DOMICILIO</td><td colspan="3" th:text="${e == null ? '' : DI.texto(e.direccion())}"></td>
+            <td class="e">TEL</td><td th:text="${tel}"></td>
+        </tr>
+        <tr>
+            <td class="e">DEPARTAMENTO</td><td th:text="${departamento}"></td>
+            <td class="e">PUESTO</td><td th:text="${puesto}"></td>
+            <td class="e">TURNO</td><td th:text="${e == null ? '' : DI.texto(e.turno())}"></td>
+        </tr>
+    </table>
+
+    <table class="f">
+        <tr><td class="sec" colspan="6">ANTECEDENTES DE LESIÓN</td></tr>
+        <tr>
+            <td class="e">DIAGNÓSTICO MÉDICO</td><td colspan="3" th:text="${f['DX_MEDICO']}"></td>
+            <td class="e">TIEMPO DE EVOLUCIÓN</td><td th:text="${f['EVOLUCION']}"></td>
+        </tr>
+        <tr><td class="e">TRATAMIENTO PREVIO</td><td colspan="5" th:text="${f['TRAT_PREVIO']}"></td></tr>
+        <tr>
+            <td class="e">INCAPACIDAD</td>
+            <td>
+                <span class="opc"><span class="circulo" th:classappend="${incap == 'IMSS'} ? 'marcado'"></span>IMSS</span>
+                <span class="opc"><span class="circulo" th:classappend="${incap == 'INTERNA'} ? 'marcado'"></span>INTERNA</span>
+                <b th:text="${f['INCAP_DIAS']}"></b><span th:if="${f['INCAP_DIAS'] != null}"> días</span>
+            </td>
+            <td class="e">FECHA DE INICIO</td><td th:text="${f['INCAP_INICIO']}"></td>
+            <td class="e">FECHA DE TÉRMINO</td><td th:text="${f['INCAP_TERMINO']}"></td>
+        </tr>
+        <tr><td class="e">MOTIVO DE CONSULTA</td><td colspan="5" th:text="${f['MOTIVO']}"></td></tr>
+    </table>
+
+    <table class="f">
+        <tr><td class="sec" colspan="7">EXPLORACIÓN FÍSICA</td></tr>
+        <th:block th:each="t : ${tomas}">
+            <tr>
+                <td class="e">FECHA</td><td class="c" th:text="${t.fecha}"></td>
+                <td class="e">PESO</td><td class="c" th:text="${t.peso}"></td>
+                <td class="e">TALLA</td><td class="c" th:text="${t.talla}"></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td class="e">IMC</td><td class="c" th:text="${t.imc}"></td>
+                <td class="e">FC</td><td class="c" th:text="${t.fc}"></td>
+                <td class="e">FR</td><td class="c" th:text="${t.fr}"></td>
+                <td><b>T/A</b> <span th:text="${t.ta}"></span></td>
+            </tr>
+            <tr><td class="nota" colspan="7" th:text="${t.nota}"></td></tr>
+        </th:block>
+    </table>
+
+    <table class="f">
+        <tr><td class="sec">DIAGNÓSTICO FISIOTERAPÉUTICO</td></tr>
+        <tr><td class="texto" th:text="${f['DX_FISIO']}"></td></tr>
+        <tr><td class="sec">PLAN O TERAPÉUTICA EMPLEADA</td></tr>
+        <tr><td class="texto" th:text="${f['PLAN']}"></td></tr>
+    </table>
+
+    <!-- Izquierda: la LFT que realiza (asi viene en el formato). Derecha: certificacion y firma del trabajador
+         (la que dio en la consulta, si la hay). -->
+    <div class="firmas">
+        <div class="firma">
+            <div class="espacio"></div>
+            <div class="linea">LFT. Frida Yocelin Mejía Cisneros &nbsp; CP: 13268034</div>
+            <div class="sub">Realizó</div>
+        </div>
+        <div class="firma">
+            <div class="cert">YO CERTIFICO QUE LOS DATOS ANTERIORMENTE PROPORCIONADOS SON VERDADEROS Y ESTOY CONSCIENTE QUE
+                CUALQUIER OMISIÓN O FALSIFICACIÓN PUEDEN SER MOTIVO DE DESPIDO, Y AUTORIZO AL SERVICIO MÉDICO DE LA COMPAÑÍA
+                PARA QUE REALICE LOS EXÁMENES NECESARIOS CON MOTIVO DE MI TRABAJO PARA DETECCIÓN OPORTUNA Y ESTUDIO DE
+                ENFERMEDADES O ACCIDENTES</div>
+            <div class="espacio"><img th:if="${firmaTrabajador != null}" th:src="${firmaTrabajador}" alt="Firma"></div>
+            <div class="linea">Nombre y firma del trabajador</div>
+            <div class="sub" th:text="${nombreTrabajador}">Nombre</div>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/formato-impreso :: elaboro}"></div>
+</div>
+<script th:if="${auto}">window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 400); });</script>
+</body>
+</html>

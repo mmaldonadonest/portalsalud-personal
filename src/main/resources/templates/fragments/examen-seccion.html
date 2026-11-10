@@ -224,7 +224,11 @@
                 </div>
             </div>
         </th:block>
-        <div class="row g-3" th:unless="${seccion == 'Inmunizaciones' or seccion == 'Dientes' or seccion == 'Antecedentes de la incapacidad'}">
+        <!--/* FT-SO-05 (9-nov-2026): el cuestionario osteomuscular tiene su propia captura (fragments/osteomuscular) */-->
+        <th:block th:each="it : ${items}" th:if="${it.type == 'OSTEO'}">
+            <th:block th:replace="~{fragments/osteomuscular :: captura(${it})}"></th:block>
+        </th:block>
+        <div class="row g-3" th:unless="${seccion == 'Inmunizaciones' or seccion == 'Dientes' or seccion == 'Antecedentes de la incapacidad' or seccion == T(com.onest.app.catalog.examen.service.Osteomuscular).SECCION}">
             <!-- la pregunta de pension (SINO_TEXTO) es larga: va a todo el ancho -->
             <div th:each="it : ${items}" th:unless="${it.type == 'OCULTO'}"
                  th:class="${it.type == 'SINO_TEXTO'} ? 'col-12' : 'col-md-6'"

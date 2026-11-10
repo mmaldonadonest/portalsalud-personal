@@ -2578,7 +2578,9 @@
 
 
     </div></td></tr>
-</th:block></tbody>
+</th:block>
+<!--/* FT-SO-05 Cuestionario osteomuscular (9-nov-2026): una hoja mas, en TODOS los tipos de examen */-->
+<tr th:replace="~{fragments/osteomuscular :: impreso}"></tr></tbody>
 </table>
 <script>
     // 28-oct-2026: el encabezado decia "Hoja N de 5" fijo para todos los tipos; los formatos 2026 tienen

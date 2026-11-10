@@ -66,6 +66,9 @@ public class FormatosImpresosService {
                     "Actualización de la vigencia"),
             "FT-SO-23", new Encabezado("CARTA DE CONSENTIMIENTO PARA PRUEBAS ESPECIALES", "14 de octubre de 2026", "05",
                     "FT-SO-23", "04", "Actualización por vigencia"),
+            // C-065 (9-nov-2026): encabezado de «NOTA DE FISIO plataforma.xlsx»
+            "FT-SO-38", new Encabezado("NOTA DE FISIOTERAPIA", "14 de octubre del 2026", "00", "FT-SO-38", "N/A",
+                    "Implementación"),
             "FT-SO-31", new Encabezado("DICTAMEN DE CERTIFICACIÓN DE APTITUD MEDICA LABORAL", "14 de octubre de 2026", "03",
                     "FT-SO-31", "02", "Consideración de puestos clave y maquila, actualización por vigencia"));
 

@@ -76,7 +76,7 @@
             pasos: [
                 conGrupo({ el: MODULO('consulta-form'), titulo: 'Abre «Consulta Medica»', texto: 'Pulsa este módulo para abrir la nueva consulta.', siNoEsta: PRIMERO_NSS,
                     avanzaCon: '#consultaAltaForm' }),
-                { el: '#tipoConsulta', titulo: 'Tipo de consulta', texto: '«Pase de Salida» abre el recuadro del pase (FT-SO-02; motivo y hora de salida obligatorios). «Pruebas Especiales» abre la carta de consentimiento (FT-SO-23).', siNoEsta: 'Abre el módulo «Consulta Medica».' },
+                { el: '#tipoConsulta', titulo: 'Tipo de consulta', texto: '«Pase de Salida» abre el recuadro del pase (FT-SO-02; motivo y hora de salida obligatorios). «Fisioterapia» abre la nota de fisioterapia (FT-SO-38; el diagnóstico fisioterapéutico es obligatorio). «Pruebas Especiales» abre la carta de consentimiento (FT-SO-23).', siNoEsta: 'Abre el módulo «Consulta Medica».' },
                 { el: ['#icdConsult'], titulo: 'Diagnóstico', texto: 'Es obligatorio en toda consulta: escribe al menos 3 letras y elige la clave del catálogo, o usa «Ver todo el catálogo».' },
                 { el: '#medGenerar', titulo: 'Pase de medicamento (FT-SO-29)', texto: 'Márcalo si la persona necesita pase de medicamento. Puedes agregar varios medicamentos y marcar la vigencia como «Permanente».' },
                 { el: '#firmaCanvas', titulo: 'Firma del paciente', texto: 'La persona firma aquí con el dedo o el mouse. Con firma, al guardar se abre el documento para imprimir.' },
