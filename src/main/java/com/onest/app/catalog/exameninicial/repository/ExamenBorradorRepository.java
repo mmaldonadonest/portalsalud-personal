@@ -41,6 +41,83 @@ public class ExamenBorradorRepository {
         this.jdbc = jdbc;
     }
 
+    /** Origen de los renglones de la bandeja que salen de aqui (los de SERV_MED_EXAMEN_SOLICITUD son "OCR"). */
+    public static final String ORIGEN_DIRECTO = "DIRECTO";
+
+    /**
+     * Examenes iniciales capturados DIRECTO (desde Busqueda NSS, sin solicitud de OCR) para la bandeja
+     * (9-nov-2026: SM no veia ahi el examen que acababa de finalizar). Mismo registro que la bandeja de OCR:
+     * borrador abierto = EN_CAPTURA, cerrado = FINALIZADO. Los NSS con solicitud de OCR no se repiten (esa
+     * solicitud ya sale). El id va en negativo para que nunca se confunda con una solicitud ("Tomar" no aplica).
+     * Nombre, puesto y cuenta salen de SERV_MED_V_EMPLEADO; si la vista no existe (base local) van vacios.
+     */
+    public List<com.onest.app.integration.ocr.SolicitudExamen> directos(String estatus, String nss, String nombre,
+            java.time.LocalDate desde, java.time.LocalDate hasta, int limite) {
+        try {
+            return consultarDirectos(true, estatus, nss, nombre, desde, hasta, limite);
+        } catch (org.springframework.dao.DataAccessException ex) {
+            return consultarDirectos(false, estatus, nss, null, desde, hasta, limite);
+        }
+    }
+
+    private List<com.onest.app.integration.ocr.SolicitudExamen> consultarDirectos(boolean conEmpleado, String estatus,
+            String nss, String nombre, java.time.LocalDate desde, java.time.LocalDate hasta, int limite) {
+        StringBuilder sql = new StringBuilder("SELECT b.ID, b.NSS, b.ESTATUS, b.CREATED_AT, b.UPDATED_AT, b.UPDATED_BY,"
+                + " b.FINALIZADO_AT, b.FINALIZADO_BY,"
+                + " JSON_VALUE(b.DATOS, '$.\"SERV_MED_RESULTADO_EXAMEN.DICTAMEN\"' RETURNING VARCHAR2(40)) DICTAMEN,"
+                + (conEmpleado ? " e.NOMBRE, e.PUESTO, e.CUENTA" : " NULL NOMBRE, NULL PUESTO, NULL CUENTA")
+                + " FROM SERV_MED_EXAMEN_BORRADOR b"
+                // un renglon por NSS aunque tenga varias cuentas/predios en la vista (multipredio)
+                + (conEmpleado ? " LEFT JOIN (SELECT NSS, MAX(NOMBRE) NOMBRE, MAX(PUESTO) PUESTO, MAX(CUENTA) CUENTA"
+                        + " FROM SERV_MED_V_EMPLEADO WHERE NSS IN (SELECT NSS FROM SERV_MED_EXAMEN_BORRADOR)"
+                        + " GROUP BY NSS) e ON e.NSS = b.NSS" : "")
+                + " WHERE b.TIPO_EXAMEN = 'INICIAL'"
+                + " AND NOT EXISTS (SELECT 1 FROM SERV_MED_EXAMEN_SOLICITUD s WHERE s.NSS = b.NSS)");
+        List<Object> args = new java.util.ArrayList<>();
+        if (estatus != null && !estatus.isBlank()) {
+            String e = estatus.trim();
+            if ("EN_CAPTURA".equals(e)) {
+                sql.append(" AND b.ESTATUS = 'BORRADOR'");
+            } else if ("FINALIZADO".equals(e)) {
+                sql.append(" AND b.ESTATUS = 'FINALIZADO'");
+            } else {
+                return List.of();   // PENDIENTE y CANCELADO solo existen en las solicitudes de OCR
+            }
+        }
+        if (nss != null && !nss.isBlank()) {
+            sql.append(" AND b.NSS LIKE ?");
+            args.add(nss.trim() + "%");
+        }
+        if (nombre != null && !nombre.isBlank()) {
+            sql.append(" AND UPPER(e.NOMBRE) LIKE ?");
+            args.add("%" + nombre.trim().toUpperCase() + "%");
+        }
+        if (desde != null) {
+            sql.append(" AND TRUNC(b.CREATED_AT) >= ?");
+            args.add(java.sql.Date.valueOf(desde));
+        }
+        if (hasta != null) {
+            sql.append(" AND TRUNC(b.CREATED_AT) <= ?");
+            args.add(java.sql.Date.valueOf(hasta));
+        }
+        sql.append(" ORDER BY b.CREATED_AT DESC FETCH FIRST ? ROWS ONLY");
+        args.add(limite);
+        return jdbc.query(sql.toString(), (rs, i) -> {
+            boolean fin = "FINALIZADO".equals(rs.getString("ESTATUS"));
+            String nom = rs.getString("NOMBRE");
+            java.sql.Timestamp creado = rs.getTimestamp("CREATED_AT");
+            java.sql.Timestamp cuando = rs.getTimestamp(fin ? "FINALIZADO_AT" : "UPDATED_AT");
+            return new com.onest.app.integration.ocr.SolicitudExamen(
+                    -rs.getLong("ID"), ORIGEN_DIRECTO, "Captura directa", rs.getString("NSS"), null, null,
+                    nom == null ? "" : nom, "", "", null, null, null, null, null, null, null, null,
+                    rs.getString("CUENTA"), null, rs.getString("PUESTO"), null, null,
+                    fin ? com.onest.app.integration.ocr.SolicitudExamen.FINALIZADO : com.onest.app.integration.ocr.SolicitudExamen.EN_CAPTURA,
+                    null, null, null, rs.getString("DICTAMEN"), null, null, null,
+                    creado == null ? null : creado.toLocalDateTime(), null,
+                    rs.getString(fin ? "FINALIZADO_BY" : "UPDATED_BY"), cuando == null ? null : cuando.toLocalDateTime());
+        }, args.toArray());
+    }
+
     public Optional<Borrador> buscar(String nss) {
         List<Borrador> rows = jdbc.query(
                 "SELECT ID, HOJA_ACTUAL, DATOS, UPDATED_AT, UPDATED_BY FROM SERV_MED_EXAMEN_BORRADOR"

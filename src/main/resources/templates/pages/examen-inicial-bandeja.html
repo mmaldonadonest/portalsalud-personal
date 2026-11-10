@@ -6,7 +6,16 @@
 </head>
 <body>
 
-<th:block id="pageStyles"></th:block>
+<th:block id="pageStyles">
+    <style>
+        /* 9-nov: acciones de la bandeja como iconos del mismo tamano, alineadas a la derecha */
+        .bandeja-acciones { width: 1%; }
+        .bandeja-acciones .btn { width: 34px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; }
+        /* aviso discreto pero visible: ambar, letra chica, una linea */
+        .bandeja-aviso { margin-top: 3px; font-size: 11.5px; line-height: 1.3; color: #92400e; background: #fffbeb;
+                         border: 1px solid #fde68a; border-radius: 4px; padding: 2px 6px; display: inline-block; }
+    </style>
+</th:block>
 
 <!-- Bandeja de examenes iniciales (ExamenInicialBandejaController). Visibilidad de todas las
      solicitudes recibidas (hoy solo OCR), quien atiende cada una y acceso directo al examen.
@@ -47,7 +56,16 @@
                     <label class="form-label fs-xs text-muted mb-1">NSS</label>
                     <input type="text" class="form-control form-control-sm" name="nss" th:value="${nss}" inputmode="numeric" maxlength="11" placeholder="Empieza por…">
                 </div>
-                <div class="col-12 col-md-3">
+                <!--/* 9-nov: OCR = solicitudes de la plataforma de documentos; Directo = capturados desde Busqueda NSS */-->
+                <div class="col-6 col-md-1">
+                    <label class="form-label fs-xs text-muted mb-1">Origen</label>
+                    <select class="form-select form-select-sm" name="origen">
+                        <option value="" th:selected="${origen == ''}">Todos</option>
+                        <option value="OCR" th:selected="${origen == 'OCR'}">OCR</option>
+                        <option value="DIRECTO" th:selected="${origen == 'DIRECTO'}">Directo</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2">
                     <label class="form-label fs-xs text-muted mb-1">Nombre</label>
                     <input type="text" class="form-control form-control-sm" name="nombre" th:value="${nombre}" placeholder="Contiene…">
                 </div>
@@ -69,23 +87,25 @@
 
     <div class="card card-one">
         <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <h6 class="card-title mb-0">Solicitudes <span class="text-muted fw-normal fs-sm" th:text="'(' + ${#lists.size(solicitudes)} + ')'">(0)</span></h6>
-            <span class="fs-xs text-muted">Primero pendientes, luego en captura; dentro de cada grupo por fecha de cita (o de recepción).</span>
+            <h6 class="card-title mb-0">Exámenes <span class="text-muted fw-normal fs-sm" th:text="'(' + ${#lists.size(solicitudes)} + ')'">(0)</span></h6>
+            <span class="fs-xs text-muted">Primero pendientes, luego en captura y finalizados; dentro de cada grupo, lo más reciente arriba. Incluye los capturados directo desde Búsqueda NSS.</span>
         </div>
         <div class="card-body">
-            <div class="text-muted fs-sm" th:if="${#lists.isEmpty(solicitudes)}">No hay solicitudes con esos filtros.</div>
+            <div class="text-muted fs-sm" th:if="${#lists.isEmpty(solicitudes)}">No hay exámenes con esos filtros.</div>
             <div class="table-responsive" th:unless="${#lists.isEmpty(solicitudes)}">
                 <table class="table table-sm table-hover align-middle mb-0">
                     <thead>
                         <tr>
-                            <th>NSS</th><th>Candidato</th><th>Puesto / cuenta</th><th>Cita</th><th>Recibido</th>
+                            <th>NSS</th><th>Nombre</th><th>Puesto / cuenta</th><th>Cita</th><th>Recibido</th>
                             <th>Estatus</th><th>Atiende</th><th>Dictamen</th><th></th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr th:each="s : ${solicitudes}" th:attr="data-id=${s.id}, data-estatus=${s.estatus}">
                             <td class="text-nowrap"><a th:href="@{/nss(nss=${s.nss})}" th:text="${s.nss}">nss</a></td>
-                            <td><span th:text="${s.nombreCompleto()}">nombre</span><br><small class="text-muted" th:text="${s.referencia}">ref</small></td>
+                            <td><span th:text="${#strings.isEmpty(s.nombreCompleto()) ? '—' : s.nombreCompleto()}">nombre</span><br>
+                                <span class="badge bg-light text-dark border" th:if="${s.origen == 'DIRECTO'}">Directo</span>
+                                <small class="text-muted" th:unless="${s.origen == 'DIRECTO'}" th:text="${s.referencia}">ref</small></td>
                             <td><span th:text="${s.puestoSolicitado}">puesto</span><br><small class="text-muted" th:text="${s.cuenta}">cuenta</small></td>
                             <td class="text-nowrap" th:text="${s.fechaCita == null} ? '—' : ${#temporals.format(s.fechaCita, 'dd/MM/yyyy')}">cita</td>
                             <td class="text-nowrap" th:text="${s.createdAt == null} ? '' : ${#temporals.format(s.createdAt, 'dd/MM/yyyy HH:mm')}">recibido</td>
@@ -100,17 +120,25 @@
                                 <th:block th:if="${s.atendidoPor != null}">
                                     <span th:text="${s.atendidoPor}" th:classappend="${s.atendidoPor == usuarioActual} ? 'fw-semibold text-primary' : ''">usuario</span>
                                     <div class="fs-xs text-muted" th:if="${s.atendidoAt != null}" th:text="${#temporals.format(s.atendidoAt, 'dd/MM HH:mm')}">hora</div>
+                                    <!--/* 9-nov: solicitud de OCR que tiene otro medico: solo el puede finalizarla (mismo aviso que el examen) */-->
+                                    <div class="bandeja-aviso" th:if="${s.origen != 'DIRECTO' and s.activa() and s.atendidoPor != usuarioActual}">
+                                        <i class="ri-lock-line"></i> Solo él la finaliza · usa «Tomar» para continuarla tú
+                                    </div>
                                 </th:block>
                                 <span class="text-muted" th:if="${s.atendidoPor == null}">—</span>
                             </td>
-                            <td th:text="${s.dictamen == null} ? '' : ${s.dictamen}">dictamen</td>
-                            <td class="text-nowrap text-end">
-                                <a class="btn btn-xs btn-primary" th:if="${s.activa()}"
-                                   th:href="@{/nss(nss=${s.nss},abrir='examen-inicial')}"><i class="ri-stethoscope-line"></i> Abrir examen</a>
-                                <button type="button" class="btn btn-xs btn-outline-warning" th:if="${s.activa() and s.atendidoPor != null and s.atendidoPor != usuarioActual}"
-                                        th:attr="data-id=${s.id}" onclick="bandejaTomar(this);">Tomar</button>
-                                <a class="btn btn-xs btn-outline-secondary" th:if="${s.estatus == 'FINALIZADO'}"
-                                   th:href="@{/api/nss/examen/imprimir-pdf(nss=${s.nss})}" target="_blank" title="Abre el expediente y el diálogo de impresión"><i class="ri-printer-line"></i> Documento</a>
+                            <!--/* 9-nov: el dictamen solo cuenta ya finalizado (en captura es lo que va marcando el medico) */-->
+                            <td th:text="${s.estatus == 'FINALIZADO' and s.dictamen != null} ? ${#strings.capitalize(#strings.replace(s.dictamen, '_', ' '))} : ''">dictamen</td>
+                            <!--/* 9-nov: acciones como iconos (el boton con texto descuadraba la tabla). "Tomar" solo en
+                                 solicitudes de OCR: un examen directo no tiene solicitud que reasignar. */-->
+                            <td class="text-nowrap text-end bandeja-acciones">
+                                <a class="btn btn-sm btn-primary" th:if="${s.activa()}" title="Abrir examen" aria-label="Abrir examen"
+                                   th:href="@{/nss(nss=${s.nss},abrir='examen-inicial')}"><i class="ri-stethoscope-line"></i></a>
+                                <button type="button" class="btn btn-sm btn-outline-warning" title="Tomar: asignarme este examen" aria-label="Tomar"
+                                        th:if="${s.origen != 'DIRECTO' and s.activa() and s.atendidoPor != null and s.atendidoPor != usuarioActual}"
+                                        th:attr="data-id=${s.id}" onclick="bandejaTomar(this);"><i class="ri-hand-coin-line"></i></button>
+                                <a class="btn btn-sm btn-outline-secondary" th:if="${s.estatus == 'FINALIZADO'}" title="Documento: expediente para imprimir" aria-label="Documento"
+                                   th:href="@{/api/nss/examen/imprimir-pdf(nss=${s.nss})}" target="_blank"><i class="ri-printer-line"></i></a>
                             </td>
                         </tr>
                     </tbody>

@@ -25,9 +25,12 @@ import org.springframework.web.server.ResponseStatusException;
 public class ExamenInicialBandejaController {
 
     private final SolicitudExamenService solicitudes;
+    private final com.onest.app.catalog.exameninicial.repository.ExamenBorradorRepository borradores;
 
-    public ExamenInicialBandejaController(SolicitudExamenService solicitudes) {
+    public ExamenInicialBandejaController(SolicitudExamenService solicitudes,
+                                          com.onest.app.catalog.exameninicial.repository.ExamenBorradorRepository borradores) {
         this.solicitudes = solicitudes;
+        this.borradores = borradores;
     }
 
     @GetMapping("/examen-inicial/bandeja")
@@ -36,16 +39,33 @@ public class ExamenInicialBandejaController {
                           @RequestParam(name = "nombre", required = false) String nombre,
                           @RequestParam(name = "desde", required = false) String desde,
                           @RequestParam(name = "hasta", required = false) String hasta,
+                          @RequestParam(name = "origen", required = false) String origen,
                           Model model) {
-        List<SolicitudExamen> lista;
+        List<SolicitudExamen> lista = new java.util.ArrayList<>();
         boolean disponible = true;
-        try {
-            lista = solicitudes.bandeja(estatus, nss, nombre, desde, hasta);
-        } catch (org.springframework.dao.DataAccessException ex) {
-            // Falta integracion-ocr.sql o examen-inicial-bandeja.sql: se avisa en pantalla, no se cae
-            lista = List.of();
-            disponible = false;
+        String org = origen == null ? "" : origen.trim();
+        // 9-nov-2026: ademas de las solicitudes de OCR, los examenes iniciales capturados directo (borradores)
+        if (!"DIRECTO".equals(org)) {
+            try {
+                lista.addAll(solicitudes.bandeja(estatus, nss, nombre, desde, hasta));
+            } catch (org.springframework.dao.DataAccessException ex) {
+                // Falta integracion-ocr.sql o examen-inicial-bandeja.sql: se avisa en pantalla, no se cae
+                disponible = false;
+            }
         }
+        if (!"OCR".equals(org)) {
+            try {
+                lista.addAll(borradores.directos(estatus, nss, nombre, fecha(desde), fecha(hasta), 500));
+            } catch (org.springframework.dao.DataAccessException ex) {
+                // sin SERV_MED_EXAMEN_SOLICITUD el NOT EXISTS falla: la bandeja sigue con lo que haya
+            }
+        }
+        // mismo orden que la de OCR: pendientes, en captura, finalizados, cancelados; dentro, lo mas reciente arriba
+        java.util.Map<String, Integer> orden = java.util.Map.of(SolicitudExamen.PENDIENTE, 0, SolicitudExamen.EN_CAPTURA, 1,
+                SolicitudExamen.FINALIZADO, 2, SolicitudExamen.CANCELADO, 3);
+        lista.sort(java.util.Comparator.<SolicitudExamen>comparingInt(s -> orden.getOrDefault(s.estatus(), 4))
+                .thenComparing(s -> s.createdAt() == null ? java.time.LocalDateTime.MIN : s.createdAt(),
+                        java.util.Comparator.reverseOrder()));
         long pendientes = lista.stream().filter(s -> SolicitudExamen.PENDIENTE.equals(s.estatus())).count();
         long enCaptura = lista.stream().filter(s -> SolicitudExamen.EN_CAPTURA.equals(s.estatus())).count();
         model.addAttribute("solicitudes", lista);
@@ -57,8 +77,18 @@ public class ExamenInicialBandejaController {
         model.addAttribute("nombre", nombre == null ? "" : nombre);
         model.addAttribute("desde", desde == null ? "" : desde);
         model.addAttribute("hasta", hasta == null ? "" : hasta);
+        model.addAttribute("origen", org);
         model.addAttribute("usuarioActual", usuarioActual());
         return "pages/examen-inicial-bandeja";
+    }
+
+    /** Fecha del filtro (yyyy-MM-dd del input date); vacia o invalida = sin filtro. */
+    private static java.time.LocalDate fecha(String s) {
+        try {
+            return s == null || s.isBlank() ? null : java.time.LocalDate.parse(s.trim());
+        } catch (java.time.format.DateTimeParseException ex) {
+            return null;
+        }
     }
 
     /** "Tomar examen" desde la bandeja o desde el shell: se lo asigna al usuario en sesion. */

@@ -54,7 +54,8 @@ public class ExamenInicialService {
     public record SeccionVista(String nombre, List<ExamItem> items, Map<String, String> valores) {
     }
 
-    public record HojaVista(Hoja hoja, List<SeccionVista> secciones, int capturados, int total) {
+    /** {@code faltantes}: "Seccion › Campo" de lo que cuenta para el avance y esta vacio (9-nov: tooltip del avance). */
+    public record HojaVista(Hoja hoja, List<SeccionVista> secciones, int capturados, int total, List<String> faltantes) {
     }
 
     /** Un empleo anterior (hasta 4, como el formato). Claves = CAMPOS_TRABAJO. */
@@ -312,6 +313,7 @@ public class ExamenInicialService {
         int total = 0;
         for (Hoja h : HOJAS) {
             List<SeccionVista> secciones = new ArrayList<>();
+            List<String> faltantes = new ArrayList<>();
             int capturados = 0;
             int n = 0;
             for (String nombre : h.secciones()) {
@@ -352,11 +354,13 @@ public class ExamenInicialService {
                     n++;
                     if (value != null && !value.isBlank()) {
                         capturados++;
+                    } else {
+                        faltantes.add(nombre + " › " + it.label());
                     }
                 }
                 secciones.add(new SeccionVista(nombre, items, valores));
             }
-            hojas.add(new HojaVista(h, secciones, capturados, n));
+            hojas.add(new HojaVista(h, secciones, capturados, n, faltantes));
             capturadosTotal += capturados;
             total += n;
         }

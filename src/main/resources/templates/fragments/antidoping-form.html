@@ -16,71 +16,97 @@
             <form id="antidopingAltaForm" class="row g-3" novalidate>
                 <input type="hidden" name="nss" th:value="${nss}">
 
-                <div class="col-md-6">
-                    <label class="form-label" for="antidopingFolio">Folio</label>
-                    <input type="text" class="form-control" name="folio" id="antidopingFolio" placeholder="Folio">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label" for="antidopingTipoPrueba">Tipo de prueba</label>
-                    <select class="form-select" name="tipoPrueba" id="antidopingTipoPrueba"
-                            onchange="toggleAntidopingSustancia();">
-                        <option value="">Seleccionar</option>
-                        <option value="ANTIDOPING">Antidoping</option>
-                        <!-- C-032: SM lo llama Alcoholimetria; el valor guardado sigue siendo ALCOHOLEMIA -->
-                        <option value="ALCOHOLEMIA">Alcoholimetría</option>
-                    </select>
-                </div>
+                <!--/* C-036 (9-nov): la prueba en su propio bloque; tipo y resultado como botones. Las listas siguen
+                     (ocultas) porque son el valor que se guarda y lo que leen sustancia y custodia: los botones solo
+                     las cambian (adBoton). */-->
+                <div class="col-12">
+                    <div class="form-bloque" id="antidopingPrueba">
+                        <div class="form-bloque-h"><h6>La prueba</h6></div>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label" for="antidopingFolio">Folio</label>
+                                <input type="text" class="form-control" name="folio" id="antidopingFolio" placeholder="Folio">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label d-block">Tipo de prueba</label>
+                                <div class="btn-group w-100 ad-botones" role="group" aria-label="Tipo de prueba" data-para="antidopingTipoPrueba">
+                                    <button type="button" class="btn btn-outline-primary" data-val="ANTIDOPING" onclick="adBoton(this);">Antidoping</button>
+                                    <!-- C-032: SM lo llama Alcoholimetria; el valor guardado sigue siendo ALCOHOLEMIA -->
+                                    <button type="button" class="btn btn-outline-primary" data-val="ALCOHOLEMIA" onclick="adBoton(this);">Alcoholimetría</button>
+                                </div>
+                                <select class="d-none" name="tipoPrueba" id="antidopingTipoPrueba" onchange="toggleAntidopingSustancia();" tabindex="-1" aria-hidden="true">
+                                    <option value="">Seleccionar</option>
+                                    <option value="ANTIDOPING">Antidoping</option>
+                                    <option value="ALCOHOLEMIA">Alcoholimetría</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label d-block">Resultado</label>
+                                <div class="btn-group w-100 ad-botones" role="group" aria-label="Resultado" data-para="antidopingResultado">
+                                    <button type="button" class="btn btn-outline-success" data-val="NEGATIVO" onclick="adBoton(this);">Negativo</button>
+                                    <button type="button" class="btn btn-outline-danger" data-val="POSITIVO" onclick="adBoton(this);">Positivo</button>
+                                </div>
+                                <select class="d-none" name="resultado" id="antidopingResultado" onchange="toggleAntidopingSustancia();" tabindex="-1" aria-hidden="true">
+                                    <option value="">Seleccionar</option>
+                                    <option value="NEGATIVO">Negativo</option>
+                                    <option value="POSITIVO">Positivo</option>
+                                </select>
+                            </div>
 
-                <div class="col-md-6" id="antidopingSustanciaWrap">
-                    <label class="form-label" for="antidopingSustancia">Sustancia</label>
-                    <select class="form-select" name="sustancia" id="antidopingSustancia">
-                        <option value="">Seleccionar</option>
-                        <option value="AMF">Anfetaminas (AMF)</option>
-                        <option value="BARB">Barbitúricos (BARB)</option>
-                        <option value="BENZO">Benzodiacepinas (BENZO)</option>
-                        <option value="COC">Cocaina (COC)</option>
-                        <option value="LSD">LSD</option>
-                        <option value="MET">Metanfetaminas (MET)</option>
-                        <option value="OPI">Opiaceos (OPI)</option>
-                        <option value="PVC">Fenciclidina (PVC)</option>
-                        <option value="THC">Marihuana (THC)</option>
-                        <option value="SOLVENTE">Solvente</option>
-                        <option value="OTRO">Otro</option>
-                    </select>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label" for="antidopingResultado">Resultado</label>
-                    <select class="form-select" name="resultado" id="antidopingResultado">
-                        <option value="">Seleccionar</option>
-                        <option value="NEGATIVO">Negativo</option>
-                        <option value="POSITIVO">Positivo</option>
-                    </select>
-                </div>
+                            <!--/* C-033a (9-nov): primero el resultado; la sustancia solo se pide en un antidoping POSITIVO */-->
+                            <div class="col-md-6" id="antidopingSustanciaWrap" style="display: none;">
+                                <label class="form-label" for="antidopingSustancia">Sustancia</label>
+                                <select class="form-select" name="sustancia" id="antidopingSustancia">
+                                    <option value="">Seleccionar</option>
+                                    <option value="AMF">Anfetaminas (AMF)</option>
+                                    <option value="BARB">Barbitúricos (BARB)</option>
+                                    <option value="BENZO">Benzodiacepinas (BENZO)</option>
+                                    <option value="COC">Cocaina (COC)</option>
+                                    <option value="LSD">LSD</option>
+                                    <option value="MET">Metanfetaminas (MET)</option>
+                                    <option value="OPI">Opiaceos (OPI)</option>
+                                    <option value="PVC">Fenciclidina (PVC)</option>
+                                    <option value="THC">Marihuana (THC)</option>
+                                    <option value="SOLVENTE">Solvente</option>
+                                    <option value="OTRO">Otro</option>
+                                </select>
+                            </div>
 
-                <div class="col-md-6">
-                    <label class="form-label" for="antidopingStatusConclusion">Status / conclusión</label>
-                    <select class="form-select" name="statusConclusion" id="antidopingStatusConclusion">
-                        <option value="N/A">N/A</option>
-                        <!-- C-035: SM lo llama Tratamiento aplicado; el valor guardado sigue siendo CAPA -->
-                        <option value="CAPA">Tratamiento aplicado</option>
-                        <option value="LABORANDO">Laborando</option>
-                        <option value="RECAIDA">Recaida</option>
-                        <option value="NO_INTERESADO_BAJA">No interesado / Baja</option>
-                        <option value="NO_CONTRATADO">No contratado</option>
-                        <option value="BAJA_NO_APLICA">Baja / No aplica</option>
-                    </select>
+                            <div class="col-md-6">
+                                <label class="form-label" for="antidopingStatusConclusion">Status / conclusión</label>
+                                <select class="form-select" name="statusConclusion" id="antidopingStatusConclusion">
+                                    <option value="N/A">N/A</option>
+                                    <!-- C-035: SM lo llama Tratamiento aplicado; el valor guardado sigue siendo CAPA -->
+                                    <option value="CAPA">Tratamiento aplicado</option>
+                                    <option value="LABORANDO">Laborando</option>
+                                    <option value="RECAIDA">Recaida</option>
+                                    <option value="NO_INTERESADO_BAJA">No interesado / Baja</option>
+                                    <option value="NO_CONTRATADO">No contratado</option>
+                                    <option value="BAJA_NO_APLICA">Baja / No aplica</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Cadena de custodia FT-SO-14 (20-oct-2026): lo que pide el formato y el WS no guarda;
                      se liga a la prueba al guardar (CustodiaService). Ninguno es obligatorio: lo vacio
                      sale en blanco en el impreso para llenarse a mano. -->
                 <div class="col-12">
-                    <div class="border rounded p-3" id="antidopingCustodia">
-                        <h6 class="mb-3">Cadena de custodia (FT-SO-14)</h6>
+                    <div class="form-bloque" id="antidopingCustodia">
+                        <div class="form-bloque-h"><h6>Cadena de custodia (FT-SO-14)</h6></div>
+                        <!--/* 9-nov (UX): opciones cortas como botones; la lista oculta sigue siendo el valor (adBoton) */-->
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label" for="custIdentTipo">Tipo de identificación</label>
-                                <select class="form-select" name="identTipo" id="custIdentTipo">
+                                <label class="form-label d-block">Tipo de identificación</label>
+                                <div class="d-flex flex-wrap gap-1 ad-botones" role="group" data-para="custIdentTipo">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-val="INE" onclick="adBoton(this);">INE</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-val="Pasaporte" onclick="adBoton(this);">Pasaporte</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-val="Licencia de conducir" onclick="adBoton(this);">Licencia</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-val="Credencial de la empresa" onclick="adBoton(this);">Credencial</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-val="Otra" onclick="adBoton(this);">Otra</button>
+                                </div>
+                                <select class="d-none" tabindex="-1" aria-hidden="true" name="identTipo" id="custIdentTipo">
                                     <option value="">Seleccionar</option>
                                     <option>INE</option>
                                     <option>Pasaporte</option>
@@ -99,8 +125,13 @@
                             </div>
 
                             <div class="col-md-4">
-                                <label class="form-label" for="custRazon">Razón de la prueba</label>
-                                <select class="form-select" name="razon" id="custRazon" onchange="toggleCustodia();">
+                                <label class="form-label d-block">Razón de la prueba</label>
+                                <div class="d-flex flex-wrap gap-1 ad-botones" role="group" data-para="custRazon">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-val="ALEATORIA" onclick="adBoton(this);">Aleatoria</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-val="PERIODICO" onclick="adBoton(this);">Periódico</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-val="OTRO" onclick="adBoton(this);">Otro</button>
+                                </div>
+                                <select class="d-none" tabindex="-1" aria-hidden="true" name="razon" id="custRazon" onchange="toggleCustodia();">
                                     <option value="">Seleccionar</option>
                                     <option value="ALEATORIA">Aleatoria</option>
                                     <option value="PERIODICO">Periódico</option>
@@ -115,9 +146,10 @@
                             <!-- mismos 7 y en el orden de CustodiaService.ELEMENTOS (los del formato) -->
                             <div class="col-12" id="custElementosWrap">
                                 <label class="form-label d-block">Elementos a detectar <span class="text-muted fs-sm">(desmarca los que tu kit no detecta)</span></label>
-                                <div class="d-flex flex-wrap gap-3">
-                                    <label class="form-check-label" th:each="el : ${ {'AMP','COC','OPI','THC','MET','BENZO','BARB'} }">
-                                        <input class="form-check-input me-1" type="checkbox" name="elementos" th:value="${el}" checked>
+                                <!--/* 9-nov: cada elemento es una ficha grande que se pulsa completa (antes: casilla chica) */-->
+                                <div class="d-flex flex-wrap gap-2">
+                                    <label class="chk-ficha" th:each="el : ${ {'AMP','COC','OPI','THC','MET','BENZO','BARB'} }">
+                                        <input class="form-check-input" type="checkbox" name="elementos" th:value="${el}" checked>
                                         <span th:text="${el}">AMP</span>
                                     </label>
                                 </div>
@@ -128,8 +160,12 @@
                             </div>
 
                             <div class="col-md-4">
-                                <label class="form-label" for="custTratamiento">¿Bajo tratamiento médico?</label>
-                                <select class="form-select" name="tratamiento" id="custTratamiento" onchange="toggleCustodia();">
+                                <label class="form-label d-block">¿Bajo tratamiento médico?</label>
+                                <div class="d-flex flex-wrap gap-1 ad-botones" role="group" data-para="custTratamiento">
+                                    <button type="button" class="btn btn-sm btn-outline-success" data-val="NO" onclick="adBoton(this);">No</button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" data-val="SI" onclick="adBoton(this);">Sí</button>
+                                </div>
+                                <select class="d-none" tabindex="-1" aria-hidden="true" name="tratamiento" id="custTratamiento" onchange="toggleCustodia();">
                                     <option value="">Seleccionar</option>
                                     <option value="NO">No</option>
                                     <option value="SI">Sí</option>

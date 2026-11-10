@@ -203,3 +203,20 @@ a:hover {
     display: inline-block; font-size: 9.5px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase;
     padding: 2px 6px; border-radius: 4px; background: rgba(255, 255, 255, .12); color: #cbd5e1; white-space: nowrap;
 }
+
+/* 9-nov: bloques de captura con la misma banda azul del examen inicial (exini-bloque) para Antidoping,
+   Accidentes y los formularios que vengan. .form-bloque = el recuadro; .form-bloque-h = la banda del titulo. */
+.form-bloque { border: 1px solid var(--bs-border-color, #dee2e6); padding: 0 14px 14px; background: #fff; }
+.form-bloque-h { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 0 -14px 12px;
+    padding: 8px 14px; background: linear-gradient(90deg, #003E75 0%, #0b1c30 100%); color: #fff; }
+.form-bloque-h h6 { margin: 0; font-size: .9rem; font-weight: 600; color: #fff; }
+
+/* 9-nov: casillas faciles de pulsar ("fichas"): toda la etiqueta es el area de clic, casilla grande y la
+   ficha se pinta cuando esta marcada. Uso: <label class="chk-ficha"><input type="checkbox" ...> Texto</label> */
+.chk-ficha { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 14px; margin: 0;
+    border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; cursor: pointer; user-select: none;
+    font-weight: 600; transition: background .15s, border-color .15s; }
+.chk-ficha:hover { border-color: #003E75; }
+.chk-ficha .form-check-input { width: 1.3em; height: 1.3em; margin: 0; cursor: pointer; flex-shrink: 0; }
+.chk-ficha:has(input:checked) { background: #eaf2fb; border-color: #003E75; color: #003E75; }
+.chk-ficha:has(input:focus-visible) { outline: 2px solid #003E75; outline-offset: 2px; }

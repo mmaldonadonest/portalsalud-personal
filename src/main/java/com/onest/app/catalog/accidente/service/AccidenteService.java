@@ -155,11 +155,18 @@ public class AccidenteService {
         if (isoDate == null || isoDate.isBlank()) {
             throw new IllegalArgumentException("La fecha del accidente es obligatoria");
         }
+        LocalDate fecha;
         try {
-            return LocalDate.parse(isoDate.trim()).format(FECHA_ACCIDENTE);
+            fecha = LocalDate.parse(isoDate.trim());
         } catch (DateTimeParseException ex) {
             throw new IllegalArgumentException("La fecha del accidente no es valida", ex);
         }
+        // C-041 / B2 (9-nov): un accidente no puede ser futuro. Hora de Mexico, no la del servidor (puede estar en
+        // UTC y a partir de las 18:00 "hoy" ya seria manana). El limite de anios atras espera a SM (E-019).
+        if (fecha.isAfter(LocalDate.now(java.time.ZoneId.of("America/Mexico_City")))) {
+            throw new IllegalArgumentException("La fecha del accidente no puede ser futura");
+        }
+        return fecha.format(FECHA_ACCIDENTE);
     }
 
     private static BigDecimal parseDecimal(String value, String etiqueta) {

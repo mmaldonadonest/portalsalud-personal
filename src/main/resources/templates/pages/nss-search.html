@@ -2253,14 +2253,50 @@
             };
 
             // Muestra/oculta el select de sustancia segun el tipo de prueba (solo aplica a ANTIDOPING).
+            // C-041 / B3 (9-nov): SDI y costo con dos decimales al salir del campo (1234.5 -> 1234.50)
+            window.acDosDecimales = function (el) {
+                var n = parseFloat(el.value);
+                if (!isNaN(n)) { el.value = n.toFixed(2); }
+            };
+
+            // C-036 (9-nov): tipo y resultado como botones. El valor sigue en el <select> oculto (data-para):
+            // el boton lo cambia y dispara change, asi la sustancia y la custodia reaccionan igual que antes.
+            // Clic en el boton activo lo deja sin elegir.
+            window.adBoton = function (btn) {
+                var grupo = btn.closest('.ad-botones');
+                var sel = document.getElementById(grupo.getAttribute('data-para'));
+                var v = btn.getAttribute('data-val');
+                sel.value = sel.value === v ? '' : v;
+                sel.dispatchEvent(new Event('change', { bubbles: true }));
+                adPintarBotones(grupo.closest('form') || document);
+            };
+            // tras guardar, el formulario se limpia con reset(): repintar botones y ocultar la sustancia
+            // (el evento reset llega ANTES de que se limpien los valores, por eso el setTimeout)
+            document.addEventListener('reset', function (e) {
+                if (e.target && e.target.id === 'antidopingAltaForm') {
+                    setTimeout(function () { window.toggleAntidopingSustancia(); }, 0);
+                }
+            }, true);
+            function adPintarBotones(f) {
+                f.querySelectorAll('.ad-botones').forEach(function (g) {
+                    var sel = document.getElementById(g.getAttribute('data-para'));
+                    g.querySelectorAll('button').forEach(function (b) {
+                        b.classList.toggle('active', !!sel && sel.value === b.getAttribute('data-val'));
+                    });
+                });
+            }
+
             window.toggleAntidopingSustancia = function () {
                 var f = document.getElementById('antidopingAltaForm');
                 var wrap = document.getElementById('antidopingSustanciaWrap');
                 if (!f || !wrap) {
                     return;
                 }
-                wrap.style.display = (f.tipoPrueba.value === 'ANTIDOPING') ? '' : 'none';
-                if (f.tipoPrueba.value !== 'ANTIDOPING') {
+                adPintarBotones(f);
+                // C-033a (9-nov): la sustancia solo aplica a un antidoping POSITIVO
+                var pide = f.tipoPrueba.value === 'ANTIDOPING' && f.resultado.value === 'POSITIVO';
+                wrap.style.display = pide ? '' : 'none';
+                if (!pide) {
                     f.sustancia.value = '';
                 }
                 toggleCustodia();

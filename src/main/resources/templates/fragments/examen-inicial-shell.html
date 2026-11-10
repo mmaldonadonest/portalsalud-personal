@@ -145,7 +145,11 @@
             <div class="d-flex align-items-center gap-2 flex-wrap">
                 <span class="exini-guardado" id="exIniGuardado"
                       th:text="${v.borrador != null} ? 'Borrador del ' + ${#temporals.format(v.borrador.updatedAt, 'dd/MM HH:mm')} : 'Sin borrador'">Sin borrador</span>
-                <span class="badge bg-primary" th:text="'Avance ' + ${v.avance} + '%'">Avance 0%</span>
+                <!--/* 9-nov: al pasar el mouse dice que falta, hoja por hoja (mismo criterio que el porcentaje) */-->
+                <span class="badge bg-primary" style="cursor: help;" th:text="'Avance ' + ${v.avance} + '%'"
+                      th:with="conFalta=${v.hojas.?[!faltantes.isEmpty()]}"
+                      th:title="${#lists.isEmpty(conFalta)} ? 'Todo capturado'
+                               : 'Falta:&#10;' + ${#strings.listJoin(conFalta.![hoja.numero + '. ' + hoja.corto + ': ' + #strings.listJoin(faltantes, ', ')], '&#10;')}">Avance 0%</span>
                 <button type="button" class="btn btn-sm btn-outline-primary" th:if="${v.ultimoFinalizado != null}"
                         th:attr="data-url=@{/api/nss/examen/imprimir-pdf(nss=${v.nss})}"
                         onclick="window.open(this.dataset.url, '_blank');">

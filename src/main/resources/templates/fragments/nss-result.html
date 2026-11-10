@@ -93,7 +93,8 @@
                      vacios ("—"), para que se vea que falta el dato. Al final, lo que no pide el
                      formato pero sirve para identificar: agencia, cuenta, RFC, correo. -->
                 <div class="ficha-datos compacta"
-                     th:with="tel=${!#strings.isEmpty(telefonoSalud) ? telefonoSalud : #strings.trim((e.celular ?: '') + (!#strings.isEmpty(e.celular) and !#strings.isEmpty(e.telFijo) ? ' · ' : '') + (e.telFijo ?: ''))}">
+                     th:with="fijoDistinto=${!#strings.isEmpty(e.telFijo) and !#strings.equals(#strings.trim(e.telFijo), #strings.trim(e.celular ?: ''))},
+                              tel=${!#strings.isEmpty(telefonoSalud) ? telefonoSalud : #strings.trim((e.celular ?: '') + (!#strings.isEmpty(e.celular) and fijoDistinto ? ' · ' : '') + (fijoDistinto ? e.telFijo : ''))}">
                     <div class="dato"><div class="l">Edad</div><div class="v" th:text="${e.edad != null ? e.edad + ' años' : '—'}">-</div></div>
                     <div class="dato"><div class="l">Sexo</div><div class="v" th:text="${#strings.isEmpty(sexoTexto)} ? '—' : ${sexoTexto}">-</div></div>
                     <div class="dato"><div class="l">Fecha de nacimiento</div><div class="v" th:text="${#strings.isEmpty(e.fechaNacimiento)} ? '—' : ${e.fechaNacimiento}">-</div></div>

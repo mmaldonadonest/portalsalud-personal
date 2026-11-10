@@ -106,7 +106,7 @@
                     avanzaCon: '#moduleContent button[onclick^="nuevoAntidoping"]' }),
                 { el: '#moduleContent button[onclick^="nuevoAntidoping"]', titulo: 'Nueva prueba', texto: 'Para registrar una prueba pulsa «Nuevo registro».', siNoEsta: 'Abre el módulo «Antidoping».',
                     avanzaCon: '#antidopingCustodia' },
-                { el: '#antidopingTipoPrueba', titulo: 'Tipo de prueba', texto: 'Antidoping o alcoholimetría. En antidoping eliges la sustancia; en alcoholimetría capturas el % de alcohol en la custodia.' },
+                { el: '[data-para="antidopingTipoPrueba"]', titulo: 'Tipo de prueba', texto: 'Antidoping o alcoholimetría. Primero eliges el resultado; si un antidoping sale positivo, se pide la sustancia. En alcoholimetría capturas el % de alcohol en la custodia.' },
                 { el: '#antidopingCustodia', titulo: 'Cadena de custodia (FT-SO-14)', texto: 'Identificación, razón de la prueba, elementos a detectar (desmarca los que tu kit no detecta), tratamiento médico, hora, lugar y responsable. Lo vacío sale en blanco para llenarse a mano.' },
                 { el: '#antidopingAltaForm button[onclick^="guardarAntidoping"]', titulo: 'Guarda la prueba', texto: 'Después, en la lista, la columna «Formato» trae el FT-SO-14 en todas las pruebas y el FT-SO-22 (aceptación a CECOSAMA) solo en las positivas.' }
             ]
