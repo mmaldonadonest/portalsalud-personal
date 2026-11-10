@@ -45,12 +45,12 @@ public final class Osteomuscular {
 
     public static final List<Eje> MOVILIDAD = List.of(new Eje("CERVICAL", "Cervical"), new Eje("DORSOLUMBAR", "Dorso-lumbar"));
     public static final List<Eje> MOVILIDAD_COLUMNAS = List.of(
-            new Eje("FLEX", "Flexión"), new Eje("EXT", "Extensión"), new Eje("LAT_IZQ", "Lateral izq."),
-            new Eje("LAT_DER", "Lateral der."), new Eje("ROT_DER", "Rotación der."), new Eje("ROT_IZQ", "Rotación izq."),
+            new Eje("FLEX", "Flexión"), new Eje("EXT", "Extensión"), new Eje("LAT_IZQ", "Lateral izquierda"),
+            new Eje("LAT_DER", "Lateral derecha"), new Eje("ROT_DER", "Rotación derecha"), new Eje("ROT_IZQ", "Rotación izquierda"),
             new Eje("IRRAD", "Irradiación"));
 
     public static final List<Eje> EXPLORACION = List.of(new Eje("LASEGUE", "Lasègue"), new Eje("SCHOBER", "Schober"));
-    public static final List<Eje> LADOS = List.of(new Eje("DER", "Der."), new Eje("IZQ", "Izq."));
+    public static final List<Eje> LADOS = List.of(new Eje("DER", "Derecha"), new Eje("IZQ", "Izquierda"));
 
     public static final List<Eje> PALPACION = List.of(
             new Eje("CERVICAL", "Columna cervical"), new Eje("DORSAL", "Columna dorsal"), new Eje("LUMBAR", "Columna lumbar"));
@@ -61,8 +61,8 @@ public final class Osteomuscular {
             new Eje("HOMBRO", "Hombro"), new Eje("CODO", "Codo"), new Eje("MUNECA", "Muñeca"),
             new Eje("CADERA", "Cadera"), new Eje("RODILLA", "Rodilla"), new Eje("TOBILLO", "Tobillo"));
     public static final List<Eje> ARTICULACION_COLUMNAS = List.of(
-            new Eje("ABD", "Abducc."), new Eje("ADD", "Adducc."), new Eje("FLEX", "Flexión"), new Eje("EXT", "Extensión"),
-            new Eje("ROT_EXT", "Rot. ext."), new Eje("ROT_INT", "Rot. int."), new Eje("IRRAD", "Irrad."),
+            new Eje("ABD", "Abducción"), new Eje("ADD", "Aducción"), new Eje("FLEX", "Flexión"), new Eje("EXT", "Extensión"),
+            new Eje("ROT_EXT", "Rotación externa"), new Eje("ROT_INT", "Rotación interna"), new Eje("IRRAD", "Irradiación"),
             new Eje("ALT_MUSC", "Alteración muscular"));
 
     /** Escala del formato (texto literal del FT-SO-05). */
