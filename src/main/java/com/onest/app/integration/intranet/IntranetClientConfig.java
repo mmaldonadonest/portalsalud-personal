@@ -2,9 +2,8 @@ package com.onest.app.integration.intranet;
 
 import java.time.Duration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.web.client.ClientHttpRequestFactories;
-import org.springframework.boot.web.client.ClientHttpRequestFactorySettings;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestClient;
 
@@ -19,12 +18,14 @@ public class IntranetClientConfig {
 
     @Bean
     public RestClient intranetRestClient(RestClient.Builder builder, IntranetProperties properties) {
-        ClientHttpRequestFactorySettings timeouts = ClientHttpRequestFactorySettings.DEFAULTS
-                .withConnectTimeout(Duration.ofSeconds(3))
-                .withReadTimeout(Duration.ofSeconds(5));
-        return builder
+        // Spring Boot 4 retiro ClientHttpRequestFactories: conexion simple con los mismos tiempos (3 s / 5 s)
+        SimpleClientHttpRequestFactory timeouts = new SimpleClientHttpRequestFactory();
+        timeouts.setConnectTimeout(Duration.ofSeconds(3));
+        timeouts.setReadTimeout(Duration.ofSeconds(5));
+        // clone(): el Builder lo comparte Spring con los clientes de ORDS
+        return builder.clone()
                 .baseUrl(properties.baseUrl())
-                .requestFactory(ClientHttpRequestFactories.get(timeouts))
+                .requestFactory(timeouts)
                 .defaultHeader("Authorization", "Bearer " + properties.token())
                 .defaultHeader("Content-Type", "application/json")
                 .build();

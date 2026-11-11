@@ -1,14 +1,16 @@
 package com.onest.app.config;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.time.Duration;
 import java.util.List;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.web.client.ClientHttpRequestFactories;
-import org.springframework.boot.web.client.ClientHttpRequestFactorySettings;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestClient;
 
@@ -24,11 +26,22 @@ public class BiowsClientConfig {
     // SIN @Primary a proposito: los clientes eligen su RestClient por nombre de parametro
     // (biowsRestClient, intranetRestClient) o con @Qualifier. Un @Primary aqui desvio las
     // llamadas de la intranet a ORDS (10-oct-2026).
+    /**
+     * Spring Boot 4 (11-nov-2026) ya no publica un ObjectMapper de Jackson 2 (usa Jackson 3). Para ORDS se arma uno
+     * igual al que daba Spring Boot 3: ignora campos desconocidos, fechas java.time como texto. Asi las respuestas
+     * de ORDS (Content-Type cambiante, campos extra) se leen exactamente como antes.
+     */
+    private static final ObjectMapper ORDS_JSON = JsonMapper.builder()
+            .findAndAddModules()
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .build();
+
     @Bean
-    public RestClient biowsRestClient(RestClient.Builder builder, BiowsProperties properties, ObjectMapper objectMapper) {
+    public RestClient biowsRestClient(RestClient.Builder builder, BiowsProperties properties) {
         // Timeouts explicitos: un ORDS inalcanzable no debe colgar el request
         // (critico para el login HYBRID/LEGACY_PHP que pasa por el WS).
-        return construir(builder, properties, objectMapper, Duration.ofSeconds(20));
+        return construir(builder, properties, ORDS_JSON, Duration.ofSeconds(20));
     }
 
     /**
@@ -38,21 +51,21 @@ public class BiowsClientConfig {
      * de un examen que si quedaba guardado. El resto de las llamadas sigue con 20 s.
      */
     @Bean
-    public RestClient biowsRestClientGuardadoLargo(RestClient.Builder builder, BiowsProperties properties,
-                                                   ObjectMapper objectMapper) {
-        return construir(builder, properties, objectMapper, Duration.ofSeconds(120));
+    public RestClient biowsRestClientGuardadoLargo(RestClient.Builder builder, BiowsProperties properties) {
+        return construir(builder, properties, ORDS_JSON, Duration.ofSeconds(120));
     }
 
     private static RestClient construir(RestClient.Builder builder, BiowsProperties properties,
                                         ObjectMapper objectMapper, Duration lectura) {
-        ClientHttpRequestFactorySettings timeouts = ClientHttpRequestFactorySettings.DEFAULTS
-                .withConnectTimeout(Duration.ofSeconds(5))
-                .withReadTimeout(lectura);
+        // Spring Boot 4 retiro ClientHttpRequestFactories: misma conexion simple (HttpURLConnection) y mismos tiempos
+        SimpleClientHttpRequestFactory timeouts = new SimpleClientHttpRequestFactory();
+        timeouts.setConnectTimeout(Duration.ofSeconds(5));
+        timeouts.setReadTimeout(lectura);
         // clone(): el Builder lo comparte Spring; sin copia, el segundo bean heredaria la
         // configuracion acumulada del primero (convertidores duplicados).
         return builder.clone()
                 .baseUrl(properties.baseUrl())
-                .requestFactory(ClientHttpRequestFactories.get(timeouts))
+                .requestFactory(timeouts)
                 .defaultHeader("x-api-key", properties.apiKey())
                 .defaultHeader("Content-Type", "application/json; charset=utf-8")
                 // Sin keep-alive: ORDS cierra las conexiones ociosas por su lado y HttpURLConnection

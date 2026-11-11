@@ -14,8 +14,9 @@ import com.onest.app.security.legacy.LegacyPhpAuthenticationProvider;
 import com.onest.app.security.service.PortalUserDetailsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+// Spring Boot 4: @WebMvcTest vive en spring-boot-webmvc-test y @MockBean se reemplaza por @MockitoBean de Spring
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,22 +28,22 @@ class PortalViewControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private PortalUserDetailsService portalUserDetailsService;
 
     // Requerido por SecurityConfiguration (selector de estrategia de auth, U08).
-    @MockBean
+    @MockitoBean
     private LegacyPhpAuthenticationProvider legacyPhpAuthenticationProvider;
 
     // Requeridos por SecurityConfiguration (ClinicalAccessFilter), ViewModelAdvice y el
     // AuditoriaInterceptor (WebMvcConfigurer, lo levanta @WebMvcTest). Sin BD: todo mock.
-    @MockBean
+    @MockitoBean
     private PermissionService permissionService;
 
-    @MockBean
+    @MockitoBean
     private LocalModulePermissionClient localModulePermissionClient;
 
-    @MockBean
+    @MockitoBean
     private AuditoriaService auditoriaService;
 
     @Test

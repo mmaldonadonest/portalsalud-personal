@@ -3,7 +3,8 @@ package com.onest.app.web;
 import java.util.Map;
 import org.slf4j.MDC;
 import org.springframework.boot.web.error.ErrorAttributeOptions;
-import org.springframework.boot.web.servlet.error.DefaultErrorAttributes;
+// Spring Boot 4: org.springframework.boot.web.servlet.error -> org.springframework.boot.webmvc.error
+import org.springframework.boot.webmvc.error.DefaultErrorAttributes;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.WebRequest;
 

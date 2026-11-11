@@ -145,8 +145,8 @@ public class SecurityConfiguration {
     @Bean
     DaoAuthenticationProvider daoAuthenticationProvider(
             PortalUserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-        provider.setUserDetailsService(userDetailsService);
+        // Spring Security 7: el UserDetailsService va en el constructor (setUserDetailsService ya no existe)
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder);
         return provider;
     }
