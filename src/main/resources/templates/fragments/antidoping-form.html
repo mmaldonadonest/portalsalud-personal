@@ -28,21 +28,23 @@
                                 <input type="text" class="form-control" name="folio" id="antidopingFolio" placeholder="Folio">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label d-block">Tipo de prueba</label>
-                                <div class="btn-group w-100 ad-botones" role="group" aria-label="Tipo de prueba" data-para="antidopingTipoPrueba">
-                                    <button type="button" class="btn btn-outline-primary" data-val="ANTIDOPING" onclick="adBoton(this);">Antidoping</button>
-                                    <!-- C-032: SM lo llama Alcoholimetria; el valor guardado sigue siendo ALCOHOLEMIA -->
-                                    <button type="button" class="btn btn-outline-primary" data-val="ALCOHOLEMIA" onclick="adBoton(this);">Alcoholimetría</button>
-                                </div>
-                                <select class="d-none" name="tipoPrueba" id="antidopingTipoPrueba" onchange="toggleAntidopingSustancia();" tabindex="-1" aria-hidden="true">
-                                    <option value="">Seleccionar</option>
-                                    <option value="ANTIDOPING">Antidoping</option>
-                                    <option value="ALCOHOLEMIA">Alcoholimetría</option>
-                                </select>
+                                <label class="form-label" for="antidopingFechaAplicacion">Fecha de aplicación</label>
+                                <!--/* C-077 (10-nov, Word SM punto 15): el WS solo guarda la fecha de registro; esta va a la custodia */-->
+                                <input type="date" class="form-control" name="fechaAplicacion" id="antidopingFechaAplicacion">
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label d-block">Resultado</label>
-                                <div class="btn-group w-100 ad-botones" role="group" aria-label="Resultado" data-para="antidopingResultado">
+                            <!--/* C-034 / C-077 (10-nov, Word SM punto 15): se pueden marcar LOS DOS; cada uno con su resultado y
+                                 se guardan dos registros (asi se cuentan por separado). Valor = casillas «tipos». */-->
+                            <div class="col-md-8">
+                                <label class="form-label d-block">Tipo de prueba <span class="text-muted fs-sm">(puedes marcar las dos)</span></label>
+                                <div class="d-flex gap-2" role="group" aria-label="Tipo de prueba">
+                                    <label class="chk-ficha ad-tipo"><input class="form-check-input" type="checkbox" name="tipos" value="ANTIDOPING" onchange="toggleAntidopingSustancia();"><span>Antidoping</span></label>
+                                    <!-- C-032: SM lo llama Alcoholimetria; el valor guardado sigue siendo ALCOHOLEMIA -->
+                                    <label class="chk-ficha ad-tipo"><input class="form-check-input" type="checkbox" name="tipos" value="ALCOHOLEMIA" onchange="toggleAntidopingSustancia();"><span>Alcoholimetría</span></label>
+                                </div>
+                            </div>
+                            <div class="col-md-6" id="antidopingResAntiWrap" style="display: none;">
+                                <label class="form-label d-block">Resultado del antidoping</label>
+                                <div class="btn-group w-100 ad-botones" role="group" aria-label="Resultado del antidoping" data-para="antidopingResultado">
                                     <button type="button" class="btn btn-outline-success" data-val="NEGATIVO" onclick="adBoton(this);">Negativo</button>
                                     <button type="button" class="btn btn-outline-danger" data-val="POSITIVO" onclick="adBoton(this);">Positivo</button>
                                 </div>
@@ -52,24 +54,29 @@
                                     <option value="POSITIVO">Positivo</option>
                                 </select>
                             </div>
-
-                            <!--/* C-033a (9-nov): primero el resultado; la sustancia solo se pide en un antidoping POSITIVO */-->
-                            <div class="col-md-6" id="antidopingSustanciaWrap" style="display: none;">
-                                <label class="form-label" for="antidopingSustancia">Sustancia</label>
-                                <select class="form-select" name="sustancia" id="antidopingSustancia">
+                            <div class="col-md-6" id="antidopingResAlcWrap" style="display: none;">
+                                <label class="form-label d-block">Resultado de la alcoholimetría</label>
+                                <div class="btn-group w-100 ad-botones" role="group" aria-label="Resultado de la alcoholimetría" data-para="antidopingResultadoAlc">
+                                    <button type="button" class="btn btn-outline-success" data-val="NEGATIVO" onclick="adBoton(this);">Negativo</button>
+                                    <button type="button" class="btn btn-outline-danger" data-val="POSITIVO" onclick="adBoton(this);">Positivo</button>
+                                </div>
+                                <select class="d-none" name="resultadoAlcohol" id="antidopingResultadoAlc" onchange="toggleAntidopingSustancia();" tabindex="-1" aria-hidden="true">
                                     <option value="">Seleccionar</option>
-                                    <option value="AMF">Anfetaminas (AMF)</option>
-                                    <option value="BARB">Barbitúricos (BARB)</option>
-                                    <option value="BENZO">Benzodiacepinas (BENZO)</option>
-                                    <option value="COC">Cocaina (COC)</option>
-                                    <option value="LSD">LSD</option>
-                                    <option value="MET">Metanfetaminas (MET)</option>
-                                    <option value="OPI">Opiaceos (OPI)</option>
-                                    <option value="PVC">Fenciclidina (PVC)</option>
-                                    <option value="THC">Marihuana (THC)</option>
-                                    <option value="SOLVENTE">Solvente</option>
-                                    <option value="OTRO">Otro</option>
+                                    <option value="NEGATIVO">Negativo</option>
+                                    <option value="POSITIVO">Positivo</option>
                                 </select>
+                            </div>
+
+                            <!--/* C-033a (9-nov): la sustancia solo se pide en un antidoping POSITIVO. C-077 (10-nov): se pueden
+                                 marcar varias (fichas «sustancias»). */-->
+                            <div class="col-12" id="antidopingSustanciaWrap" style="display: none;">
+                                <label class="form-label d-block">Sustancias <span class="text-muted fs-sm">(marca todas las que salieron positivas)</span></label>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <label class="chk-ficha" th:each="s : ${ {{'AMF','Anfetaminas (AMF)'},{'BARB','Barbitúricos (BARB)'},{'BENZO','Benzodiacepinas (BENZO)'},{'COC','Cocaína (COC)'},{'LSD','LSD'},{'MET','Metanfetaminas (MET)'},{'OPI','Opiáceos (OPI)'},{'PVC','Fenciclidina (PVC)'},{'THC','Marihuana (THC)'},{'SOLVENTE','Solvente'},{'OTRO','Otro'}} }">
+                                        <input class="form-check-input" type="checkbox" name="sustancias" th:value="${s[0]}">
+                                        <span th:text="${s[1]}">Sustancia</span>
+                                    </label>
+                                </div>
                             </div>
 
                             <div class="col-md-6">
@@ -210,7 +217,7 @@
 
                 <div class="col-12 d-flex justify-content-end">
                     <button type="button" class="btn btn-primary" onclick="guardarAntidoping(this);">
-                        <i class="ri-save-line me-1"></i> Guardar registro
+                        <i class="ri-save-line me-1"></i> Guardar e imprimir FT-SO-14
                     </button>
                 </div>
             </form>

@@ -68,6 +68,13 @@ public class CustodiaService {
         campos.put("HORA", form.getHoraToma());
         campos.put("LUGAR", form.getLugar());
         campos.put("RESPONSABLE", form.getResponsable());
+        // C-077 (10-nov, Word SM punto 15): fecha de aplicacion (el WS solo guarda la de registro) y la lista completa
+        // de sustancias de un antidoping positivo (el WS solo guarda 20 caracteres)
+        campos.put("FECHA_APLICACION", form.getFechaAplicacion());
+        if ("ANTIDOPING".equals(form.getTipoPrueba()) && "POSITIVO".equals(form.getResultado())
+                && form.getSustancias() != null && !form.getSustancias().isEmpty()) {
+            campos.put("SUSTANCIAS", String.join(",", limpias(form.getSustancias())));
+        }
         String usuario = usuarioActual();
         String prefijo = "FTSO14." + id.get() + ".";
         campos.forEach((campo, valor) -> {
@@ -77,6 +84,40 @@ public class CustodiaService {
             }
         });
         return id;
+    }
+
+    /** C-034 / C-077: liga las dos pruebas de la misma toma (antidoping y alcoholimetria) para el FT-SO-14. */
+    public void ligarPar(String nss, String idA, String idB) {
+        String usuario = usuarioActual();
+        tags.upsert(nss, "FTSO14." + idA + ".PAR", idB, GRUPO, usuario);
+        tags.upsert(nss, "FTSO14." + idB + ".PAR", idA, GRUPO, usuario);
+    }
+
+    /** Ancho de SERV_MED_ANTIDOPING_RESULTADO.SUSTANCIA (docs/ords-antidoping.sql): pasarse truena el alta. */
+    static final int ANCHO_SUSTANCIA_WS = 20;
+
+    /**
+     * C-077: lo que va al WS en SUSTANCIA con varias marcadas: las claves separadas por coma si caben en 20
+     * caracteres; si no, «VARIAS» (la lista completa queda en la custodia, tag SUSTANCIAS). Nada marcado = null.
+     */
+    public static String sustanciaParaWs(List<String> sustancias) {
+        List<String> l = sustancias == null ? List.of() : limpias(sustancias);
+        if (l.isEmpty()) {
+            return null;
+        }
+        String unidas = String.join(",", l);
+        return unidas.length() <= ANCHO_SUSTANCIA_WS ? unidas : "VARIAS";
+    }
+
+    /** Texto para el impreso: la lista de la custodia o, si no hay, lo del WS («0» y «VARIAS» sin lista = vacio). */
+    public static String sustanciasTexto(String listaCustodia, String delWs) {
+        String s = listaCustodia != null && !listaCustodia.isBlank() ? listaCustodia : (delWs == null ? "" : delWs);
+        s = s.trim();
+        return "0".equals(s) || "VARIAS".equals(s) ? "" : s.replace(",", ", ");
+    }
+
+    private static List<String> limpias(List<String> l) {
+        return l.stream().filter(x -> x != null && !x.isBlank()).map(String::trim).distinct().toList();
     }
 
     /** Campos de custodia de una prueba (sin el prefijo); vacio para pruebas anteriores al FT-SO-14. */

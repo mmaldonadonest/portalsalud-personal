@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--/*
+  C-069 Prueba de Ishihara (10-nov-2026, Word de SM punto 5; formato «prueba ishihara.xlsx»). Solo examen inicial.
+  Todo viaja en el hidden TAG.EXM_ISHIHARA (JSON: VERSION, R1..R9, RESULTADO, TIPO), que ishiGuardar() (nss-search)
+  reescribe y dispara change para el autoguardado. data-opcional: no cuenta en el avance. Ver Ishihara.java.
+*/-->
+<div th:fragment="captura(it)" class="ishi" data-ishi-raiz
+     th:with="I=${T(com.onest.app.catalog.examen.service.Ishihara).INSTANCIA}, j=${it.value}, ver=${I.version(j)}">
+    <input type="hidden" class="ishi-json" data-opcional th:name="${it.fieldName}" th:value="${it.value}">
+    <div class="ishi-top">
+        <span class="ishi-ayuda"><i class="ri-information-line me-1"></i>Opcional. Elige la versión de la hoja que se aplicó y anota lo que el trabajador ve en cada círculo.</span>
+        <div class="ishi-ver" role="group" aria-label="Versión de la hoja">
+            <span class="fs-sm fw-semibold me-1">Versión</span>
+            <button type="button" th:each="n : ${I.versiones}" class="btn btn-sm btn-outline-primary"
+                    th:classappend="${n == ver and !#strings.isEmpty(I.v(j, 'VERSION'))} ? 'active' : ''"
+                    th:attr="data-ver=${n}" th:text="${n}" onclick="ishiVersion(this);">1</button>
+        </div>
+    </div>
+    <div class="ishi-laminas">
+        <div class="ishi-lam" th:each="k : ${I.laminas}">
+            <img th:src="@{|/img/ishihara/v${ver}-${k}.jpg|}" th:attr="data-k=${k}" alt="" loading="lazy">
+            <input type="text" class="form-control form-control-sm" maxlength="20" th:attr="data-ishi=${'R' + k}, aria-label=|Lámina ${k}|"
+                   th:value="${I.v(j, 'R' + k)}" placeholder="¿Qué ve?" oninput="ishiGuardar(this);">
+        </div>
+    </div>
+    <div class="ishi-res">
+        <span class="fw-semibold me-2">Resultado</span>
+        <div class="exini-chips">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-res="NORMAL"
+                    th:classappend="${I.v(j, 'RESULTADO') == 'NORMAL'} ? 'activo' : ''" onclick="ishiResultado(this);">Normal</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-res="MONOCROMATICO"
+                    th:classappend="${I.v(j, 'RESULTADO') == 'MONOCROMATICO'} ? 'activo' : ''" onclick="ishiResultado(this);">Monocromático</button>
+        </div>
+        <div class="exini-chips ishi-tipos" th:classappend="${I.v(j, 'RESULTADO') != 'MONOCROMATICO'} ? 'ishi-off' : ''">
+            <button type="button" th:each="t : ${I.tipos}" class="btn btn-sm btn-outline-secondary"
+                    th:classappend="${I.v(j, 'TIPO') == t.clave} ? 'activo' : ''" th:attr="data-tipo=${t.clave}"
+                    th:disabled="${I.v(j, 'RESULTADO') != 'MONOCROMATICO'}" th:text="${t.texto}" onclick="ishiTipo(this);">Tipo</button>
+        </div>
+    </div>
+</div>
+
+<!--/* ===================== IMPRESO: la hoja del formato de SM («NOTA MÉDICA»), solo si se capturo algo.
+     Usa d (ExamenDocumentoService.Documento) y el estilo .emle de fragments/formato-emle. */-->
+<!--/* OJO: th:if se evalua antes que th:with en el mismo elemento; por eso el th:with va en el th:block */-->
+<th:block th:fragment="impreso"
+    th:with="I=${T(com.onest.app.catalog.examen.service.Ishihara).INSTANCIA}, j=${d.v('EXM_ISHIHARA')}, ver=${I.version(j)},
+             sx=${#strings.toUpperCase(#strings.trim(d.v('sexo')))}">
+<tr class="hoja" th:if="${I.tieneDatos(j)}"><td><div class="emle ishi-imp">
+    <table class="f enc">
+        <tr>
+            <td style="width:26%; vertical-align:middle; text-align:center">
+                <img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" style="max-width:100%; max-height:48px">
+            </td>
+            <td class="titulo" style="font-size:20px">NOTA MÉDICA</td>
+        </tr>
+    </table>
+    <table class="f" style="margin-top:5px">
+        <tr>
+            <td class="e">NOMBRE</td><td style="width:46%">[[${d.v('nombre')}]] [[${d.v('apellidoP')}]] [[${d.v('apellidoM')}]]</td>
+            <td class="e">SEXO</td>
+            <td class="c" th:text="|FEM [${sx == '2' or #strings.startsWith(sx, 'F') ? 'X' : ' '}]   MASC [${sx == '1' or sx == 'H' or #strings.startsWith(sx, 'MASC') ? 'X' : ' '}]|">FEM [ ] MASC [ ]</td>
+        </tr>
+        <tr><td class="e">FECHA</td><td th:text="${d.v('FECHA_EXAMEN')}"></td><td class="e">AGENCIA</td><td th:text="${d.v('AGENCIA')}"></td></tr>
+        <tr><td class="e">CUENTA</td><td th:text="${d.v('cuenta')}"></td><td class="e">PUESTO</td><td th:text="${d.v('puesto')}"></td></tr>
+    </table>
+    <p style="margin:8px 0 4px"><b>INDICACIONES</b><br>Observa detenidamente los círculos y anota en la línea que está debajo de ellos lo que observas.</p>
+    <table style="width:100%; border-collapse:collapse">
+        <tr th:each="fila : ${ {0, 3, 6} }">
+            <td th:each="c : ${ {1, 2, 3} }" style="width:33%; text-align:center; padding:6px 4px"
+                th:with="k=${fila + c}">
+                <img th:src="@{|/img/ishihara/v${ver}-${k}.jpg|}" alt="" style="width:120px; height:auto">
+                <div style="border-bottom:1px solid #000; width:90px; margin:4px auto 0; min-height:16px; font-weight:bold"
+                     th:text="${I.v(j, 'R' + k)}"></div>
+            </td>
+        </tr>
+    </table>
+    <div style="margin:18px 0 0 auto; width:40%; text-align:center">
+        <img th:if="${d.firmaTrabajador != null}" th:src="${d.firmaTrabajador}" alt="Firma del trabajador" style="max-height:44px">
+        <div style="border-top:1px solid #000">FIRMA</div>
+    </div>
+    <table class="f" style="margin-top:10px">
+        <tr><td class="sec" colspan="4" style="text-align:left">Para ser llenado exclusivamente por servicio médico</td></tr>
+        <tr th:with="res=${I.v(j, 'RESULTADO')}, tipo=${I.v(j, 'TIPO')}">
+            <td class="e" style="width:16%">RESULTADO</td>
+            <td class="c" style="width:22%" th:text="|NORMAL [${res == 'NORMAL' ? 'X' : ' '}]|">NORMAL [ ]</td>
+            <td class="c" style="width:22%" th:text="|MONOCROMÁTICO [${res == 'MONOCROMATICO' ? 'X' : ' '}]|">MONOCROMÁTICO [ ]</td>
+            <td><th:block th:each="t, ts : ${I.tipos}">[[${t.texto}]] [[|[${tipo == t.clave ? 'X' : ' '}]|]]<span th:unless="${ts.last}"> · </span></th:block></td>
+        </tr>
+    </table>
+</div></td></tr>
+</th:block>
+</body>
+</html>

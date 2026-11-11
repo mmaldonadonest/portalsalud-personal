@@ -111,6 +111,9 @@ public class ExamenInicialService {
     private static final int HOJA_HEREDOFAMILIARES = 3;
     private static final Set<String> SIN_NEGADOS = Set.of("Obesidad", "Otras");
     private static final String NEGADOS = "NEGADOS";
+    /** E-030 (10-nov): no cuentan para el avance (FUP puede ir en blanco; genitales cuenta como uno). */
+    private static final String CAMPO_FUP = "SERV_MED_ANT_GIN_OBSTETRICOS.FUP";
+    private static final List<String> GENITALES = List.of("SERV_MED_GENITALES.MASCULINO", "SERV_MED_GENITALES.FEMENINO");
 
     /** Clave del borrador con la agencia elegida (solo existe si la base no trae agencia). */
     private static final String CAMPO_AGENCIA = "agenciaExamen";
@@ -144,7 +147,7 @@ public class ExamenInicialService {
             new Hoja(1, "Ficha", "Ficha de identificación", "Datos del trabajador (vienen del biométrico) y teléfonos de emergencia.", "FICHA", List.of()),
             new Hoja(2, "Laborales", "Antecedentes laborales", "Edad al iniciar, cuántos trabajos, pensión y hasta 4 empleos anteriores.", "LABORAL",
                     List.of("Antecedentes laborales (resumen)")),
-            new Hoja(3, "Heredofamiliares", "Antecedentes heredofamiliares", "Marca Sí solo donde haya antecedente; «Todo normal» pone No y «NEGADOS» en observaciones, como el formato.", "SECCIONES",
+            new Hoja(3, "Heredofamiliares", "Antecedentes heredofamiliares", "Lo normal es Sí (en verde): «Todo normal» pone Sí y «NEGADOS» en observaciones. Marca No donde haya antecedente y escríbelo.", "SECCIONES",
                     List.of("Neurología", "Cardiopatía", "Neumopatía", "Toxicológico", "Nefropatías", "Endocrinas", "Obesidad", "Mentales", "Generales", "Otras")),
             new Hoja(4, "No patológicos", "No patológicos, inmunizaciones y gineco-obstétricos", "", "SECCIONES",
                     List.of("APNP (no patológicos)", "Inmunizaciones", "Gineco-obstétricos (AGO)")),
@@ -154,8 +157,10 @@ public class ExamenInicialService {
             new Hoja(6, "Padecimiento", "Padecimiento actual e interrogatorio", "", "SECCIONES",
                     List.of("Padecimiento actual", "Interrogatorio por aparatos")),
             new Hoja(7, "Exploración", "Exploración física", "Signos vitales, cabeza y cuello. Sí pone el texto del formato («SIN AGREGADOS», «AUSENTES»...); con No escribe el hallazgo.", "EXPLORACION",
-                    List.of("Exploración física", "Cráneo", "Agudeza visual", "Oídos", "Cuello", "Nariz", "Tórax")),
-            new Hoja(8, "Columna y piel", "Columna, abdomen, extremidades, piel y osteomuscular", "Sí pone el texto del formato; con No escribe el hallazgo. «Todo normal» pone Sí en lo que esté vacío. Al final, el cuestionario osteomuscular (FT-SO-05).", "SECCIONES",
+                    // C-069 (10-nov): Ishihara junto a Agudeza visual (opcional)
+                    List.of("Exploración física", "Cráneo", "Agudeza visual",
+                            com.onest.app.catalog.examen.service.Ishihara.SECCION, "Oídos", "Cuello", "Nariz", "Tórax")),
+            new Hoja(8, "Columna y piel", "Columna, abdomen, extremidades, piel y osteomuscular", "Sí pone el texto del formato; con No escribe el hallazgo. «Todo normal» pone Sí en todo el bloque. Al final, el cuestionario osteomuscular (FT-SO-05).", "SECCIONES",
                     // FT-SO-05 (9-nov-2026): el cuestionario osteomuscular va en todos los examenes; aqui, junto a columna y extremidades
                     List.of("Columna vertebral", "Columna (movilidad)", "Abdomen", "Genitales", "Urinario", "Extremidades", "Piel",
                             com.onest.app.catalog.examen.service.Osteomuscular.SECCION)),
@@ -267,6 +272,22 @@ public class ExamenInicialService {
         return Candado.ABIERTO;
     }
 
+    /**
+     * C-068 (10-nov-2026, Word de SM punto 4: "quitar bloqueo y candado... hay actualizaciones periodicas"):
+     * en la pantalla del examen inicial el candado ya NO bloquea; se convierte en aviso (bloqueado=false,
+     * motivo = texto del aviso). La regla {@link #candado} sigue igual para la integracion OCR, que la usa
+     * para no crear solicitudes de nuevo ingreso a quien ya es empleado.
+     */
+    static Candado avisoActualizacion(Candado c) {
+        if (c == null || !c.bloqueado()) {
+            return Candado.ABIERTO;
+        }
+        String m = c.motivo();
+        int corte = m.indexOf(" El examen inicial es solo de nuevo ingreso");
+        return new Candado(false, (corte > 0 ? m.substring(0, corte) : m)
+                + " Puedes actualizarlo aquí: al finalizar se registra como un nuevo examen inicial.");
+    }
+
     /** true si el biometrico lo tiene como empleado con registro (no candidato OCR ni "Sin Registro de Usuario"). */
     private boolean esEmpleadoEnBiometrico(String nss) {
         try {
@@ -335,8 +356,13 @@ public class ExamenInicialService {
                         value = "0";
                     }
                     if (h.numero() == HOJA_HEREDOFAMILIARES && "SINO".equals(it.type())) {
+                        // C-070 (10-nov, Word SM punto 6, confirmado por el usuario): en heredofamiliares lo
+                        // normal es Sí (en verde) con "NEGADOS". Lo vacio abre asi; lo ya guardado no se toca.
                         if (vacio) {
-                            value = "0";
+                            value = "1";
+                            if (it.obsName() != null && (obs == null || obs.isBlank()) && !SIN_NEGADOS.contains(nombre)) {
+                                obs = NEGADOS;
+                            }
                         }
                         // todo No sin observacion lleva "NEGADOS", tambien el No de un examen anterior
                         if ("0".equals(value) && it.obsName() != null && (obs == null || obs.isBlank())
@@ -352,7 +378,15 @@ public class ExamenInicialService {
                             || "SERV_MED_ANT_PATOLOGICOS.HIGIENE_PERSONAL".equals(it.fieldName())
                             || "SERV_MED_ANT_PATOLOGICOS.ALIMENTACION".equals(it.fieldName())
                             // FT-SO-05 (10-nov, decision del usuario): cuestionario opcional, no baja el avance
-                            || "OSTEO".equals(it.type())) {
+                            || "OSTEO".equals(it.type())
+                            // C-069: Ishihara tambien es opcional
+                            || "ISHIHARA".equals(it.type())
+                            // E-030 (10-nov, Word SM punto 9): FUP puede quedar en blanco (sin partos; punto 7)
+                            || CAMPO_FUP.equals(it.fieldName())
+                            // C-066: la observacion de cada renglon de Lenguaje es opcional
+                            || ExamenService.LENGUAJE_OBS.stream().anyMatch(o -> ("TAG." + o).equals(it.fieldName()))
+                            // Genitales: se captura UNO (masculino o femenino); cuenta abajo como un solo campo
+                            || GENITALES.contains(it.fieldName())) {
                         continue;   // no se captura en pantalla: no cuenta para el avance
                     }
                     n++;
@@ -360,6 +394,15 @@ public class ExamenInicialService {
                         capturados++;
                     } else {
                         faltantes.add(nombre + " › " + it.label());
+                    }
+                }
+                if ("Genitales".equals(nombre)) {
+                    // antes contaban los dos y el que no aplica quedaba siempre "faltante" (avance en 99%)
+                    n++;
+                    if (GENITALES.stream().anyMatch(g -> valores.get(g) != null && !valores.get(g).isBlank())) {
+                        capturados++;
+                    } else {
+                        faltantes.add(nombre + " › Masculino o Femenino");
                     }
                 }
                 secciones.add(new SeccionVista(nombre, items, valores));
@@ -419,7 +462,7 @@ public class ExamenInicialService {
 
         int hojaActual = borrador.map(Borrador::hojaActual).filter(x -> x >= 1 && x <= HOJAS.size()).orElse(1);
         int avance = total == 0 ? 0 : (int) Math.round(100.0 * capturadosTotal / total);
-        Candado candado = candado(limpio, ultimo.isPresent(), esEmpleado);
+        Candado candado = avisoActualizacion(candado(limpio, ultimo.isPresent(), esEmpleado));
         // Integracion OCR: si hay solicitud viva para este NSS pasa a EN_CAPTURA y, si nadie la
         // atiende, queda asignada a quien la abre. Si la tiene otro usuario, se avisa (atendidoPorOtro)
         // y finalizar() lo rechaza hasta que la "tome".
@@ -501,10 +544,8 @@ public class ExamenInicialService {
         Map<String, String> b = borrador.datos();
 
         // El candado se vuelve a evaluar aqui, no solo en pantalla
-        Candado candado = candado(limpio, borradores.ultimoFinalizado(limpio).isPresent());
-        if (candado.bloqueado()) {
-            throw new IllegalArgumentException(candado.motivo());
-        }
+        // C-068 (10-nov, Word SM punto 4): ya no se bloquea finalizar a un empleado con examen previo
+        // (SM manda actualizaciones periodicas por aqui); en pantalla queda como aviso (avisoActualizacion).
         // Solo quien tiene asignada la solicitud puede finalizar (dos usuarios sobre el mismo examen)
         try {
             String yo = usuarioActual();

@@ -5,7 +5,10 @@
   Una seccion del examen (U07). type = SINO | TEXT | DATE | AREA | RESULTADO | OPCION | OCULTO. Pre-cargada.
   name = clave punteada (p.ej. NEUROLOGIA.AVC) para el futuro guardado completo.
 -->
-<div th:fragment="seccion" class="card bg-light mb-3 exsec" th:attr="data-seccion=${seccion}"
+<!--/* C-075 (11-nov): data-emni = campos que se llenaron con el ultimo examen inicial (solo lo vacio); el JS de
+     nss-search (exSecMarcarEmni) los pinta para que el medico los revise. */-->
+<div th:fragment="seccion" class="card bg-light mb-3 exsec" th:attr="data-seccion=${seccion}, data-emni=${#strings.isEmpty(emniTomados) ? null : emniTomados}"
+     th:classappend="${seccion == 'Gineco-obstétricos (AGO)' and #lists.isEmpty(items.?[value == null or !#strings.equalsIgnoreCase(#strings.trim(value), 'N/A')])} ? 'ago-na' : ''"
      th:with="conAyuda=${conAyuda == true},
               conObs=${!#lists.isEmpty(items.?[type == 'SINO' and obsName != null])},
               modoNormal=${conAyuda} ? 'okno' : (${conObs} ? (${seccion == 'Obesidad' or seccion == 'Otras'} ? 'sino' : 'negados') : (${#strings.startsWith(seccion, 'APP:') or seccion == 'Antecedentes laborales específicos'} ? 'sino' : ''))">
@@ -13,11 +16,22 @@
          formato en lo vacio; antecedentes = No con "NEGADOS" en la observacion. No pisa lo capturado. -->
     <div class="card-header py-2 d-flex justify-content-between align-items-center">
         <strong th:text="${seccion}">Seccion</strong>
+        <span class="badge emni-badge me-auto ms-2" th:if="${!#strings.isEmpty(emniFecha)}"
+              th:title="|Lo marcado en amarillo estaba vacío y se tomó del examen inicial del ${emniFecha}. Revísalo o cámbialo antes de guardar.|">
+            <i class="ri-file-copy-line me-1"></i>Del examen inicial (<span th:text="${emniFecha}">dd/mm/aaaa</span>): revisa lo marcado
+        </span>
         <button type="button" class="btn btn-sm btn-outline-success" th:if="${!#strings.isEmpty(modoNormal)}"
                 th:attr="data-modo=${modoNormal}" onclick="exSecTodoNormal(this);"
                 th:title="${modoNormal == 'okno'} ? 'OK con el texto del formato en lo que esté vacío' : (${modoNormal == 'negados'} ? 'No con observación NEGADOS en lo que esté vacío' : 'No en lo que esté vacío')">
             <i class="ri-check-double-line me-1"></i>Todo normal
         </button>
+        <!--/* C-071 (10-nov, Word SM punto 7): Gineco-obstetricos «No aplica» (hombres, menores): todo N/A */-->
+        <div class="form-check form-switch mb-0" th:if="${seccion == 'Gineco-obstétricos (AGO)'}"
+             th:with="na=${#lists.isEmpty(items.?[value == null or !#strings.equalsIgnoreCase(#strings.trim(value), 'N/A')])}"
+             title="Encendido: toda la sección en N/A (hombres o menores). Apagado: borra solo los N/A">
+            <input class="form-check-input" type="checkbox" role="switch" id="exSecAgoNa" data-ago th:checked="${na}" onchange="agoNoAplica(this);">
+            <label class="form-check-label" for="exSecAgoNa">No aplica</label>
+        </div>
         <!-- Inmunizaciones (16-oct-2026): marca las 7 vacunas de un jalon; COVID no (va por dosis) -->
         <div class="d-flex gap-2" th:if="${seccion == 'Inmunizaciones'}">
             <button type="button" class="btn btn-sm btn-outline-success" onclick="exSecTodasVacunas(this, '1');">
@@ -89,15 +103,16 @@
                     <small th:if="${!#strings.isEmpty(it.value) and it.value != '0' and it.value != '1'}"
                            class="text-muted" th:text="|(antes: ${it.value})|"></small>
                   </div>
-                  <!--/* C-009: la fecha va junto a Influenza y con su nombre; al final y como "Fecha" no se
-                       sabia de que vacuna era (parecia de Td). */-->
-                  <th:block th:if="${f == 'INFLUENZA'}">
-                    <div class="celda" th:each="it : ${items}" th:if="${it.fieldName == 'TAG.fechaINFLUEN'}">
-                        <span class="lbl" style="flex: 0 0 auto;">Fecha influenza</span>
-                        <input type="date" class="form-control form-control-sm" th:name="${it.fieldName}" th:value="${it.value}">
-                    </div>
-                  </th:block>
                 </th:block>
+            </div>
+            <!--/* C-072 (10-nov, Word SM punto 10): fechas como en el examen inicial. Antes la de influenza iba dentro
+                 de una celda de la cuadricula y se cortaba; ahora las fechas (influenza, Td) van en su renglon, con su
+                 nombre arriba, y COVID con su fecha al lado. Fecha Td no se veia en este modulo. */-->
+            <div class="row g-3 mb-2">
+                <div class="col-sm-6 col-md-4" th:each="it : ${items}" th:if="${it.type == 'DATE' and it.fieldName != 'SERV_MED_INMUNIZACIONES.FECHA'}">
+                    <label class="form-label mb-1" th:text="${it.label}">Fecha influenza</label>
+                    <input type="date" class="form-control form-control-sm" th:name="${it.fieldName}" th:value="${it.value}">
+                </div>
             </div>
             <div class="row g-3">
                 <div class="col-md-7" th:each="it : ${items}" th:if="${it.type == 'DOSIS'}">

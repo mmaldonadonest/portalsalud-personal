@@ -140,6 +140,9 @@ public class ExamenService {
         return new Campo(tag, l, tipo, false, tag);
     }
 
+    /** C-066: observaciones de Lenguaje (tags), en el orden voz clara, conversacion fluida, coherencia. */
+    public static final List<String> LENGUAJE_OBS = List.of("EXM_LENGUAJE_OBS", "EXM_CONVER_FLUIDA_OBS", "EXM_COHERENCIA_OBS");
+
     /** Prefijo de las claves de formulario que van a SERV_MED_TAG y no al WS. */
     private static final String PREFIJO_TAG = "TAG.";
     private static final String GRUPO_TAG_FISICO = "EXAMEN_FISICO";
@@ -507,7 +510,12 @@ public class ExamenService {
                 oculto("ICTERICA", "Ictérica"), oculto("ANEMICA", "Anémica"), oculto("TIROIDEA", "Tiroidea"),
                 oculto("NOLMAL_FASCIES", "Facies normal"), opcion("PARKINSON", "Marcha"), oculto("HEMIPLEJICO", "Hemipléjico"),
                 oculto("ATAXICA", "Atáxica"), oculto("HEMIPARESIA", "Hemiparesia"), oculto("NORMAL_MARCHA", "Marcha normal"),
-                text("LENGUAJE", "Lenguaje"), text("CONVER_FLUIDA", "Conversación fluida"), text("COHERENCIA_PALABLAS", "Coherencia de palabras"))));
+                text("LENGUAJE", "Lenguaje"), text("CONVER_FLUIDA", "Conversación fluida"), text("COHERENCIA_PALABLAS", "Coherencia de palabras"),
+                // C-066 (10-nov, Word SM punto 1): caja de texto en cada renglon de Lenguaje. El WS no tiene
+                // columna para la observacion: va a SERV_MED_TAG, como Oidos. Opcional (no cuenta en el avance).
+                tagSolo(LENGUAJE_OBS.get(0), "Voz clara y fuerte (observación)"),
+                tagSolo(LENGUAJE_OBS.get(1), "Conversación fluida (observación)"),
+                tagSolo(LENGUAJE_OBS.get(2), "Coherencia de palabras (observación)"))));
         CATALOGO.put("Cráneo", new Seccion("SERV_MED_CRANEO", List.of(
                 text("OJOS", "Ojos"), text("PUPILAS", "Pupilas"), text("CONJUNTIVAS", "Conjuntivas"),
                 text("REFLEJOS", "Reflejos"), text("FONDO_OJO", "Fondo de ojo"))));
@@ -568,6 +576,11 @@ public class ExamenService {
                 text("DIENTE_35", "35"), text("DIENTE_36", "36"), text("DIENTE_37", "37"), text("DIENTE_38", "38"),
                 text("DIENTE_41", "41"), text("DIENTE_42", "42"), text("DIENTE_43", "43"), text("DIENTE_44", "44"),
                 text("DIENTE_45", "45"), text("DIENTE_46", "46"), text("DIENTE_47", "47"), text("DIENTE_48", "48"))));
+
+        // C-069 (10-nov-2026): prueba de Ishihara, todo en un tag JSON (ver Ishihara). Solo la pinta el examen
+        // inicial (hoja de Exploracion); NO va en GRUPOS, asi que el modulo Examen medico no la muestra.
+        CATALOGO.put(Ishihara.SECCION, new Seccion("SERV_MED_ISHIHARA", List.of(
+                tagCampo("ISHIHARA", Ishihara.TAG, "Prueba de Ishihara"))));
 
         // ---- Estudios / Diagnostico / Plan / Resultado ----
         CATALOGO.put("Estudios realizados", new Seccion("SERV_MED_ESTUDIOS_REALIZADOS", List.of(
@@ -854,6 +867,15 @@ public class ExamenService {
         return t;
     }
 
+    /**
+     * C-075 (11-nov-2026): items de una seccion armados desde un mapa ya aplanado (la foto del historico: datos
+     * del WS + TAG.*), con las mismas reglas de lectura que la pantalla. Lista vacia si la seccion no existe.
+     */
+    public static List<ExamItem> itemsDesdeDatos(String seccion, Map<String, String> data) {
+        Seccion sec = CATALOGO.get(seccion);
+        return sec == null || data == null ? List.of() : itemsDesde(sec, data);
+    }
+
     private static List<ExamItem> itemsDesde(Seccion sec, Map<String, String> data) {
         List<ExamItem> items = new ArrayList<>();
         for (Campo campo : sec.campos()) {
@@ -863,7 +885,8 @@ public class ExamenService {
                 String deTag = mostrable(data.get(PREFIJO_TAG + campo.tag()));
                 String valor = deTag.isBlank()
                         ? mostrable(ExamenClaves.leer(data, sec.dataKey() + "." + campo.field())) : deTag;
-                items.add(new ExamItem(campo.type(), campo.label(), PREFIJO_TAG + campo.tag(), valor, null, null));
+                items.add(new ExamItem(campo.type(), campo.label(), PREFIJO_TAG + campo.tag(),
+                        "DATE".equals(campo.type()) ? fechaParaControl(valor) : valor, null, null));
                 continue;
             }
             String base = sec.dataKey() + "." + campo.field();
@@ -878,9 +901,31 @@ public class ExamenService {
             String value = "RESULTADO".equals(campo.type())
                     ? dictamenDesdeFlags(data, sec.dataKey())
                     : mostrable(ExamenClaves.leer(data, base));
+            if ("DATE".equals(campo.type())) {
+                value = fechaParaControl(value);
+            }
             items.add(new ExamItem(campo.type(), campo.label(), base, value, obsName, obsValue));
         }
         return items;
+    }
+
+    /**
+     * C-072 (10-nov-2026, Word SM punto 10): el control de fecha solo acepta aaaa-mm-dd; si el WS devuelve
+     * dd/mm/aaaa (o con hora) la fecha se veia en blanco aunque estuviera guardada (Fecha COVID del periodico).
+     * Lo que no se reconoce se deja igual.
+     */
+    static String fechaParaControl(String v) {
+        String f = v == null ? "" : v.trim();
+        java.util.regex.Matcher iso = java.util.regex.Pattern.compile("^(\\d{4})-(\\d{2})-(\\d{2})").matcher(f);
+        if (iso.find()) {
+            return iso.group(1) + "-" + iso.group(2) + "-" + iso.group(3);
+        }
+        java.util.regex.Matcher dmy = java.util.regex.Pattern.compile("^(\\d{1,2})[/-](\\d{1,2})[/-](\\d{4})").matcher(f);
+        if (dmy.find()) {
+            return dmy.group(3) + "-" + String.format("%02d", Integer.parseInt(dmy.group(2)))
+                    + "-" + String.format("%02d", Integer.parseInt(dmy.group(1)));
+        }
+        return f;
     }
 
     /**

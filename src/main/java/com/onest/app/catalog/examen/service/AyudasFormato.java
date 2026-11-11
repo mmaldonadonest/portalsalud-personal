@@ -101,7 +101,8 @@ public final class AyudasFormato {
         m.put("SERV_MED_GENITALES.MASCULINO", Ayuda.texto("DIFERIDO"));
         m.put("SERV_MED_GENITALES.FEMENINO", Ayuda.texto("DIFERIDO"));
         m.put("SERV_MED_URINARIO.PUNTOS_URETRALES", negativo);
-        m.put("SERV_MED_URINARIO.FOSAS_RENALES", sa);
+        // C-067 (10-nov, Word SM punto 3: "quitar SIDP y colocar SDPA, es decir dejar SDPA"): lo normal es SDPA
+        m.put("SERV_MED_URINARIO.FOSAS_RENALES", Ayuda.texto("SDPA"));
         m.put("SERV_MED_EXTREMIDADES.SUPERIOR", sa);
         m.put("SERV_MED_EXTREMIDADES.INFERIOR", sa);
         m.put("SERV_MED_EXTREMIDADES.IVP", ausente);

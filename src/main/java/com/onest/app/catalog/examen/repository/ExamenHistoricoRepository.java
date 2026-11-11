@@ -49,6 +49,23 @@ public class ExamenHistoricoRepository {
         return listar(nss, 1).stream().findFirst();
     }
 
+    /** Foto del ultimo examen inicial finalizado (C-075, 11-nov-2026): fecha y DATOS (JSON {clave: valor}). */
+    public record Foto(LocalDateTime fecha, String datosJson) {
+    }
+
+    /**
+     * C-075: el ultimo examen INICIAL con su foto, para complementar los demas examenes (Examen medico).
+     * Vacio si la persona no tiene examen inicial en el portal.
+     */
+    public Optional<Foto> ultimoInicial(String nss) {
+        List<Foto> rows = jdbc.query(
+                "SELECT FECHA_EXAMEN, DATOS FROM SERV_MED_EXAMEN_HISTORICO WHERE NSS = ? AND ORIGEN = ?"
+                        + " ORDER BY FECHA_EXAMEN DESC, ID DESC FETCH FIRST 1 ROWS ONLY",
+                (rs, i) -> new Foto(rs.getTimestamp("FECHA_EXAMEN").toLocalDateTime(), rs.getString("DATOS")),
+                nss, ORIGEN_INICIAL);
+        return rows.stream().findFirst();
+    }
+
     public boolean existeInicial(String nss) {
         Integer n = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM SERV_MED_EXAMEN_HISTORICO WHERE NSS = ? AND ORIGEN = ?", Integer.class, nss, ORIGEN_INICIAL);

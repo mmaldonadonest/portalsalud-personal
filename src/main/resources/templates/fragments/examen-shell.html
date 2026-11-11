@@ -441,7 +441,7 @@
                     <h2 class="accordion-header" id="examenExtraHeader1">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                                 data-bs-target="#examenExtraBody1" aria-expanded="false" aria-controls="examenExtraBody1">
-                            Contactos de emergencia
+                            Teléfono y contactos de emergencia
                         </button>
                     </h2>
                     <div class="accordion-collapse collapse" id="examenExtraBody1"
@@ -449,6 +449,15 @@
                         <div class="accordion-body" id="contactosEmergencia">
                             <form id="contactosEmergenciaForm" class="row g-3" novalidate>
                                 <input type="hidden" name="nss" th:value="${nss}">
+                                <!--/* C-074 (10-nov, Word SM punto 12): telefono actualizado como en el examen inicial; solo
+                                     Portal Salud (tag TELSALUD), el biometrico no se toca. Visible con mascara; viaja el hidden. */-->
+                                <div class="col-md-4">
+                                    <label class="form-label fs-sm mb-1">Teléfono actualizado del trabajador</label>
+                                    <input type="hidden" name="telefonoSalud" th:value="${telefonoSalud}">
+                                    <input type="tel" inputmode="numeric" maxlength="12" placeholder="55 1234 5678" title="10 dígitos (lada + número)"
+                                           class="form-control form-control-sm" th:value="${telefonoSalud}" oninput="exIniMascaraTel(this);" onfocus="exIniMascaraTel(this);">
+                                    <div class="fs-xs text-muted mt-1">Se guarda solo en Portal Salud.</div>
+                                </div>
                                 <div th:each="c : ${contactos}" class="col-12">
                                     <div class="text-uppercase fs-xs text-muted fw-semibold mb-2"
                                          th:text="'Contacto ' + ${c.indice}">Contacto</div>
@@ -478,7 +487,7 @@
                                 <div class="col-12 d-flex justify-content-end align-items-center gap-3">
                                     <span id="contactosEmergenciaResult" class="fs-sm"></span>
                                     <button type="button" class="btn btn-sm btn-primary" onclick="guardarContactosEmergencia(this);">
-                                        <i class="ri-save-line me-1"></i> Guardar contactos
+                                        <i class="ri-save-line me-1"></i> Guardar teléfono y contactos
                                     </button>
                                 </div>
                             </form>

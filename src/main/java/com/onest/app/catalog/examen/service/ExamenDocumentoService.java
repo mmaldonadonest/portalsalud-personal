@@ -343,6 +343,17 @@ public class ExamenDocumentoService {
     /** Telefono del trabajador actualizado en el examen: solo Portal Salud, no toca el biometrico. */
     public static final String TAG_TELEFONO = "TELSALUD";
 
+    /**
+     * C-074 (10-nov-2026, Word SM punto 12): el examen periodico tambien actualiza el telefono, igual que el
+     * inicial (mismo tag y grupo). Vacio = no se toca lo que ya habia.
+     */
+    public void guardarTelefonoSalud(String nss, String telefono, String usuario) {
+        String t = telefono == null ? "" : telefono.replaceAll("\\D", "");
+        if (!t.isEmpty()) {
+            tags.upsert(nss.trim(), TAG_TELEFONO, t, "PERMISO_EXAMEN", usuario);
+        }
+    }
+
     /** Telefono capturado en Portal Salud, o vacio si no hay. */
     public String telefonoSalud(String nss) {
         try {
@@ -468,6 +479,10 @@ public class ExamenDocumentoService {
             if (e.getKey() != null && e.getKey().startsWith("EXM_")) {
                 v.put(e.getKey(), e.getValue() == null ? "" : e.getValue().trim());
             }
+        }
+        // C-075 (11-nov): Hematopatias y Transfusionales («APP: otros») salian en blanco fijo en el FT-SO-17/16/18/20
+        for (String t : List.of("APPHEMATOPATIAS", "APPTRANSFUSIONALES")) {
+            v.putIfAbsent(t, limpio(tagValues.get(t)));
         }
         // Encabezado de calidad segun el tipo de examen (codigo crudo, antes de pasarlo a texto)
         Encabezado enc = encabezado(limpio(v.get("tipoExamenInputO")));

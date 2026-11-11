@@ -111,6 +111,9 @@
         /* 9-nov: con 7 columnas COVID y su fecha no cabian (los botones se partian y la fecha salia del
            recuadro). Quedan 5 columnas y COVID con su fecha en un tercer renglon. */
         .exini-sinos.inmunizaciones { display: grid; grid-template-columns: auto auto auto auto minmax(150px, 1fr); column-gap: 18px; align-items: center; }
+        /* C-070 (10-nov, Word SM punto 6): en heredofamiliares (hoja 3) lo normal es Sí: Sí en verde, No en rojo */
+        section[data-hoja="3"] .exini-sino .btn.activo-si { background: #2B9138; border-color: #2B9138; color: #fff; }
+        section[data-hoja="3"] .exini-sino .btn.activo-no { background: #B42318; border-color: #B42318; color: #fff; }
         .exini-sinos.inmunizaciones .exini-sino .btn.activo-si { background: #2B9138; border-color: #2B9138; color: #fff; }
         .exini-sinos.inmunizaciones .exini-sino .btn.activo-no { background: #B42318; border-color: #B42318; color: #fff; }
         .exini-sinos.inmunizaciones > .exini-inm-extra { padding: 4px 0; }
@@ -186,7 +189,12 @@
                 <span th:if="${v.solicitud.atendidoAt != null}" th:text="'desde las ' + ${#temporals.format(v.solicitud.atendidoAt, 'HH:mm')}">desde</span>
                 · solicitud <span th:text="${v.solicitud.referencia}">ref</span>
             </div>
-            <div class="alert alert-warning py-2 px-3 fs-sm" th:if="${v.ultimoFinalizado != null and !v.candado.bloqueado}">
+            <!-- C-068 (10-nov): a un empleado con examen previo ya no se le bloquea; solo se avisa -->
+            <div class="alert alert-warning py-2 px-3 fs-sm" th:if="${!v.candado.bloqueado and !#strings.isEmpty(v.candado.motivo)}">
+                <i class="ri-refresh-line me-1"></i>
+                <strong>Actualización.</strong> <span th:text="${v.candado.motivo}">motivo</span>
+            </div>
+            <div class="alert alert-warning py-2 px-3 fs-sm" th:if="${v.ultimoFinalizado != null and !v.candado.bloqueado and #strings.isEmpty(v.candado.motivo)}">
                 <i class="ri-information-line me-1"></i>
                 Este trabajador ya tiene un examen inicial finalizado el
                 <strong th:text="${#temporals.format(v.ultimoFinalizado.fecha, 'dd/MM/yyyy HH:mm')}">fecha</strong>
@@ -282,6 +290,7 @@
 
                     <!-- Secciones del catalogo del examen -->
                     <div class="exini-bloque" th:each="s, sStat : ${h.secciones}"
+                         th:classappend="${s.nombre == 'Gineco-obstétricos (AGO)' and #lists.isEmpty(s.items.?[value == null or !#strings.equalsIgnoreCase(#strings.trim(value), 'N/A')])} ? 'ago-na' : ''"
                          th:with="tieneSino=${!#lists.isEmpty(s.items.?[type == 'SINO'])},
                                   esDientes=${s.nombre == 'Dientes'},
                                   esExploracion=${s.nombre == 'Exploración física'},
@@ -293,11 +302,19 @@
                             <!-- modos: exploracion (aspecto general), negados (heredofamiliares: No + "NEGADOS"
                                  como el FT-SO-04), sino (todo No), okno (OK con el texto del formato) -->
                             <div class="form-check form-switch exini-switch" th:if="${(esExploracion or tieneSino or conAyuda) and s.nombre != 'Genitales'}"
-                                 th:title="${esExploracion} ? 'Encendido: Sí, serenidad y normal en lo sin contestar (no toca signos vitales). Apagado: limpia el bloque' : (${negados} ? 'Encendido: todo en No con observación NEGADOS. Apagado: todo sin contestar' : (${tieneSino} ? 'Encendido: todo en No. Apagado: todo sin contestar' : 'Encendido: Sí con el texto del formato en lo que esté vacío. Apagado: todo vacío'))">
+                                 th:title="${esExploracion} ? 'Encendido: Sí, serenidad y normal en lo sin contestar (no toca signos vitales). Apagado: limpia el bloque' : (${negados} ? 'Encendido: todo en Sí con observación NEGADOS. Apagado: todo sin contestar' : (${tieneSino} ? 'Encendido: todo en No. Apagado: todo sin contestar' : 'Encendido: Sí en todo el bloque (lo escrito se conserva; lo vacío toma el texto del formato). Apagado: todo vacío'))">
                                 <input class="form-check-input" type="checkbox" role="switch" th:id="|exIniSw${h.hoja.numero}_${sStat.index}|"
-                                       th:attr="data-modo=${esExploracion} ? 'exploracion' : (${negados} ? 'negados' : (${conAyuda} ? 'okno' : 'sino'))"
+                                       th:attr="data-modo=${esExploracion} ? 'exploracion' : (${negados} ? 'negados' : (${conAyuda} ? 'okno' : (${h.hoja.numero == 3} ? 'si' : 'sino')))"
                                        onchange="exIniSwitchNormal(this);">
                                 <label class="form-check-label" th:for="|exIniSw${h.hoja.numero}_${sStat.index}|">Todo normal</label>
+                            </div>
+                            <!--/* C-071 (10-nov, Word SM punto 7): Gineco-obstetricos «No aplica» (hombres, menores): todo N/A */-->
+                            <div class="form-check form-switch exini-switch" th:if="${s.nombre == 'Gineco-obstétricos (AGO)'}"
+                                 th:with="na=${#lists.isEmpty(s.items.?[value == null or !#strings.equalsIgnoreCase(#strings.trim(value), 'N/A')])}"
+                                 title="Encendido: toda la sección en N/A (hombres o menores). Apagado: borra solo los N/A">
+                                <input class="form-check-input" type="checkbox" role="switch" th:id="|exIniAgo${h.hoja.numero}|"
+                                       data-ago th:checked="${na}" onchange="agoNoAplica(this);">
+                                <label class="form-check-label" th:for="|exIniAgo${h.hoja.numero}|">No aplica</label>
                             </div>
                         </div>
 
@@ -400,14 +417,18 @@
                                     <label class="form-check-label" th:for="|exIniSwLen${h.hoja.numero}|">Todo Sí</label>
                                 </div>
                             </div>
-                            <div class="exini-fila" th:each="c : ${ {'LENGUAJE':'Voz clara y fuerte','CONVER_FLUIDA':'Conversación fluida','COHERENCIA_PALABLAS':'Coherencia de palabras'} }" th:with="n=${p + c.key}, val=${ef.get(n)}">
+                            <!--/* C-066 (10-nov, Word SM punto 1): caja de texto en cada renglon, como Craneo. Opcional; va a
+                                 SERV_MED_TAG (ExamenService.LENGUAJE_OBS) y sale en el impreso junto al Si o No. */-->
+                            <div class="exini-fila" th:each="c, cs : ${ {'LENGUAJE':'Voz clara y fuerte','CONVER_FLUIDA':'Conversación fluida','COHERENCIA_PALABLAS':'Coherencia de palabras'} }"
+                                 th:with="n=${p + c.key}, val=${ef.get(n)}, nObs=${'TAG.' + T(com.onest.app.catalog.examen.service.ExamenService).LENGUAJE_OBS.get(cs.index)}">
                                 <span class="lbl" th:text="${c.value}">Campo</span>
                                 <div class="btn-group exini-sino" role="group" tabindex="0" onkeydown="exIniTecla(this, event);">
                                     <input type="hidden" th:name="${n}" th:value="${val}">
                                     <button type="button" class="btn btn-outline-secondary" th:classappend="${val == '1'} ? 'activo-si' : ''" onclick="exIniSino(this, '1');">Sí</button>
                                     <button type="button" class="btn btn-outline-secondary" th:classappend="${val == '0'} ? 'activo-no' : ''" onclick="exIniSino(this, '0');">No</button>
                                 </div>
-                                <span></span>
+                                <input type="text" class="form-control form-control-sm" data-opcional th:name="${nObs}" th:value="${ef.get(nObs)}"
+                                       placeholder="Observación (opcional)" maxlength="200">
                             </div>
                             </div>
 
@@ -536,6 +557,10 @@
                         <th:block th:each="it : ${s.items}" th:if="${it.type == 'OSTEO'}">
                             <th:block th:replace="~{fragments/osteomuscular :: captura(${it})}"></th:block>
                         </th:block>
+                        <!--/* C-069 (10-nov): prueba de Ishihara, captura propia (fragments/ishihara) */-->
+                        <th:block th:each="it : ${s.items}" th:if="${it.type == 'ISHIHARA'}">
+                            <th:block th:replace="~{fragments/ishihara :: captura(${it})}"></th:block>
+                        </th:block>
 
                         <!-- Resto: texto / fecha / area / resultado en cuadricula -->
                         <div class="exini-grid" th:if="${!esDientes and !esExploracion and !esApnp and s.nombre != 'Inmunizaciones'}" th:with="otros=${s.items.?[type != 'SINO']}">
@@ -552,7 +577,7 @@
                                               iso=${val.matches('[0-9]{2}/[0-9]{2}/[0-9]{4}') ? val.substring(6,10) + '-' + val.substring(3,5) + '-' + val.substring(0,2) : (val.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}') ? val : '')}">
                                         <input type="hidden" th:name="${it.fieldName}" th:value="${val}">
                                         <input type="date" class="form-control form-control-sm" th:value="${iso}" onchange="exIniFechaTexto(this);">
-                                        <span class="fs-xs text-muted" th:if="${iso == '' and val != ''}" th:text="'Capturado antes: ' + ${val}">antes</span>
+                                        <span class="fs-xs text-muted" th:if="${iso == '' and val != '' and val != 'N/A'}" th:text="'Capturado antes: ' + ${val}">antes</span>
                                     </th:block>
                                     <input th:if="${!numerico and !numAgo and !fechaAgo}" type="text" class="form-control form-control-sm" data-tipo="TEXT" th:name="${it.fieldName}" th:value="${it.value}">
                                 </div>

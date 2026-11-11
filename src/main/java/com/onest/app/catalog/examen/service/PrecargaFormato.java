@@ -32,12 +32,116 @@ public class PrecargaFormato {
     private final IncapacidadService incapacidades;
     private final NssSearchService nssSearch;
     private final DatosGeneralesExamenService datosGenerales;
+    private final com.onest.app.catalog.examen.repository.ExamenHistoricoRepository historico;
+    private final ExamenService examenService;
 
     public PrecargaFormato(IncapacidadService incapacidades, NssSearchService nssSearch,
-                           DatosGeneralesExamenService datosGenerales) {
+                           DatosGeneralesExamenService datosGenerales,
+                           com.onest.app.catalog.examen.repository.ExamenHistoricoRepository historico,
+                           ExamenService examenService) {
         this.incapacidades = incapacidades;
         this.nssSearch = nssSearch;
         this.datosGenerales = datosGenerales;
+        this.historico = historico;
+        this.examenService = examenService;
+    }
+
+    // ============================================================================================
+    // C-075 (11-nov-2026, Word SM punto 13 + notas de la reunion con SM): el EMNI «solo como complemento».
+    // En Periodico (2), Cambio de puesto (3), Post incapacidad (4), Egreso (6) y Periodico mantenimiento (8),
+    // lo que el examen deje VACIO se llena con el ultimo examen inicial del portal (foto del historico), solo
+    // en lo que pide el formato del tipo (VisibilidadTipo) y se marca en pantalla para que el medico lo revise.
+    // No se traen ficha (biometrico), laborales (propios de cada examen) ni antecedentes de la incapacidad.
+    // ============================================================================================
+    static final Set<String> TIPOS_EMNI = Set.of("2", "3", "4", "6", "8");
+    static final Set<String> SECCIONES_EMNI = Set.of(
+            "Inmunizaciones", "Gineco-obstétricos (AGO)",
+            "APP: personales patológicos", "APP: oftalmológico", "APP: renal", "APP: cardiovascular",
+            "APP: sistema nervioso", "APP: digestivo", "APP: músculo-esquelético", "APP: endocrino",
+            "APP: toxicológico", "APP: otros",
+            "Padecimiento actual", "Interrogatorio por aparatos",
+            "Exploración física", "Cráneo", "Agudeza visual", "Oídos", "Cuello", "Nariz", "Tórax",
+            "Columna vertebral", "Columna (movilidad)", "Abdomen", "Genitales", "Urinario", "Extremidades",
+            "Piel", "Boca", "Dientes",
+            "Estudios realizados", "Diagnóstico", "Plan terapéutico", "Resultado del examen");
+
+    /** Lo que se trajo del EMNI en una seccion: items completados, campos tomados y fecha del EMNI (dd/MM/yyyy). */
+    public record Complemento(List<ExamItem> items, Set<String> tomados, String fecha) {
+    }
+
+    /** Contexto del complemento para una carga (se lee una vez y se usa en todas las secciones). */
+    public record ContextoEmni(String tipo, Map<String, String> foto, String fecha) {
+        static final ContextoEmni VACIO = new ContextoEmni("", Map.of(), "");
+    }
+
+    /** Tipo de examen elegido y foto del ultimo EMNI; VACIO si el tipo no lleva complemento o no hay EMNI. Nunca lanza. */
+    public ContextoEmni contextoEmni(String nss) {
+        try {
+            String t = tipo(nss);
+            if (!TIPOS_EMNI.contains(t)) {
+                return ContextoEmni.VACIO;
+            }
+            var foto = historico.ultimoInicial(nss.trim()).orElse(null);
+            if (foto == null || foto.datosJson() == null || foto.datosJson().isBlank()) {
+                return ContextoEmni.VACIO;
+            }
+            Map<String, String> datos = new com.fasterxml.jackson.databind.ObjectMapper().readValue(foto.datosJson(),
+                    new com.fasterxml.jackson.core.type.TypeReference<java.util.LinkedHashMap<String, String>>() { });
+            return new ContextoEmni(t, datos,
+                    foto.fecha().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        } catch (Exception ex) {
+            log.warn("[examen] complemento del EMNI no disponible para {}: {}", nss, ex.getMessage());
+            return ContextoEmni.VACIO;
+        }
+    }
+
+    /** Llena con el EMNI los campos VACIOS de la seccion que el formato del tipo pide. Nunca lanza. */
+    public Complemento complementoEmni(String seccion, List<ExamItem> items, ContextoEmni ctx) {
+        if (ctx == null || ctx.foto().isEmpty() || !SECCIONES_EMNI.contains(seccion) || ocultaEnTipo(seccion, ctx.tipo())) {
+            return new Complemento(items, Set.of(), "");
+        }
+        try {
+            Map<String, ExamItem> delEmni = new java.util.HashMap<>();
+            ExamenService.itemsDesdeDatos(seccion, ctx.foto()).forEach(i -> delEmni.put(i.fieldName(), i));
+            List<ExamItem> out = new ArrayList<>(items.size());
+            Set<String> tomados = new java.util.LinkedHashSet<>();
+            for (ExamItem it : items) {
+                ExamItem e = delEmni.get(it.fieldName());
+                boolean oculto = VisibilidadTipo.oculto(it.fieldName(), ctx.tipo()) || "OCULTO".equals(it.type());
+                String valor = it.value();
+                String obs = it.obsValue();
+                if (e != null && !oculto) {
+                    if (vacio(valor) && !vacio(e.value())) {
+                        valor = e.value();
+                        tomados.add(it.fieldName());
+                    }
+                    if (it.obsName() != null && vacio(obs) && !vacio(e.obsValue())) {
+                        obs = e.obsValue();
+                        tomados.add(it.obsName());
+                    }
+                }
+                out.add(valor == it.value() && obs == it.obsValue() ? it
+                        : new ExamItem(it.type(), it.label(), it.fieldName(), valor, it.obsName(), obs));
+            }
+            return new Complemento(out, tomados, tomados.isEmpty() ? "" : ctx.fecha());
+        } catch (RuntimeException ex) {
+            log.warn("[examen] complemento del EMNI de {} no disponible: {}", seccion, ex.getMessage());
+            return new Complemento(items, Set.of(), "");
+        }
+    }
+
+    /** La seccion (o su grupo) no va en el formato del tipo. */
+    private boolean ocultaEnTipo(String seccion, String tipo) {
+        if (VisibilidadTipo.oculto(seccion, tipo)) {
+            return true;
+        }
+        return examenService.grupos().stream()
+                .filter(g -> g.secciones().contains(seccion))
+                .anyMatch(g -> VisibilidadTipo.oculto(g.nombre(), tipo));
+    }
+
+    private static boolean vacio(String v) {
+        return v == null || v.isBlank();
     }
 
     /** Items de la seccion con lo precargado (o los mismos si no aplica). Nunca lanza. */

@@ -237,6 +237,26 @@ a:hover {
 .osteo-nota { font-size: 11.5px; color: #64748b; margin-bottom: 4px; }
 .osteo-fila { display: grid; grid-template-columns: 110px minmax(150px, 220px) 44px; gap: 8px; align-items: center; margin-bottom: 4px; }
 .osteo-lbl { font-size: 13px; }
+/* C-075 (11-nov): lo que se complemento con el examen inicial (exSecMarcarEmni en nss-search) */
+.emni-badge { background: #fff7d6; color: #8a6100; border: 1px solid #ecd27a; font-weight: 600; white-space: normal; text-align: left; }
+.del-emni, .del-emni.form-control, .del-emni.form-select { background-color: #fff7d6 !important; border-color: #ecd27a !important; }
+.del-emni-caja { background-color: #fff7d6; border-radius: 6px; box-shadow: 0 0 0 2px #ecd27a; }
+
+/* C-071 Gineco-obstetricos «No aplica» (10-nov): la seccion en N/A se ve bloqueada (agoNoAplica en nss-search) */
+.ago-na input:not([type=checkbox]):not([type=hidden]), .ago-na select, .ago-na textarea { pointer-events: none; background-color: #f1f5f9; color: #64748b; }
+
+/* C-069 Prueba de Ishihara (10-nov, fragments/ishihara.html): 9 laminas en 3 columnas, respuesta debajo */
+.ishi-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.ishi-ayuda { font-size: 12px; color: #334155; }
+.ishi-ver { display: flex; align-items: center; gap: 4px; }
+.ishi-ver .btn { min-width: 36px; }
+.ishi-laminas { display: grid; grid-template-columns: repeat(3, minmax(0, 160px)); gap: 12px 24px; justify-content: center; margin-bottom: 12px; }
+.ishi-lam { text-align: center; }
+.ishi-lam img { width: 100%; max-width: 150px; aspect-ratio: 1; object-fit: contain; display: block; margin: 0 auto 4px; }
+.ishi-lam input { text-align: center; max-width: 120px; margin: 0 auto; }
+.ishi-res { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ishi-tipos.ishi-off { opacity: .45; }
+
 /* 10-nov: centrada en su panel (pegada a la izquierda dejaba un hueco grande a la derecha) */
 .osteo-tabla { border-collapse: collapse; font-size: 12px; margin: 0 auto; }
 .osteo-tabla th { font-weight: 600; color: #334155; padding: 3px 6px; white-space: nowrap; text-align: left; }

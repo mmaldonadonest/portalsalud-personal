@@ -62,9 +62,10 @@
         </div>
         <div class="opciones">
             <b>Elementos a detectar:</b>
-            <span th:each="el : ${elementos}"><span class="cuadro" th:text="${!esAlcohol and marcados.contains(el)} ? 'X' : ''"></span><span th:text="${el}">AMP</span></span>
+            <!--/* C-034 / C-077 (10-nov): con antidoping y alcoholimetria de la misma toma, la hoja trae las dos */-->
+            <span th:each="el : ${elementos}"><span class="cuadro" th:text="${hayAnti and marcados.contains(el)} ? 'X' : ''"></span><span th:text="${el}">AMP</span></span>
         </div>
-        <div class="campo"><span class="lbl">% BAC (PORCENTAJE DE ALCOHOL EN AIRE ESPIRADO):</span><span class="val" th:text="${c['BAC']}"></span></div>
+        <div class="campo"><span class="lbl">% BAC (PORCENTAJE DE ALCOHOL EN AIRE ESPIRADO):</span><span class="val" th:text="${bac}"></span></div>
     </div>
 
     <div class="bloque">
@@ -93,11 +94,11 @@
         <h4 style="text-align: center;">Responsable de la toma de la muestra</h4>
         <p class="legal">CERTIFICO QUE LA MUESTRA QUE PRESENTÓ EL DONANTE ES EN TIEMPO REAL Y EN PRESENCIA DE ESTE SE PROPORCIONA RESULTADO.</p>
         <div class="rejilla" style="grid-template-columns: 1fr 1fr;">
-            <div class="campo"><span class="lbl">Fecha:</span><span class="val" th:text="${prueba.fechaRegistro}"></span></div>
+            <!--/* C-077: fecha de aplicacion capturada (si no hay, la de registro) */-->
+            <div class="campo"><span class="lbl">Fecha:</span><span class="val" th:text="${fechaAplicacion}"></span></div>
             <div class="campo"><span class="lbl">Hora:</span><span class="val" th:text="${c['HORA']}"></span></div>
             <div class="campo"><span class="lbl">Lugar de la Recolección:</span><span class="val" th:text="${c['LUGAR']}"></span></div>
-            <div class="campo"><span class="lbl">Resultado:</span><span class="val"
-                 th:text="${prueba.resultado + ((prueba.resultado == 'POSITIVO' and !esAlcohol and !#strings.isEmpty(prueba.sustancia) and prueba.sustancia != '0') ? ' (' + prueba.sustancia + ')' : '')}"></span></div>
+            <div class="campo"><span class="lbl">Resultado:</span><span class="val" th:text="${resultadoTexto}"></span></div>
         </div>
         <!-- SM pidio la firma del medico responsable en todos los formatos: junto a la del responsable de la toma -->
         <div class="firmas" style="margin-top: 14px;">

@@ -353,7 +353,8 @@
         </p>
         <p style="font-size: 11px;">Por medio de cartel en el consultorio médico Su consentimiento para el tratamiento de sus datos personales.</p>
         <b class="form-check-label" style="font-size: 11px;" for="exampleCheck2">Sí consiento que mis datos personales sean tratados de conformidad con los términos y condiciones informados en el
-	    presente aviso de privacidad. [ ]</b>
+	    presente aviso de privacidad. [ Sí ]</b><!--/* C-073 (10-nov, Word SM punto 11): este corchete lleva «Sí»; los de fines
+	    secundarios y transferencias siguen vacios porque los elige el titular */-->
 <br/><br/>
         <center>
             <h6>Nombre y firma del titular</h6>
@@ -1865,15 +1866,15 @@
                 </tr>
                 <tr>
                     <td>Lenguaje</td>
-                    <td>[[${d.v('LENGUAJE')}]]</td>
+                    <td>[[${d.v('LENGUAJE')}]]<th:block th:if="${!#strings.isEmpty(d.v('EXM_LENGUAJE_OBS'))}"> ([[${d.v('EXM_LENGUAJE_OBS')}]])</th:block></td>
                 </tr>
                 <tr>
                     <td>Conversación Fluida</td>
-                    <td>[[${d.v('CONVER_FLUIDA')}]]</td>
+                    <td>[[${d.v('CONVER_FLUIDA')}]]<th:block th:if="${!#strings.isEmpty(d.v('EXM_CONVER_FLUIDA_OBS'))}"> ([[${d.v('EXM_CONVER_FLUIDA_OBS')}]])</th:block></td>
                 </tr>
                 <tr>
                     <td>Coherencia Palabras</td>
-                    <td>[[${d.v('COHERENCIA_PALABLAS')}]]</td>
+                    <td>[[${d.v('COHERENCIA_PALABLAS')}]]<th:block th:if="${!#strings.isEmpty(d.v('EXM_COHERENCIA_OBS'))}"> ([[${d.v('EXM_COHERENCIA_OBS')}]])</th:block></td>
                 </tr>
                 </th:block>
             </table>
@@ -2580,7 +2581,9 @@
     </div></td></tr>
 </th:block>
 <!--/* FT-SO-05 Cuestionario osteomuscular (9-nov-2026): una hoja mas, en TODOS los tipos de examen */-->
-<tr th:replace="~{fragments/osteomuscular :: impreso}"></tr></tbody>
+<tr th:replace="~{fragments/osteomuscular :: impreso}"></tr>
+<!--/* C-069 Prueba de Ishihara (10-nov-2026): solo examen inicial (tipo 1) y solo si se capturo */-->
+<th:block th:if="${d.v('TIPO_CODIGO') == '1'}"><th:block th:replace="~{fragments/ishihara :: impreso}"></th:block></th:block></tbody>
 </table>
 <script>
     // 28-oct-2026: el encabezado decia "Hoja N de 5" fijo para todos los tipos; los formatos 2026 tienen

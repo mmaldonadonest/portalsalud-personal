@@ -299,6 +299,7 @@ public class ExamenController {
             model.addAttribute("nss", nss);
             model.addAttribute("grupos", examenService.grupos());
             model.addAttribute("contactos", contactoEmergenciaService.cargar(nss));
+            model.addAttribute("telefonoSalud", examenDocumentoService.telefonoSalud(nss));
             model.addAttribute("diagnosticosSecundarios", diagnosticoSecundarioService.cargar(nss));
             model.addAttribute("datosGenerales", datosGeneralesExamenService.cargar(nss));
             model.addAttribute("tiposExamen", datosGeneralesExamenService.tipos());
@@ -345,8 +346,12 @@ public class ExamenController {
             Model model) {
         try {
             model.addAttribute("seccion", seccion);
-            java.util.List<com.onest.app.catalog.examen.dto.ExamItem> items =
-                    precarga.aplicar(seccion, examenService.itemsDeSeccion(seccion, nss), nss);
+            // C-075 (11-nov): lo que el examen deje vacio se complementa con el ultimo EMNI y se marca
+            var comp = precarga.complementoEmni(seccion,
+                    precarga.aplicar(seccion, examenService.itemsDeSeccion(seccion, nss), nss), precarga.contextoEmni(nss));
+            java.util.List<com.onest.app.catalog.examen.dto.ExamItem> items = comp.items();
+            model.addAttribute("emniTomados", String.join(",", comp.tomados()));
+            model.addAttribute("emniFecha", comp.fecha());
             model.addAttribute("items", items);
             model.addAttribute("valores", valores(items));
             // ayudas del formato EMLE (FT-SO-17 / FT-SO-04) para la exploracion
@@ -376,9 +381,14 @@ public class ExamenController {
     @ResponseBody
     public Map<String, String> secciones(@RequestParam("nss") String nss) {
         Map<String, String> html = new LinkedHashMap<>();
+        // C-075: tipo y foto del EMNI se leen una vez para todas las secciones
+        var emni = precarga.contextoEmni(nss);
         for (Map.Entry<String, java.util.List<com.onest.app.catalog.examen.dto.ExamItem>> e : examenService.itemsDeTodas(nss).entrySet()) {
             org.thymeleaf.context.Context ctx = new org.thymeleaf.context.Context(new java.util.Locale("es", "MX"));
-            java.util.List<com.onest.app.catalog.examen.dto.ExamItem> items = precarga.aplicar(e.getKey(), e.getValue(), nss);
+            var comp = precarga.complementoEmni(e.getKey(), precarga.aplicar(e.getKey(), e.getValue(), nss), emni);
+            java.util.List<com.onest.app.catalog.examen.dto.ExamItem> items = comp.items();
+            ctx.setVariable("emniTomados", String.join(",", comp.tomados()));
+            ctx.setVariable("emniFecha", comp.fecha());
             ctx.setVariable("seccion", e.getKey());
             ctx.setVariable("items", items);
             ctx.setVariable("valores", valores(items));
@@ -445,11 +455,18 @@ public class ExamenController {
             String nss = params.getFirst("nss");
             Map<String, String> campos = new LinkedHashMap<>();
             params.forEach((key, values) -> {
-                if (!"nss".equals(key) && !"_csrf".equals(key)) {
+                // C-074: el telefono actualizado viaja en el mismo formulario pero va a su propio tag
+                if (!"nss".equals(key) && !"_csrf".equals(key) && !"telefonoSalud".equals(key)) {
                     campos.put(key, (values == null || values.isEmpty()) ? "" : values.get(0));
                 }
             });
             contactoEmergenciaService.guardar(nss, campos);
+            String tel = params.getFirst("telefonoSalud");
+            if (tel != null && !tel.isBlank() && nss != null) {
+                var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+                examenDocumentoService.guardarTelefonoSalud(nss, tel, auth == null ? "SISTEMA" : auth.getName());
+                return "Teléfono y contactos de emergencia guardados.";
+            }
             return "Contactos de emergencia guardados.";
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);

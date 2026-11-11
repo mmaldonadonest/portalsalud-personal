@@ -152,7 +152,7 @@
             titulo: 'Subir y descargar PDFs del expediente',
             pagina: 'nss',
             pasos: [
-                conGrupo({ el: MODULO('archivos'), titulo: 'Abre un módulo de archivos', texto: '«E. Laboratorio», «Historico E.M», «Nota Medica» y «Nota Incapacidad» guardan PDFs de la persona. Abre uno.', siNoEsta: PRIMERO_NSS,
+                conGrupo({ el: MODULO('archivos'), titulo: 'Abre un módulo de archivos', texto: '«E. Laboratorio», «Historico E.M» y «Nota Medica» guardan PDFs de la persona. Abre uno.', siNoEsta: PRIMERO_NSS,
                     avanzaCon: '#archivoFiles' }),
                 { el: '#archivoFiles', titulo: 'Elige el archivo', texto: 'Selecciona el PDF (o varios) desde tu equipo.' },
                 { el: '#moduleContent button[onclick^="subirArchivo"]', titulo: 'Súbelo', texto: 'Queda en la lista de abajo; desde ahí se descarga cuando lo necesites.' }

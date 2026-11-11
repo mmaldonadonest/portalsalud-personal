@@ -66,6 +66,10 @@ public final class VisibilidadTipo {
             Map.entry("SERV_MED_EXPLORACION_FISICA.LENGUAJE", SIN_LENGUAJE),
             Map.entry("SERV_MED_EXPLORACION_FISICA.CONVER_FLUIDA", SIN_LENGUAJE),
             Map.entry("SERV_MED_EXPLORACION_FISICA.COHERENCIA_PALABLAS", SIN_LENGUAJE),
+            // C-066 (10-nov): las observaciones de Lenguaje van donde va Lenguaje
+            Map.entry("TAG.EXM_LENGUAJE_OBS", SIN_LENGUAJE),
+            Map.entry("TAG.EXM_CONVER_FLUIDA_OBS", SIN_LENGUAJE),
+            Map.entry("TAG.EXM_COHERENCIA_OBS", SIN_LENGUAJE),
             Map.entry("SERV_MED_EXPLORACION_FISICA.ECTOMORFICO", SOLO_SIGNOS),
             Map.entry("SERV_MED_EXPLORACION_FISICA.SATISFACCION", SOLO_SIGNOS),
             Map.entry("SERV_MED_EXPLORACION_FISICA.COMP_TRABAJO", SOLO_SIGNOS),

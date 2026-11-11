@@ -1377,9 +1377,15 @@
             function exIniEmpleoVacio(raiz, n) {
                 return Array.prototype.every.call(exIniCamposEmpleo(raiz, n), function (el) { return !String(el.value || '').trim(); });
             }
+            // Salida vacia tambien cuenta: el año puede no haberse guardado como 0
             function exIniEmpleoNoAplica(raiz, n) {
                 var c = exIniCamposEmpleo(raiz, n);
-                return c.length > 0 && Array.prototype.every.call(c, function (el) { return exIniEsRellenoEmpleo(el.value); });
+                var algunNa = false;
+                var todos = c.length > 0 && Array.prototype.every.call(c, function (el) {
+                    if (exIniEsRellenoEmpleo(el.value)) { algunNa = algunNa || String(el.value).trim().toUpperCase() === 'N/A'; return true; }
+                    return /\.salida$/.test(el.name) && !String(el.value || '').trim();
+                });
+                return todos && algunNa;
             }
             window.exIniNoAplicaEmpleo = function (chk) {
                 var n = chk.getAttribute('data-empleo');
@@ -1393,6 +1399,35 @@
                 exIniProgramarAutosave();
                 exIniPintarStepper();
             };
+
+            // C-071 (10-nov, Word SM punto 7): Gineco-obstetricos «No aplica» (hombres, menores). Lo usan el examen
+            // inicial (.exini-bloque) y el modulo Examen medico (.exsec). Encendido: todo N/A (y se guarda asi) y
+            // los campos quedan de solo lectura; apagado: solo se borra lo que es N/A (un dato real no se pierde).
+            window.agoNoAplica = function (chk) {
+                var cont = chk.closest('.exini-bloque') || chk.closest('.exsec');
+                if (!cont) { return; }
+                cont.querySelectorAll('[name^="SERV_MED_ANT_GIN_OBSTETRICOS."]').forEach(function (el) {
+                    if (chk.checked) {
+                        el.value = 'N/A';
+                    } else if (String(el.value || '').trim().toUpperCase() === 'N/A') {
+                        el.value = '';
+                    }
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+                agoPintar(cont, chk.checked);
+            };
+            function agoPintar(cont, na) {
+                cont.querySelectorAll('input:not([type=hidden]):not([type=checkbox]), select, textarea').forEach(function (el) {
+                    if (el.type === 'date' && !el.name) {
+                        // FUM y FUP del inicial: el control de fecha no tiene name; su valor viaja en el hidden
+                        if (na) { el.value = ''; }
+                        el.disabled = na;
+                    } else {
+                        el.readOnly = na;
+                    }
+                });
+                cont.classList.toggle('ago-na', na);
+            }
 
             // Barra de avance de cada hoja del stepper, calculada en el navegador con lo que hay
             // en pantalla (el servidor la calcula igual al recargar).
@@ -1413,11 +1448,31 @@
                         if (/^OKNO\./.test(el.name)) { return false; }
                         // Higiene personal y Alimentacion ahora son solo titulo: su valor viejo viaja oculto
                         if (el.hasAttribute('data-solo-titulo')) { return false; }
+                        // C-066: observaciones opcionales (Lenguaje)
+                        if (el.hasAttribute('data-opcional')) { return false; }
+                        // E-030 (10-nov): igual que el servidor. FUP puede quedar en blanco y de Genitales se
+                        // captura uno: el otro no cuenta si ya hay uno capturado
+                        if (el.name === 'SERV_MED_ANT_GIN_OBSTETRICOS.FUP') { return false; }
+                        var gen = /^SERV_MED_GENITALES\.(MASCULINO|FEMENINO)$/.exec(el.name);
+                        if (gen) {
+                            var otro = s.querySelector('[name="SERV_MED_GENITALES.' + (gen[1] === 'MASCULINO' ? 'FEMENINO' : 'MASCULINO') + '"]');
+                            if (!String(el.value || '').trim() && otro && String(otro.value || '').trim()) { return false; }
+                            if (gen[1] === 'FEMENINO' && !String(el.value || '').trim() && otro && !String(otro.value || '').trim()) { return false; }
+                        }
                         var m = /^trabajo(\d+)\./.exec(el.name);
                         return !(m && exIniEmpleoVacio(s, m[1]));
                     });
+                    // E-029 (10-nov, Word SM punto 8): el switch se prendia y apagaba solo porque se recalculaba
+                    // en cada tecla. Ahora se deduce una sola vez (al abrir) y despues manda el medico; solo se
+                    // apaga si en ese empleo se escribe un dato real (algo que no es N/A ni 0).
                     s.querySelectorAll('input[data-empleo]').forEach(function (chk) {
-                        chk.checked = exIniEmpleoNoAplica(s, chk.getAttribute('data-empleo'));
+                        var n = chk.getAttribute('data-empleo');
+                        if (!chk.hasAttribute('data-listo')) {
+                            chk.setAttribute('data-listo', '');
+                            chk.checked = exIniEmpleoNoAplica(s, n);
+                        } else if (chk.checked && !exIniEmpleoNoAplica(s, n)) {
+                            chk.checked = false;
+                        }
                     });
                     var llenos = 0;
                     campos.forEach(function (el) { if (el.value && String(el.value).trim() !== '') { llenos++; } });
@@ -1463,14 +1518,18 @@
                 // limpia para escribir el antecedente; al volver a No (heredofamiliares) regresa.
                 var bloque = grupo.closest('.exini-bloque');
                 var sw = bloque ? bloque.querySelector('.exini-switch input[data-modo="negados"]') : null;
-                if (obs && hidden.value === v.si && /NEGAD/i.test(obs.value)) {
+                // C-070 (10-nov, Word SM punto 6): en heredofamiliares lo normal es Sí con "NEGADOS" y el No es
+                // el que lleva el antecedente escrito. En las demas hojas sigue igual (Sí = hallazgo).
+                var normal = sw ? v.si : v.no;
+                var hallazgo = sw ? v.no : v.si;
+                if (obs && hidden.value === hallazgo && /NEGAD/i.test(obs.value)) {
                     obs.value = '';
-                } else if (obs && sw && hidden.value === v.no && obs.value.trim() === '') {
+                } else if (obs && sw && hidden.value === normal && obs.value.trim() === '') {
                     obs.value = 'NEGADOS';
                 }
                 hidden.dispatchEvent(new Event('change', { bubbles: true }));
-                // Con Si, llevar el cursor a las observaciones de esa fila
-                if (hidden.value === v.si && obs) {
+                // Con el hallazgo, llevar el cursor a las observaciones de esa fila
+                if (hidden.value === hallazgo && obs) {
                     obs.focus();
                 }
             };
@@ -1654,6 +1713,37 @@
                 else if (inp.value.trim() !== '') { fila.classList.add('pide-hallazgo'); }
                 exIniOkNoPintar(fila);
             };
+
+            // C-075 (11-nov, Word SM punto 13): en Examen medico, lo que estaba vacio y se tomo del ultimo examen
+            // inicial llega listado en data-emni de la seccion. Se pinta en amarillo (los controles ocultos -Si/No,
+            // botones- pintan su contenedor) y la marca se quita cuando el medico lo cambia. Las secciones entran por
+            // varios caminos (una, todas, «Abrir todo»): un solo observador las atiende a todas.
+            function exSecMarcarEmni(sec) {
+                sec.setAttribute('data-emni-ok', '');
+                (sec.getAttribute('data-emni') || '').split(',').forEach(function (n) {
+                    if (!n) { return; }
+                    sec.querySelectorAll('[name="' + n.replace(/"/g, '\\"') + '"]').forEach(function (el) {
+                        // ojo: en una pestana cerrada nada tiene offsetParent; por eso se decide por el tipo de control
+                        var oculto = el.type === 'hidden' || el.classList.contains('d-none');
+                        if (oculto && el.parentElement) {
+                            el.parentElement.classList.add('del-emni-caja');
+                        } else {
+                            el.classList.add('del-emni');
+                        }
+                    });
+                });
+            }
+            new MutationObserver(function () {
+                document.querySelectorAll('.exsec[data-emni]:not([data-emni-ok])').forEach(exSecMarcarEmni);
+            }).observe(document.body, { childList: true, subtree: true });
+            ['input', 'change'].forEach(function (evt) {
+                document.addEventListener(evt, function (e) {
+                    var el = e.target;
+                    if (!el || !el.closest || !el.closest('.exsec[data-emni]')) { return; }
+                    el.classList.remove('del-emni');
+                    if (el.parentElement) { el.parentElement.classList.remove('del-emni-caja'); }
+                }, true);
+            });
 
             // Modulo Examen medico (examen-seccion.html, 15-oct-2026, FT-SO-17): "Todo normal" por
             // seccion. okno = OK con el texto del formato; negados = No + "NEGADOS"; sino = No.
@@ -1893,19 +1983,36 @@
                         if (hidden.value !== si) { hidden.value = si; exIniPintarSino(g); cambiados++; }
                     });
                 } else if (modo === 'sino' || modo === 'negados') {
-                    // negados (heredofamiliares): el FT-SO-04 trae "NEGADOS" como observacion predeterminada
+                    // negados (heredofamiliares): el FT-SO-04 trae "NEGADOS" como observacion predeterminada.
+                    // C-070 (10-nov, Word SM punto 6): ahi lo normal es Sí (en verde); en «sino» sigue siendo No.
                     var obsNormal = modo === 'negados' ? 'NEGADOS' : '';
                     bloque.querySelectorAll('.exini-sino').forEach(function (g) {
                         var hidden = g.querySelector('input[type=hidden]');
                         var fila = g.closest('.exini-fila');
                         var obs = fila ? fila.querySelector('input[type=text]') : null;
                         if (obs && obs.value !== obsNormal) { obs.value = obsNormal; cambiados++; }
-                        var no = exIniValoresSino(g).no;
-                        if (hidden.value !== no) { hidden.value = no; exIniPintarSino(g); cambiados++; }
+                        var lo = modo === 'negados' ? exIniValoresSino(g).si : exIniValoresSino(g).no;
+                        if (hidden.value !== lo) { hidden.value = lo; exIniPintarSino(g); cambiados++; }
                     });
                 } else if (modo === 'okno') {
-                    // solo lo vacio: un NO con hallazgo escrito no se pisa
+                    // Examen inicial (Sí o No elegidos, E-028 10-nov, Word SM punto 2): «Todo normal es Sí».
+                    // Marca Sí en todo el bloque; lo escrito (SIMETRICOS, 20/40...) se conserva y lo vacío
+                    // toma el texto del formato. Un NO con hallazgo pasa a Sí con el texto del formato
+                    // (exIniSwitchNormal ya pidio confirmacion).
                     bloque.querySelectorAll('.exini-okno').forEach(function (fila) {
+                        var sel = exIniOkNoSel(fila);
+                        if (!sel) { return; }
+                        var inp = fila.querySelector('input[data-tipo="OKNO"]');
+                        if (sel.value === 'SI' && inp.value.trim() !== '') { return; }
+                        if (sel.value === 'NO' || inp.value.trim() === '') { inp.value = fila.getAttribute('data-normal') || ''; }
+                        fila.classList.remove('pide-hallazgo');
+                        exIniOkNoPoner(fila, 'SI');
+                        exIniOkNoPintar(fila);
+                        cambiados++;
+                    });
+                    // Examen medico (sin Sí o No elegidos): solo lo vacio; un NO con hallazgo no se pisa
+                    bloque.querySelectorAll('.exini-okno').forEach(function (fila) {
+                        if (exIniOkNoSel(fila)) { return; }
                         var inp = fila.querySelector('input[data-tipo="OKNO"]');
                         if (inp.value.trim() === '') {
                             fila.classList.remove('pide-hallazgo');
@@ -1978,14 +2085,17 @@
                     });
                 } else if (modo === 'sino' || modo === 'negados') {
                     bloque.querySelectorAll('.exini-sino').forEach(function (g) {
-                        if (g.querySelector('input[type=hidden]').value !== exIniValoresSino(g).no) { ok = false; }
+                        var lo = modo === 'negados' ? exIniValoresSino(g).si : exIniValoresSino(g).no;   // C-070
+                        if (g.querySelector('input[type=hidden]').value !== lo) { ok = false; }
                         var fila = g.closest('.exini-fila');
                         var obs = fila ? fila.querySelector('input[type=text]') : null;
                         if (modo === 'negados' && obs && obs.value.trim().toUpperCase() !== 'NEGADOS') { ok = false; }
                     });
                 } else if (modo === 'okno') {
                     bloque.querySelectorAll('.exini-okno').forEach(function (fila) {
-                        if (!exIniOkNoEsOk(fila, fila.querySelector('input[data-tipo="OKNO"]').value)) { ok = false; }
+                        // examen inicial: manda el Sí elegido (el texto puede ser SIMETRICOS, 20/40...)
+                        var sel = exIniOkNoSel(fila);
+                        if (sel ? sel.value !== 'SI' : !exIniOkNoEsOk(fila, fila.querySelector('input[data-tipo="OKNO"]').value)) { ok = false; }
                     });
                     bloque.querySelectorAll('.exini-chips[data-normal]').forEach(function (g) {
                         if (g.querySelector('input[type=hidden]').value.toUpperCase() !== g.getAttribute('data-normal').toUpperCase()) { ok = false; }
@@ -2011,6 +2121,10 @@
                 var root = exIniRoot();
                 if (!root) { return; }
                 root.querySelectorAll('.exini-switch input[type=checkbox]').forEach(function (sw) {
+                    // E-029 (10-nov): el «No aplica» de los empleos NO es un «Todo normal» (no trae data-modo).
+                    // Antes caia aqui, salia «normal» por no tener campos de texto y se PRENDIA en cada
+                    // cambio; luego exIniPintarStepper lo apagaba: se prendia y apagaba solo.
+                    if (sw.hasAttribute('data-empleo') || !sw.hasAttribute('data-modo')) { return; }
                     var bloque = sw.closest('.exini-grupo') || sw.closest('.exini-bloque');
                     if (bloque) { sw.checked = exIniEsNormal(bloque, sw.getAttribute('data-modo')); }
                 });
@@ -2022,6 +2136,16 @@
                 if (!bloque) { return; }
                 var modo = sw.getAttribute('data-modo');
                 if (sw.checked) {
+                    // como el osteomuscular: si hay hallazgos (No) se pregunta antes de ponerlos en Sí
+                    var conNo = modo === 'okno' ? Array.prototype.filter.call(bloque.querySelectorAll('.exini-okno'), function (f) {
+                        var s = exIniOkNoSel(f);
+                        return s && s.value === 'NO';
+                    }).length : 0;
+                    if (conNo && !window.confirm('Hay ' + conNo + (conNo === 1 ? ' renglón con No' : ' renglones con No')
+                            + ' en esta sección. ¿Poner todo en Sí (normal)?')) {
+                        exIniRefrescarSwitches();
+                        return;
+                    }
                     exIniAplicarNormal(bloque, modo);
                 } else {
                     exIniLimpiarBloque(bloque, modo);
@@ -2197,10 +2321,29 @@
                 }
                 var formEl = document.getElementById('antidopingAltaForm');
                 var nss = formEl ? formEl.nss.value : null;
+                // C-034 / C-077: al menos un tipo y el resultado de cada tipo marcado
+                var t = formEl ? adTipos(formEl) : {};
+                var falta = !t.ANTIDOPING && !t.ALCOHOLEMIA ? 'Marca el tipo de prueba (antidoping, alcoholimetría o las dos).'
+                        : (t.ANTIDOPING && !formEl.resultado.value ? 'Elige el resultado del antidoping.'
+                        : (t.ALCOHOLEMIA && !formEl.resultadoAlcohol.value ? 'Elige el resultado de la alcoholimetría.'
+                        : (t.ANTIDOPING && formEl.resultado.value === 'POSITIVO' && !formEl.querySelector('input[name="sustancias"]:checked')
+                            ? 'Marca al menos una sustancia del antidoping positivo.' : '')));
+                if (falta) {
+                    status.textContent = falta;
+                    window.alert(falta);
+                    return;
+                }
                 try { if (formEl && formEl.lugar && formEl.lugar.value.trim()) { localStorage.setItem(CUSTODIA_LUGAR, formEl.lugar.value.trim()); } } catch (e) { /* sin almacenamiento */ }
                 guardarRegistro(btn, {
                     formId: 'antidopingAltaForm', savePath: 'api/nss/antidoping/save', fileInputId: '__none__',
                     label: 'registro de antidoping', resetOnSuccess: true,
+                    // C-077 (Word SM punto 15): la cadena de custodia FT-SO-14 se imprime SIEMPRE (positivo o negativo).
+                    // No hay firma en esta pantalla: se abre igual. Con los dos tipos sale una sola hoja con ambos.
+                    firmado: function () { return true; },
+                    abrirAlTerminar: true,
+                    documentoUrl: function () {
+                        return contextPath + 'api/nss/antidoping/custodia-reciente?nss=' + encodeURIComponent(nss) + '&auto=1';
+                    },
                     // Vuelve a la lista tras guardar, mismo motivo que guardarMaternidad -
                     // si no, el formulario se queda en pantalla (limpio) y parece que la
                     // lista "desaparecio".
@@ -2286,6 +2429,62 @@
             };
             window.nuevoMaternidad = function (btn) {
                 loadModuleView('api/nss/maternidad/form', btn.getAttribute('data-nss'));
+            };
+
+            // C-069 Prueba de Ishihara (10-nov, fragments/ishihara.html; solo examen inicial). Como el osteomuscular:
+            // los controles no tienen name; aqui se arma el JSON del hidden TAG.EXM_ISHIHARA y se le dispara change.
+            function ishiGuardar(el) {
+                var raiz = el.closest('[data-ishi-raiz]');
+                var datos = {};
+                var activa = raiz.querySelector('.ishi-ver .btn.active');
+                raiz.querySelectorAll('input[data-ishi]').forEach(function (i) {
+                    if (i.value.trim()) { datos[i.getAttribute('data-ishi')] = i.value.trim(); }
+                });
+                var res = raiz.querySelector('[data-res].activo');
+                if (res) { datos.RESULTADO = res.getAttribute('data-res'); }
+                var tipo = raiz.querySelector('[data-tipo].activo');
+                if (res && datos.RESULTADO === 'MONOCROMATICO' && tipo) { datos.TIPO = tipo.getAttribute('data-tipo'); }
+                // la version va siempre que haya algo capturado (si no se eligio, es la que se ve: la 1)
+                if (Object.keys(datos).length || activa) {
+                    datos.VERSION = activa ? activa.getAttribute('data-ver') : '1';
+                    if (!activa) { raiz.querySelector('.ishi-ver .btn[data-ver="1"]').classList.add('active'); }
+                }
+                var oculto = raiz.querySelector('.ishi-json');
+                var nuevo = Object.keys(datos).length ? JSON.stringify(datos) : '';
+                if (oculto.value !== nuevo) {
+                    oculto.value = nuevo;
+                    oculto.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+            window.ishiGuardar = ishiGuardar;
+            // Versión 1 a 4 de la hoja de SM: cambia las imágenes (mismas respuestas por posición)
+            window.ishiVersion = function (btn) {
+                var raiz = btn.closest('[data-ishi-raiz]');
+                raiz.querySelectorAll('.ishi-ver .btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
+                var v = btn.getAttribute('data-ver');
+                raiz.querySelectorAll('.ishi-lam img').forEach(function (img) {
+                    img.src = img.src.replace(/v\d-(\d)\.jpg$/, 'v' + v + '-$1.jpg');
+                });
+                ishiGuardar(btn);
+            };
+            // Resultado: Normal o Monocromático (clic en el activo lo quita); el tipo solo con Monocromático
+            window.ishiResultado = function (btn) {
+                var raiz = btn.closest('[data-ishi-raiz]');
+                var quitar = btn.classList.contains('activo');
+                raiz.querySelectorAll('[data-res]').forEach(function (b) { b.classList.toggle('activo', !quitar && b === btn); });
+                var mono = !quitar && btn.getAttribute('data-res') === 'MONOCROMATICO';
+                var tipos = raiz.querySelector('.ishi-tipos');
+                tipos.classList.toggle('ishi-off', !mono);
+                tipos.querySelectorAll('button').forEach(function (b) {
+                    b.disabled = !mono;
+                    if (!mono) { b.classList.remove('activo'); }
+                });
+                ishiGuardar(btn);
+            };
+            window.ishiTipo = function (btn) {
+                var quitar = btn.classList.contains('activo');
+                btn.closest('.ishi-tipos').querySelectorAll('button').forEach(function (b) { b.classList.toggle('activo', !quitar && b === btn); });
+                ishiGuardar(btn);
             };
 
             // Muestra/oculta el select de sustancia segun el tipo de prueba (solo aplica a ANTIDOPING).
@@ -2444,18 +2643,34 @@
                 });
             }
 
+            // C-034 / C-077 (10-nov, Word SM punto 15): se pueden marcar los dos tipos (casillas «tipos»);
+            // cada uno muestra su resultado y se guardan dos registros.
+            function adTipos(f) {
+                var t = {};
+                f.querySelectorAll('input[name="tipos"]').forEach(function (c) { t[c.value] = c.checked; });
+                return t;
+            }
             window.toggleAntidopingSustancia = function () {
                 var f = document.getElementById('antidopingAltaForm');
                 var wrap = document.getElementById('antidopingSustanciaWrap');
                 if (!f || !wrap) {
                     return;
                 }
+                var t = adTipos(f);
+                var ver = function (id, si, sel) {
+                    var el = document.getElementById(id);
+                    if (el) { el.style.display = si ? '' : 'none'; }
+                    if (!si && sel && f[sel]) { f[sel].value = ''; }
+                };
+                ver('antidopingResAntiWrap', t.ANTIDOPING, 'resultado');
+                ver('antidopingResAlcWrap', t.ALCOHOLEMIA, 'resultadoAlcohol');
                 adPintarBotones(f);
-                // C-033a (9-nov): la sustancia solo aplica a un antidoping POSITIVO
-                var pide = f.tipoPrueba.value === 'ANTIDOPING' && f.resultado.value === 'POSITIVO';
+                f.querySelectorAll('.ad-tipo').forEach(function (l) { l.classList.toggle('activo', l.querySelector('input').checked); });
+                // C-033a (9-nov): la sustancia solo aplica a un antidoping POSITIVO; C-077: varias
+                var pide = t.ANTIDOPING && f.resultado.value === 'POSITIVO';
                 wrap.style.display = pide ? '' : 'none';
                 if (!pide) {
-                    f.sustancia.value = '';
+                    f.querySelectorAll('input[name="sustancias"]').forEach(function (c) { c.checked = false; });
                 }
                 toggleCustodia();
             };
@@ -2469,9 +2684,10 @@
                     return;
                 }
                 var ver = function (id, si) { var el = document.getElementById(id); if (el) { el.style.display = si ? '' : 'none'; } };
-                var tipo = f.tipoPrueba.value;
-                ver('custElementosWrap', tipo !== 'ALCOHOLEMIA');
-                ver('custBacWrap', tipo === 'ALCOHOLEMIA');
+                var t = adTipos(f);
+                // sin tipo elegido se ven los elementos (lo comun es antidoping); con los dos, ambos
+                ver('custElementosWrap', t.ANTIDOPING || !t.ALCOHOLEMIA);
+                ver('custBacWrap', !!t.ALCOHOLEMIA);
                 ver('custRazonOtroWrap', f.razon.value === 'OTRO');
                 ver('custTratamientoWrap', f.tratamiento.value === 'SI');
             };
@@ -2485,6 +2701,12 @@
                 }
                 var l = document.getElementById('custLugar');
                 try { if (l && !l.value) { l.value = localStorage.getItem(CUSTODIA_LUGAR) || ''; } } catch (e) { /* sin almacenamiento */ }
+                // C-077: fecha de aplicacion = hoy (se puede cambiar)
+                var fa = document.getElementById('antidopingFechaAplicacion');
+                if (fa && !fa.value) {
+                    var hoy = new Date();
+                    fa.value = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
+                }
                 toggleCustodia();
             }
 
