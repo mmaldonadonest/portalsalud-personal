@@ -622,7 +622,7 @@
                 var lista = ordenarDesc(consultas.porCuenta);
                 var maximo = lista.length ? lista[0].cantidad : 0;
                 var contenedor = document.getElementById('chartConsultaCuenta');
-                contenedor.innerHTML = lista.map(function (r, i) {
+                PortalHtml.poner(contenedor, lista.map(function (r, i) {
                     var color = PALETA_CATEGORICA[i % PALETA_CATEGORICA.length];
                     var porcentaje = maximo > 0 ? Math.round((r.cantidad / maximo) * 100) : 0;
                     var nombre = escapeHtml(r.clave || '(sin dato)');
@@ -636,7 +636,7 @@
                             '</div>' +
                             '<div style="width:34px;flex:0 0 34px;font-size:12px;font-weight:700;color:#1e293b;">' + numero(r.cantidad) + '</div>' +
                         '</div>';
-                }).join('');
+                }).join(''));
                 if (!lista.length) {
                     contenedor.innerHTML = '<p class="fs-12 text-muted mb-0">Sin datos.</p>';
                 }

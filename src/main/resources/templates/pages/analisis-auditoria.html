@@ -294,7 +294,7 @@
                     document.getElementById('enlOn').textContent = numero(on);
                     document.getElementById('enlOff').textContent = numero(lista.length - on);
                     document.getElementById('enlVacio').hidden = lista.length > 0;
-                    document.getElementById('enlCuerpo').innerHTML = lista.map(function (s) {
+                    PortalHtml.poner(document.getElementById('enlCuerpo'), lista.map(function (s) {
                         var estado = s.enLinea
                             ? '<span class="enl-estado on"><span class="enl-punto on"></span>En línea</span>'
                                 + (s.sesionesAbiertas > 1 ? '<span class="enl-nota">' + s.sesionesAbiertas + ' sesiones abiertas</span>' : '')
@@ -314,7 +314,7 @@
                             + '<td class="mono">' + escapar(horaMx(s.inicio)) + '</td>'
                             + '<td class="mono">' + escapar(s.ip || '—') + '</td>'
                             + '</tr>';
-                    }).join('');
+                    }).join(''));
                     est.textContent = 'Actualizado ' + horaMx(new Date().toISOString()).split(', ').pop();
                 } catch (e) {
                     est.textContent = 'Error de red al consultar.';

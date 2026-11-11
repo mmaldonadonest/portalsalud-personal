@@ -126,7 +126,7 @@
                     var select = document.createElement('select');
                     select.className = 'form-select form-select-sm d-inline-block';
                     select.style.width = '160px';
-                    select.innerHTML = opcionesPredio(c.predioId);
+                    PortalHtml.poner(select, opcionesPredio(c.predioId));
 
                     var btn = document.createElement('button');
                     btn.type = 'button';

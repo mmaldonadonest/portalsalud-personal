@@ -888,7 +888,7 @@
                     tb.innerHTML = '<tr><td colspan="7" class="text-muted fs-12">Sin datos.</td></tr>';
                     return;
                 }
-                tb.innerHTML = lista.map(function (r) {
+                PortalHtml.poner(tb, lista.map(function (r) {
                     var nombre = escapeHtml(r.clave || '(sin dato)');
                     var esSinAsignar = r.clave === 'Sin asignar';
                     var porcentaje = maximo > 0 ? Math.round((r.cantidad / maximo) * 100) : 0;
@@ -906,7 +906,7 @@
                             '<td class="text-end">' + numero(examPorPredio[r.clave] || 0) + '</td>' +
                             '<td class="text-end pe-3">' + riesgoHtml + '</td>' +
                         '</tr>';
-                }).join('');
+                }).join(''));
             }
 
             function ins(clase, icono, html) {
@@ -948,7 +948,7 @@
                     items.push(ins('ok', 'ri-checkbox-circle-line', 'El <b>' + pctApto + '%</b> de los exámenes resultó apto (' + numero(examen.totalApto) + ' de ' + numero(examen.totalExamenes) + ').'));
                 }
                 var lista = document.getElementById('listaInsights');
-                lista.innerHTML = items.length ? items.join('') : '<li class="fs-12 text-muted">Sin datos suficientes para generar insights en este rango.</li>';
+                PortalHtml.poner(lista, items.length ? items.join('') : '<li class="fs-12 text-muted">Sin datos suficientes para generar insights en este rango.</li>');
             }
 
             function nombreMesLargo(yyyyMM) {

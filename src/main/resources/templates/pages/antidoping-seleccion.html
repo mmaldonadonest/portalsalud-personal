@@ -313,9 +313,9 @@
                 cargarHistorial();
 
                 var tarjetas = elegidos.map(function (nss, i) { return tarjetaCaptura(nss, i); }).join('');
-                resultadoEl.innerHTML =
+                PortalHtml.poner(resultadoEl, 
                     '<div class="fw-semibold mb-2">Seleccionado el ' + fecha + ' (pool de ' + pool.length + ') — captura el resultado de cada uno:</div>' +
-                    tarjetas;
+                    tarjetas);
             });
 
             // Delegado: toggle de sustancia y guardado, para cualquier tarjeta generada dinamicamente.
@@ -368,11 +368,11 @@
                     });
                     var txt = await response.text();
                     if (response.ok) {
-                        estado.innerHTML = '<span class="text-success"><i class="ri-check-line me-1"></i>' + txt + '</span>';
+                        PortalHtml.poner(estado, '<span class="text-success"><i class="ri-check-line me-1"></i>' + txt + '</span>');
                         card.classList.add('border', 'border-success');
                         btn.innerHTML = '<i class="ri-check-line me-1"></i> Guardado';
                     } else {
-                        estado.innerHTML = '<span class="text-danger">' + (txt || ('Error HTTP ' + response.status)) + '</span>';
+                        PortalHtml.poner(estado, '<span class="text-danger">' + (txt || ('Error HTTP ' + response.status)) + '</span>');
                         btn.disabled = false;
                         btn.innerHTML = originalHtml;
                     }

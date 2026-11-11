@@ -99,13 +99,13 @@
                 try {
                     var r = await fetch(contextPath + 'api/ayuda/articulos/' + caja.dataset.id, { headers: { 'Accept': 'application/json' } });
                     var a = await r.json();
-                    cuerpo.innerHTML = a.html;
+                    PortalHtml.poner(cuerpo, a.html);
                     cuerpo.querySelectorAll('a.ayuda-enlace').forEach(function (l) { l.href = contextPath + String(l.dataset.ruta).replace(/^\//, ''); });
                     if (a.enlace && window.ayudaBotonEnlace) {
                         // "Muestrame como" si el enlace trae ?tutorial=; si no, "Abrir" (ver ayuda-panel.html)
                         var d = document.createElement('div');
                         d.className = 'mt-1';
-                        d.innerHTML = window.ayudaBotonEnlace(a.enlace);
+                        PortalHtml.poner(d, window.ayudaBotonEnlace(a.enlace));
                         cuerpo.appendChild(d);
                     } else if (a.enlace) {
                         var b = document.createElement('a');

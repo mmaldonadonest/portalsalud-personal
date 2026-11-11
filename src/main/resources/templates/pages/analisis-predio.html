@@ -269,7 +269,7 @@
                 return partes.length === 2 ? NOMBRES_MES[parseInt(partes[1], 10) - 1] : clave;
             }
             function vaciar(id, texto) {
-                document.getElementById(id).innerHTML = '<p class="vacio mb-0">' + texto + '</p>';
+                PortalHtml.poner(document.getElementById(id), '<p class="vacio mb-0">' + texto + '</p>');
             }
 
             /**

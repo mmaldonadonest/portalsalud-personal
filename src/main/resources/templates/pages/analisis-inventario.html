@@ -242,7 +242,7 @@
                 });
             }
             function vaciar(id, texto) {
-                document.getElementById(id).innerHTML = '<p class="vacio mb-0">' + texto + '</p>';
+                PortalHtml.poner(document.getElementById(id), '<p class="vacio mb-0">' + texto + '</p>');
             }
             function claveMes(r) { return r.anio + '-' + (r.mes < 10 ? '0' : '') + r.mes; }
             function etiquetaMes(clave) {
@@ -364,13 +364,13 @@
                     .sort(function (a, b) { return nivel(ultimos[a]) - nivel(ultimos[b]); });
                 var card = document.getElementById('cardAlertas');
                 card.hidden = !al.length;
-                document.getElementById('listaAlertas').innerHTML = al.map(function (p) {
+                PortalHtml.poner(document.getElementById('listaAlertas'), al.map(function (p) {
                     var r = ultimos[p], n = nivel(r);
                     return '<li class="' + (n < 10 ? 'al-crit' : 'al-warn') + '"><i class="ri-alert-line"></i><span>'
                          + '<strong>' + escapeHtml(p) + '</strong> · ' + numero(disponible(r)) + ' de '
                          + numero((r.cantidadInicial || 0) + (r.entregaMensual || 0)) + ' unidades (' + n + '% de stock) · '
                          + etiquetaMes(claveMes(r)) + '</span></li>';
-                }).join('');
+                }).join(''));
             }
 
             function pintarStock(lista) {
@@ -437,7 +437,7 @@
                     var pa = a.predio || '', pb = b.predio || '';
                     return pa !== pb ? pa.localeCompare(pb) : (claveMes(b) < claveMes(a) ? -1 : 1);
                 });
-                tb.innerHTML = orden.map(function (r) {
+                PortalHtml.poner(tb, orden.map(function (r) {
                     var n = nivel(r), e = estadoNivel(n);
                     return '<tr>'
                          + '<td class="ps-3 fw-medium">' + escapeHtml(r.predio || '(sin predio)') + '</td>'
@@ -449,7 +449,7 @@
                          + '<td><div class="d-flex align-items-center gap-2"><div class="bar-track flex-grow-1"><div class="bar-fill" style="width:' + n + '%;background:' + e.color + '"></div></div><span class="fs-11 text-muted">' + n + '%</span></div></td>'
                          + '<td class="pe-3"><span class="nivel-tag ' + e.clase + '">' + e.texto + '</span></td>'
                          + '</tr>';
-                }).join('');
+                }).join(''));
             }
 
             function exportarCsv() {

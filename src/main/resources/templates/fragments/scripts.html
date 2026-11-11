@@ -1,4 +1,6 @@
 <th:block xmlns:th="http://www.thymeleaf.org" th:fragment="appScripts(pageScripts)">
+    <!-- 11-nov-2026 (Aikido CWE-79): PortalHtml.poner limpia el HTML antes de insertarlo; lo usan todas las pantallas -->
+    <script th:src="@{/js/html-seguro.js}" src="/js/html-seguro.js"></script>
     <script th:src="@{/theme/lib/jquery/jquery.min.js}" src="/theme/lib/jquery/jquery.min.js"></script>
     <script th:src="@{/theme/lib/bootstrap/js/bootstrap.bundle.min.js}" src="/theme/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script th:src="@{/theme/lib/perfect-scrollbar/perfect-scrollbar.min.js}" src="/theme/lib/perfect-scrollbar/perfect-scrollbar.min.js"></script>

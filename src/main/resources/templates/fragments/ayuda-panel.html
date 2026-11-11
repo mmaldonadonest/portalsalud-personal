@@ -158,7 +158,7 @@
                 + '<button type="button" onclick="ayudaCalificar(this, ' + data.preguntaId + ', false);"><i class="ri-thumb-down-line"></i> No</button></div>';
             burbuja('bot', html);
         } catch (e) {
-            pensando.innerHTML = 'No pude buscar ahora (' + esc(e.message) + '). Abre <a href="' + ruta('ayuda') + '">toda la ayuda</a>.';
+            PortalHtml.poner(pensando, 'No pude buscar ahora (' + esc(e.message) + '). Abre <a href="' + ruta('ayuda') + '">toda la ayuda</a>.');
         }
     };
 
@@ -173,7 +173,7 @@
             var a = await r.json();
             var d = document.createElement('div');
             d.className = 'ayuda-cuerpo';
-            d.innerHTML = a.html;   // HTML generado en el servidor desde Markdown (escapado ahi)
+            PortalHtml.poner(d, a.html);   // HTML generado en el servidor desde Markdown (escapado ahi)
             d.querySelectorAll('a.ayuda-enlace').forEach(function (l) { l.href = ruta(l.dataset.ruta); });
             caja.appendChild(d);
             btn.textContent = 'Cerrar';

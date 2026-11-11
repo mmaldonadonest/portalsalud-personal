@@ -178,7 +178,7 @@
                 });
             }
             function vaciar(id, texto) {
-                document.getElementById(id).innerHTML = '<p class="vacio mb-0">' + texto + '</p>';
+                PortalHtml.poner(document.getElementById(id), '<p class="vacio mb-0">' + texto + '</p>');
             }
 
             function calcularRango() {
@@ -349,10 +349,10 @@
                 chartPareto = new ApexCharts(document.querySelector('#chartPareto'), options);
                 chartPareto.render();
 
-                document.getElementById('miniCausas').innerHTML = lista.slice(0, 4).map(function (r) {
+                PortalHtml.poner(document.getElementById('miniCausas'), lista.slice(0, 4).map(function (r) {
                     return '<div class="m"><div class="n">' + numero(r.cantidad) + '</div>'
                          + '<div class="l">' + escapeHtml(r.clave) + '</div></div>';
-                }).join('');
+                }).join(''));
             }
 
             function pintarTabla(lista, total) {
@@ -362,7 +362,7 @@
                     return;
                 }
                 var maximo = lista[0].cantidad;
-                tb.innerHTML = lista.map(function (r, i) {
+                PortalHtml.poner(tb, lista.map(function (r, i) {
                     var pct = total ? (r.cantidad / total * 100) : 0;
                     var ancho = maximo ? Math.max(Math.round(r.cantidad / maximo * 100), 2) : 0;
                     return '<tr>'
@@ -372,7 +372,7 @@
                          + '<td class="text-end">' + pct.toFixed(1) + '%</td>'
                          + '<td class="pe-3"><div class="bar-track"><div class="bar-fill" style="width:' + ancho + '%"></div></div></td>'
                          + '</tr>';
-                }).join('');
+                }).join(''));
             }
 
             function exportarCsv() {

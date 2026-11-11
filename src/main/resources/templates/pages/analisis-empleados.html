@@ -196,12 +196,12 @@
                     f.puesto || null,
                     f.empresa || null
                 ].filter(Boolean).join(' · ');
-                document.getElementById('miniContadores').innerHTML = [
+                PortalHtml.poner(document.getElementById('miniContadores'), [
                     [c.atenciones, 'Atenciones'], [c.incapacidades, 'Incapacidades'], [c.diasPerdidos, 'Días perdidos'],
                     [c.accidentes, 'Accidentes'], [c.examenes, 'Exámenes'], [c.antidoping, 'Antidoping'], [c.maternidad, 'Maternidad']
                 ].filter(function (x) { return x[1] !== 'Maternidad' || x[0] > 0; })
                  .map(function (x) { return '<div class="m"><div class="n">' + numero(x[0]) + '</div><div class="l">' + x[1] + '</div></div>'; })
-                 .join('');
+                 .join(''));
             }
 
             function pintarTimeline(eventos) {
@@ -212,13 +212,13 @@
                     ol.innerHTML = '<li class="vacio">Sin eventos de salud ocupacional registrados.</li>';
                     return;
                 }
-                ol.innerHTML = eventos.map(function (e) {
+                PortalHtml.poner(ol, eventos.map(function (e) {
                     return '<li class="dom-' + escapeHtml(e.dominio) + '"><span class="dot"></span><div>'
                          + '<div class="f">' + fechaCorta(e.fecha) + '</div>'
                          + '<div class="t">' + escapeHtml(e.titulo) + '</div>'
                          + (e.detalle ? '<div class="d">' + escapeHtml(e.detalle) + '</div>' : '')
                          + '</div></li>';
-                }).join('');
+                }).join(''));
             }
 
             document.getElementById('frmBuscar').addEventListener('submit', function (ev) {

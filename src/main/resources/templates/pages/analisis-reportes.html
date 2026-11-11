@@ -160,7 +160,7 @@
             }
 
             function pintarRejilla() {
-                document.getElementById('rejilla').innerHTML = REPORTES.map(function (r) {
+                PortalHtml.poner(document.getElementById('rejilla'), REPORTES.map(function (r) {
                     return '<div class="col-md-6 col-xl-4"><div class="rep-card" style="--c:' + r.color + '" data-id="' + r.id + '">'
                          + '<h6><i class="' + r.icono + '"></i>' + r.titulo + '</h6>'
                          + '<div class="desc">' + r.desc + '</div>'
@@ -169,7 +169,7 @@
                          + (r.calidad ? '<button type="button" class="btn btn-outline-secondary btn-sm" data-ver="' + r.id + '"><i class="ri-eye-line me-1"></i>Ver</button>' : '')
                          + '<span class="est" data-est="' + r.id + '"></span>'
                          + '</div></div></div>';
-                }).join('');
+                }).join(''));
                 document.querySelectorAll('[data-csv]').forEach(function (b) { b.addEventListener('click', function () { descargar(this.dataset.csv); }); });
                 document.querySelectorAll('[data-ver]').forEach(function (b) { b.addEventListener('click', function () { verCalidad(); }); });
             }
@@ -282,9 +282,9 @@
                 try {
                     var filas = await calidad(calcularRango());
                     var tb = document.getElementById('tbCalidad');
-                    tb.innerHTML = filas.slice(1).map(function (f) {
+                    PortalHtml.poner(tb, filas.slice(1).map(function (f) {
                         return '<tr><td class="ps-3 fw-medium">' + f[0] + '</td><td>' + f[1] + '</td><td class="text-end pe-3">' + (f[2] === '' ? '' : Number(f[2]).toLocaleString('es-MX')) + '</td></tr>';
-                    }).join('');
+                    }).join(''));
                     document.getElementById('cardCalidad').hidden = false;
                     estado('calidad', (filas.length - 1) + ' hallazgos');
                 } catch (e) {

@@ -490,10 +490,10 @@
                 msg.hidden = true;
                 if (r.motivoRechazo) {
                     msg.className = 'aviso aviso--mal mb-3'; msg.hidden = false;
-                    msg.innerHTML = '<strong>No se reconoce o no se puede leer el archivo.</strong><div style="white-space:pre-wrap">' + escapar(r.motivoRechazo) + '</div>';
+                    PortalHtml.poner(msg, '<strong>No se reconoce o no se puede leer el archivo.</strong><div style="white-space:pre-wrap">' + escapar(r.motivoRechazo) + '</div>');
                 } else if (t.mensaje) {
                     msg.className = 'aviso aviso--warn mb-3'; msg.hidden = false;
-                    msg.innerHTML = '<strong>Atención:</strong> ' + escapar(t.mensaje);
+                    PortalHtml.poner(msg, '<strong>Atención:</strong> ' + escapar(t.mensaje));
                 }
                 document.getElementById('resCal').hidden = !!r.motivoRechazo;
                 document.getElementById('cLeidas').textContent = numero(r.leidas);
@@ -505,10 +505,10 @@
                 carga.hidden = !(cargado && r.escritura);
                 if (cargado && r.escritura) {
                     var e = r.escritura;
-                    carga.innerHTML = '<strong>Lote ' + e.loteId + ' cargado.</strong> Insertados ' + numero(e.insertados)
+                    PortalHtml.poner(carga, '<strong>Lote ' + e.loteId + ' cargado.</strong> Insertados ' + numero(e.insertados)
                         + ' · sustituidos de cargas anteriores ' + numero(e.reemplazados)
                         + ' · ya estaban en el portal (no cuentan) ' + numero(e.duplicados)
-                        + (e.aviso ? '<div>' + escapar(e.aviso) + '</div>' : '');
+                        + (e.aviso ? '<div>' + escapar(e.aviso) + '</div>' : ''));
                 }
 
                 // Resumen: primero lo que pide accion (marcado [revisar] por el servidor), luego lo informativo
@@ -532,12 +532,12 @@
                     var i = a.indexOf('Qué hacer:');
                     return (i < 0 ? escapar(a) : escapar(a.substring(0, i)) + '<span class="que-hacer">' + escapar(a.substring(i)) + '</span>') + lista;
                 }
-                document.getElementById('avisosAccion').innerHTML = accion.map(function (a) {
+                PortalHtml.poner(document.getElementById('avisosAccion'), accion.map(function (a) {
                     return '<div class="accion"><strong>Requiere acción</strong>' + conQueHacer(a) + '</div>';
-                }).join('');
-                document.getElementById('resAvisos').innerHTML = info.length
+                }).join(''));
+                PortalHtml.poner(document.getElementById('resAvisos'), info.length
                     ? info.map(function (a) { return '<li>' + conQueHacer(a) + '</li>'; }).join('')
-                    : (accion.length ? '' : '<li class="text-muted">Sin avisos.</li>');
+                    : (accion.length ? '' : '<li class="text-muted">Sin avisos.</li>'));
 
                 // Lo que ya estaba cargado (reemplazo por predio y mes)
                 var reemp = r.reemplazos || [];
@@ -554,10 +554,10 @@
                           + 'Si no, revisa que el predio y el mes del archivo sean los correctos antes de cargar.</span>'
                         : '<strong>Este archivo no borra nada.</strong> En la base no había renglones de estos predios y meses: todo se agrega como nuevo.'
                           + '<span class="que-hacer">Qué hacer: nada.</span>';
-                    document.getElementById('reemplazos').innerHTML = reemp.map(function (x) {
+                    PortalHtml.poner(document.getElementById('reemplazos'), reemp.map(function (x) {
                         return '<tr><td>' + escapar(x.predio) + '</td><td>' + escapar(mes(x.mes)) + '</td><td class="num">' + numero(x.nuevos)
                             + '</td><td class="num"' + (x.existentes ? ' style="color:#B45309;font-weight:700"' : '') + '>' + numero(x.existentes) + '</td></tr>';
-                    }).join('');
+                    }).join(''));
                 }
 
                 // Renglones: una pestana para los que no entran y otra para los que entran con ajuste
@@ -600,11 +600,11 @@
                 document.getElementById('filasAyuda').className = 'aviso mb-2 ' + (tab === 'ERROR' ? 'aviso--mal' : 'aviso--warn');
                 // La tabla tiene un renglon por MOTIVO: si hay renglones con mas de un motivo, se dice
                 var masDeUno = tab === 'ERROR' && total > renglonesError && renglonesError > 0;
-                document.getElementById('filasAyuda').innerHTML = escapar(AYUDA_TAB[tab])
+                PortalHtml.poner(document.getElementById('filasAyuda'), escapar(AYUDA_TAB[tab])
                     + (masDeUno ? ' Son ' + numero(renglonesError) + ' renglones con ' + numero(total)
                         + ' motivos: un renglón puede fallar en más de una columna y sale una vez por cada una.' : '')
                     + (total > lista.length ? ' Aquí se muestran los primeros ' + numero(lista.length) + ' de ' + numero(total)
-                        + (tab === 'ERROR' ? ' motivos.' : '.') : '');
+                        + (tab === 'ERROR' ? ' motivos.' : '.') : ''));
                 var todos = totalesPorTipo.ERROR + totalesPorTipo.AVISO;
                 document.getElementById('descargaTodos').hidden = !todos;
                 document.getElementById('descargaTexto').textContent = 'Un solo Excel con todos: ' + numero(renglonesError)
@@ -614,14 +614,14 @@
                 var vacio = document.getElementById('filasVacio');
                 vacio.hidden = !!lista.length;
                 vacio.textContent = tab === 'ERROR' ? 'Todos los renglones entran.' : 'Ningún renglón requiere ajuste.';
-                document.getElementById('filas').innerHTML = lista.map(function (f) {
+                PortalHtml.poner(document.getElementById('filas'), lista.map(function (f) {
                     // Equivalencia aprobada por SM: entro sin problema, en verde para que no parezca error
                     var entro = (f.motivo || '').indexOf(ENTRO_COMO) === 0;
                     var motivo = entro ? '<span class="entro">✓ ' + escapar(f.motivo) + '</span>' : escapar(f.motivo);
                     return '<tr' + (entro ? ' class="fila-entro"' : '') + '><td class="mono">' + f.renglon + '</td><td class="col-col">' + escapar(f.columna) + '</td>'
                         + '<td class="col-valor">' + escapar(f.valor) + '</td><td>' + motivo + '</td>'
                         + '<td class="col-baja">' + escapar(f.baja || '') + '</td></tr>';
-                }).join('');
+                }).join(''));
             }
 
             document.getElementById('tabs').addEventListener('click', function (ev) {
@@ -659,7 +659,7 @@
                     if (!res.ok) { return; }
                     var lista = await res.json();
                     document.getElementById('histVacio').hidden = lista.length > 0;
-                    document.getElementById('historial').innerHTML = lista.map(function (l) {
+                    PortalHtml.poner(document.getElementById('historial'), lista.map(function (l) {
                         var nombre = escapar(l.archivo ? String(l.archivo).split(/[\\/]/).pop() : '');
                         var archivoCelda = l.archivoId
                             ? '<a href="' + API + '/archivos/' + l.archivoId + '" title="Descargar el original"><i class="ri-download-2-line"></i> ' + nombre + '</a>'
@@ -672,7 +672,7 @@
                             + '<td class="num">' + numero(l.conError) + '</td>'
                             + '<td><span class="est est--' + escapar(l.estado) + '">' + escapar(l.estado) + '</span></td>'
                             + '<td class="fs-11">' + escapar(l.creadoPor || '') + '</td></tr>';
-                    }).join('');
+                    }).join(''));
                 } catch (e) { /* el historial no bloquea */ }
             }
 

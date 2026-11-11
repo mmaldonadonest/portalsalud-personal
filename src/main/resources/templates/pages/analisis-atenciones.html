@@ -198,7 +198,7 @@
             }
             function etiquetaMes(clave) { return nombreMes(clave) + ' ' + String(clave).substring(2, 4); }
             function vaciar(id, texto) {
-                document.getElementById(id).innerHTML = '<p class="vacio mb-0">' + texto + '</p>';
+                PortalHtml.poner(document.getElementById(id), '<p class="vacio mb-0">' + texto + '</p>');
             }
 
             function calcularRango() {
