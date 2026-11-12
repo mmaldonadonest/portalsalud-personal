@@ -143,6 +143,37 @@ public class ExamenService {
     /** C-066: observaciones de Lenguaje (tags), en el orden voz clara, conversacion fluida, coherencia. */
     public static final List<String> LENGUAJE_OBS = List.of("EXM_LENGUAJE_OBS", "EXM_CONVER_FLUIDA_OBS", "EXM_COHERENCIA_OBS");
 
+    /**
+     * Campos que el EMNI (y el formato, que los imprime Si/No) captura con botones Si/No y que Examen medico tenia
+     * como texto libre (12-nov-2026). En BD: 97 % 1/0 (PHP), algunos SI/NO (EMNI), relleno "SIN OBSERVACIONES".
+     */
+    public static final Set<String> SINO_BOTONES = Set.of(
+            "SERV_MED_ANT_PATOLOGICOS.AGUA_POTABLE", "SERV_MED_ANT_PATOLOGICOS.LUZ", "SERV_MED_ANT_PATOLOGICOS.DRENAJE",
+            "SERV_MED_ANT_PATOLOGICOS.AIRE_ACONDICIONADO", "SERV_MED_ANT_PATOLOGICOS.BALANCEADA",
+            "SERV_MED_ANT_PATOLOGICOS.SUFICIENTE",
+            "SERV_MED_EXPLORACION_FISICA.SATISFACCION", "SERV_MED_EXPLORACION_FISICA.COMP_TRABAJO",
+            "SERV_MED_EXPLORACION_FISICA.COMP_ORGANIZACION", "SERV_MED_EXPLORACION_FISICA.LENGUAJE",
+            "SERV_MED_EXPLORACION_FISICA.CONVER_FLUIDA", "SERV_MED_EXPLORACION_FISICA.COHERENCIA_PALABLAS");
+
+    /**
+     * Valor de un boton Si/No: "1" (1, SI, SÍ, S), "0" (0, NO, N), "" (vacio o relleno "SIN OBS..."); cualquier otro
+     * texto se regresa tal cual para conservarlo como "(capturado antes)". Lo usan EMNI y Examen medico.
+     */
+    public static String sinoBoton(String valor) {
+        String v = valor == null ? "" : valor.trim();
+        String u = v.toUpperCase(java.util.Locale.ROOT).replace('Í', 'I');
+        if (u.equals("1") || u.equals("SI") || u.equals("S")) {
+            return "1";
+        }
+        if (u.equals("0") || u.equals("NO") || u.equals("N")) {
+            return "0";
+        }
+        if (u.isEmpty() || u.startsWith("SIN OBS")) {
+            return "";
+        }
+        return v;
+    }
+
     /** Prefijo de las claves de formulario que van a SERV_MED_TAG y no al WS. */
     private static final String PREFIJO_TAG = "TAG.";
     private static final String GRUPO_TAG_FISICO = "EXAMEN_FISICO";

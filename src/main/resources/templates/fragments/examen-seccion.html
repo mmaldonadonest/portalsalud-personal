@@ -296,7 +296,19 @@
                 </div>
 
                 <!-- Exploracion con ayuda del formato (mismo control que el examen inicial: exIniOkNo) -->
-                <th:block th:if="${it.type == 'TEXT'}" th:with="ay=${ayudas != null ? ayudas[it.fieldName] : null}">
+                <!--/* 12-nov-2026: los 12 Si/No del EMNI y del formato (ExamenService.SINO_BOTONES) eran texto libre aqui y el
+                     impreso los saca como Si/No: lo escrito se perdia. Mismos botones que el EMNI; guardan 1/0 y lo que no
+                     es Si/No se conserva como "(capturado antes)". */-->
+                <div th:if="${it.type == 'TEXT' and T(com.onest.app.catalog.examen.service.ExamenService).SINO_BOTONES.contains(it.fieldName)}"
+                     class="exini-chips" th:with="sn=${T(com.onest.app.catalog.examen.service.ExamenService).sinoBoton(it.value)}">
+                    <input type="hidden" th:name="${it.fieldName}" th:value="${sn}">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" th:classappend="${sn == '1'} ? 'activo' : ''" data-val="1" onclick="exIniChip(this);">Sí</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" th:classappend="${sn == '0'} ? 'activo' : ''" data-val="0" onclick="exIniChip(this);">No</button>
+                    <button type="button" th:if="${sn != '' and sn != '1' and sn != '0'}" class="btn btn-sm btn-outline-secondary activo"
+                            th:attr="data-val=${sn}" th:text="|${sn} (capturado antes)|" onclick="exIniChip(this);">otro</button>
+                </div>
+                <th:block th:if="${it.type == 'TEXT' and !T(com.onest.app.catalog.examen.service.ExamenService).SINO_BOTONES.contains(it.fieldName)}"
+                          th:with="ay=${ayudas != null ? ayudas[it.fieldName] : null}">
                     <div th:if="${ay != null and ay.modo != 'OPCIONES'}" class="exini-okno"
                          th:with="val=${it.value ?: ''}, ok=${#strings.equalsIgnoreCase(#strings.trim(it.value ?: ''), ay.normal) or #strings.equalsIgnoreCase(#strings.trim(it.value ?: ''), 'Normal') or #strings.trim(it.value ?: '') == '20/20'}"
                          th:attr="data-normal=${ay.normal}, data-alterno=${ay.alterno}">

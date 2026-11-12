@@ -532,16 +532,17 @@
                                             <div th:with="esSiNo=${#lists.contains({'AGUA_POTABLE','LUZ','DRENAJE','AIRE_ACONDICIONADO','BALANCEADA','SUFICIENTE'}, f)},
                                                           esNum=${#lists.contains({'NO_DORMITORIOS','BAÑO','CAMBIO_DE_ROPA','ASEO_BUCAL','FC1','FC2'}, f)},
                                                           val=${it.value ?: ''},
-                                                          sn=${#strings.replace(#strings.toUpperCase(#strings.trim(it.value ?: '')), 'Í', 'I')}">
+                                                          sn=${T(com.onest.app.catalog.examen.service.ExamenService).sinoBoton(it.value)}">
                                                 <label th:text="${etq[f] ?: it.label}">Campo</label>
-                                                <!--/* 9-nov: "SI ", "Si" o "SÍ" del dato viejo cuentan como Si (antes salian como "capturado antes"
-                                                     junto al boton); el hidden guarda el valor limpio. Solo lo que no es Si/No se conserva aparte. */-->
+                                                <!--/* 12-nov-2026: guarda 1/0, como el PHP (97 % de los datos) y los demas Si/No; antes guardaba SI/NO y un
+                                                     1/0 del PHP salia como "1 (capturado antes)". Lee 1/0/SI/NO; el relleno "SIN OBSERVACIONES" es vacio.
+                                                     Lo que no es Si/No (p. ej. "OCASIONAL") se conserva aparte. Mismo control que Examen medico. */-->
                                                 <div th:if="${esSiNo}" class="exini-chips">
-                                                    <input type="hidden" th:name="${it.fieldName}" th:value="${sn == 'SI' or sn == 'NO' ? sn : val}">
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary" th:classappend="${sn == 'SI'} ? 'activo' : ''" data-val="SI" onclick="exIniChip(this);">Sí</button>
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary" th:classappend="${sn == 'NO'} ? 'activo' : ''" data-val="NO" onclick="exIniChip(this);">No</button>
-                                                    <button type="button" th:if="${sn != '' and sn != 'SI' and sn != 'NO'}"
-                                                            class="btn btn-sm btn-outline-secondary activo" th:attr="data-val=${val}" th:text="|${val} (capturado antes)|" onclick="exIniChip(this);">otro</button>
+                                                    <input type="hidden" th:name="${it.fieldName}" th:value="${sn}">
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" th:classappend="${sn == '1'} ? 'activo' : ''" data-val="1" onclick="exIniChip(this);">Sí</button>
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" th:classappend="${sn == '0'} ? 'activo' : ''" data-val="0" onclick="exIniChip(this);">No</button>
+                                                    <button type="button" th:if="${sn != '' and sn != '1' and sn != '0'}"
+                                                            class="btn btn-sm btn-outline-secondary activo" th:attr="data-val=${sn}" th:text="|${sn} (capturado antes)|" onclick="exIniChip(this);">otro</button>
                                                 </div>
                                                 <input th:if="${esNum}" type="text" inputmode="numeric" class="form-control form-control-sm" data-tipo="TEXT" th:name="${it.fieldName}" th:value="${val}" oninput="exIniSoloNumero(this);">
                                                 <input th:if="${!esSiNo and !esNum}" type="text" class="form-control form-control-sm" data-tipo="TEXT" th:name="${it.fieldName}" th:value="${val}">
