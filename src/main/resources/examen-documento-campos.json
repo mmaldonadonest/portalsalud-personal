@@ -2184,7 +2184,7 @@
   "transform": null
  },
  {
-  "var": "DOLOR",
+  "var": "DOLOR_ABDOMEN",
   "kind": "DATA",
   "arg": "SERV_MED_ABDOMEN.DOLOR",
   "transform": null

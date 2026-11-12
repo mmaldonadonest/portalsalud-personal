@@ -314,8 +314,14 @@
                                 th:classappend="${#strings.equalsIgnoreCase(#strings.trim(it.value ?: ''), o) or (o == ay.normal and #strings.equalsIgnoreCase(#strings.trim(it.value ?: ''), 'OK'))} ? 'activo' : ''"
                                 th:attr="data-val=${o}" th:text="${#strings.capitalize(#strings.toLowerCase(o))}" onclick="exIniChip(this);">opción</button>
                     </div>
+                    <!--/* 11-nov-2026: el WS lee HEREDOFAMILIARES.*_ID con apex_json.get_number (respaldoWS10102026.txt):
+                         una letra daba 502 ORA-06502 y se perdia TODO el examen. Solo numeros. */-->
                     <input th:if="${ay == null}" type="text" class="form-control form-control-sm"
-                           th:name="${it.fieldName}" th:value="${it.value}">
+                           th:name="${it.fieldName}" th:value="${it.value}"
+                           th:with="num=${#strings.startsWith(it.fieldName, 'HEREDOFAMILIARES.')}"
+                           th:attr="inputmode=${num} ? 'numeric' : null, pattern=${num} ? '[0-9]*' : null,
+                                    title=${num} ? 'Solo números' : null,
+                                    oninput=${num} ? 'this.value = this.value.replace(/[^0-9]/g, \'\');' : null">
                 </th:block>
 
                 <th:block th:if="${it.type == 'SINO_TEXTO'}">

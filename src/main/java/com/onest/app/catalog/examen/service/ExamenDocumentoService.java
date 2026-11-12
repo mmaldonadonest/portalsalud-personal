@@ -289,6 +289,20 @@ public class ExamenDocumentoService {
         return ENCABEZADOS.getOrDefault(tipoExamen == null ? "" : tipoExamen.trim(), FT_SO_04);
     }
 
+    private static String datoWs(Map<String, String> data, Map<String, String> sinEspacios, String clave) {
+        String v = data.get(clave);
+        if (v != null && !Documento.esRelleno(v.trim())) {
+            return v;
+        }
+        // la exacta no viene o es relleno del coalesce: la variante con/sin espacio puede traer el dato real
+        String alterno = sinEspacios.get(clave.replace(" ", ""));
+        return alterno != null && !Documento.esRelleno(alterno.trim()) ? alterno : v;
+    }
+
+    /** Tags del PHP que en examen-documento-campos.json van sobre un dato del WS con la misma variable. */
+    private static final java.util.Set<String> TAGS_PHP_SOBRE_WS = java.util.Set.of(
+            "TRAQUEA_OBSINP", "ciruOBS", "observaciones2", "observaciones3", "CCA", "Drenaje", "DIENTE_2");
+
     private static final Map<String, String> TIPO_EXAMEN = Map.of(
             "0", "No seleccionado", "1", "Admisión", "2", "Périodico", "3", "Cambio de puesto",
             "4", "Post incapacidad", "5", "Especial", "6", "Egreso", "7", "Inicial mantenimiento",
@@ -424,10 +438,50 @@ public class ExamenDocumentoService {
             tagValues = Map.of();
         }
 
+        // El WS de lectura trae claves con espacio ('ALT_CARGA _OBS', 'LUMBALGIA _OBS'...) y el JSON del impreso
+        // las pide sin espacio: salian vacias (11-nov-2026). Respaldo: la misma clave ignorando espacios.
+        Map<String, String> sinEspacios = new HashMap<>();
+        data.forEach((k, val) -> {
+            if (k != null && val != null) {   // merge no admite null
+                sinEspacios.merge(k.replace(" ", ""), val, (ya, nuevo) -> !Documento.esRelleno(ya.trim()) ? ya : nuevo);
+            }
+        });
         Map<String, String> v = new HashMap<>();
+        java.time.LocalDateTime ultimoPortal = null;
+        boolean ultimoPortalLeido = false;
         for (Campo c : campos) {
+            // Tags del PHP que pisaban el dato del WS (11-nov-2026): el PHP los guardaba aparte porque su WS perdia
+            // o cruzaba esos datos. El JSON (copiado del PHP) los pone DESPUES y el ultimo gana aunque venga vacio:
+            // un examen del portal salia sin Traquea, Cirugias, Interrogatorio, etc. Gana el mas reciente: el tag
+            // solo si el WS no trae dato real o si el tag es posterior al ultimo examen guardado en el portal.
+            if ("TAG".equals(c.kind()) && TAGS_PHP_SOBRE_WS.contains(c.arg())) {
+                String previo = limpio(v.get(c.var()));
+                String delTag = limpio(tagValues.get(c.arg()));
+                if (delTag.isEmpty()) {
+                    continue;
+                }
+                if (!previo.isEmpty() && !Documento.esRelleno(previo)) {
+                    if (!ultimoPortalLeido) {
+                        ultimoPortalLeido = true;
+                        try {
+                            ultimoPortal = historico.ultimo(nssLimpio).map(r -> r.fechaExamen()).orElse(null);
+                        } catch (RuntimeException ex) {
+                            ultimoPortal = null;
+                        }
+                    }
+                    java.time.LocalDateTime fechaTag = null;
+                    try {
+                        fechaTag = tags.ultimoGuardado(nssLimpio, c.arg());
+                    } catch (RuntimeException ex) {
+                        // sin fecha: se queda con el dato del WS
+                    }
+                    if (ultimoPortal != null && (fechaTag == null || !fechaTag.isAfter(ultimoPortal))) {
+                        continue;
+                    }
+                }
+            }
             String valor = switch (c.kind()) {
-                case "DATA" -> data.get(c.arg());
+                case "DATA" -> datoWs(data, sinEspacios, c.arg());
                 case "USER" -> campoEmpleado(emp, c.arg());
                 case "TAG" -> tagValues.get(c.arg());
                 case "VAR" -> v.get(c.arg());
@@ -481,7 +535,7 @@ public class ExamenDocumentoService {
             }
         }
         // C-075 (11-nov): Hematopatias y Transfusionales («APP: otros») salian en blanco fijo en el FT-SO-17/16/18/20
-        for (String t : List.of("APPHEMATOPATIAS", "APPTRANSFUSIONALES")) {
+        for (String t : List.of("APPHEMATOPATIAS", "APPTRANSFUSIONALES", "APPQUIRURGICOS")) {
             v.putIfAbsent(t, limpio(tagValues.get(t)));
         }
         // Encabezado de calidad segun el tipo de examen (codigo crudo, antes de pasarlo a texto)
@@ -530,6 +584,11 @@ public class ExamenDocumentoService {
             solicitud = solicitudes.ultimaPorNss(nssLimpio).orElse(null);
         } catch (RuntimeException ex) {
             // sin tabla de solicitudes: se queda con el biometrico o el predeterminado
+        }
+        // Puesto (11-nov-2026): el candidato del EMNI no es empleado, el WS del NSS no trae puesto y el FT-SO-05
+        // salia en blanco. Se usa el puesto solicitado de la solicitud de OCR, como ya se hace con la agencia.
+        if (limpio(v.get("puesto")).isEmpty() && solicitud != null) {
+            v.put("puesto", limpio(solicitud.puestoSolicitado()));
         }
         String agenciaSolicitud = solicitud == null ? null : solicitud.agencia();
         String agenciaBase = agencia(nssLimpio, agenciaSolicitud);

@@ -291,7 +291,7 @@
              oido izquierdo. Antes AGUD AUDIT salia en blanco fijo y OIDO DERECHO / MEM TIM leian el tag que no era. */-->
         <tr><td class="e">PUPILAS</td><td th:text="${d.texto('PUPILAS')}"></td><td class="e">MEM TIM</td><td th:text="${d.texto('ODMEMTIMINPEXP')}"></td><td class="e">VISCEROMEGALIAS</td><td th:text="${d.texto('VISCEROMEGALIAS')}"></td></tr>
         <tr><td class="e">CONJUNTIVAS</td><td th:text="${d.texto('CONJUNTIVAS')}"></td><td class="e">AGUD AUDIT</td><td th:text="${d.texto('ODAGAUDIINPEXP')}"></td><td class="e">HERNIAS</td><td th:text="${d.texto('HERNIAS2')}"></td></tr>
-        <tr><td class="e">REFLEJOS</td><td th:text="${d.texto('REFLEJOS')}"></td><td class="e">OÍDO DERECHO</td><td th:text="${d.texto('OIMEMTIMINPEXP')}"></td><td class="e">DOLOR</td><td th:text="${d.texto('DOLOR')}"></td></tr>
+        <tr><td class="e">REFLEJOS</td><td th:text="${d.texto('REFLEJOS')}"></td><td class="e">OÍDO DERECHO</td><td th:text="${d.texto('OIMEMTIMINPEXP')}"></td><td class="e">DOLOR</td><td th:text="${d.texto('DOLOR_ABDOMEN')}"></td></tr>
         <tr><td class="e">FONDO OJO</td><td th:text="${d.texto('FONDO_OJO')}"></td><td class="e">OÍDO IZQUIERDO</td><td th:text="${d.texto('OIAGAUDIINPEXP')}"></td><td class="e">PERISTALSIS</td><td th:text="${d.texto('PERISTALSIS')}"></td></tr>
 
         <tr><td class="sub" colspan="2">AGUDEZA VISUAL (SL / CL)</td><td class="sub" colspan="2">CUELLO</td><td class="sub" colspan="2">GENITALES</td></tr>
@@ -496,7 +496,8 @@
         <tr><td class="e">CARDIOPATÍAS</td><td th:text="${d.resumen('ANEURISMA2:Aneurisma,HIPERTENSION2:Hipertensión,HIPOTENSION2:Hipotensión,INFARTOS:Infartos,INSUFIC_CAR:Insuficiencia cardiaca')}"></td>
             <td class="e">TRANSFUSIONALES</td><td th:text="${d.texto('APPTRANSFUSIONALES')}"></td></tr>
         <tr><td class="e">DIGESTIVO</td><td th:text="${d.resumen('HERNIAS:Hernias,CIRROSIS:Cirrosis,COLITIS:Colitis,GASTRITIS:Gastritis,HEMORROIDES:Hemorroides')}"></td>
-            <td class="e">QUIRÚRGICOS</td><td th:text="${d.resumen('CIRUGIAS:')}"></td></tr>
+            <!--/* 11-nov: lo capturado en «APP: otros → Quirúrgicos» (tag) no salia; va junto a Cirugias del WS */-->
+            <td class="e">QUIRÚRGICOS</td><td>[[${d.resumen('CIRUGIAS:')}]]<th:block th:if="${!#strings.isEmpty(d.v('APPQUIRURGICOS'))}"> · [[${d.v('APPQUIRURGICOS')}]]</th:block></td></tr>
         <tr><td class="e">NEUMOPATÍAS</td><td th:text="${d.resumen('RESPIRATORIO:')}"></td>
             <td class="e">TRAUMÁTICOS</td><td th:text="${d.resumen('TRAUMATICOS:')}"></td></tr>
         <tr><td class="e">ENDOCRINAS</td><td th:text="${d.resumen('DIABETES:Diabetes,HIPERTIROIDISMO2:Hipertiroidismo,HIPOTIROIDISMO2:Hipotiroidismo')}"></td>

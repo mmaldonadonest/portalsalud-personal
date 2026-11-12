@@ -1008,11 +1008,7 @@ public class ExamenService {
             });
         }
         Map<String, String> tagsTrabajos = separarTrabajos(c);
-        // E-032 (11-nov): el WS lee la observacion de migraña como 'NEUROLOGIA.MIGRANA_OBS' (sin Ñ) y el
-        // catalogo la manda con Ñ: nunca se guardaba. Se manda tambien con la clave que el WS espera.
-        if (c.containsKey("NEUROLOGIA.MIGRAÑA_OBS") && !c.containsKey("NEUROLOGIA.MIGRANA_OBS")) {
-            c.put("NEUROLOGIA.MIGRANA_OBS", c.get("NEUROLOGIA.MIGRAÑA_OBS"));
-        }
+        // E-032 (11-nov): migraña con Ñ -> el WS la lee sin Ñ; la conversion vive en BiowsExamenClient.writeKey
         String r = client.guardar(limpio, c, firma);
         guardarTags(limpio, nuevosTags);
         guardarTags(limpio, tagsTrabajos, GRUPO_TRABAJOS);

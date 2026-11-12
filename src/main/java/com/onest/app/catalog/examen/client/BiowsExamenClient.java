@@ -274,9 +274,11 @@ public class BiowsExamenClient implements ExamenClient {
         // ('LUMBALGIA ', 'INFARTOS ', 'ALT_CARGA ', 'SABIN ' -> 'LUMBALGIA _OBS'...). El WS de ESCRITURA
         // las lee sin espacio (PR_SERVICIO_MED_EXAMEN1/2): con el espacio, Si/No y observacion de esos
         // renglones nunca se guardaban. Ninguna clave de escritura lleva espacios.
-        field = field.replace(" ", "");
+        // 11-nov-2026: tampoco llevan Ñ (BANO, MIGRANA, MIGRANA_OBS en PR_SERVICIO_MED_EXAMEN1/2 y el handler
+        // Medico_v2). Va aqui y no en ExamenService porque el relleno con lo vigente (claves de LECTURA, con Ñ)
+        // tambien pasa por aqui: un guardado parcial borraba la migraña.
+        field = field.replace(" ", "").replace("Ñ", "N");
         return switch (field) {
-            case "BAÑO" -> "BANO";
             case "TABIQUE_NASA" -> "TABIQUE_NASAL";
             case "CERVICA" -> "CERVICAL";
             default -> field;

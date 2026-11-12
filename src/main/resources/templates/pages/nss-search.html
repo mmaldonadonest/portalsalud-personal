@@ -3921,11 +3921,13 @@
                 // 28-oct-2026: ya no hay "Guardar tipo" arriba. Si el tipo cambio, se guarda AQUI primero (mismo
                 // guardado de Datos generales: tambien SpO2, cintura, cadera y agencia como esten), para que el
                 // examen y el expediente que se abre salgan con el formato del tipo nuevo.
+                // 11-nov-2026: SIEMPRE, no solo si cambio el tipo. Antes, corregir solo SpO2/cintura/cadera y apretar
+                // «Guardar examen» los perdia (habia que usar «Guardar datos generales», que el medico no ve abajo).
                 var arribaTipo = document.getElementById('examenTipoArriba');
                 var tipoPendiente = !!arribaTipo && arribaTipo.value !== (arribaTipo.getAttribute('data-guardado') || '');
+                var dgForm = document.getElementById('datosGeneralesExamenForm');
                 try {
-                    if (tipoPendiente) {
-                        var dgForm = document.getElementById('datosGeneralesExamenForm');
+                    if (dgForm) {
                         var dgBody = new URLSearchParams(new FormData(dgForm));
                         if (csrf && csrf.name) { dgBody.append(csrf.name, csrf.value); }
                         var rTipo = await fetch(contextPath + 'api/nss/examen/datos-generales/save', {
@@ -3936,12 +3938,12 @@
                         if (!rTipo.ok) {
                             var txtTipo = await rTipo.text();
                             if (ventanaDoc) { ventanaDoc.close(); }
-                            mostrarResultadoExamen('No se guardó el tipo de examen (HTTP ' + rTipo.status + '): ' + txtTipo
-                                    + '. El examen tampoco se guardó.', true);
+                            mostrarResultadoExamen('No se guardaron los datos generales (tipo de examen, SpO2, cintura, cadera; HTTP '
+                                    + rTipo.status + '): ' + txtTipo + '. El examen tampoco se guardó.', true);
                             return;
                         }
                         var selTipo = document.getElementById('examenTipo');
-                        if (selTipo) { exAplicarTipo(selTipo.value, true); }
+                        if (selTipo && tipoPendiente) { exAplicarTipo(selTipo.value, true); }
                     }
                     var response = await fetch(contextPath + 'api/nss/examen/save', {
                         method: 'POST',
