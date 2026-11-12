@@ -450,6 +450,8 @@
                           del formato ("SIN AGREGADOS", "AUSENTES", "NEGATIVO", "DIFERIDO"); NO deja escribir
                           el hallazgo (en los de dos opciones arranca con la otra: "PRESENTES ..."). Lo que
                           viaja es el texto, en la columna de siempre; OK/NO se deduce del texto al reabrir.
+                          E-032 (11-nov): tras finalizar, el Si/No elegido sale del ultimo borrador finalizado
+                          (ExamenInicialService.oknoDelFinalizado) si el texto no cambio desde entonces.
                           OPCIONES = curvatura de columna (normal / aumentada / disminuida) en chips.
                         -->
                         <th:block th:if="${conAyuda}" th:each="it : ${s.items}" th:with="ay=${v.ayudas[it.fieldName]}">

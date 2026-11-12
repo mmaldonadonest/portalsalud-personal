@@ -33,6 +33,12 @@ public class BiowsExamenClient implements ExamenClient {
     private static final Logger log = LoggerFactory.getLogger(BiowsExamenClient.class);
     private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("dd/MM/yy HH:mm:ss");
     private static final String PATH = "/Servcio/consulta_examen";
+    // E-032 (11-nov-2026): clon de consulta_examen que llama a PR_SERVICIO_MED_CONSULTA_V2: regresa ademas
+    // NEUROLOGIA.AVC_OBS, HEREDOFAMILIARES.NEFROPATIAS_ID y SERV_MED_EXPLORACION_FISICA.NOLMAL_FASCIES (se
+    // guardaban y nunca se veian) y ASMA con su propia columna (el original repetia TUBERCULOSIS).
+    // docs/script-prod/e032-clon-consulta-examen-v2.sql. Mientras no exista (404) se lee el original.
+    private static final String PATH_V2 = "/Servcio/consulta_examen_v2";
+    private volatile boolean sinV2 = false;
     // E-024 (9-nov-2026): clon de Servcio/Medico que llama a PR_SERVICIO_MED_EXAMEN1/2_V2, iguales al
     // original pero anotan el error real de Oracle en SERV_MED_LOG_PROC (el original solo responde
     // "Problema en el procedimiento"). El original sigue publicado e intacto.
@@ -59,12 +65,20 @@ public class BiowsExamenClient implements ExamenClient {
 
     @Override
     public Map<String, String> getExamenData(String nss) {
-        log.info("[biows] POST {}{} NSS={}", properties.baseUrl(), PATH, nss);
-        BiowsExamenResponse response = biowsRestClient.post()
-                .uri(PATH)
-                .body(new BiowsExamenRequest(nss, LocalDateTime.now().format(FECHA), usuarioActual()))
-                .retrieve()
-                .body(BiowsExamenResponse.class);
+        BiowsExamenResponse response = null;
+        if (!sinV2) {
+            try {
+                response = consultar(PATH_V2, nss);
+            } catch (org.springframework.web.client.HttpClientErrorException.NotFound ex) {
+                // el clon aun no esta publicado en ORDS: se usa el original y no se vuelve a intentar
+                sinV2 = true;
+                log.warn("[biows] {} no existe (404): se lee {} (sin AVC_OBS, NEFROPATIAS_ID ni NOLMAL_FASCIES)",
+                        PATH_V2, PATH);
+            }
+        }
+        if (sinV2) {
+            response = consultar(PATH, nss);
+        }
 
         Map<String, String> flat = new LinkedHashMap<>();
         if (response == null || response.datos() == null || response.datos().isEmpty()) {
@@ -75,6 +89,15 @@ public class BiowsExamenClient implements ExamenClient {
             flatten(null, data, flat);
         }
         return flat;
+    }
+
+    private BiowsExamenResponse consultar(String path, String nss) {
+        log.info("[biows] POST {}{} NSS={}", properties.baseUrl(), path, nss);
+        return biowsRestClient.post()
+                .uri(path)
+                .body(new BiowsExamenRequest(nss, LocalDateTime.now().format(FECHA), usuarioActual()))
+                .retrieve()
+                .body(BiowsExamenResponse.class);
     }
 
     @Override
@@ -247,6 +270,11 @@ public class BiowsExamenClient implements ExamenClient {
      * inconsistentes en el legacy -> se dejan tal cual; VERIFICAR contra el WS real.
      */
     private static String writeKey(String field) {
+        // E-032 (11-nov-2026): el catalogo copia las claves del WS de LECTURA, que traen espacios
+        // ('LUMBALGIA ', 'INFARTOS ', 'ALT_CARGA ', 'SABIN ' -> 'LUMBALGIA _OBS'...). El WS de ESCRITURA
+        // las lee sin espacio (PR_SERVICIO_MED_EXAMEN1/2): con el espacio, Si/No y observacion de esos
+        // renglones nunca se guardaban. Ninguna clave de escritura lleva espacios.
+        field = field.replace(" ", "");
         return switch (field) {
             case "BAÑO" -> "BANO";
             case "TABIQUE_NASA" -> "TABIQUE_NASAL";

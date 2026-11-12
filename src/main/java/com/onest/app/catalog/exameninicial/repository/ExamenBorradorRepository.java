@@ -150,6 +150,18 @@ public class ExamenBorradorRepository {
         return rows.stream().findFirst();
     }
 
+    /**
+     * Datos del ultimo borrador FINALIZADO (lo que el medico capturo en ese examen), o vacio. E-032 (11-nov):
+     * de aqui sale el Si/No elegido en exploracion al reabrir un examen ya finalizado (solo vive en el borrador).
+     */
+    public Map<String, String> datosUltimoFinalizado(String nss) {
+        List<Map<String, String>> rows = jdbc.query(
+                "SELECT DATOS FROM SERV_MED_EXAMEN_BORRADOR"
+                        + " WHERE NSS = ? AND ESTATUS = 'FINALIZADO' ORDER BY FINALIZADO_AT DESC FETCH FIRST 1 ROWS ONLY",
+                (rs, i) -> leerDatos(rs), nss);
+        return rows.isEmpty() ? Map.of() : rows.get(0);
+    }
+
     /** Crea o actualiza el borrador vivo del NSS con el mapa completo de datos. */
     public void guardar(String nss, int hojaActual, Map<String, String> datos, String usuario) {
         String cuerpo;

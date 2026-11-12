@@ -479,7 +479,46 @@ public class ExamenInicialService {
                 documentoService.agencia(limpio, solicitud == null ? null : solicitud.agencia()),
                 b.containsKey(CAMPO_AGENCIA) ? b.get(CAMPO_AGENCIA) : documentoService.agenciaCapturada(limpio),
                 b.containsKey(CAMPO_TELEFONO) ? b.get(CAMPO_TELEFONO) : documentoService.telefonoSalud(limpio),
-                oknoDelBorrador(b));
+                oknoElegidos(limpio, tablaBorrador, b, hojas));
+    }
+
+    /** Si/No elegidos: los del ultimo finalizado (validados contra el texto actual) y encima los del borrador vivo. */
+    private Map<String, String> oknoElegidos(String nss, boolean tablaBorrador, Map<String, String> b, List<HojaVista> hojas) {
+        Map<String, String> out = new LinkedHashMap<>(tablaBorrador ? oknoDelFinalizado(nss, hojas) : Map.of());
+        // un borrador nuevo (actualizacion tras finalizar) solo trae las hojas que se tocaron: lo demas se
+        // conserva del finalizado
+        out.putAll(oknoDelBorrador(b));
+        return out;
+    }
+
+    /**
+     * E-032 (11-nov-2026): el Si/No de exploracion solo vive en el borrador; al reabrir un examen ya
+     * finalizado salia sin marcar. Se toma del ultimo borrador finalizado, pero SOLO en los renglones cuyo
+     * texto sigue igual al de ese borrador: si despues se cambio (p. ej. desde Examen medico), esa eleccion
+     * ya no corresponde y el renglon se deja como antes (se deduce del texto en la pantalla).
+     */
+    private Map<String, String> oknoDelFinalizado(String nss, List<HojaVista> hojas) {
+        Map<String, String> fin;
+        try {
+            fin = borradores.datosUltimoFinalizado(nss);
+        } catch (org.springframework.dao.DataAccessException ex) {
+            return Map.of();
+        }
+        if (fin.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> actuales = new LinkedHashMap<>();
+        hojas.forEach(h -> h.secciones().forEach(s -> actuales.putAll(s.valores())));
+        Map<String, String> out = new LinkedHashMap<>();
+        oknoDelBorrador(fin).forEach((k, sel) -> {
+            String campo = k.substring(PREFIJO_OKNO.length());
+            String antes = fin.get(campo);
+            String ahora = actuales.get(campo);
+            if (antes != null && ahora != null && antes.trim().equalsIgnoreCase(ahora.trim())) {
+                out.put(k, sel);
+            }
+        });
+        return out;
     }
 
     private static Map<String, String> oknoDelBorrador(Map<String, String> b) {
@@ -510,9 +549,9 @@ public class ExamenInicialService {
                 if (borradores.finalizadoHaceMenosDe2Min(limpio)) {
                     throw new IllegalArgumentException("El examen se acaba de finalizar: no se abre un borrador nuevo.");
                 }
-                if (candado(limpio, borradores.ultimoFinalizado(limpio).isPresent()).bloqueado()) {
-                    throw new IllegalArgumentException("Examen inicial bloqueado: no se guardan cambios.");
-                }
+                // C-068 (10-nov) quito el candado de la pantalla y de finalizar: actualizar un inicial ya
+                // finalizado es valido. Aqui se quedaba el candado viejo y rechazaba (400) cada autoguardado
+                // del examen reabierto: la pantalla dejaba capturar y al salir no habia nada (E-032, 11-nov).
             }
             Map<String, String> fusion = new LinkedHashMap<>(vivo.map(Borrador::datos).orElse(Map.of()));
             if (datos != null) {

@@ -106,6 +106,7 @@
                     result.style.display = 'none';
                     resetSidebarModules();
                     var mc = document.getElementById('moduleContent');
+                    if (window.exIniVaciar) { window.exIniVaciar(); }   // E-032: ver loadModuleView
                     if (mc) { mc.innerHTML = ''; }
                     input.focus();
                 });
@@ -173,6 +174,7 @@
                     // empleado (el fragmento incluye #nssEmpleadoMarker), cargamos los modulos.
                     resetSidebarModules();
                     var mc = document.getElementById('moduleContent');
+                    if (window.exIniVaciar) { window.exIniVaciar(); }   // E-032: ver loadModuleView
                     if (mc) { mc.innerHTML = ''; }
                     if (document.getElementById('nssEmpleadoMarker')) {
                         loadSidebarModules(nss);
@@ -247,6 +249,11 @@
                 var mc = document.getElementById('moduleContent');
                 if (!mc) {
                     return;
+                }
+                // E-032 (11-nov): lo escrito en el examen inicial en el ultimo segundo (antes del autoguardado
+                // de 1.2 s) se perdia al cambiar de modulo. Se manda ANTES de reemplazar la pantalla.
+                if (window.exIniVaciar) {
+                    window.exIniVaciar();
                 }
                 mc.innerHTML = '<div class="text-muted fs-sm">Cargando...</div>';
                 mc.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1156,7 +1163,13 @@
             // de ESA hoja; el servidor los funde con el borrador existente. Nada viaja al WS hasta
             // "Finalizar". Todo cuelga de window.* porque el fragmento se inyecta con innerHTML.
             var exIniTimer = null;
-            var exIniPendiente = false;
+            // Hojas con cambios sin mandar. E-032 (11-nov): antes era un solo booleano y la respuesta de un
+            // guardado anterior lo apagaba aunque ya hubiera cambios nuevos en otra hoja; al brincar de hoja
+            // esa hoja no se mandaba y se perdia (lo encontro la prueba con la hoja 10).
+            var exIniSucias = {};
+            function exIniHaySucias() {
+                return Object.keys(exIniSucias).length > 0;
+            }
 
             function exIniRoot() {
                 return document.getElementById('exIni');
@@ -1257,7 +1270,7 @@
                     exIniMarcarGuardado('Solo consulta: el examen está bloqueado, los cambios no se guardan', false);
                     return;
                 }
-                exIniPendiente = true;
+                exIniSucias[exIniHojaActiva()] = true;
                 exIniMarcarGuardado('Cambios sin guardar…', false);
                 if (exIniTimer) {
                     clearTimeout(exIniTimer);
@@ -1283,12 +1296,36 @@
                 if (!section) {
                     return exIniCola;
                 }
+                // los datos se toman AHORA: desde aqui la hoja queda limpia; si el envio falla se vuelve a marcar
+                delete exIniSucias[hoja];
                 var cuerpo = JSON.stringify({ nss: root.getAttribute('data-nss'), hoja: hoja, datos: exIniCamposDe(section) });
-                exIniCola = exIniCola.then(function () { return exIniEnviarBorrador(cuerpo); });
+                exIniCola = exIniCola.then(function () { return exIniEnviarBorrador(cuerpo, hoja); });
                 return exIniCola;
             };
 
-            async function exIniEnviarBorrador(cuerpo) {
+            // Manda ya las hojas con cambios pendientes (al cambiar de modulo o cerrar la pestana). keepalive:
+            // el navegador termina el envio aunque la pagina se descargue.
+            window.exIniVaciar = function () {
+                var root = exIniRoot();
+                if (!root || root.getAttribute('data-bloqueado') === 'si' || !exIniHaySucias()) {
+                    return;
+                }
+                if (exIniTimer) {
+                    clearTimeout(exIniTimer);
+                    exIniTimer = null;
+                }
+                Object.keys(exIniSucias).forEach(function (h) {
+                    var section = root.querySelector('section.exini-hoja[data-hoja="' + h + '"]');
+                    if (section) {
+                        exIniEnviarBorrador(JSON.stringify({ nss: root.getAttribute('data-nss'), hoja: parseInt(h, 10),
+                            datos: exIniCamposDe(section) }), parseInt(h, 10), true);
+                    }
+                });
+                exIniSucias = {};
+            };
+            window.addEventListener('pagehide', function () { window.exIniVaciar(); });
+
+            async function exIniEnviarBorrador(cuerpo, hoja, alSalir) {
                 var t = document.querySelector('meta[name="_csrf"]');
                 var h = document.querySelector('meta[name="_csrf_header"]');
                 var headers = { 'Content-Type': 'application/json', 'Accept': 'text/plain' };
@@ -1296,17 +1333,21 @@
                 try {
                     var response = await fetch(contextPath + 'api/nss/examen-inicial/borrador', {
                         method: 'POST', headers: headers,
-                        body: cuerpo
+                        body: cuerpo, keepalive: !!alSalir
                     });
                     var txt = await response.text();
+                    if (alSalir) {
+                        return;   // la pantalla del examen ya no esta
+                    }
                     if (response.ok) {
-                        exIniPendiente = false;
-                        exIniMarcarGuardado('Guardado ' + txt, false);
+                        exIniMarcarGuardado(exIniHaySucias() ? 'Cambios sin guardar…' : 'Guardado ' + txt, false);
                         exIniPintarStepper();
                     } else {
+                        if (hoja) { exIniSucias[hoja] = true; }
                         exIniMarcarGuardado('No se pudo guardar el borrador (HTTP ' + response.status + '): ' + txt, true);
                     }
                 } catch (error) {
+                    if (hoja && !alSalir) { exIniSucias[hoja] = true; }
                     exIniMarcarGuardado('Sin conexión: el borrador no se guardó', true);
                 }
             }
@@ -1324,7 +1365,7 @@
                     return;
                 }
                 // La hoja que se abandona se guarda ya (sin esperar el debounce)
-                if (exIniPendiente) {
+                if (exIniSucias[actual]) {
                     exIniAutosave(actual);
                 }
                 root.querySelectorAll('section.exini-hoja').forEach(function (s) {
@@ -2243,7 +2284,7 @@
                 // (borradores 122, 147 y 150 en prod, segundos despues de su finalizacion). Se cancela aqui y,
                 // al terminar bien, la pantalla queda en solo consulta.
                 if (exIniTimer) { clearTimeout(exIniTimer); exIniTimer = null; }
-                exIniPendiente = false;
+                exIniSucias = {};
                 guardarRegistro(btn, {
                     formId: 'exIniForm',
                     savePath: 'api/nss/examen-inicial/finalizar',
@@ -2728,6 +2769,9 @@
                 var mc = document.getElementById('moduleContent');
                 if (!mc) {
                     return;
+                }
+                if (window.exIniVaciar) {
+                    window.exIniVaciar();   // E-032: ver loadModuleView
                 }
                 mc.innerHTML = '<div class="text-muted fs-sm">Cargando...</div>';
                 mc.scrollIntoView({ behavior: 'smooth', block: 'start' });
