@@ -1233,6 +1233,8 @@
                 // disparan change a mano en exIniSino).
                 ['input', 'change'].forEach(function (evt) {
                     formEl.addEventListener(evt, function (e) {
+                        // 12-nov-2026: lo capturado sale de «Falta capturar» (tambien fechas, cuyo control no tiene name)
+                        setTimeout(exIniFaltaRevisar, 0);
                         if (e.target && e.target.name) {
                             // observacion que faltaba (Si sin observacion): se quita el rojo al escribir
                             if (e.target.classList.contains('is-invalid') && e.target.dataset.tipo !== 'OKNO' && e.target.value.trim()) {
@@ -1245,6 +1247,7 @@
                     });
                 });
                 exIniRefrescarSwitches();
+                exIniFaltaRevisar();
                 // odontograma por caras: se pinta desde el texto guardado
                 root.querySelectorAll('.exini-odonto .diente').forEach(exIniPintarDiente);
                 // Enter en un campo de texto pasa al siguiente campo en vez de no hacer nada
@@ -1470,6 +1473,60 @@
                 cont.classList.toggle('ago-na', na);
             }
 
+            // 12-nov-2026: lista «Falta capturar» del EMNI (fragments/examen-inicial-shell, #exIniFalta). El servidor
+            // dice que falta (mismo criterio que el avance); aqui se lleva al campo, se marca en rojo y, al
+            // capturarlo, sale de la lista.
+            function exIniFaltaCampo(root, campo) {
+                var el = root.querySelector('[name="' + (window.CSS && CSS.escape ? CSS.escape(campo) : campo) + '"]');
+                if (!el) { return null; }
+                // fechas y Si/No guardan en un hidden: lo que se ve y se marca es su control
+                var caja = el.closest('.exini-chips, .exini-sino, .exini-okno') || (el.type === 'hidden' ? el.parentElement : el);
+                var foco = el.type === 'hidden'
+                    ? (el.parentElement.querySelector('input:not([type=hidden]), select, textarea, button') || caja) : el;
+                return { el: el, caja: caja, foco: foco };
+            }
+            function exIniFaltaLleno(root, campo, el) {
+                var gen = /^SERV_MED_GENITALES\.(MASCULINO|FEMENINO)$/.test(campo);
+                if (gen) {
+                    return ['MASCULINO', 'FEMENINO'].some(function (g) {
+                        var x = root.querySelector('[name="SERV_MED_GENITALES.' + g + '"]');
+                        return x && String(x.value || '').trim() !== '';
+                    });
+                }
+                return String(el.value || '').trim() !== '';
+            }
+            function exIniFaltaRevisar() {
+                var root = exIniRoot();
+                var caja = root && root.querySelector('#exIniFalta');
+                if (!caja) { return; }
+                caja.querySelectorAll('button[data-campo]').forEach(function (b) {
+                    var c = exIniFaltaCampo(root, b.getAttribute('data-campo'));
+                    if (c && exIniFaltaLleno(root, b.getAttribute('data-campo'), c.el)) {
+                        c.caja.classList.remove('exini-falta-campo');
+                        b.remove();
+                    } else if (c) {
+                        c.caja.classList.add('exini-falta-campo');
+                    }
+                });
+                caja.hidden = !caja.querySelector('button[data-campo]');
+            }
+            window.exIniIrFalta = function (btn) {
+                var root = exIniRoot();
+                if (!root) { return; }
+                exIniIr(parseInt(btn.getAttribute('data-hoja'), 10));
+                var c = exIniFaltaCampo(root, btn.getAttribute('data-campo'));
+                if (!c) { return; }
+                // la seccion puede estar en un acordeon cerrado
+                var panel = c.caja.closest('.collapse:not(.show)');
+                if (panel) { panel.classList.add('show'); }
+                c.caja.classList.add('exini-falta-campo');
+                // despues de exIniIr, que a los 300 ms enfoca el primer campo de la hoja y sube al inicio
+                setTimeout(function () {
+                    c.caja.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    if (c.foco && c.foco.focus) { c.foco.focus({ preventScroll: true }); }
+                }, 450);
+            };
+
             // Barra de avance de cada hoja del stepper, calculada en el navegador con lo que hay
             // en pantalla (el servidor la calcula igual al recargar).
             function exIniPintarStepper() {
@@ -1477,6 +1534,7 @@
                 if (!root) {
                     return;
                 }
+                exIniFaltaRevisar();
                 root.querySelectorAll('section.exini-hoja').forEach(function (s) {
                     var n = parseInt(s.getAttribute('data-hoja'), 10);
                     var todos = s.querySelectorAll('input[name]:not([type=hidden]), select[name], textarea[name], input[type=hidden][name]:not([name=nss]):not([name=hoja]):not([name=firma])');

@@ -55,7 +55,9 @@ public class ExamenInicialService {
     }
 
     /** {@code faltantes}: "Seccion › Campo" de lo que cuenta para el avance y esta vacio (9-nov: tooltip del avance). */
-    public record HojaVista(Hoja hoja, List<SeccionVista> secciones, int capturados, int total, List<String> faltantes) {
+    // faltaCampos (12-nov-2026): el name de cada faltante, en el mismo orden, para que la pantalla lleve al campo
+    public record HojaVista(Hoja hoja, List<SeccionVista> secciones, int capturados, int total, List<String> faltantes,
+                            List<String> faltaCampos) {
     }
 
     /** Un empleo anterior (hasta 4, como el formato). Claves = CAMPOS_TRABAJO. */
@@ -337,6 +339,7 @@ public class ExamenInicialService {
         for (Hoja h : HOJAS) {
             List<SeccionVista> secciones = new ArrayList<>();
             List<String> faltantes = new ArrayList<>();
+            List<String> faltaCampos = new ArrayList<>();
             int capturados = 0;
             int n = 0;
             for (String nombre : h.secciones()) {
@@ -394,6 +397,7 @@ public class ExamenInicialService {
                         capturados++;
                     } else {
                         faltantes.add(nombre + " › " + it.label());
+                        faltaCampos.add(it.fieldName());
                     }
                 }
                 if ("Genitales".equals(nombre)) {
@@ -403,11 +407,12 @@ public class ExamenInicialService {
                         capturados++;
                     } else {
                         faltantes.add(nombre + " › Masculino o Femenino");
+                        faltaCampos.add(GENITALES.iterator().next());
                     }
                 }
                 secciones.add(new SeccionVista(nombre, items, valores));
             }
-            hojas.add(new HojaVista(h, secciones, capturados, n, faltantes));
+            hojas.add(new HojaVista(h, secciones, capturados, n, faltantes, faltaCampos));
             capturadosTotal += capturados;
             total += n;
         }
@@ -462,6 +467,11 @@ public class ExamenInicialService {
 
         int hojaActual = borrador.map(Borrador::hojaActual).filter(x -> x >= 1 && x <= HOJAS.size()).orElse(1);
         int avance = total == 0 ? 0 : (int) Math.round(100.0 * capturadosTotal / total);
+        // 12-nov-2026: con un solo campo vacio entre cientos el redondeo daba 100% y el aviso decia "Falta: ...".
+        // 100% solo cuando no falta nada (E-030: "si falta algo, dira que")
+        if (capturadosTotal < total) {
+            avance = Math.min(avance, 99);
+        }
         Candado candado = avisoActualizacion(candado(limpio, ultimo.isPresent(), esEmpleado));
         // Integracion OCR: si hay solicitud viva para este NSS pasa a EN_CAPTURA y, si nadie la
         // atiende, queda asignada a quien la abre. Si la tiene otro usuario, se avisa (atendidoPorOtro)

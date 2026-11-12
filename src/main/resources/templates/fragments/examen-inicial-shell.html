@@ -137,6 +137,10 @@
             .exini-sinos.inmunizaciones .exini-fila,
             .exini-sinos.inmunizaciones > .exini-inm-extra { grid-area: auto !important; }
         }
+        /* 12-nov-2026: campo que falta para el 100% (lista «Falta capturar») */
+        /* !important: con el cursor dentro, el :focus de Bootstrap (borde azul, outline 0) lo tapaba */
+        .exini-falta-campo { outline: 2px solid #dc3545 !important; outline-offset: 2px; border-radius: 4px;
+                             border-color: #dc3545 !important; box-shadow: 0 0 0 .2rem rgba(220, 53, 69, .25) !important; }
     </style>
 
     <div class="card card-one">
@@ -167,6 +171,22 @@
                 Falta aplicar <code>db/sql/app_domain/examen-inicial.sql</code> en la base del portal: el borrador no se puede guardar
                 y «Finalizar» no funcionará hasta entonces. La captura se ve, pero se pierde al salir.
             </div>
+            <!--/* 12-nov-2026: lo que falta, siempre a la vista (antes solo en el title del avance). Cada boton lleva a
+                 la hoja y al campo, que queda marcado en rojo; al capturarlo desaparece de la lista (exIniFaltaRevisar). */-->
+            <th:block th:with="conFalta=${v.hojas.?[!faltantes.isEmpty()]}">
+            <!--/* th:unless va en su propia etiqueta: en la misma, Thymeleaf lo evalua ANTES que th:with */-->
+            <div class="alert alert-warning py-2 px-3 fs-sm" id="exIniFalta" th:unless="${#lists.isEmpty(conFalta)}">
+                <div class="mb-1"><i class="ri-error-warning-line me-1"></i><strong>Falta capturar</strong>
+                    <span class="text-muted">(da clic para ir al campo)</span>:</div>
+                <div class="d-flex flex-wrap gap-1">
+                    <th:block th:each="hv : ${conFalta}">
+                        <button type="button" class="btn btn-sm btn-outline-danger py-0" th:each="f, st : ${hv.faltantes}"
+                                th:attr="data-hoja=${hv.hoja.numero}, data-campo=${hv.faltaCampos[st.index]}"
+                                th:text="|${hv.hoja.numero}. ${hv.hoja.corto} › ${f}|" onclick="exIniIrFalta(this);">faltante</button>
+                    </th:block>
+                </div>
+            </div>
+            </th:block>
             <!-- Candado (ExamenInicialService.candado): la persona ya tiene examen de otro modulo -->
             <div class="alert alert-danger py-2 px-3" th:if="${v.candado.bloqueado}">
                 <i class="ri-lock-2-line me-1"></i>
