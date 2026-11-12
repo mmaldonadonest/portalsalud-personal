@@ -605,7 +605,12 @@ public class ExamenDocumentoService {
         v.put("ESCOLARIDAD", escolaridadOcr.isEmpty() ? extra.escolaridad() : escolaridadOcr);
         v.put("PROFESION", solicitud == null ? "" : limpio(solicitud.profesionOficio()));
         v.put("DEPARTAMENTO", extra.departamento());
-        v.put("FECHA_EXAMEN", fechaExamen(nssLimpio));
+        // 12-nov-2026 (decision del usuario): sin examen en el historico del portal (aun no se guarda con dictamen o
+        // es de la epoca del PHP) la fecha del impreso es la de hoy, no blanco. Aplica a todo lo que imprime
+        // FECHA_EXAMEN (FT-SO-05, Ishihara, formatos EMLE, FT-SO-25). fechaExamen() sigue vacio para los autores.
+        String fechaHist = fechaExamen(nssLimpio);
+        v.put("FECHA_EXAMEN", !fechaHist.isEmpty() ? fechaHist
+                : java.time.LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
         // --- rev. 04 del FT-SO-04 (sep-2024): cintura y cadera no existian en el PHP ni en el
         // JSON de campos; se capturan en Datos generales del examen (SERV_MED_TAG)
         v.put("CINTURA", limpio(tagValues.get(DatosGeneralesExamenService.CINTURA)));
