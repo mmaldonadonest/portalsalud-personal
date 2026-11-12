@@ -385,9 +385,11 @@ public class CargaNssService {
             }
             r.valores().put("EN_BIOMETRICO", "S");
             r.valores().put("NOMBRE", e.nombre());
-            r.valores().put("GENERO", e.genero());
-            r.valores().put("EDAD", e.edadAl(r.fecha("FECHA")));
-            r.valores().put("CUENTA", e.cuenta());
+            // 12-nov-2026: si el layout trae genero, edad o cuenta (atenciones), GANA el Excel; el biometrico
+            // solo llena lo que el archivo no trae
+            r.valores().putIfAbsent("GENERO", e.genero());
+            r.valores().putIfAbsent("EDAD", e.edadAl(r.fecha("FECHA")));
+            r.valores().putIfAbsent("CUENTA", e.cuenta());
             r.valores().put("PUESTO", e.puesto());
             return false;
         });

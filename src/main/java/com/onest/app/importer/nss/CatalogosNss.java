@@ -102,7 +102,29 @@ public final class CatalogosNss {
     private static final Map<String, Map<String, String>> EQUIVALENCIAS = Map.of(
             "CAUSA_CONSULTA", Map.of(
                     "OFTALMOLOGICA", "OFTALMICO",
-                    "OFTALMOLOGICO", "OFTALMICO"));
+                    "OFTALMOLOGICO", "OFTALMICO"),
+            // 12-nov-2026: genero de atenciones; SM no ha dicho como lo captura. Las formas vistas en el
+            // biometrico y en los Excel (BiometricoNss.genero): 1/2, H/F, HOMBRE/MUJER, MASCULINO/FEMENINO.
+            // "M" NO: es ambigua (masculino o mujer) y se rechaza con su propio mensaje (ambiguo()).
+            "GENERO", Map.of(
+                    "F", "FEM", "MUJER", "FEM", "FEMENINO", "FEM", "2", "FEM",
+                    "H", "MASC", "HOMBRE", "MASC", "MASCULINO", "MASC", "1", "MASC"));
+
+    /**
+     * Catalogos cuya equivalencia entra sin aviso por renglon: el genero viene en TODOS los renglones y un
+     * aviso por cada uno taparia los avisos que si importan en «Entran con ajuste».
+     */
+    public static boolean avisaEquivalencia(String catalogo) {
+        return !"GENERO".equals(catalogo);
+    }
+
+    /** Valor que no se puede traducir sin adivinar: el motivo del rechazo (vacio si no es el caso). */
+    public static Optional<String> ambiguo(String catalogo, String valor) {
+        if ("GENERO".equals(catalogo) && "M".equals(clave(valor))) {
+            return Optional.of("«M» es ambiguo (masculino o mujer): usar FEM o MASC, F o H, MUJER u HOMBRE");
+        }
+        return Optional.empty();
+    }
 
     /**
      * Respuestas del servicio medico a preguntas-catalogos-atenciones-sm-v6 ("cual valor se toma",

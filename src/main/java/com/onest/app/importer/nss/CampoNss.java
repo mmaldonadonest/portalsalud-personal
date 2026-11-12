@@ -101,4 +101,9 @@ public record CampoNss(String encabezado, String columna, Tipo tipo, int maximo,
     static CampoNss catalogo(String encabezado, String columna, String catalogo, boolean obligatorio) {
         return new CampoNss(encabezado, columna, Tipo.CATALOGO, 0, catalogo, obligatorio, false, null);
     }
+
+    /** Catalogo cuyo encabezado tambien se acepta con otro nombre (GENERO o SEXO, 12-nov-2026). */
+    static CampoNss catalogo(String encabezado, String alias, String columna, String catalogo, boolean obligatorio) {
+        return new CampoNss(encabezado, columna, Tipo.CATALOGO, 0, catalogo, obligatorio, false, alias);
+    }
 }

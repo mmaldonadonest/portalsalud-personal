@@ -135,7 +135,9 @@ public class XlsNssRepository {
         if (layout.empleado()) {
             // EN_BIOMETRICO: 'N' = el NSS no esta en el biometrico y entro marcado (3-nov-2026,
             // DDL carga-excel-pantalla-04); NULL = sin persona (NSS en ceros)
-            columnas.addAll(List.of("NOMBRE", "GENERO", "EDAD", "CUENTA", "PUESTO", "EN_BIOMETRICO"));
+            // sin repetir: atenciones ya trae GENERO, EDAD y CUENTA del Excel (12-nov-2026)
+            List.of("NOMBRE", "GENERO", "EDAD", "CUENTA", "PUESTO", "EN_BIOMETRICO").stream()
+                    .filter(col -> !columnas.contains(col)).forEach(columnas::add);
         }
         String sql = "INSERT INTO " + layout.tabla() + " (" + String.join(",", columnas) + ") VALUES ("
                 + String.join(",", java.util.Collections.nCopies(columnas.size(), "?")) + ")";

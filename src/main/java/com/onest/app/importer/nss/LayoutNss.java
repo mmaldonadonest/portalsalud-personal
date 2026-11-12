@@ -34,7 +34,13 @@ public enum LayoutNss {
             catalogo("CAUSA", "CAUSA", "CAUSA_CONSULTA", false),
             catalogo("CAUSAS MUSCULO ESQUELETICAS", "LESION_ME", "LESION_ME", false),
             texto("DIAGNOSTICO", "DIAGNOSTICO", 1000),
-            texto("TRATAMIENTO", "TRATAMIENTO", 1000))),
+            texto("TRATAMIENTO", "TRATAMIENTO", 1000),
+            // 12-nov-2026 (decision del usuario): cuenta, edad y genero vienen en el Excel, son obligatorios y
+            // GANAN sobre el biometrico (que muchas veces no los trae: EMP_FECHAN casi siempre vacia). Se leen
+            // por nombre de encabezado, asi que el orden de las columnas no importa.
+            textoObligatorio("CUENTA", "CUENTA", 160),
+            entero("EDAD", "EDAD", true),
+            catalogo("GENERO", "SEXO", "GENERO", "GENERO", true))),
 
     EXAMEN_INGRESO("EXAMEN NUEVO INGRESO", "SERV_MED_XLS_EXAMEN_ING", false, List.of(
             nss(),

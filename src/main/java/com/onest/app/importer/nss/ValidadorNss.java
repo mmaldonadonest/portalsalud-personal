@@ -220,7 +220,7 @@ public final class ValidadorNss {
                     avisos.add(new Error(fila.numero(), c.encabezado(), v, AVISO_NEGATIVO));
                 }
                 // Variante conocida del catalogo (OFTALMOLOGICA -> OFTALMICO): entra con el valor oficial
-                if (c.tipo() == CampoNss.Tipo.CATALOGO && valor != null
+                if (c.tipo() == CampoNss.Tipo.CATALOGO && valor != null && CatalogosNss.avisaEquivalencia(c.catalogo())
                         && !CatalogosNss.clave(v).equals(CatalogosNss.clave(valor.toString()))) {
                     // Solo llega aqui por una EQUIVALENCIA (OFTALMOLOGICA): entra y el mensaje lo dice. Las P1-P7
                     // de SM ya no: se rechazan (CatalogosNss.NO_ELEGIDOS, 3-nov-2026)
@@ -302,17 +302,25 @@ public final class ValidadorNss {
             // COSTO de accidentes entra negativo y se avisa (CampoNss.negativoConAviso).
             case ENTERO -> {
                 BigDecimal n = noNegativo(numero(v));
+                int entero;
                 try {
-                    yield n.intValueExact();
+                    entero = n.intValueExact();
                 } catch (ArithmeticException ex) {
                     throw new IllegalArgumentException("debe ser un numero entero");
                 }
+                // EDAD de atenciones (12-nov-2026): la columna es NUMBER(3); una edad imposible (una fecha o un
+                // NSS pegado en la celda) tumbaria la carga entera en vez de rechazar solo el renglon
+                if ("EDAD".equals(c.columna()) && entero > 120) {
+                    throw new IllegalArgumentException("edad fuera de rango (mayor de 120)");
+                }
+                yield entero;
             }
             case DECIMAL -> c.negativoConAviso() ? numero(v) : noNegativo(numero(v));
             case MARCA -> v;   // no llega aqui: las marcas se resuelven en validar()
             case CATALOGO -> CatalogosNss.buscar(c.catalogo(), v).orElseThrow(() ->
-                    new IllegalArgumentException(CatalogosNss.elegidoEnLugarDe(c.catalogo(), v)
-                            .map(e -> "no se acepta: Servicio Médico eligió «" + e + "»; cámbialo así en tu archivo")
+                    new IllegalArgumentException(CatalogosNss.ambiguo(c.catalogo(), v).or(() ->
+                            CatalogosNss.elegidoEnLugarDe(c.catalogo(), v)
+                            .map(e -> "no se acepta: Servicio Médico eligió «" + e + "»; cámbialo así en tu archivo"))
                             .orElse("no esta en el catalogo " + c.catalogo()
                                     + " (validos: " + CatalogosNss.validos(c.catalogo()) + ")")));
         };
