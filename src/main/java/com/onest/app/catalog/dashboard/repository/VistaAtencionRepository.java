@@ -40,10 +40,25 @@ public class VistaAtencionRepository {
         this.jdbc = jdbc;
     }
 
+    /**
+     * Corte opcional por UNA causa (detalle de causa, 13-nov-2026: SM pidio el de FISIOTERAPIA). Sin
+     * mayusculas ni espacios a los lados: la barra que se pica trae el texto tal cual sale de la vista.
+     */
+    private static VistaFiltro conCausa(VistaFiltro f, String causa) {
+        if (causa != null && !causa.isBlank()) {
+            f.and("UPPER(TRIM(e.CAUSA)) = UPPER(?)", causa.trim());
+        }
+        return f;
+    }
+
     /** Atenciones, personas distintas y atenciones por accidente/emergencia, en una sola pasada. */
     public long[] totales(LocalDate desde, LocalDate hasta, String predio, String cuenta) {
-        VistaFiltro f = new VistaFiltro("SELECT COUNT(*), COUNT(DISTINCT e.NSS), NVL(SUM(e.ES_ACCIDENTE), 0)" + VISTA)
-                .filtros(desde, hasta, predio, cuenta);
+        return totales(desde, hasta, predio, cuenta, null);
+    }
+
+    public long[] totales(LocalDate desde, LocalDate hasta, String predio, String cuenta, String causa) {
+        VistaFiltro f = conCausa(new VistaFiltro("SELECT COUNT(*), COUNT(DISTINCT e.NSS), NVL(SUM(e.ES_ACCIDENTE), 0)"
+                + VISTA), causa).filtros(desde, hasta, predio, cuenta);
         return jdbc.queryForObject(f.sql(), (rs, i) -> new long[]{rs.getLong(1), rs.getLong(2), rs.getLong(3)},
                 f.params());
     }
@@ -55,6 +70,11 @@ public class VistaAtencionRepository {
      */
     public List<ConteoSimpleDto> porDimension(String dimension, LocalDate desde, LocalDate hasta,
                                               String predio, String cuenta) {
+        return porDimension(dimension, desde, hasta, predio, cuenta, null);
+    }
+
+    public List<ConteoSimpleDto> porDimension(String dimension, LocalDate desde, LocalDate hasta,
+                                              String predio, String cuenta, String causa) {
         String expr;
         String condicion = null;
         switch (dimension) {
@@ -65,23 +85,26 @@ public class VistaAtencionRepository {
             case "GENERO" -> expr = "NVL(e.GENERO, '" + SIN_DATO + "')";
             case "CUENTA" -> expr = "NVL(e.CUENTA, '" + SIN_DATO + "')";
             case "PREDIO" -> expr = PREDIO;
-            // Mismos cortes que DashboardConsultaService.rangoEdad
-            case "EDAD" -> expr = "CASE WHEN e.EDAD IS NULL OR e.EDAD <= 0 THEN '" + SIN_DATO + "' "
-                    + "WHEN e.EDAD <= 25 THEN '18-25' WHEN e.EDAD <= 35 THEN '26-35' "
-                    + "WHEN e.EDAD <= 45 THEN '36-45' WHEN e.EDAD <= 55 THEN '46-55' ELSE '55+' END";
+            // Rango del Excel (formato 2026) o cortes sobre la edad; tolera que falte excel-nss-18
+            case "EDAD" -> expr = RangoEdadSql.expresion(jdbc, "SERV_MED_V_ATENCION");
             default -> throw new IllegalArgumentException("Dimension no permitida en atenciones: " + dimension);
         }
         VistaFiltro f = new VistaFiltro("SELECT " + expr + " clave, COUNT(*) cantidad" + VISTA);
         if (condicion != null) {
             f.and(condicion);
         }
-        f.filtros(desde, hasta, predio, cuenta);
+        conCausa(f, causa).filtros(desde, hasta, predio, cuenta);
         return jdbc.query(f.sql() + " GROUP BY " + expr + " ORDER BY COUNT(*) DESC",
                 (rs, i) -> new ConteoSimpleDto(rs.getString("clave"), rs.getLong("cantidad")), f.params());
     }
 
     public List<PuntoMensualDto> tendenciaMensual(LocalDate desde, LocalDate hasta, String predio, String cuenta) {
-        VistaFiltro f = new VistaFiltro("SELECT " + MES + " mes, COUNT(*) cantidad" + VISTA)
+        return tendenciaMensual(desde, hasta, predio, cuenta, null);
+    }
+
+    public List<PuntoMensualDto> tendenciaMensual(LocalDate desde, LocalDate hasta, String predio, String cuenta,
+                                                  String causa) {
+        VistaFiltro f = conCausa(new VistaFiltro("SELECT " + MES + " mes, COUNT(*) cantidad" + VISTA), causa)
                 .filtros(desde, hasta, predio, cuenta);
         return jdbc.query(f.sql() + " GROUP BY " + MES + " ORDER BY 1",
                 (rs, i) -> new PuntoMensualDto(rs.getString("mes"), rs.getLong("cantidad")), f.params());
@@ -159,8 +182,13 @@ public class VistaAtencionRepository {
 
     /** {predio, mes, cantidad}. */
     public List<Object[]> tendenciaPorPredio(LocalDate desde, LocalDate hasta, String predio, String cuenta) {
-        VistaFiltro f = new VistaFiltro("SELECT " + PREDIO + " predio, " + MES + " mes, COUNT(*) cantidad" + VISTA)
-                .filtros(desde, hasta, predio, cuenta);
+        return tendenciaPorPredio(desde, hasta, predio, cuenta, null);
+    }
+
+    public List<Object[]> tendenciaPorPredio(LocalDate desde, LocalDate hasta, String predio, String cuenta,
+                                             String causa) {
+        VistaFiltro f = conCausa(new VistaFiltro("SELECT " + PREDIO + " predio, " + MES + " mes, COUNT(*) cantidad"
+                + VISTA), causa).filtros(desde, hasta, predio, cuenta);
         return jdbc.query(f.sql() + " GROUP BY " + PREDIO + ", " + MES + " ORDER BY 1, 2",
                 (rs, i) -> new Object[]{rs.getString(1), rs.getString(2), rs.getLong(3)}, f.params());
     }

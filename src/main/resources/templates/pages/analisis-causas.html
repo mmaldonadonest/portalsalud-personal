@@ -274,13 +274,16 @@
 
             function pintarRanking(lista) {
                 document.getElementById('subRanking').textContent = lista.length
-                    ? 'Todas las causas con registro en el periodo' : '';
+                    ? 'Todas las causas con registro en el periodo · clic en una barra para ver su detalle' : '';
                 if (!lista.length) { vaciar('chartRanking', 'Sin atenciones en el periodo.'); return; }
                 // Altura proporcional al numero de causas: con 26 barras una altura fija las
                 // aplasta hasta volverlas ilegibles.
                 var alto = Math.max(320, lista.length * 22 + 60);
                 var options = {
-                    chart: { type: 'bar', height: alto, toolbar: { show: false } },
+                    // Clic en una barra: detalle de esa causa (13-nov-2026, SM lo pidio para FISIOTERAPIA)
+                    chart: { type: 'bar', height: alto, toolbar: { show: false }, events: {
+                        dataPointSelection: function (e, ctx, cfg) { abrirDetalle(lista[cfg.dataPointIndex].clave); } } },
+                    states: { active: { filter: { type: 'none' } } },
                     series: [{ name: 'Atenciones', data: lista.map(function (r) { return r.cantidad; }) }],
                     xaxis: { categories: lista.map(function (r) { return r.clave; }), labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
                     yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' }, maxWidth: 190 } },
@@ -365,7 +368,7 @@
                 PortalHtml.poner(tb, lista.map(function (r, i) {
                     var pct = total ? (r.cantidad / total * 100) : 0;
                     var ancho = maximo ? Math.max(Math.round(r.cantidad / maximo * 100), 2) : 0;
-                    return '<tr>'
+                    return '<tr style="cursor:pointer" title="Ver el detalle de esta causa" data-causa="' + escapeHtml(r.clave) + '">'
                          + '<td class="ps-3 text-muted">' + (i + 1) + '</td>'
                          + '<td class="fw-medium">' + escapeHtml(r.clave) + '</td>'
                          + '<td class="text-end fw-semibold">' + numero(r.cantidad) + '</td>'
@@ -374,6 +377,17 @@
                          + '</tr>';
                 }).join(''));
             }
+
+            function abrirDetalle(causa) {
+                if (!causa || causa === 'Otras') { return; }
+                var predio = document.getElementById('fPredio').value;
+                window.location.href = contextPath + 'analisis/causas/detalle?causa=' + encodeURIComponent(causa)
+                    + '&anio=' + document.getElementById('fAnio').value + (predio ? '&predio=' + encodeURIComponent(predio) : '');
+            }
+            document.getElementById('tbCausas').addEventListener('click', function (e) {
+                var tr = e.target.closest('tr[data-causa]');
+                if (tr) { abrirDetalle(tr.dataset.causa); }
+            });
 
             function exportarCsv() {
                 if (!ultimoExport) { return; }

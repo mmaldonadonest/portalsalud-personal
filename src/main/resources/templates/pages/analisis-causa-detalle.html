@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: layout(~{::title}, ~{:: analisisCausaDetalleContent}, ~{::th:block[@id='pageScripts']}, ~{::th:block[@id='pageStyles']})}">
+<head>
+    <title>Detalle de causa | Análisis | Portal Salud Personal</title>
+</head>
+<body>
+
+<!--
+  Detalle de UNA causa (13-nov-2026). SM lo pidio para FISIOTERAPIA, con las graficas de su reporte:
+  acumulado mensual, por predio, por rango de edad, por genero, por predio de un mes y exportar Excel.
+  Se abre al picar una barra del ranking de Analisis > Causas (?causa=...&anio=...).
+  Datos: /api/analisis/causas/detalle (SERV_MED_V_ATENCION, portal + Excel, mismo criterio que el ranking).
+-->
+<th:block id="pageStyles">
+    <link rel="stylesheet" th:href="@{/theme/lib/apexcharts/apexcharts.css}" href="/theme/lib/apexcharts/apexcharts.css">
+    <style>
+        .chart-card .card-header { border-bottom: none; padding-bottom: 0; display: block; }
+        .kpi { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; min-width: 150px; }
+        .kpi .n { font-size: 22px; font-weight: 700; color: #0f172a; letter-spacing: -.02em; }
+        .kpi .l { font-size: 11px; color: #64748b; }
+        .vacio { text-align: center; padding: 32px 16px; color: #94a3b8; font-size: 12.5px; }
+    </style>
+</th:block>
+
+<th:block th:fragment="analisisCausaDetalleContent">
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
+        <div>
+            <ol class="breadcrumb fs-sm mb-1">
+                <li class="breadcrumb-item"><a th:href="@{/analisis/ejecutivo}" href="/analisis/ejecutivo">Dashboard Ejecutivo</a></li>
+                <li class="breadcrumb-item"><a th:href="@{/analisis/causas}" href="/analisis/causas">Causas</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Detalle</li>
+            </ol>
+            <h4 class="main-title mb-0" id="titulo">Detalle de causa</h4>
+            <p class="fs-12 text-muted mb-0" id="subtitulo"></p>
+        </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary btn-sm" th:href="@{/analisis/causas}" href="/analisis/causas">
+                <i class="ri-arrow-left-line me-1"></i>Causas
+            </a>
+            <button type="button" id="btnExcel" class="btn btn-success btn-sm" disabled>
+                <i class="ri-file-excel-2-line me-1"></i>Exportar Excel
+            </button>
+        </div>
+    </div>
+
+    <div class="card card-one mb-3">
+        <div class="card-body d-flex flex-wrap align-items-end gap-3">
+            <div>
+                <label class="form-label fs-12 mb-1" for="fAnio">Año</label>
+                <select id="fAnio" class="form-select form-select-sm"></select>
+            </div>
+            <div>
+                <label class="form-label fs-12 mb-1" for="fPredio">Predio</label>
+                <select id="fPredio" class="form-select form-select-sm" style="min-width:200px">
+                    <option value="">Todos los predios</option>
+                </select>
+            </div>
+            <div class="kpi"><div class="n" id="kAtenciones">—</div><div class="l">Atenciones en el año</div></div>
+            <div class="kpi"><div class="n" id="kPersonas">—</div><div class="l">Personas distintas</div></div>
+            <span id="estado" class="fs-12 text-muted ms-auto"></span>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-6">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header"><div class="card-title-lg">Acumulado mensual</div>
+                    <p class="fs-11 text-muted mb-0">Atenciones por mes</p></div>
+                <div class="card-body"><div id="chMensual"></div></div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header"><div class="card-title-lg">Acumulado por predio</div>
+                    <p class="fs-11 text-muted mb-0">Todo el año</p></div>
+                <div class="card-body"><div id="chPredio"></div></div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header"><div class="card-title-lg">Acumulado por edad</div>
+                    <p class="fs-11 text-muted mb-0">Rango de edad a la fecha de la atención</p></div>
+                <div class="card-body"><div id="chEdad"></div></div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header"><div class="card-title-lg">Acumulado por género</div>
+                    <p class="fs-11 text-muted mb-0">Todo el año</p></div>
+                <div class="card-body"><div id="chGenero"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card-one chart-card">
+        <div class="card-header d-flex flex-wrap align-items-end justify-content-between gap-2">
+            <div><div class="card-title-lg" id="tituloMes">Atenciones por predio del mes</div>
+                <p class="fs-11 text-muted mb-0">Elige el mes</p></div>
+            <select id="fMes" class="form-select form-select-sm" style="width:auto"></select>
+        </div>
+        <div class="card-body"><div id="chMes"></div></div>
+    </div>
+</th:block>
+
+<th:block id="pageScripts">
+    <script th:src="@{/theme/lib/apexcharts/apexcharts.min.js}" src="/theme/lib/apexcharts/apexcharts.min.js"></script>
+    <script th:inline="javascript">
+        (function () {
+            var contextPath = /*[[@{/}]]*/ '/';
+            var MESES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+            var NOMBRES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            var graficas = {};
+            var ultimo = null;
+            var params = new URLSearchParams(window.location.search);
+            var causa = (params.get('causa') || '').trim();
+
+            function numero(n) { return (n || 0).toLocaleString('es-MX'); }
+            function vaciar(id, texto) { PortalHtml.poner(document.getElementById(id), '<p class="vacio mb-0">' + texto + '</p>'); }
+
+            function columnas(id, etiquetas, valores, color, rotar) {
+                var el = document.getElementById(id);
+                if (graficas[id]) { graficas[id].destroy(); graficas[id] = null; }
+                el.innerHTML = '';
+                graficas[id] = new ApexCharts(el, {
+                    chart: { type: 'bar', height: 300, toolbar: { show: false }, animations: { enabled: false } },
+                    series: [{ name: 'Atenciones', data: valores }],
+                    xaxis: { categories: etiquetas, labels: { rotate: rotar ? -55 : 0, rotateAlways: !!rotar, hideOverlappingLabels: false, trim: false,
+                        style: { colors: '#475569', fontSize: '10.5px', fontWeight: 600 } } },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    colors: [color],
+                    plotOptions: { bar: { borderRadius: 3, columnWidth: '58%', dataLabels: { position: 'top' } } },
+                    // los valores encima de cada barra, como en el reporte de SM (los ceros tambien)
+                    dataLabels: { enabled: true, offsetY: -18, style: { fontSize: '11px', colors: ['#1f2937'] } },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 },
+                    tooltip: { y: { formatter: function (v) { return numero(v); } } }
+                });
+                graficas[id].render();
+            }
+
+            function pastel(id, etiquetas, valores) {
+                var el = document.getElementById(id);
+                if (graficas[id]) { graficas[id].destroy(); graficas[id] = null; }
+                el.innerHTML = '';
+                if (!valores.length) { vaciar(id, 'Sin atenciones.'); return; }
+                graficas[id] = new ApexCharts(el, {
+                    chart: { type: 'pie', height: 300, animations: { enabled: false } },
+                    series: valores, labels: etiquetas,
+                    colors: ['#A78BFA', '#86EFAC', '#CBD5E1'],
+                    dataLabels: { enabled: true, formatter: function (pct, o) {
+                        return [etiquetas[o.seriesIndex], numero(valores[o.seriesIndex]), Math.round(pct) + '%'];
+                    }, style: { fontSize: '12px', colors: ['#1f2937'] }, dropShadow: { enabled: false } },
+                    legend: { position: 'bottom' }
+                });
+                graficas[id].render();
+            }
+
+            function pintarMes() {
+                if (!ultimo) { return; }
+                var m = parseInt(document.getElementById('fMes').value, 10);
+                document.getElementById('tituloMes').textContent = 'Atenciones por predio · ' + NOMBRES[m] + ' ' + ultimo.anio;
+                columnas('chMes', ultimo.porPredio.map(function (p) { return p.predio; }),
+                    ultimo.porPredio.map(function (p) { return p.meses[m]; }), '#5EAAA8', true);
+            }
+
+            async function cargar() {
+                var anio = document.getElementById('fAnio').value;
+                var predio = document.getElementById('fPredio').value;
+                var estado = document.getElementById('estado');
+                estado.textContent = 'Cargando...';
+                document.getElementById('btnExcel').disabled = true;
+                try {
+                    var qs = 'causa=' + encodeURIComponent(causa) + '&anio=' + anio + (predio ? '&predio=' + encodeURIComponent(predio) : '');
+                    var res = await fetch(contextPath + 'api/analisis/causas/detalle?' + qs, { headers: { 'Accept': 'application/json' } });
+                    if (!res.ok) { estado.textContent = 'Error al consultar (HTTP ' + res.status + ').'; return; }
+                    var d = await res.json();
+                    ultimo = d;
+                    document.getElementById('subtitulo').textContent = 'Año ' + d.anio + ' · ' + (d.predio || 'todos los predios');
+                    document.getElementById('kAtenciones').textContent = numero(d.atenciones);
+                    document.getElementById('kPersonas').textContent = numero(d.personas);
+
+                    columnas('chMensual', MESES, d.mensual, '#C084FC', false);
+                    columnas('chPredio', d.porPredio.map(function (p) { return p.predio; }),
+                        d.porPredio.map(function (p) { return p.total; }), '#E9D96B', true);
+                    columnas('chEdad', d.porEdad.map(function (e) { return e.clave; }),
+                        d.porEdad.map(function (e) { return e.cantidad; }), '#7DD3FC', false);
+                    pastel('chGenero', d.porGenero.map(function (g) { return g.clave; }), d.porGenero.map(function (g) { return g.cantidad; }));
+
+                    // mes por defecto: el ultimo con atenciones (si no hay ninguna, el mes actual)
+                    var sel = document.getElementById('fMes');
+                    var elegido = sel.dataset.tocado === '1' ? parseInt(sel.value, 10) : -1;
+                    if (elegido < 0) {
+                        for (var i = 11; i >= 0; i--) { if (d.mensual[i] > 0) { elegido = i; break; } }
+                        if (elegido < 0) { elegido = new Date().getMonth(); }
+                    }
+                    sel.value = String(elegido);
+                    pintarMes();
+                    document.getElementById('btnExcel').disabled = false;
+                    estado.textContent = 'Actualizado.';
+                } catch (e) {
+                    estado.textContent = 'Error de red: ' + e.message;
+                }
+            }
+
+            async function cargarPredios() {
+                try {
+                    var res = await fetch(contextPath + 'api/analisis/filtros');
+                    if (!res.ok) { return; }
+                    var data = await res.json();
+                    var sel = document.getElementById('fPredio');
+                    (data.predios || []).forEach(function (n) {
+                        var o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o);
+                    });
+                } catch (e) { /* sin filtro de predio la pagina sigue sirviendo */ }
+            }
+
+            function exportar() {
+                var qs = 'causa=' + encodeURIComponent(causa) + '&anio=' + document.getElementById('fAnio').value
+                    + (document.getElementById('fPredio').value ? '&predio=' + encodeURIComponent(document.getElementById('fPredio').value) : '');
+                window.location.href = contextPath + 'api/analisis/causas/detalle/excel?' + qs;
+            }
+
+            if (!causa) {
+                document.getElementById('titulo').textContent = 'Detalle de causa';
+                document.getElementById('subtitulo').textContent = 'Elige una causa en Análisis › Causas (clic en su barra).';
+                return;
+            }
+            document.getElementById('titulo').textContent = causa;
+            var selAnio = document.getElementById('fAnio');
+            var actual = new Date().getFullYear();
+            var pedido = parseInt(params.get('anio') || actual, 10);
+            for (var y = actual; y >= 2023; y--) {
+                var o = document.createElement('option'); o.value = y; o.textContent = y; selAnio.appendChild(o);
+            }
+            selAnio.value = String(pedido >= 2023 && pedido <= actual ? pedido : actual);
+            var selMes = document.getElementById('fMes');
+            NOMBRES.forEach(function (n, i) {
+                var o = document.createElement('option'); o.value = i; o.textContent = n.charAt(0).toUpperCase() + n.slice(1); selMes.appendChild(o);
+            });
+            selMes.addEventListener('change', function () { selMes.dataset.tocado = '1'; pintarMes(); });
+            selAnio.addEventListener('change', cargar);
+            document.getElementById('fPredio').addEventListener('change', cargar);
+            document.getElementById('btnExcel').addEventListener('click', exportar);
+            cargarPredios().then(function () {
+                var p = params.get('predio');
+                if (p) { document.getElementById('fPredio').value = p; }
+                cargar();
+            });
+        })();
+    </script>
+</th:block>
+</body>
+</html>

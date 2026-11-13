@@ -163,6 +163,15 @@ public class PortalViewController {
      * desde /admin/roles (RoleAdminService.crear ya existente, sin seed SQL necesario).
      * Un modulo = una URL (no tabs, ver fragments/menu.html) - bookmarkeable/compartible.
      */
+    /**
+     * Detalle de una causa (13-nov-2026; SM lo pidio para FISIOTERAPIA): se abre al picar una barra del
+     * ranking de Analisis > Causas. Los datos los trae la pagina de /api/analisis/causas/detalle.
+     */
+    @GetMapping("/analisis/causas/detalle")
+    public String analisisCausaDetalle() {
+        return "pages/analisis-causa-detalle";
+    }
+
     @GetMapping("/analisis/{modulo}")
     public String analisis(@PathVariable String modulo, Model model) {
         String titulo = MODULOS_ANALISIS.get(modulo);
