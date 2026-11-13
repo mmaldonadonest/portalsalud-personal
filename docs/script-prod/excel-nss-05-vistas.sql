@@ -47,6 +47,8 @@
 --                   - NUEVA SERV_MED_V_MATERNIDAD (historial) y SERV_MED_V_MATERNIDAD_ACTUAL (un
 --                     renglon por embarazo, el mas reciente): portal + layout 8 + carga vieja.
 --                   Consumibles (layout 9) no lleva vista: no hay portal con que unirlo.
+--   12-nov-2026     SERV_MED_V_ATENCION: + RANGO_EDAD al final (requiere excel-nss-18 corrido:
+--                   la columna SERV_MED_XLS_ATENCION.RANGO_EDAD).
 -- =============================================================================
 SET SERVEROUTPUT ON
 SET LINESIZE 220
@@ -147,13 +149,16 @@ SELECT CAST('PORTAL' AS VARCHAR2(12))                              FUENTE,
        CAST(SUBSTR(c.AREA_DE_ACCIDENTE, 1, 200) AS VARCHAR2(200 CHAR)) AREA_ACCIDENTE,
        CAST(SUBSTR(c.AREA_ANATOMICA_INVOLUCRADA, 1, 200) AS VARCHAR2(200 CHAR)) AREA_INVOLUCRADA,
        CASE WHEN LOWER(c.TIPO_CONSULTA) LIKE '%accidente%' OR LOWER(c.TIPO_CONSULTA) LIKE '%emergencia%'
-            THEN 1 ELSE 0 END                                      ES_ACCIDENTE
+            THEN 1 ELSE 0 END                                      ES_ACCIDENTE,
+       -- RANGO_EDAD (12-nov-2026, excel-nss-18): al final para no mover las posiciones del UNION.
+       -- Del portal va vacio: la grafica calcula el rango con EDAD (mismos cortes).
+       CAST(NULL AS VARCHAR2(10))                                  RANGO_EDAD
   FROM TBL_SERV_CONSULTA_MEDICA c
   LEFT JOIN SERV_MED_V_EMPLEADO emp ON emp.NSS = c.NSS
 UNION ALL
 SELECT 'EXCEL', TO_CHAR(x.ID), x.NSS, x.FECHA, x.PREDIO, x.CUENTA, x.AREA, x.NOMBRE, x.GENERO, x.EDAD,
        x.PUESTO, x.RAMO, x.CAUSA, x.LESION_ME, x.DIAGNOSTICO, x.TRATAMIENTO,
-       NULL, NULL, 0
+       NULL, NULL, 0, x.RANGO_EDAD
   FROM SERV_MED_XLS_ATENCION x
  WHERE x.ESTADO_REGISTRO = 'VALIDO'
    AND NOT EXISTS (SELECT 1 FROM TBL_SERV_CONSULTA_MEDICA c

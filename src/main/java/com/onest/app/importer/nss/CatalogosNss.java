@@ -30,7 +30,9 @@ public final class CatalogosNss {
                 "SERV GRAL / LIMPIEZA", "SISTEMAS", "TRAFICO"));
         // SEG SALUD y no SEGUIMIENTO SALUD (P2, 2-nov-2026): asi lo dice su catalogo, aunque en los
         // renglones lo capturen completo (EQUIVALENCIAS)
-        CATALOGOS.put("RAMO_ATENCIONES", List.of("ENF GRAL", "SEG SALUD", "PASE SALIDA", "RT"));
+        // PASE MEDICO (12-nov-2026, decision del usuario): reemplaza a PASE SALIDA, como dice la pestana
+        // CATALOGOS del formato 2026 de SM. PASE SALIDA se rechaza diciendo que se use PASE MEDICO.
+        CATALOGOS.put("RAMO_ATENCIONES", List.of("ENF GRAL", "SEG SALUD", "PASE MEDICO", "RT"));
         CATALOGOS.put("CAUSA_CONSULTA", List.of("ACIDO PEPTICA", "ALERGIA / INTOXICACION", "BUCODENTAL",
                 "CIRCULATORIO", "CURACION", "DERMATOLOGICO", "DIGESTIVO", "EMBARAZO (DETECCION/CONTROL)",
                 "ENDOCRINO", "GENITOURINARIO", "GINECOLOGICO", "INYECCION", "NEUROLOGICO", "OFTALMICO",
@@ -108,14 +110,17 @@ public final class CatalogosNss {
             // "M" NO: es ambigua (masculino o mujer) y se rechaza con su propio mensaje (ambiguo()).
             "GENERO", Map.of(
                     "F", "FEM", "MUJER", "FEM", "FEMENINO", "FEM", "2", "FEM",
-                    "H", "MASC", "HOMBRE", "MASC", "MASCULINO", "MASC", "1", "MASC"));
+                    "H", "MASC", "HOMBRE", "MASC", "MASCULINO", "MASC", "1", "MASC"),
+            // 12-nov-2026: el formato 2026 de SM escribe el rango con espacios ("18 - 25", "55 +")
+            "RANGO_EDAD", Map.of(
+                    "18 - 25", "18-25", "26 - 35", "26-35", "36 - 45", "36-45", "46 - 55", "46-55", "55 +", "55+"));
 
     /**
-     * Catalogos cuya equivalencia entra sin aviso por renglon: el genero viene en TODOS los renglones y un
+     * Catalogos cuya equivalencia entra sin aviso por renglon: el genero y el rango de edad vienen en TODOS los renglones y un
      * aviso por cada uno taparia los avisos que si importan en «Entran con ajuste».
      */
     public static boolean avisaEquivalencia(String catalogo) {
-        return !"GENERO".equals(catalogo);
+        return !"GENERO".equals(catalogo) && !"RANGO_EDAD".equals(catalogo);
     }
 
     /** Valor que no se puede traducir sin adivinar: el motivo del rechazo (vacio si no es el caso). */
@@ -135,7 +140,9 @@ public final class CatalogosNss {
             "AREA", Map.of(
                     "EXTERNO", "CLIENTE / EXTERNO"),                          // P1
             "RAMO_ATENCIONES", Map.of(
-                    "SEGUIMIENTO SALUD", "SEG SALUD"),                        // P2
+                    "SEGUIMIENTO SALUD", "SEG SALUD",                         // P2
+                    "PASE SALIDA", "PASE MEDICO",                             // 12-nov-2026
+                    "PASE DE SALIDA", "PASE MEDICO"),
             "LESION_ME", Map.of(
                     "ALGIA / CONTUSION MT", "ALGIA / MIALGIA / CONTUSION MT", // P3
                     "ALGIA / CONTUSION MP", "ALGIA / MIALGIA / CONTUSION MP"),// P4

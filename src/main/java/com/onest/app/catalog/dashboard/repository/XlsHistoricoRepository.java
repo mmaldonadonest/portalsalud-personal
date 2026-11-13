@@ -110,10 +110,10 @@ public class XlsHistoricoRepository extends BitacoraHistoricoRepository {
                                             String predio, String cuenta, int limite) {
         String expr = switch (columna == null ? "" : columna.toUpperCase()) {
             case "PREDIO", "CUENTA", "PUESTO", "AREA", "GENERO" -> "NVL(e." + columna.toUpperCase() + ", '" + SIN_DATO + "')";
-            // Mismos cortes que DashboardConsultaService.rangoEdad, para que las barras se sumen
-            case "RANGO_EDAD" -> "CASE WHEN e.EDAD IS NULL OR e.EDAD <= 0 THEN '" + SIN_DATO + "' "
-                    + "WHEN e.EDAD <= 25 THEN '18-25' WHEN e.EDAD <= 35 THEN '26-35' "
-                    + "WHEN e.EDAD <= 45 THEN '36-45' WHEN e.EDAD <= 55 THEN '46-55' ELSE '55+' END";
+            // Rango del Excel (formato 2026) o los mismos cortes que DashboardConsultaService.rangoEdad,
+            // para que las barras se sumen; tolera que falte excel-nss-18
+            case "RANGO_EDAD" -> RangoEdadSql.expresion(jdbc,
+                    atencion.contains("SERV_MED_V_ATENCION") ? "SERV_MED_V_ATENCION" : "SERV_MED_XLS_ATENCION");
             default -> throw new IllegalArgumentException("Columna no permitida para agrupar: " + columna);
         };
         Filtro f = new Filtro("SELECT " + expr + " clave, COUNT(*) cantidad FROM " + atencion)

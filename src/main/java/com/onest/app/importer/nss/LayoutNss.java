@@ -27,19 +27,24 @@ public enum LayoutNss {
 
     ATENCIONES("ATENCIONES", "SERV_MED_XLS_ATENCION", true, List.of(
             nss(),
-            catalogo("PREDIO", "PREDIO", "PREDIO", true),
+            // «N°» y «MUSCULO ESQUELETICAS»: asi titula esas columnas el formato 2026 de SM
+            // (ACUMULADO MODIFICAR 2026, 12-nov-2026); se aceptan las dos formas
+            catalogo("PREDIO", "N°|Nº", "PREDIO", "PREDIO", true),
             catalogo("AREA", "AREA", "AREA", true),
             fecha("FECHA", "FECHA", true),
             catalogo("RAMO", "RAMO", "RAMO_ATENCIONES", true),
-            catalogo("CAUSA", "CAUSA", "CAUSA_CONSULTA", false),
-            catalogo("CAUSAS MUSCULO ESQUELETICAS", "LESION_ME", "LESION_ME", false),
+            // «CAUSA DE CONSULTA»: asi viene en ATENCIONES 2026 ultimo.xlsx (12-nov-2026)
+            catalogo("CAUSA", "CAUSA DE CONSULTA", "CAUSA", "CAUSA_CONSULTA", false),
+            catalogo("CAUSAS MUSCULO ESQUELETICAS", "MUSCULO ESQUELETICAS", "LESION_ME", "LESION_ME", false),
             texto("DIAGNOSTICO", "DIAGNOSTICO", 1000),
             texto("TRATAMIENTO", "TRATAMIENTO", 1000),
             // 12-nov-2026 (decision del usuario): cuenta, edad y genero vienen en el Excel, son obligatorios y
             // GANAN sobre el biometrico (que muchas veces no los trae: EMP_FECHAN casi siempre vacia). Se leen
             // por nombre de encabezado, asi que el orden de las columnas no importa.
             textoObligatorio("CUENTA", "CUENTA", 160),
-            entero("EDAD", "EDAD", true),
+            // EDAD viene como RANGO (18 - 25 ... 55 +), igual que en nuevo ingreso: va a RANGO_EDAD
+            // (excel-nss-18-atencion-rango-edad.sql). La columna EDAD queda para la del biometrico.
+            catalogo("EDAD", "RANGO DE EDAD", "RANGO_EDAD", "RANGO_EDAD", true),
             catalogo("GENERO", "SEXO", "GENERO", "GENERO", true))),
 
     EXAMEN_INGRESO("EXAMEN NUEVO INGRESO", "SERV_MED_XLS_EXAMEN_ING", false, List.of(
