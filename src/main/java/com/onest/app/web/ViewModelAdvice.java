@@ -61,6 +61,12 @@ public class ViewModelAdvice {
         // SERV_MED_MENU_ROLE del usuario; con ORDS no hay codes -> null = el menu no filtra
         // (comportamiento anterior). Nunca lanza: un fallo aqui no debe tumbar la vista.
         attributes.put("menusPermitidos", menusPermitidos());
+        // Duracion de la sesion para el aviso de inactividad (static/js/sesion.js): se toma de la
+        // sesion real (server.servlet.session.timeout) para no repetir el valor en el JS
+        jakarta.servlet.http.HttpSession sesion = request.getSession(false);
+        if (sesion != null) {
+            attributes.put("sesionSegundos", sesion.getMaxInactiveInterval());
+        }
         // Firma digitalizada que un administrador cargo a nombre de este usuario y espera su aceptacion
         // (20-oct-2026): el encabezado lo avisa. Solo en paginas completas (no en /api/, que son
         // fragmentos e impresos) para no consultar en cada peticion. Nunca lanza.

@@ -7,8 +7,11 @@
 
     <display-name>Portal Salud Personal</display-name>
 
+    <!-- Minutos sin actividad. En Tomcat externo ESTE valor manda (server.servlet.session.timeout del
+         properties solo aplica al Tomcat embebido). 13-nov-2026: 1 hora, decision del usuario;
+         static/js/sesion.js pregunta «¿Necesitas mas tiempo?» 2 minutos antes. -->
     <session-config>
-        <session-timeout>30</session-timeout>
+        <session-timeout>60</session-timeout>
     </session-config>
 
     <welcome-file-list>

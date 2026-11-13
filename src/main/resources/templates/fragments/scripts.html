@@ -1,6 +1,9 @@
 <th:block xmlns:th="http://www.thymeleaf.org" th:fragment="appScripts(pageScripts)">
     <!-- 11-nov-2026 (Aikido CWE-79): PortalHtml.poner limpia el HTML antes de insertarlo; lo usan todas las pantallas -->
     <script th:src="@{/js/html-seguro.js}" src="/js/html-seguro.js"></script>
+    <!-- 13-nov-2026: sesion vencida -> login (no «No tienes permiso»), token renovado y aviso «¿Necesitas mas tiempo?».
+         Va antes de los scripts de la pantalla para que todos sus fetch pasen por aqui. -->
+    <script th:src="@{/js/sesion.js}" src="/js/sesion.js"></script>
     <script th:src="@{/theme/lib/jquery/jquery.min.js}" src="/theme/lib/jquery/jquery.min.js"></script>
     <script th:src="@{/theme/lib/bootstrap/js/bootstrap.bundle.min.js}" src="/theme/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script th:src="@{/theme/lib/perfect-scrollbar/perfect-scrollbar.min.js}" src="/theme/lib/perfect-scrollbar/perfect-scrollbar.min.js"></script>

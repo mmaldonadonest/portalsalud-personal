@@ -15,6 +15,7 @@
     <meta name="app-context-path" th:content="@{/}" content="/">
     <meta name="_csrf" th:if="${_csrf != null}" th:content="${_csrf.token}">
     <meta name="_csrf_header" th:if="${_csrf != null}" th:content="${_csrf.headerName}">
+    <meta name="sesion-segundos" th:if="${sesionSegundos != null}" th:content="${sesionSegundos}">
     <link rel="shortcut icon" type="image/x-icon" th:href="@{/theme/assets/img/favicon.png}" href="/theme/assets/img/favicon.png">
     <title th:replace="${pageTitle}">Portal Salud Personal</title>
     <link rel="stylesheet" th:href="@{/theme/lib/remixicon/fonts/remixicon.css}" href="/theme/lib/remixicon/fonts/remixicon.css">

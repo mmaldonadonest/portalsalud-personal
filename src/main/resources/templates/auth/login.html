@@ -45,6 +45,7 @@
                     <div class="alert alert-danger" th:if="${param.error}" role="alert">Credenciales inv&aacute;lidas. Verifica tus datos.</div>
                     <div class="alert alert-success" th:if="${param.logout}" role="alert">Tu sesi&oacute;n ha finalizado correctamente.</div>
                     <div class="alert alert-warning" th:if="${param.expired}" role="alert">Tu sesi&oacute;n expir&oacute; por inactividad. Vuelve a iniciar sesi&oacute;n.</div>
+                    <div class="alert alert-warning" th:if="${param.sesion}" role="alert">Tu sesi&oacute;n termin&oacute;. Vuelve a iniciar sesi&oacute;n.</div>
                     <div class="alert alert-danger" th:if="${param.bloqueado}" role="alert">Tu usuario est&aacute; bloqueado en Portal Salud. Si crees que es un error, contacta al administrador.</div>
                     <div class="alert alert-warning" th:if="${param.sinrol}" role="alert">Tu usuario no tiene ning&uacute;n rol asignado en Portal Salud. Contacta al administrador para solicitar acceso.</div>
                     <form th:action="@{/login}" action="/login" method="post" novalidate>
