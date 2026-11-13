@@ -2583,7 +2583,52 @@
 <!--/* FT-SO-05 Cuestionario osteomuscular (9-nov-2026): una hoja mas, en TODOS los tipos de examen */-->
 <tr th:replace="~{fragments/osteomuscular :: impreso}"></tr>
 <!--/* C-069 Prueba de Ishihara (10-nov-2026): solo examen inicial (tipo 1) y solo si se capturo */-->
-<th:block th:if="${d.v('TIPO_CODIGO') == '1'}"><th:block th:replace="~{fragments/ishihara :: impreso}"></th:block></th:block></tbody>
+<th:block th:if="${d.v('TIPO_CODIGO') == '1'}"><th:block th:replace="~{fragments/ishihara :: impreso}"></th:block></th:block>
+<!--/* FT-SO-31 (13-nov-2026): solo EMNI y solo si al finalizar se contesto «¿Desea emitir dictamen?» = Sí
+     (ExamenController pone ftso31 con el dictamen expedido en ese momento). Firma: el medico del examen. */-->
+<tr class="hoja" th:if="${ftso31 != null}"><td><div class="emle"
+    th:with="nombreFt=${#strings.trim(d.v('nombre') + ' ' + d.v('apellidoP') + ' ' + d.v('apellidoM'))}">
+    <table class="f enc">
+        <tr>
+            <td rowspan="4" style="width:26%; vertical-align:middle; text-align:center">
+                <img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" style="max-width:100%; max-height:48px">
+            </td>
+            <td colspan="2" class="titulo" th:text="${ftso31Enc.titulo()}">DICTAMEN</td>
+        </tr>
+        <tr><td>F. Implementación: [[${ftso31Enc.implementacion()}]]</td><td>Revisión: [[${ftso31Enc.revision()}]]</td></tr>
+        <tr><td>Clave de control: [[${ftso31Enc.clave()}]]</td><td>Reemplaza a: [[${ftso31Enc.reemplaza()}]]</td></tr>
+        <tr><td colspan="2">Motivo del cambio: [[${ftso31Enc.motivo()}]]</td></tr>
+    </table>
+    <table class="f" style="margin-top:6px">
+        <tr><td class="sec" colspan="4">FICHA DE IDENTIFICACIÓN</td></tr>
+        <tr><td class="e">NOMBRE</td><td th:text="${nombreFt}"></td><td class="e">FECHA DE EXPEDICIÓN</td><td th:text="${ftso31['EXPEDICION']}"></td></tr>
+        <tr><td class="e">PUESTO</td><td th:text="${d.v('puesto')}"></td><td class="e">VIGENCIA</td><td th:text="${ftso31['VIGENCIA']}"></td></tr>
+        <tr><td class="e">CENTRO DE TRABAJO</td><td colspan="3" th:text="${ftso31['CENTRO']}"></td></tr>
+    </table>
+    <table class="f" style="margin-top:6px">
+        <th:block th:each="t, st : ${ftso31Trabajos}" th:with="ap=${ftso31['APTITUD_' + st.index] ?: ''}, esp=${ftso31['ESPECIFICAR_' + st.index] ?: ''}">
+            <tr><td class="sec" colspan="4" th:text="${t}">TRABAJO</td></tr>
+            <tr>
+                <td class="c" th:text="|APTO [${ap == 'APTO' ? 'X' : ' '}]|">APTO [ ]</td>
+                <td class="c" th:text="|NO APTO [${ap == 'NO_APTO' ? 'X' : ' '}]|">NO APTO [ ]</td>
+                <td class="c" th:text="|APTO CONDICIONADO (ESPECIFICAR) [${ap == 'CONDICIONADO' ? 'X' : ' '}]|">APTO CONDICIONADO [ ]</td>
+                <td class="c" th:text="|NO APLICA [${ap == 'NO_APLICA' ? 'X' : ' '}]|">NO APLICA [ ]</td>
+            </tr>
+            <tr th:if="${!#strings.isEmpty(esp)}"><td colspan="4" th:text="${esp}"></td></tr>
+        </th:block>
+    </table>
+    <table class="firmas" style="margin-top:28px">
+        <tr>
+            <td style="width:100%">
+                <img th:if="${medico != null and medico.firmaDataUri() != null}" th:src="${medico.firmaDataUri()}" alt="Firma del médico">
+                <div class="linea-firma" style="width:55%; margin:4px auto 0">
+                    <b th:text="${medico != null ? medico.nombre() : ''}">Médico</b><br>
+                    <span th:if="${medico != null and !#strings.isEmpty(medico.cedula())}" th:text="'CP ' + ${medico.cedula()}">CP</span>
+                </div>
+            </td>
+        </tr>
+    </table>
+</div></td></tr></tbody>
 </table>
 <script>
     // 28-oct-2026: el encabezado decia "Hoja N de 5" fijo para todos los tipos; los formatos 2026 tienen

@@ -52,10 +52,47 @@ public class CertificacionAptitudService {
             "MANEJO MANUAL DE CARGAS",
             "USO DE RESPIRADOR");
 
-    private final MedTagRepository tags;
+    /**
+     * EMNI (13-nov-2026): id del dictamen expedido al finalizar el ultimo examen inicial con «¿Desea emitir
+     * dictamen?» = Sí; vacio si se contesto N/A. Con el, el impreso del examen inicial agrega el FT-SO-31.
+     * Sin punto despues de FTSO31 para que todas() no lo confunda con una expedicion.
+     */
+    public static final String TAG_EMNI = "FTSO31_EMNI";
 
-    public CertificacionAptitudService(MedTagRepository tags) {
+    private final MedTagRepository tags;
+    private final com.onest.app.catalog.predio.service.PredioService predios;
+
+    public CertificacionAptitudService(MedTagRepository tags, com.onest.app.catalog.predio.service.PredioService predios) {
         this.tags = tags;
+        this.predios = predios;
+    }
+
+    /**
+     * Centro de trabajo predeterminado = "CEDIS / cuenta" (respuesta de SM 20-oct-2026, ej. "Charcon / Diageo"):
+     * el predio asignado a la cuenta en /admin/predios + la cuenta; solo la cuenta si no tiene predio.
+     */
+    public String centroDeTrabajo(String cuenta) {
+        String cta = cuenta == null ? "" : cuenta.trim();
+        try {
+            return predios.predioFinoPorCuenta(cta).map(p -> p.predioNombre() + " / " + cta).orElse(cta);
+        } catch (RuntimeException ex) {
+            return cta;
+        }
+    }
+
+    /** Id del dictamen ligado al ultimo EMNI, o vacio. */
+    public String idDelEmni(String nss) {
+        try {
+            String id = tags.latestByNssAndTypePrefix(nss, TAG_EMNI).get(TAG_EMNI);
+            return id == null ? "" : id.trim();
+        } catch (RuntimeException ex) {
+            return "";
+        }
+    }
+
+    /** Liga (id) o desliga ("") el dictamen del ultimo EMNI. */
+    public void ligarEmni(String nss, String id) {
+        tags.upsert(nss, TAG_EMNI, id == null ? "" : id, GRUPO, usuarioActual());
     }
 
     /** Todas las expediciones del NSS: id -> campos, de la mas reciente a la mas vieja. */
@@ -98,15 +135,7 @@ public class CertificacionAptitudService {
      * condicionado lleva que especificar. Devuelve el id; IllegalArgumentException con el motivo si falta algo.
      */
     public String expedir(String nss, Map<String, String> aptitud, Map<String, String> especificar, String centro) {
-        for (int i = 0; i < TRABAJOS.size(); i++) {
-            String a = limpio(aptitud.get(String.valueOf(i)));
-            if (!APTITUDES.contains(a)) {
-                throw new IllegalArgumentException("Falta marcar la aptitud de «" + TRABAJOS.get(i) + "».");
-            }
-            if ("CONDICIONADO".equals(a) && limpio(especificar.get(String.valueOf(i))).isEmpty()) {
-                throw new IllegalArgumentException("Especifica la condición de «" + TRABAJOS.get(i) + "».");
-            }
-        }
+        validar(aptitud, especificar);
         String usuario = usuarioActual();
         LocalDateTime ahora = LocalDateTime.now();
         LocalDate hoy = ahora.toLocalDate();
@@ -125,6 +154,23 @@ public class CertificacionAptitudService {
         campos.put("VIGENCIA", hoy.plusYears(1).format(DIA));
         campos.forEach((campo, valor) -> tags.upsert(nss, PREFIJO + id + "." + campo, valor, GRUPO, usuario));
         return id;
+    }
+
+    /**
+     * Todos los trabajos con aptitud y el condicionado con su especificacion; IllegalArgumentException con el
+     * motivo si falta algo. Publico para el EMNI (13-nov-2026): valida ANTES de mandar el examen al WS, asi
+     * un dictamen incompleto no deja el examen guardado y el dictamen sin expedir.
+     */
+    public void validar(Map<String, String> aptitud, Map<String, String> especificar) {
+        for (int i = 0; i < TRABAJOS.size(); i++) {
+            String a = limpio(aptitud.get(String.valueOf(i)));
+            if (!APTITUDES.contains(a)) {
+                throw new IllegalArgumentException("Falta marcar la aptitud de «" + TRABAJOS.get(i) + "».");
+            }
+            if ("CONDICIONADO".equals(a) && limpio(especificar.get(String.valueOf(i))).isEmpty()) {
+                throw new IllegalArgumentException("Especifica la condición de «" + TRABAJOS.get(i) + "».");
+            }
+        }
     }
 
     private static String limpio(String s) {

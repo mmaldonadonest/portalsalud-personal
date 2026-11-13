@@ -1180,6 +1180,12 @@
                 return root ? parseInt(root.getAttribute('data-hoja'), 10) || 1 : 1;
             }
 
+            // 13-nov-2026: id del ultimo examen finalizado al abrir la pantalla (ver examen-inicial-shell, finVisto)
+            function exIniFinVisto() {
+                var el = document.getElementById('exIniFinVisto');
+                return el && /^\d+$/.test(el.value) ? parseInt(el.value, 10) : null;
+            }
+
             function exIniCamposDe(section) {
                 var datos = {};
                 section.querySelectorAll('input[name], select[name], textarea[name]').forEach(function (el) {
@@ -1301,7 +1307,8 @@
                 }
                 // los datos se toman AHORA: desde aqui la hoja queda limpia; si el envio falla se vuelve a marcar
                 delete exIniSucias[hoja];
-                var cuerpo = JSON.stringify({ nss: root.getAttribute('data-nss'), hoja: hoja, datos: exIniCamposDe(section) });
+                var cuerpo = JSON.stringify({ nss: root.getAttribute('data-nss'), hoja: hoja, datos: exIniCamposDe(section),
+                    finVisto: exIniFinVisto() });
                 exIniCola = exIniCola.then(function () { return exIniEnviarBorrador(cuerpo, hoja); });
                 return exIniCola;
             };
@@ -1321,7 +1328,7 @@
                     var section = root.querySelector('section.exini-hoja[data-hoja="' + h + '"]');
                     if (section) {
                         exIniEnviarBorrador(JSON.stringify({ nss: root.getAttribute('data-nss'), hoja: parseInt(h, 10),
-                            datos: exIniCamposDe(section) }), parseInt(h, 10), true);
+                            datos: exIniCamposDe(section), finVisto: exIniFinVisto() }), parseInt(h, 10), true);
                     }
                 });
                 exIniSucias = {};

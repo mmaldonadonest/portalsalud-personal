@@ -235,6 +235,9 @@
                 <input type="hidden" name="nss" th:value="${v.nss}">
                 <input type="hidden" name="hoja" id="exIniHoja" th:value="${v.hojaActual}">
                 <input type="hidden" name="firma" id="firma">
+                <!--/* 13-nov-2026: ultimo examen finalizado que habia al abrir la pantalla. Viaja en cada autoguardado y al
+                     finalizar: si despues se finalizo otro, el autoguardado es viejo y el servidor lo descarta en silencio. */-->
+                <input type="hidden" name="finVisto" id="exIniFinVisto" th:value="${v.ultimoFinalizado != null ? v.ultimoFinalizado.id : 0}">
 
                 <section class="exini-hoja" th:each="h : ${v.hojas}" th:attr="data-hoja=${h.hoja.numero}" th:hidden="${h.hoja.numero != v.hojaActual}">
                     <div class="d-flex justify-content-between align-items-baseline flex-wrap gap-2 mb-2">
@@ -655,6 +658,40 @@
                                     </div>
                                 </div>
                             </th:block>
+                        </div>
+
+                        <!--/* FT-SO-31 desde Plan terapeutico (13-nov-2026, pedido del usuario, solo EMNI): Si abre la captura
+                             del dictamen; al finalizar se expide y sale en el impreso. data-opcional: no cuenta en el
+                             avance; lo valida finalizar (la pregunta siempre, los 10 trabajos solo con Si). */-->
+                        <div th:if="${s.nombre == 'Plan terapéutico'}" class="exini-ftso31 mt-3"
+                             th:with="P=${T(com.onest.app.catalog.exameninicial.service.ExamenInicialService).PREFIJO_FTSO31},
+                                      ft=${v.certificacion}, emitir=${ft[P + 'EMITIR'] ?: ''}">
+                            <label class="fw-semibold">¿Desea emitir dictamen de certificación de aptitud médica laboral (FT-SO-31)?</label>
+                            <div class="exini-chips">
+                                <input type="hidden" th:name="${P + 'EMITIR'}" th:value="${emitir}" data-opcional>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" th:classappend="${emitir == 'SI'} ? 'activo' : ''" data-val="SI"
+                                        onclick="exIniChip(this); var c = this.closest('.exini-ftso31'); c.querySelector('.exini-ftso31-captura').classList.toggle('d-none', c.querySelector('input[type=hidden]').value !== 'SI');">Sí</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" th:classappend="${emitir == 'NA'} ? 'activo' : ''" data-val="NA"
+                                        onclick="exIniChip(this); var c = this.closest('.exini-ftso31'); c.querySelector('.exini-ftso31-captura').classList.toggle('d-none', c.querySelector('input[type=hidden]').value !== 'SI');">N/A</button>
+                            </div>
+                            <div class="exini-ftso31-captura mt-2 p-2 border rounded" th:classappend="${emitir == 'SI'} ? '' : 'd-none'">
+                                <p class="fs-sm text-muted mb-2">Marca la aptitud de cada tipo de trabajo. En «Apto condicionado» especifica la condición.
+                                    Se expide al finalizar el examen, con fecha de hoy y vigencia de 1 año, y sale en la impresión del examen.</p>
+                                <div class="mb-2 pb-2 border-bottom" th:each="t, st : ${v.trabajosCertificacion()}"
+                                     th:with="ap=${ft[P + 'APTITUD_' + st.index] ?: ''}">
+                                    <div class="fw-semibold fs-sm mb-1" th:text="${t}">TRABAJO</div>
+                                    <div class="exini-chips">
+                                        <input type="hidden" th:name="${P + 'APTITUD_' + st.index}" th:value="${ap}" data-opcional>
+                                        <button type="button" th:each="o : ${ {{'APTO','Apto'},{'NO_APTO','No apto'},{'CONDICIONADO','Apto condicionado'},{'NO_APLICA','No aplica'}} }"
+                                                class="btn btn-sm btn-outline-secondary" th:classappend="${ap == o[0]} ? 'activo' : ''"
+                                                th:attr="data-val=${o[0]}" th:text="${o[1]}" onclick="exIniChip(this);">op</button>
+                                    </div>
+                                    <input type="text" class="form-control form-control-sm mt-1" th:name="${P + 'ESPECIFICAR_' + st.index}"
+                                           th:value="${ft[P + 'ESPECIFICAR_' + st.index]}" placeholder="Especificar (solo si es Apto condicionado)" data-opcional>
+                                </div>
+                                <label class="fs-sm">Centro de trabajo (CEDIS / cuenta)</label>
+                                <input type="text" class="form-control form-control-sm" th:name="${P + 'CENTRO'}" th:value="${ft[P + 'CENTRO']}" data-opcional>
+                            </div>
                         </div>
                     </div>
 

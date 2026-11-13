@@ -74,7 +74,12 @@ public class ExamenInicialService {
                         boolean tablaBorrador, Candado candado, boolean candidatoOcr,
                         com.onest.app.integration.ocr.SolicitudExamen solicitud, boolean atendidoPorOtro,
                         String agencia, String agenciaElegida, String telefonoSalud,
-                        Map<String, String> oknoElegidos) {
+                        Map<String, String> oknoElegidos, Map<String, String> certificacion) {
+
+        /** Los 10 tipos de trabajo del FT-SO-31, en su orden (para la plantilla). */
+        public List<String> trabajosCertificacion() {
+            return com.onest.app.catalog.examen.service.CertificacionAptitudService.TRABAJOS;
+        }
 
         /** Predeterminado del FT-SO-04 para el selector de agencia. */
         public String agenciaPredeterminada() {
@@ -125,6 +130,15 @@ public class ExamenInicialService {
 
     /** Sí/No elegido en exploracion: solo vive en el borrador, lo que se guarda es el texto. */
     private static final String PREFIJO_OKNO = "OKNO.";
+
+    /**
+     * FT-SO-31 desde «Plan terapéutico» (13-nov-2026, pedido del usuario, solo EMNI): «¿Desea emitir dictamen
+     * de certificación de aptitud médica laboral?» Sí / N/A. Con Sí se capturan aqui los 10 tipos de trabajo;
+     * viven en el borrador con este prefijo (no van al WS) y al finalizar se expide el dictamen.
+     * Claves: EMITIR (SI | NA), APTITUD_i, ESPECIFICAR_i, CENTRO.
+     */
+    public static final String PREFIJO_FTSO31 = "FTSO31EMNI.";
+    private static final String CAMPO_EMITIR = PREFIJO_FTSO31 + "EMITIR";
 
     /**
      * Candado: el inicial es de nuevo ingreso. Si la persona ya tiene un examen capturado desde
@@ -192,14 +206,17 @@ public class ExamenInicialService {
     private final ApplicationEventPublisher eventos;
     private final com.onest.app.integration.ocr.SolicitudExamenService solicitudService;
     private final com.onest.app.catalog.examen.service.ExamenDocumentoService documentoService;
+    private final com.onest.app.catalog.examen.service.CertificacionAptitudService certificacion;
 
     public ExamenInicialService(ExamenService examenService, ContactoEmergenciaService contactoEmergenciaService,
                                 DatosGeneralesExamenService datosGeneralesExamenService, NssSearchService nssSearchService,
                                 MedTagRepository tags, ExamenBorradorRepository borradores, ExamenHistoricoRepository historico,
                                 com.onest.app.integration.ocr.SolicitudExamenRepository solicitudes, ApplicationEventPublisher eventos,
                                 @org.springframework.context.annotation.Lazy com.onest.app.integration.ocr.SolicitudExamenService solicitudService,
-                                com.onest.app.catalog.examen.service.ExamenDocumentoService documentoService) {
+                                com.onest.app.catalog.examen.service.ExamenDocumentoService documentoService,
+                                com.onest.app.catalog.examen.service.CertificacionAptitudService certificacion) {
         this.documentoService = documentoService;
+        this.certificacion = certificacion;
         this.examenService = examenService;
         this.contactoEmergenciaService = contactoEmergenciaService;
         this.datosGeneralesExamenService = datosGeneralesExamenService;
@@ -489,7 +506,46 @@ public class ExamenInicialService {
                 documentoService.agencia(limpio, solicitud == null ? null : solicitud.agencia()),
                 b.containsKey(CAMPO_AGENCIA) ? b.get(CAMPO_AGENCIA) : documentoService.agenciaCapturada(limpio),
                 b.containsKey(CAMPO_TELEFONO) ? b.get(CAMPO_TELEFONO) : documentoService.telefonoSalud(limpio),
-                oknoElegidos(limpio, tablaBorrador, b, hojas));
+                oknoElegidos(limpio, tablaBorrador, b, hojas),
+                certificacionCaptura(limpio, tablaBorrador, b, empleado));
+    }
+
+    /**
+     * Captura del FT-SO-31 para la pantalla: lo del ultimo examen finalizado y encima el borrador vivo
+     * (un borrador de actualizacion solo trae lo que se toco). Centro vacio = "CEDIS / cuenta".
+     */
+    private Map<String, String> certificacionCaptura(String nss, boolean tablaBorrador, Map<String, String> b, EmpleadoDto empleado) {
+        Map<String, String> out = new LinkedHashMap<>();
+        if (tablaBorrador) {
+            try {
+                borradores.datosUltimoFinalizado(nss).forEach((k, val) -> {
+                    if (k.startsWith(PREFIJO_FTSO31)) {
+                        out.put(k, val);
+                    }
+                });
+            } catch (org.springframework.dao.DataAccessException ex) {
+                log.debug("[examen-inicial] sin finalizado para FT-SO-31: {}", ex.getMostSpecificCause().getMessage());
+            }
+        }
+        b.forEach((k, val) -> {
+            if (k.startsWith(PREFIJO_FTSO31)) {
+                out.put(k, val);
+            }
+        });
+        String centro = out.get(PREFIJO_FTSO31 + "CENTRO");
+        if (centro == null || centro.isBlank()) {
+            out.put(PREFIJO_FTSO31 + "CENTRO", certificacion.centroDeTrabajo(empleado == null ? "" : empleado.cuenta()));
+        }
+        return out;
+    }
+
+    /** Aptitudes (o especificaciones) del borrador por indice "0".."9", como las pide CertificacionAptitudService. */
+    private static Map<String, String> porIndice(Map<String, String> b, String campo) {
+        Map<String, String> m = new LinkedHashMap<>();
+        for (int i = 0; i < com.onest.app.catalog.examen.service.CertificacionAptitudService.TRABAJOS.size(); i++) {
+            m.put(String.valueOf(i), b.getOrDefault(PREFIJO_FTSO31 + campo + i, ""));
+        }
+        return m;
     }
 
     /** Si/No elegidos: los del ultimo finalizado (validados contra el texto actual) y encima los del borrador vivo. */
@@ -541,8 +597,22 @@ public class ExamenInicialService {
         return out;
     }
 
-    /** Autoguardado: funde los campos recibidos con el borrador existente y recuerda la hoja. */
-    public void guardarBorrador(String nss, int hoja, Map<String, String> datos) {
+    /** Autoguardado sin saber que examen finalizado vio la pantalla (no descarta nada). */
+    public boolean guardarBorrador(String nss, int hoja, Map<String, String> datos) {
+        return guardarBorrador(nss, hoja, datos, null);
+    }
+
+    /**
+     * Autoguardado: funde los campos recibidos con el borrador existente y recuerda la hoja.
+     *
+     * <p>{@code finVisto} = id del ultimo examen finalizado que existia cuando se ABRIO la pantalla (0 si
+     * ninguno). Devuelve false, sin error, si el autoguardado es viejo: la pantalla se abrio antes del ultimo
+     * finalizar, o sea, es el autoguardado que iba en camino cuando se dio Finalizar (en prod se abrieron
+     * borradores 1.6 a 11 s despues). 13-nov-2026: reemplaza al candado de 2 minutos del 9-nov, que dependia
+     * de la hora (en prod, por la zona horaria, nunca bloqueo) y le mostraba al usuario «se acaba de
+     * finalizar» si reabria el examen para corregirlo. Ahora quien reabre puede capturar de inmediato.
+     */
+    public boolean guardarBorrador(String nss, int hoja, Map<String, String> datos, Long finVisto) {
         String limpio = normalizeNss(nss);
         // Leer-fusionar-escribir serializado por NSS: al cambiar de hoja el front manda el
         // autoguardado de la hoja que deja y, casi a la vez, el de la que abre; sin esto los dos
@@ -554,10 +624,10 @@ public class ExamenInicialService {
             // usuario con 62159808518). Si no hay borrador abierto y el candado esta cerrado, no se crea nada.
             // Solo se revisa al ir a crear: un borrador abierto es un examen en captura.
             if (vivo.isEmpty()) {
-                // Autoguardado que ya iba en camino al finalizar (en prod se abrieron borradores 1.6 a 11 s
-                // despues de finalizar): en los 2 minutos siguientes no se abre un borrador nuevo.
-                if (borradores.finalizadoHaceMenosDe2Min(limpio)) {
-                    throw new IllegalArgumentException("El examen se acaba de finalizar: no se abre un borrador nuevo.");
+                // Autoguardado viejo (la pantalla se abrio antes del ultimo finalizar): se descarta en silencio
+                if (finVisto != null && borradores.idUltimoFinalizado(limpio) > finVisto) {
+                    log.info("[examen-inicial] autoguardado de {} descartado: la pantalla se abrio antes del ultimo finalizar", limpio);
+                    return false;
                 }
                 // C-068 (10-nov) quito el candado de la pantalla y de finalizar: actualizar un inicial ya
                 // finalizado es valido. Aqui se quedaba el candado viejo y rechazaba (400) cada autoguardado
@@ -573,6 +643,7 @@ public class ExamenInicialService {
             }
             int h = hoja < 1 || hoja > HOJAS.size() ? 1 : hoja;
             borradores.guardar(limpio, h, fusion, usuarioActual());
+            return true;
         }
     }
 
@@ -615,6 +686,20 @@ public class ExamenInicialService {
         // Regla del PO (misma que en el modulo general): dictamen sin diagnostico ICD no se guarda
         if (b.getOrDefault("SERV_MED_DIAGNOSTICO.OBSERVACIONES", "").isBlank()) {
             throw new IllegalArgumentException("Captura el diagnóstico desde el catálogo ICD (hoja 10) antes de finalizar");
+        }
+        // FT-SO-31 (13-nov-2026): la pregunta se contesta siempre (Sí o N/A) y con Sí el dictamen va completo.
+        // Se valida ANTES del WS: si no, el examen quedaba guardado y el dictamen sin expedir.
+        String emitir = b.getOrDefault(CAMPO_EMITIR, "").trim();
+        if (!"SI".equals(emitir) && !"NA".equals(emitir)) {
+            throw new IllegalArgumentException("Contesta «¿Desea emitir dictamen de certificación de aptitud médica laboral?» "
+                    + "en Plan terapéutico (hoja 10) antes de finalizar");
+        }
+        if ("SI".equals(emitir)) {
+            try {
+                certificacion.validar(porIndice(b, "APTITUD_"), porIndice(b, "ESPECIFICAR_"));
+            } catch (IllegalArgumentException ex) {
+                throw new IllegalArgumentException("Dictamen de certificación (hoja 10): " + ex.getMessage());
+            }
         }
 
         // 1) WS Servcio/Medico: claves del catalogo + empleos anteriores como trabajos[i].campo
@@ -689,6 +774,16 @@ public class ExamenInicialService {
         if (!telefono.isEmpty()) {
             tags.upsert(limpio, com.onest.app.catalog.examen.service.ExamenDocumentoService.TAG_TELEFONO,
                     telefono, "PERMISO_EXAMEN", usuario);
+        }
+
+        // 7) FT-SO-31: con Sí se expide (fecha de hoy, vigencia 1 año, queda en su historial) y se liga al
+        // EMNI para que salga en el impreso; con N/A se desliga (un EMNI anterior pudo haber dicho Sí)
+        if ("SI".equals(emitir)) {
+            String id = certificacion.expedir(limpio, porIndice(b, "APTITUD_"), porIndice(b, "ESPECIFICAR_"),
+                    b.getOrDefault(PREFIJO_FTSO31 + "CENTRO", ""));
+            certificacion.ligarEmni(limpio, id);
+        } else {
+            certificacion.ligarEmni(limpio, "");
         }
 
         borradores.finalizar(limpio, usuario);

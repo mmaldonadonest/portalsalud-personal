@@ -29,7 +29,8 @@ public class ExamenBorradorRepository {
     }
 
     /** Constancia de un examen finalizado desde este modulo. */
-    public record Finalizado(LocalDateTime fecha, String usuario) {
+    /** {@code id}: el del borrador finalizado; la pantalla lo devuelve en cada autoguardado (13-nov-2026). */
+    public record Finalizado(LocalDateTime fecha, String usuario, long id) {
     }
 
     private static final TypeReference<Map<String, String>> MAPA = new TypeReference<>() { };
@@ -129,25 +130,24 @@ public class ExamenBorradorRepository {
         return rows.stream().findFirst();
     }
 
-    /**
-     * true si el NSS se finalizo hace menos de 2 minutos. Compara con la hora de la BASE (SYSTIMESTAMP),
-     * la misma que puso FINALIZADO_AT: la del servidor de aplicaciones puede estar en otra zona horaria.
-     */
-    public boolean finalizadoHaceMenosDe2Min(String nss) {
-        Integer n = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM SERV_MED_EXAMEN_BORRADOR"
-                        + " WHERE NSS = ? AND ESTATUS = 'FINALIZADO' AND FINALIZADO_AT > SYSTIMESTAMP - INTERVAL '2' MINUTE",
-                Integer.class, nss);
-        return n != null && n > 0;
-    }
-
     public Optional<Finalizado> ultimoFinalizado(String nss) {
         List<Finalizado> rows = jdbc.query(
-                "SELECT FINALIZADO_AT, FINALIZADO_BY FROM SERV_MED_EXAMEN_BORRADOR"
+                "SELECT ID, FINALIZADO_AT, FINALIZADO_BY FROM SERV_MED_EXAMEN_BORRADOR"
                         + " WHERE NSS = ? AND ESTATUS = 'FINALIZADO' ORDER BY FINALIZADO_AT DESC FETCH FIRST 1 ROWS ONLY",
-                (rs, i) -> new Finalizado(rs.getTimestamp("FINALIZADO_AT").toLocalDateTime(), rs.getString("FINALIZADO_BY")),
+                (rs, i) -> new Finalizado(rs.getTimestamp("FINALIZADO_AT").toLocalDateTime(), rs.getString("FINALIZADO_BY"),
+                        rs.getLong("ID")),
                 nss);
         return rows.stream().findFirst();
+    }
+
+    /**
+     * Id del ultimo examen FINALIZADO del NSS, 0 si no hay. 13-nov-2026: reemplaza al candado de 2 minutos
+     * (ver ExamenInicialService.guardarBorrador): no depende de la hora ni de la zona horaria.
+     */
+    public long idUltimoFinalizado(String nss) {
+        Long id = jdbc.queryForObject("SELECT MAX(ID) FROM SERV_MED_EXAMEN_BORRADOR WHERE NSS = ? AND ESTATUS = 'FINALIZADO'",
+                Long.class, nss);
+        return id == null ? 0L : id;
     }
 
     /**

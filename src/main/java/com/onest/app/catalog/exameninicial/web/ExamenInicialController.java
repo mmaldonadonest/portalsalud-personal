@@ -52,7 +52,8 @@ public class ExamenInicialController {
     }
 
     /** Cuerpo JSON {@code {nss, hoja, datos:{clave:valor}}}. Devuelve la hora de guardado. */
-    public record BorradorRequest(String nss, Integer hoja, Map<String, String> datos) {
+    // finVisto (13-nov-2026): id del ultimo examen finalizado cuando se abrio la pantalla (ver guardarBorrador)
+    public record BorradorRequest(String nss, Integer hoja, Map<String, String> datos, Long finVisto) {
     }
 
     @PostMapping(
@@ -62,7 +63,7 @@ public class ExamenInicialController {
     @ResponseBody
     public String borrador(@RequestBody BorradorRequest req) {
         try {
-            service.guardarBorrador(req.nss(), req.hoja() == null ? 1 : req.hoja(), req.datos());
+            service.guardarBorrador(req.nss(), req.hoja() == null ? 1 : req.hoja(), req.datos(), req.finVisto());
             return java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"));
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
@@ -83,13 +84,15 @@ public class ExamenInicialController {
             // Lo que venga en el form (ultima hoja sin autoguardar aun) se funde al borrador antes de cerrar
             Map<String, String> datos = new LinkedHashMap<>();
             params.forEach((k, v) -> {
-                if (!"nss".equals(k) && !"firma".equals(k) && !"_csrf".equals(k) && !"hoja".equals(k)) {
+                if (!"nss".equals(k) && !"firma".equals(k) && !"_csrf".equals(k) && !"hoja".equals(k) && !"finVisto".equals(k)) {
                     datos.put(k, v == null || v.isEmpty() ? "" : v.get(0));
                 }
             });
             if (!datos.isEmpty()) {
                 String hoja = params.getFirst("hoja");
-                service.guardarBorrador(nss, hoja == null ? 10 : Integer.parseInt(hoja), datos);
+                String fin = params.getFirst("finVisto");
+                service.guardarBorrador(nss, hoja == null ? 10 : Integer.parseInt(hoja), datos,
+                        fin == null || !fin.matches("\\d+") ? null : Long.valueOf(fin));
             }
             String proceso = service.finalizar(nss, firma);
             // quien finaliza el examen inicial es quien lo elaboro (segunda firma del impreso, 21-oct-2026)

@@ -232,6 +232,17 @@ public class ExamenController {
         // firma del medico y de quien elaboro (modulo de firmas, 20-oct-2026); antes era la imagen publica
         // static/img/examen/firmaDoc.png heredada del PHP, que se quito del proyecto
         formatos.aplicarFirmas(model, "EXAMEN", registroExamen(nssLimpio, d), nssLimpio);
+        // EMNI (13-nov-2026, pedido del usuario): si al finalizar se contesto «¿Desea emitir dictamen?» = Sí,
+        // el FT-SO-31 expedido sale como una hoja mas del impreso. Solo examen inicial (tipo 1).
+        if ("1".equals(d.v("TIPO_CODIGO"))) {
+            String id = certificacion.idDelEmni(nssLimpio);
+            Map<String, String> c = id.isEmpty() ? Map.of() : certificacion.leer(nssLimpio, id);
+            if (!c.isEmpty()) {
+                model.addAttribute("ftso31", c);
+                model.addAttribute("ftso31Trabajos", com.onest.app.catalog.examen.service.CertificacionAptitudService.TRABAJOS);
+                model.addAttribute("ftso31Enc", formatos.encabezado("FT-SO-31"));
+            }
+        }
         model.addAttribute("auto", auto != null && !auto.isBlank() && !"0".equals(auto));
         // Post incapacidad (tipo 4) usa la misma plantilla: ella cambia las hojas del FT-SO-04 por la del FT-SO-13
         return "pages/examen-documento";
