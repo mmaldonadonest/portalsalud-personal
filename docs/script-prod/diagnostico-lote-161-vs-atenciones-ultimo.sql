@@ -1,0 +1,69 @@
+-- ============================================================================================
+-- ¿El lote 161 (ATENCIONES 2026.xlsx, cargado por Angie 13-nov 15:44) es el mismo archivo que
+-- «ATENCIONES 2026 ultimo.xlsx»? - 13-nov-2026
+--
+-- Base: BIOMETRICO (PDBPRD) - tablas del PORTAL. NO va a ORDS.
+-- SOLO LECTURA: no inserta, no borra, no cambia nada.
+--
+-- Archivo local docs/09102026/ultimos/ATENCIONES 2026 ultimo.xlsx (12-nov 17:34):
+--   SHA-256 7d6fe8ac2abef903378b5fd2ca5ea7014b6558ef51460af6144d4e9e1034dd1a
+--   18,980 renglones, 26 causas (conteos abajo en la seccion 2).
+-- Si el SHA coincide, es el mismo archivo byte por byte. Si no coincide pero los 26 conteos si,
+-- es el mismo contenido guardado otra vez (abrir y guardar en Excel cambia el SHA).
+--
+-- Correr con:  @C:\miguel\portalsalud-personal\docs\script-prod\diagnostico-lote-161-vs-atenciones-ultimo.sql
+-- ============================================================================================
+SET PAGESIZE 300
+SET LINESIZE 200
+SET FEEDBACK ON
+SPOOL C:\miguel\diagnostico-lote-161-salida.txt
+
+PROMPT === 1) Huella del lote 161 (comparar con 7d6fe8ac...4dd1a) ===
+SELECT ID, ARCHIVO, CHECKSUM_SHA256,
+       CASE WHEN LOWER(CHECKSUM_SHA256) = '7d6fe8ac2abef903378b5fd2ca5ea7014b6558ef51460af6144d4e9e1034dd1a'
+            THEN 'MISMO ARCHIVO' ELSE 'ARCHIVO DISTINTO' END COMPARACION
+  FROM SERV_MED_XLS_LOTE
+ WHERE ID = 161;
+
+PROMPT === 2) Conteo por causa del lote 161 contra el archivo local (DIFERENCIA debe ser 0) ===
+WITH local_xls (CAUSA, N) AS (
+  SELECT 'ACIDO PEPTICA', 266 FROM DUAL UNION ALL
+  SELECT 'ALERGIA / INTOXICACION', 233 FROM DUAL UNION ALL
+  SELECT 'BUCODENTAL', 425 FROM DUAL UNION ALL
+  SELECT 'CERVICAL / DORSAL / LUMBAR', 482 FROM DUAL UNION ALL
+  SELECT 'CIRCULATORIO', 406 FROM DUAL UNION ALL
+  SELECT 'CURACION', 450 FROM DUAL UNION ALL
+  SELECT 'DERMATOLOGICO', 261 FROM DUAL UNION ALL
+  SELECT 'DIGESTIVO', 2647 FROM DUAL UNION ALL
+  SELECT 'EMBARAZO (DETECCION/CONTROL)', 80 FROM DUAL UNION ALL
+  SELECT 'ENDOCRINO', 32 FROM DUAL UNION ALL
+  SELECT 'FISIOTERAPIA', 590 FROM DUAL UNION ALL
+  SELECT 'GENITOURINARIO', 180 FROM DUAL UNION ALL
+  SELECT 'GINECOLOGICO', 428 FROM DUAL UNION ALL
+  SELECT 'GRAL - ALGIA / MIALGIA /CONTUSION', 433 FROM DUAL UNION ALL
+  SELECT 'INYECCION', 218 FROM DUAL UNION ALL
+  SELECT 'MP - ALGIA / MIALGIA /CONTUSION', 728 FROM DUAL UNION ALL
+  SELECT 'MT - ALGIA / MIALGIA /CONTUSION', 749 FROM DUAL UNION ALL
+  SELECT 'NEUROLOGICO', 2138 FROM DUAL UNION ALL
+  SELECT 'NOM 035', 27 FROM DUAL UNION ALL
+  SELECT 'OFTALMICO', 332 FROM DUAL UNION ALL
+  SELECT 'OTICO', 117 FROM DUAL UNION ALL
+  SELECT 'PSICOSOMATICO', 278 FROM DUAL UNION ALL
+  SELECT 'RESPIRATORIO', 2766 FROM DUAL UNION ALL
+  SELECT 'TENSION ARTERIAL (DETEC/CONTROL)', 1625 FROM DUAL UNION ALL
+  SELECT 'TOMA DE GLUCOSA', 190 FROM DUAL UNION ALL
+  SELECT 'VACUNA / METODO PF / SEG SALUD', 2899 FROM DUAL
+), lote AS (
+  SELECT UPPER(TRIM(CAUSA)) CAUSA, COUNT(*) N
+    FROM SERV_MED_XLS_ATENCION
+   WHERE LOTE_ID = 161
+   GROUP BY UPPER(TRIM(CAUSA))
+)
+SELECT NVL(l.CAUSA, b.CAUSA) CAUSA, NVL(l.N, 0) ARCHIVO_LOCAL, NVL(b.N, 0) LOTE_161,
+       NVL(b.N, 0) - NVL(l.N, 0) DIFERENCIA
+  FROM local_xls l
+  FULL JOIN lote b ON b.CAUSA = l.CAUSA
+ ORDER BY ABS(NVL(b.N, 0) - NVL(l.N, 0)) DESC, 1;
+
+SPOOL OFF
+PROMPT Listo. Salida en C:\miguel\diagnostico-lote-161-salida.txt
