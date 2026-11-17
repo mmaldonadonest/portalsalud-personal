@@ -29,6 +29,11 @@
         .aud-tabla tr:hover td { background: #f8fafc; }
         .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: #475569; white-space: nowrap; }
         .usr { font-weight: 600; color: #0f172a; white-space: nowrap; }
+        /* 17-nov-2026: «NSS · NOMBRE» en dos renglones (NSS chico arriba) para que el detalle no quede apretado */
+        .usr.usr--2 { white-space: normal; min-width: 150px; max-width: 210px; line-height: 1.25; }
+        .usr-nss { display: block; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.5px;
+                   font-weight: 500; color: #64748b; }
+        .usr-nombre { display: block; font-size: 11.5px; }
         .acc {
             display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600;
             padding: 2px 8px; border-radius: 999px; background: #f1f5f9; color: #475569; white-space: nowrap;
@@ -39,7 +44,12 @@
         .acc--delete { background: #FEF2F2; color: #B91C1C; }
         .acc--export { background: #EFF6FF; color: #1D4ED8; }
         .acc--login  { background: #EEF2FF; color: #4338CA; }
-        .det { max-width: 420px; word-break: break-word; }
+        .mono.reg-largo { white-space: normal; max-width: 120px; line-height: 1.35; }
+        .aud-estado { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; }
+        .aud-estado .ok { color: #12B76A; font-size: 18px; transition: opacity .6s; }
+        .aud-estado .ok.fuera { opacity: 0; }
+        .aud-estado .err { color: #B91C1C; }
+        .det { min-width: 220px; max-width: 420px; word-break: break-word; }
         .vacio { text-align: center; padding: 40px 16px; color: #94a3b8; font-size: 12.5px; }
         .aviso-vacio { border-left: 4px solid #3B82F6; background: #EFF6FF; border-radius: 8px; padding: 12px 16px; }
         .aviso-vacio strong { color: #1E40AF; }
@@ -122,19 +132,32 @@
                     <option value="">Todas</option>
                 </select>
             </div>
-            <div>
-                <label class="form-label fs-12 mb-1">Desde</label>
-                <input type="date" id="fDesde" class="form-control form-control-sm">
-            </div>
-            <div>
-                <label class="form-label fs-12 mb-1">Hasta</label>
-                <input type="date" id="fHasta" class="form-control form-control-sm">
+            <!--/* 17-nov-2026: Desde y Hasta en un solo bloque para que siempre queden juntas al acomodarse */-->
+            <div class="d-flex align-items-end gap-2">
+                <div>
+                    <label class="form-label fs-12 mb-1" for="fDesde">Desde</label>
+                    <input type="date" id="fDesde" class="form-control form-control-sm">
+                </div>
+                <div>
+                    <label class="form-label fs-12 mb-1" for="fHasta">Hasta</label>
+                    <input type="date" id="fHasta" class="form-control form-control-sm">
+                </div>
             </div>
             <div>
                 <label class="form-label fs-12 mb-1">Buscar</label>
-                <input type="search" id="fTexto" class="form-control form-control-sm" placeholder="NSS, registro, detalle…" style="min-width:200px">
+                <input type="search" id="fTexto" class="form-control form-control-sm" placeholder="NSS, nombre, registro, detalle…" style="min-width:200px">
             </div>
-            <span id="estado" class="fs-12 text-muted ms-auto"></span>
+            <div>
+                <!--/* 17-nov-2026 (pedido del usuario): regresa todos los filtros a «Todos» / vacio de un clic */-->
+                <!--/* 17-nov-2026: el icono de estado va junto a Limpiar (girando = consultando, palomita = listo);
+                     el error sigue en texto */-->
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" id="btnLimpiar" class="btn btn-outline-secondary btn-sm" title="Quitar todos los filtros">
+                        <i class="ri-eraser-line me-1"></i>Limpiar
+                    </button>
+                    <span id="estado" class="fs-12 text-muted aud-estado" role="status" aria-live="polite"></span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -190,6 +213,21 @@
                     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
                 });
             }
+            // 17-nov-2026: celda de usuario compacta. «NSS · NOMBRE» se parte en dos renglones; sin nombre queda igual
+            function celdaUsuario(u) {
+                var t = String(u || '');
+                var i = t.indexOf(' · ');
+                if (i < 0) { return '<td class="usr">' + escapar(t || '—') + '</td>'; }
+                return '<td class="usr usr--2"><span class="usr-nss">' + escapar(t.substring(0, i)) + '</span>'
+                    + '<span class="usr-nombre">' + escapar(t.substring(i + 3)) + '</span></td>';
+            }
+            // 17-nov-2026: un registro largo con guiones (id de lote de carga: b932306c-44f4-4484-...) se parte en los
+            // guiones solo para verse; el valor no cambia (Exportar lleva el registro completo de una pieza)
+            function celdaRegistro(r) {
+                var t = String(r || '');
+                if (t.length <= 20 || t.indexOf('-') < 0) { return '<td class="mono">' + escapar(t || '—') + '</td>'; }
+                return '<td class="mono reg-largo">' + t.split('-').map(escapar).join('-<wbr>') + '</td>';
+            }
             function fecha(iso) {
                 if (!iso) { return '—'; }
                 return iso.replace('T', ' ').substring(0, 16);
@@ -229,20 +267,41 @@
                 return Object.keys(q).map(function (k) { return k + '=' + encodeURIComponent(q[k]); }).join('&');
             }
 
+            // 17-nov-2026: estado con icono. Contenido fijo (sin datos del servidor salvo el codigo HTTP, numerico).
+            var estadoTimer = null;
+            function estadoVer(tipo, texto) {
+                var el = document.getElementById('estado');
+                clearTimeout(estadoTimer);
+                if (tipo === 'cargando') {
+                    PortalHtml.poner(el, '<span class="spinner-border spinner-border-sm text-primary" aria-hidden="true"></span>'
+                        + '<span class="visually-hidden">Consultando</span>');
+                } else if (tipo === 'ok') {
+                    PortalHtml.poner(el, '<i class="ri-checkbox-circle-fill ok" title="Actualizado" aria-hidden="true"></i>'
+                        + '<span class="visually-hidden">Actualizado</span>');
+                    // la palomita se desvanece sola: no se queda un letrero fijo
+                    estadoTimer = setTimeout(function () {
+                        var ok = el.querySelector('.ok');
+                        if (ok) { ok.classList.add('fuera'); }
+                    }, 1500);
+                } else {
+                    PortalHtml.poner(el, '<i class="ri-error-warning-fill err" aria-hidden="true"></i><span class="err"></span>');
+                    el.querySelector('span.err').textContent = texto;
+                }
+            }
+
             async function cargar() {
-                var estado = document.getElementById('estado');
-                estado.textContent = 'Cargando...';
+                estadoVer('cargando');
                 try {
                     var res = await fetch(contextPath + 'api/auditoria?' + query());
-                    if (!res.ok) { estado.textContent = 'Error al consultar (HTTP ' + res.status + ').'; return; }
+                    if (!res.ok) { estadoVer('error', 'Error al consultar (HTTP ' + res.status + ').'); return; }
                     var d = await res.json();
                     ultimo = d;
                     total = d.total;
                     pintar(d);
-                    estado.textContent = 'Actualizado.';
+                    estadoVer('ok');
                 } catch (e) {
                     console.error('[analisis-auditoria] error en cargar():', e);
-                    estado.textContent = 'Error de red: ' + e.message;
+                    estadoVer('error', 'Error de red: ' + e.message);
                 }
             }
 
@@ -257,10 +316,10 @@
                     var acc = (e.accion || '').toLowerCase();
                     return '<tr>'
                         + '<td class="mono">' + escapar(fecha(e.fecha)) + '</td>'
-                        + '<td class="usr">' + escapar(e.usuario || '—') + '</td>'
+                        + celdaUsuario(e.usuario)
                         + '<td><span class="acc acc--' + escapar(acc) + '">' + escapar(acc || '—') + '</span></td>'
                         + '<td>' + escapar(e.modulo || '—') + (e.entidad ? '<br><span class="fs-11 text-muted">' + escapar(e.entidad) + '</span>' : '') + '</td>'
-                        + '<td class="mono">' + escapar(e.registro || '—') + '</td>'
+                        + celdaRegistro(e.registro)
                         + '<td class="det">' + escapar(e.detalle || '—') + '</td>'
                         + '<td class="mono">' + escapar(e.ip || '—') + '</td>'
                         + '</tr>';
@@ -307,7 +366,7 @@
                         }
                         return '<tr' + (s.enLinea ? '' : ' class="enl-fila-off"') + '>'
                             + '<td>' + estado + '</td>'
-                            + '<td class="usr">' + escapar(s.usuario || '—') + '</td>'
+                            + celdaUsuario(s.usuario)
                             + '<td>' + escapar(s.roles || '—') + '</td>'
                             + '<td>' + accion + '</td>'
                             + '<td class="mono">' + escapar(s.ultimaRuta || '—') + '</td>'
@@ -364,6 +423,14 @@
                     clearTimeout(timer); timer = setTimeout(aplicar, 400);
                 });
                 document.getElementById('btnRefrescar').addEventListener('click', function () { cargarFiltros(); cargar(); cargarEnLinea(); });
+                document.getElementById('btnLimpiar').addEventListener('click', function () {
+                    // una sola consulta al final: cambiar .value desde codigo no dispara 'change'
+                    ['fUsuario', 'fModulo', 'fAccion', 'fDesde', 'fHasta', 'fTexto'].forEach(function (id) {
+                        document.getElementById(id).value = '';
+                    });
+                    clearTimeout(timer);
+                    aplicar();
+                });
                 cargarEnLinea();
                 setInterval(cargarEnLinea, 60000);
                 document.getElementById('btnExportar').addEventListener('click', exportarCsv);

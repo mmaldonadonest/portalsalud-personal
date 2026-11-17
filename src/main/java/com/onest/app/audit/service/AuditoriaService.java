@@ -94,10 +94,17 @@ public class AuditoriaService {
             }
             if (lleno(texto)) {
                 String like = "%" + texto.trim().toLowerCase() + "%";
+                // DETAIL_JSON es CLOB: desde Hibernate 7 (Spring Boot 4, 11-nov-2026) lower() sobre un CLOB truena al
+                // armar la consulta (FunctionArgumentException -> HTTP 500 en Auditoria al usar «Buscar»). NLS_LOWER es
+                // nativa de Oracle, Hibernate no la valida y acepta CLOB; Oracle permite LIKE sobre CLOB, asi que se busca
+                // en todo el detalle y el texto sigue yendo como parametro (no pegado en el SQL).
+                // USERNAME tambien entra: se busca por nombre («itzel») y el nombre vive en el usuario.
+                var detalleMinusculas = cb.function("NLS_LOWER", String.class, root.get("detailJson"));
                 p.add(cb.or(
                         cb.like(cb.lower(root.get("entityId")), like),
                         cb.like(cb.lower(root.get("entityName")), like),
-                        cb.like(cb.lower(root.get("detailJson")), like)));
+                        cb.like(cb.lower(root.get("username")), like),
+                        cb.like(detalleMinusculas, like)));
             }
             return cb.and(p.toArray(new Predicate[0]));
         };

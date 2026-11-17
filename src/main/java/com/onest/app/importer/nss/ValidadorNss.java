@@ -252,10 +252,14 @@ public final class ValidadorNss {
         if (layout == LayoutNss.MATERNIDAD && valores.get("NSS") != null) {
             LocalDate fum = (LocalDate) valores.get("FUM");
             LocalDate fpp = (LocalDate) valores.get("FECHA_PROB_PARTO");
+            // NSS en ceros (13-nov-2026): sin persona, NSS + FUM juntaria a mujeres distintas con la misma
+            // FUM; con el predio se separan y el mismo caso se sigue ligando mes a mes
+            Object persona = NSS_CEROS.equals(valores.get("NSS"))
+                    ? NSS_CEROS + "|" + valores.get("PREDIO") : valores.get("NSS");
             if (fum != null) {
-                valores.put("CLAVE_EMBARAZO", valores.get("NSS") + "|FUM:" + fum);
+                valores.put("CLAVE_EMBARAZO", persona + "|FUM:" + fum);
             } else if (fpp != null) {
-                valores.put("CLAVE_EMBARAZO", valores.get("NSS") + "|FPP:" + fpp);
+                valores.put("CLAVE_EMBARAZO", persona + "|FPP:" + fpp);
             } else {
                 errores.add(new Error(fila.numero(), "FUM", "",
                         "falta FUM o FECHA PROBABLE DE PARTO: sin una de las dos no se identifica el embarazo"));

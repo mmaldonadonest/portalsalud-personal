@@ -87,6 +87,20 @@ public class ExamenDocumentoService {
             return "1".equals(s) ? "Sí" : "0".equals(s) ? "No" : s;
         }
 
+        /**
+         * 17-nov-2026: Si/No de los antecedentes que el impreso mostraba crudo ("1" en Patologicos). 1 = Sí, 0 = No,
+         * vacio o relleno = "Negado" (lo mismo que decia {@link #negado}); un texto capturado sale tal cual.
+         */
+        public String siNoNegado(String var) {
+            String s = v(var).trim();
+            return "1".equals(s) ? "Sí" : "0".equals(s) ? "No" : negado(var);
+        }
+
+        /** 17-nov-2026: fecha en dd/MM/yyyy o vacia si no se capturo (FUM y Fecha COVID salian "0" o ISO). */
+        public String fechaOVacio(String var) {
+            return texto(var).isEmpty() ? "" : fecha(var);
+        }
+
         /** Fechas de los tags EXM_* (se guardan ISO, yyyy-MM-dd) como dd/MM/yyyy; otro formato sale tal cual. */
         public String fecha(String var) {
             String s = v(var).trim();
@@ -589,6 +603,10 @@ public class ExamenDocumentoService {
         // salia en blanco. Se usa el puesto solicitado de la solicitud de OCR, como ya se hace con la agencia.
         if (limpio(v.get("puesto")).isEmpty() && solicitud != null) {
             v.put("puesto", limpio(solicitud.puestoSolicitado()));
+        }
+        // 17-nov-2026: el empleado (sin solicitud de OCR) seguia en blanco: su puesto sale del biometrico
+        if (limpio(v.get("puesto")).isEmpty()) {
+            v.put("puesto", fichaBiometrico.puesto(nssLimpio));
         }
         String agenciaSolicitud = solicitud == null ? null : solicitud.agencia();
         String agenciaBase = agencia(nssLimpio, agenciaSolicitud);

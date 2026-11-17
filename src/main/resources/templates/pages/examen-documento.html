@@ -121,7 +121,8 @@
                 <tbody>
                     <tr>
                         <td colspan="2" style="font-size: 12px;font-weight:bold;">
-                            <center>CONSENTIMIENTO DE REALIZACIÓN DE EXAMEN MÉDICO<br/> ([[${d.v('tipoExamenInputO')}]]).</center>
+                            <!--/* 17-nov-2026: sin tipo de examen salia "()." */-->
+                            <center>CONSENTIMIENTO DE REALIZACIÓN DE EXAMEN MÉDICO<th:block th:unless="${#strings.isEmpty(d.v('tipoExamenInputO'))}"><br/> ([[${d.v('tipoExamenInputO')}]]).</th:block></center>
                         </td>
                     </tr>
                     <!-- FT-SO-11 rev. 05 (formato 2026 de SM, docs/formatosnuevos/10202026, 20-oct-2026) -->
@@ -259,9 +260,10 @@
             Sí consiento que mis datos personales se utilicen para los siguientes fines:
             <br>
             <!-- FT-SO-32 rev. 03: casillas vacias, las marca el titular a mano (antes salian marcadas [*]) -->
-            <b>[ ] Obtener muestras biológicas en los casos que sean necesarios para evaluar las aptitudes médicas o para algún tamizaje
+            <!--/* 17-nov-2026 (decision del usuario): los 3 corchetes de fines secundarios y transferencias salen [ Sí ], igual que el final (C-073) */-->
+            <b>[ Sí ] Obtener muestras biológicas en los casos que sean necesarios para evaluar las aptitudes médicas o para algún tamizaje
                 de diagnóstico</b><br>
-            <b>[ ] Conocer los datos de índole médico para evaluar el estado de salud para ingresar, cambiar de puesto, ascender, de
+            <b>[ Sí ] Conocer los datos de índole médico para evaluar el estado de salud para ingresar, cambiar de puesto, ascender, de
                 manera periódica o concluir su relación laboral</b>
         </p>
         <p style="font-size: 11px;">
@@ -287,7 +289,7 @@
         <p style="font-size: 11px;">
             Con relación a las transferencias que requieren de su consentimiento, por favor indique a continuación si nos lo otorga:
         </p>
-        <b class="form-check-label" style="font-size: 11px;" for="exampleCheck1">[ ] Sí otorgo mi consentimiento para las siguientes transferencias de mis datos personales: P&G, Unilever de México, Inditex
+        <b class="form-check-label" style="font-size: 11px;" for="exampleCheck1">[ Sí ] Sí otorgo mi consentimiento para las siguientes transferencias de mis datos personales: P&G, Unilever de México, Inditex
             y Otros clientes.</b>
         <p style="font-size: 11px; margin-top: 10px;">Nombre y firma del titular: ________________________________________</p>
         <p style="font-size: 11px;">
@@ -353,8 +355,8 @@
         </p>
         <p style="font-size: 11px;">Por medio de cartel en el consultorio médico Su consentimiento para el tratamiento de sus datos personales.</p>
         <b class="form-check-label" style="font-size: 11px;" for="exampleCheck2">Sí consiento que mis datos personales sean tratados de conformidad con los términos y condiciones informados en el
-	    presente aviso de privacidad. [ Sí ]</b><!--/* C-073 (10-nov, Word SM punto 11): este corchete lleva «Sí»; los de fines
-	    secundarios y transferencias siguen vacios porque los elige el titular */-->
+	    presente aviso de privacidad. [ Sí ]</b><!--/* C-073 (10-nov, Word SM punto 11): este corchete lleva «Sí».
+	    17-nov-2026 (decision del usuario): los de fines secundarios y transferencias tambien llevan «Sí» */-->
 <br/><br/>
         <center>
             <h6>Nombre y firma del titular</h6>
@@ -1077,7 +1079,7 @@
                         </tr>
                         <tr>
                             <td>Drenaje</td>
-                            <td>[[${d.v('DRENAJE')}]]</td>
+                            <td>[[${d.siNo('DRENAJE')}]]</td>
                         </tr>
                         <tr>
                             <td>Convivencia con Animales</td>
@@ -1139,7 +1141,7 @@
                         </tr>
                         <tr>
                             <td>Frecuencia</td>
-                            <td>[[${d.v('FC1')}]] veces por [[${d.v('cadaCuandoDep')}]]</td>
+                            <td>[[${d.v('FC1')}]] veces por [[${#strings.replace(d.v('cadaCuandoDep'), 'dia', 'día')}]]</td>
                         </tr>
                         <tr>
                             <td>Hobbies y Pasatiempos</td>
@@ -1147,7 +1149,7 @@
                         </tr>
                         <tr>
                             <td>Frecuencia</td>
-                            <td>[[${d.v('FC2')}]] veces por [[${d.v('cadaCuandoPasa')}]]</td>
+                            <td>[[${d.v('FC2')}]] veces por [[${#strings.replace(d.v('cadaCuandoPasa'), 'dia', 'día')}]]</td>
                         </tr>
                     </table>
                 </div>
@@ -1193,8 +1195,13 @@
                     <td>[[${d.fecha('fechaINFLUEN')}]]</td>
                 </tr>
                 <tr>
-                    <td>TD</td>
+                    <td>Td</td>
                     <td>[[${d.v('TD')}]]</td>
+                </tr>
+                <!--/* 17-nov-2026: Fecha Td se capturaba (tag fechaTD) pero el impreso no la mostraba */-->
+                <tr>
+                    <td>Fecha Td</td>
+                    <td>[[${d.fechaOVacio('fechaTD')}]]</td>
                 </tr>
                 <tr>
                     <td>COVID</td>
@@ -1202,7 +1209,7 @@
                 </tr>
                 <tr>
                     <td>Fecha COVID</td>
-                    <td>[[${d.v('FECHA')}]]</td>
+                    <td>[[${d.fechaOVacio('FECHA')}]]</td>
                 </tr>
             </table>
 	</div>
@@ -1273,7 +1280,7 @@
                 </tr>
                 <tr>
                     <td>FUM (Fecha de Última Menstruación)</td>
-                    <td>[[${d.v('FUM')}]]</td>
+                    <td>[[${d.fechaOVacio('FUM')}]]</td>
                 </tr>
                 <tr>
                     <td>G (Gestas)</td>
@@ -1319,35 +1326,35 @@
                 </tr>
                 <tr>
                     <td>Enfermedades Congénitas</td>
-                    <td>[[${d.negado('ENF_CONGENITAS')}]]</td>
+                    <td>[[${d.siNoNegado('ENF_CONGENITAS')}]]</td>
                 </tr>
                 <tr>
                     <td>Genital</td>
-                    <td>[[${d.negado('GENITAL')}]]</td>
+                    <td>[[${d.siNoNegado('GENITAL')}]]</td>
                 </tr>
                 <tr>
                     <td>Enfermedades Propias de la Infancia</td>
-                    <td>[[${d.negado('ENF_PROP_INF')}]]</td>
+                    <td>[[${d.siNoNegado('ENF_PROP_INF')}]]</td>
                 </tr>
                 <tr>
                     <td>Dermatopatías</td>
-                    <td>[[${d.negado('DERMATOPATIAS')}]]</td>
+                    <td>[[${d.siNoNegado('DERMATOPATIAS')}]]</td>
                 </tr>
                 <tr>
                     <td>Sistema Auditivo</td>
-                    <td>[[${d.negado('SIST_AUDITIVO')}]]</td>
+                    <td>[[${d.siNoNegado('SIST_AUDITIVO')}]]</td>
                 </tr>
                 <tr>
                     <td>Sistema Respiratorio</td>
-                    <td>[[${d.negado('RESPIRATORIO')}]]</td>
+                    <td>[[${d.siNoNegado('RESPIRATORIO')}]]</td>
                 </tr>
                 <tr>
                     <td>Sistema Olfativo</td>
-                    <td>[[${d.negado('SIS_OLFATIVO')}]]</td>
+                    <td>[[${d.siNoNegado('SIS_OLFATIVO')}]]</td>
                 </tr>
                 <tr>
                     <td>Traumatismos</td>
-                    <td>[[${d.negado('TRAUMATICOS')}]]</td>
+                    <td>[[${d.siNoNegado('TRAUMATICOS')}]]</td>
                 </tr>
             </table>
         </div>
@@ -1862,7 +1869,7 @@
                 <th:block th:unless="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).oculto('SERV_MED_EXPLORACION_FISICA.LENGUAJE', d.v('TIPO_CODIGO'))}">
                 <tr>
                     <td>Voz clara y fuerte</td>
-                    <td>[[${d.v('VOZCLARAYFUERTE')}]]</td>
+                    <td>[[${d.siNo('VOZCLARAYFUERTE')}]]</td>
                 </tr>
                 <tr>
                     <td>Lenguaje</td>

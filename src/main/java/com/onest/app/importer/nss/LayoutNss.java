@@ -262,14 +262,15 @@ public enum LayoutNss {
     }
 
     /**
-     * Si acepta NSS 00000000000 = atencion "sin persona" (decision 30-oct-2026): el 40% de 1 ATENCIONES
-     * viene asi y el servicio medico no tiene esos NSS. Cuenta en totales, predio, area, ramo y causas;
-     * no se cruza con el biometrico ni aparece en el expediente de nadie. Los demas layouts siguen
-     * exigiendo un NSS (no ceros). Un NSS real que no esta en el biometrico si entra en todos, marcado
-     * EN_BIOMETRICO = 'N' (regla del 3-nov-2026, CargaNssService.completarDelBiometrico).
+     * Si acepta NSS 00000000000 = renglon "sin persona". Decision 30-oct-2026 para ATENCIONES (el 40%
+     * viene asi y el servicio medico no tiene esos NSS); el 13-nov-2026 el usuario lo extendio a TODOS
+     * los layouts con NSS: el evento ocurrio y debe contar. Cuenta en totales y graficas; no se cruza
+     * con el biometrico ni aparece en el expediente de nadie, y se identifica despues por el propio NSS
+     * en ceros. Un NSS real que no esta en el biometrico tambien entra, marcado EN_BIOMETRICO = 'N'
+     * (regla del 3-nov-2026, CargaNssService.completarDelBiometrico). Consumibles no llevan NSS.
      */
     public boolean aceptaNssCeros() {
-        return this == ATENCIONES;
+        return campos.stream().anyMatch(c -> c.tipo() == CampoNss.Tipo.NSS);
     }
 
     /**

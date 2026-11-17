@@ -59,6 +59,28 @@ public class FichaBiometricoRepository {
         }
     }
 
+    /**
+     * Puesto del empleado en el biometrico (17-nov-2026): el WS del examen no lo trae para el empleado y el impreso
+     * salia con «Puesto» en blanco (hojas 1 y 3 y FT-SO-05). Misma union que la vista SERV_MED_V_EMPLEADO
+     * (datos laborales -> BIOMETRICO_PUESTO). Consulta aparte de {@link #extra} para que si falla no se pierdan
+     * la escolaridad ni el departamento. Vacio si no hay.
+     */
+    public String puesto(String nss) {
+        if (nss == null || nss.isBlank()) {
+            return "";
+        }
+        try {
+            List<String> filas = jdbc.query(
+                    "SELECT MAX(TRIM(pu.PUESTO_NOMBRE)) FROM BIO_DATOS_LABORALES_EMPLEADOS c"
+                            + " JOIN BIOMETRICO_PUESTO pu ON pu.PUESTO_ID = c.ID_PUESTO WHERE c.EMP_NSS = ?",
+                    (rs, i) -> limpio(rs.getString(1)), nss.trim());
+            return filas.isEmpty() ? "" : filas.get(0);
+        } catch (DataAccessException ex) {
+            log.warn("[ficha] no se pudo leer el puesto de {}: {}", nss, ex.getMostSpecificCause().getMessage());
+            return "";
+        }
+    }
+
     /** Sin espacios de relleno ("E.Secundaria      AR" -> "E.Secundaria AR"). */
     private static String limpio(String s) {
         return s == null ? "" : s.trim().replaceAll("\\s+", " ");

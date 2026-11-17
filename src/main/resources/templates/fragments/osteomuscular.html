@@ -259,6 +259,9 @@
             <td>
                 <img th:if="${d.firmaTrabajador != null}" th:src="${d.firmaTrabajador}" alt="Firma del trabajador">
                 <div class="linea-firma">Nombre y firma del trabajador</div>
+                <!--/* 17-nov-2026: renglon vacio para igualar al «Realizó» del medico; las celdas se alinean abajo y sin
+                     esto la linea del trabajador quedaba un renglon mas abajo que la del medico */-->
+                <div>&nbsp;</div>
             </td>
         </tr>
         <tr><td class="cert" colspan="2" style="padding-top:6px">YO CERTIFICO QUE LOS DATOS ANTERIORMENTE PROPORCIONADOS SON VERDADEROS Y ESTOY CONSCIENTE QUE CUALQUIER OMISIÓN O FALSIFICACIÓN PUEDEN SER MOTIVO DE DESPIDO, Y AUTORIZO AL SERVICIO MÉDICO DE LA COMPAÑÍA PARA QUE REALICE LOS EXÁMENES NECESARIOS CON MOTIVO DE MI TRABAJO PARA DETECCIÓN OPORTUNA Y ESTUDIO DE ENFERMEDADES O ACCIDENTES</td></tr>

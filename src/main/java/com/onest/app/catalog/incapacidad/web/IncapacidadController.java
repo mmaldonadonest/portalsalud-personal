@@ -87,6 +87,12 @@ public class IncapacidadController {
             model.addAttribute("historico", List.of());
             model.addAttribute("historicoError", true);
         }
+        // C-049: si el acumulado falla no se pierde el historico; la tarjeta simplemente no sale
+        try {
+            model.addAttribute("acumulado", vista.acumuladoPorNss(nss));
+        } catch (DataAccessException ex) {
+            log.warn("[expediente] acumulado de incapacidades no disponible para el NSS: {}", ex.getMessage());
+        }
     }
 
     @PostMapping(

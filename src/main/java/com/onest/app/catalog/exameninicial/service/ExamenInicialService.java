@@ -121,6 +121,13 @@ public class ExamenInicialService {
     /** E-030 (10-nov): no cuentan para el avance (FUP puede ir en blanco; genitales cuenta como uno). */
     private static final String CAMPO_FUP = "SERV_MED_ANT_GIN_OBSTETRICOS.FUP";
     private static final List<String> GENITALES = List.of("SERV_MED_GENITALES.MASCULINO", "SERV_MED_GENITALES.FEMENINO");
+    /**
+     * 17-nov-2026 (decision del usuario): la fecha de una vacuna solo falta si la vacuna esta en Si. Con No o sin
+     * contestar no se pide (antes salian en «Falta capturar» aunque no se hubiera aplicado). Fecha -> su Si/No.
+     */
+    private static final Map<String, String> FECHA_SI_VACUNA = Map.of(
+            "TAG.fechaINFLUEN", "SERV_MED_INMUNIZACIONES.INFLUENZA",
+            "TAG.fechaTD", "SERV_MED_INMUNIZACIONES.TD");
 
     /** Clave del borrador con la agencia elegida (solo existe si la base no trae agencia). */
     private static final String CAMPO_AGENCIA = "agenciaExamen";
@@ -406,7 +413,11 @@ public class ExamenInicialService {
                             // C-066: la observacion de cada renglon de Lenguaje es opcional
                             || ExamenService.LENGUAJE_OBS.stream().anyMatch(o -> ("TAG." + o).equals(it.fieldName()))
                             // Genitales: se captura UNO (masculino o femenino); cuenta abajo como un solo campo
-                            || GENITALES.contains(it.fieldName())) {
+                            || GENITALES.contains(it.fieldName())
+                            // fecha de influenza / Td: solo cuenta si la vacuna esta en Si (el Si/No va antes en
+                            // la misma seccion, asi que ya esta en valores)
+                            || (FECHA_SI_VACUNA.containsKey(it.fieldName())
+                                && !"1".equals(valores.get(FECHA_SI_VACUNA.get(it.fieldName()))))) {
                         continue;   // no se captura en pantalla: no cuenta para el avance
                     }
                     n++;
@@ -660,7 +671,10 @@ public class ExamenInicialService {
     public String finalizar(String nss, String firma) {
         String limpio = normalizeNss(nss);
         Borrador borrador = borradores.buscar(limpio)
-                .orElseThrow(() -> new IllegalArgumentException("No hay nada capturado para finalizar"));
+                // 17-nov-2026: el caso real era un segundo clic despues de finalizar (o finalizar desde otra pestana):
+                // el mensaje lo dice para que no parezca que se perdio la captura
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No hay borrador abierto: el examen ya se finalizó (o no se ha capturado nada). Recarga la pantalla."));
         Map<String, String> b = borrador.datos();
 
         // El candado se vuelve a evaluar aqui, no solo en pantalla

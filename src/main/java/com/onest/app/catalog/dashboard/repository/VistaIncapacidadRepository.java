@@ -65,6 +65,8 @@ public class VistaIncapacidadRepository {
             case "RAMO" -> expr = RAMO;
             case "RUBRO" -> expr = RUBRO;
             case "PREDIO" -> expr = PREDIO;
+            // C-056 (17-nov-2026): totales por cuenta para el Excel de totales
+            case "CUENTA" -> expr = "NVL(e.CUENTA, '" + SIN_DATO + "')";
             case "ESTADO" -> { expr = "NVL(e.ESTADO_DICTAMEN, '" + SIN_DATO + "')"; condicion = "e.FUENTE = 'PORTAL'"; }
             default -> throw new IllegalArgumentException("Dimension no permitida en incapacidades: " + dimension);
         }
@@ -128,6 +130,43 @@ public class VistaIncapacidadRepository {
                         rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6),
                         rs.getObject(7) == null ? null : rs.getLong(7), rs.getBigDecimal(8),
                         rs.getString(9), rs.getString(10), rs.getString(11)),
+                nss);
+    }
+
+    /** Un trabajador en el periodo: NSS, nombre, predio y cuenta con sus incapacidades, dias y costo. */
+    public record Trabajador(String nss, String nombre, String predio, String cuenta, long incapacidades, long dias,
+                             double costo) {
+    }
+
+    /**
+     * C-048 (17-nov-2026): por trabajador, de mas dias a menos. Nombre, predio y cuenta: el MAX del
+     * periodo, porque en el Excel pueden variar entre renglones de la misma persona y aqui se quiere un
+     * renglon por NSS, no uno por cada variante.
+     */
+    public List<Trabajador> porTrabajador(LocalDate desde, LocalDate hasta, String predio, String cuenta) {
+        VistaFiltro f = new VistaFiltro("SELECT e.NSS, MAX(e.NOMBRE) nombre, MAX(" + PREDIO + ") predio, "
+                + "MAX(e.CUENTA) cuenta, " + AGREGADOS + VISTA).and("e.NSS IS NOT NULL").filtros(desde, hasta, predio, cuenta);
+        return jdbc.query(f.sql() + " GROUP BY e.NSS ORDER BY dias DESC, e.NSS",
+                (rs, i) -> new Trabajador(rs.getString(1), rs.getString("nombre"), rs.getString("predio"),
+                        rs.getString("cuenta"), rs.getLong("cantidad"), rs.getLong("dias"), rs.getDouble("costo")),
+                f.params());
+    }
+
+    /** Un renglon del acumulado de un NSS: por ramo, cuantas incapacidades, dias y costo. */
+    public record Acumulado(String ramo, long incapacidades, long dias, double costo) {
+    }
+
+    /**
+     * C-049 (17-nov-2026): dias acumulados de TODA la historia del NSS, por ramo, como la columna
+     * "dias acumulados" del Excel de Servicio Medico. Lee la vista (portal + Excel) y no las dos
+     * tablas por separado porque la vista ya quita lo del Excel que tambien esta en el portal: sumar
+     * aparte contaria dos veces la misma incapacidad.
+     */
+    public List<Acumulado> acumuladoPorNss(String nss) {
+        return jdbc.query("SELECT " + RAMO + " ramo, " + AGREGADOS + VISTA + " WHERE e.NSS = ? GROUP BY " + RAMO
+                        + " ORDER BY dias DESC",
+                (rs, i) -> new Acumulado(rs.getString("ramo"), rs.getLong("cantidad"), rs.getLong("dias"),
+                        rs.getDouble("costo")),
                 nss);
     }
 

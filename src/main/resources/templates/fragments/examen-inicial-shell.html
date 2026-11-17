@@ -153,7 +153,10 @@
                 <span class="exini-guardado" id="exIniGuardado"
                       th:text="${v.borrador != null} ? 'Borrador del ' + ${#temporals.format(v.borrador.updatedAt, 'dd/MM HH:mm')} : 'Sin borrador'">Sin borrador</span>
                 <!--/* 9-nov: al pasar el mouse dice que falta, hoja por hoja (mismo criterio que el porcentaje) */-->
+                <!--/* 17-nov-2026: id y data-total para recalcularlo en pantalla al capturar (exIniFaltaRevisar);
+                     antes se quedaba con el % de cuando se abrio aunque «Falta capturar» ya estuviera vacia */-->
                 <span class="badge bg-primary" style="cursor: help;" th:text="'Avance ' + ${v.avance} + '%'"
+                      id="exIniAvance" th:attr="data-total=${v.total}"
                       th:with="conFalta=${v.hojas.?[!faltantes.isEmpty()]}"
                       th:title="${#lists.isEmpty(conFalta)} ? 'Todo capturado'
                                : 'Falta:&#10;' + ${#strings.listJoin(conFalta.![hoja.numero + '. ' + hoja.corto + ': ' + #strings.listJoin(faltantes, ', ')], '&#10;')}">Avance 0%</span>
@@ -176,9 +179,18 @@
             <th:block th:with="conFalta=${v.hojas.?[!faltantes.isEmpty()]}">
             <!--/* th:unless va en su propia etiqueta: en la misma, Thymeleaf lo evalua ANTES que th:with */-->
             <div class="alert alert-warning py-2 px-3 fs-sm" id="exIniFalta" th:unless="${#lists.isEmpty(conFalta)}">
-                <div class="mb-1"><i class="ri-error-warning-line me-1"></i><strong>Falta capturar</strong>
-                    <span class="text-muted">(da clic para ir al campo)</span>:</div>
-                <div class="d-flex flex-wrap gap-1">
+                <!--/* 17-nov-2026 (pedido del usuario): la lista se puede ocultar; el contador sigue a la vista */-->
+                <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                    <div><i class="ri-error-warning-line me-1"></i><strong>Falta capturar</strong>
+                        <span class="badge bg-danger ms-1" id="exIniFaltaN"
+                              th:text="${#aggregates.sum(conFalta.![faltantes.size()])}">0</span>
+                        <span class="text-muted exini-falta-ayuda">(da clic para ir al campo)</span></div>
+                    <button type="button" class="btn btn-sm btn-link py-0 px-1 text-decoration-none" id="exIniFaltaToggle"
+                            onclick="exIniFaltaPlegar();" aria-expanded="true" aria-controls="exIniFaltaLista">
+                        <i class="ri-arrow-up-s-line me-1"></i><span>Ocultar lista</span>
+                    </button>
+                </div>
+                <div class="d-flex flex-wrap gap-1" id="exIniFaltaLista">
                     <th:block th:each="hv : ${conFalta}">
                         <button type="button" class="btn btn-sm btn-outline-danger py-0" th:each="f, st : ${hv.faltantes}"
                                 th:attr="data-hoja=${hv.hoja.numero}, data-campo=${hv.faltaCampos[st.index]}"
@@ -223,10 +235,15 @@
 
             <ol class="exini-stepper" id="exIniStepper">
                 <li th:each="h : ${v.hojas}">
-                    <button type="button" th:attr="data-ir=${h.hoja.numero}" th:classappend="${h.hoja.numero == v.hojaActual} ? 'activa' : ''"
-                            th:onclick="|exIniIr(${h.hoja.numero});|" th:title="${h.hoja.titulo}">
+                    <!--/* 17-nov-2026 (decision del usuario): una hoja que no cuenta para el avance (Ficha: datos del
+                         biometrico, contactos opcionales; total 0) va siempre en verde. Antes salia gris, como si estuviera
+                         incompleta. La pantalla no la recalcula (data-cuenta=no). */-->
+                    <button type="button" th:attr="data-ir=${h.hoja.numero}, data-cuenta=${h.total > 0 ? 'si' : 'no'}"
+                            th:classappend="|${h.hoja.numero == v.hojaActual ? 'activa' : ''} ${h.total == 0 ? 'completa' : ''}|"
+                            th:onclick="|exIniIr(${h.hoja.numero});|"
+                            th:title="${h.total > 0} ? ${h.hoja.titulo} : ${h.hoja.titulo + ' (no cuenta para el avance)'}">
                         <span class="n" th:text="${h.hoja.numero}">1</span><span class="t" th:text="${h.hoja.corto}">Hoja</span>
-                        <span class="p"><span th:style="|width:${h.total == 0 ? 0 : h.capturados * 100 / h.total}%|"></span></span>
+                        <span class="p"><span th:style="|width:${h.total == 0 ? 100 : h.capturados * 100 / h.total}%|"></span></span>
                     </button>
                 </li>
             </ol>

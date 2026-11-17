@@ -83,6 +83,12 @@ public class SecurityConfiguration {
                 // de traer un token CSRF de una sesion nuestra que todavia no existe. La proteccion
                 // real de ese endpoint es la firma del JWT (SsoJwtConfiguration), no el token CSRF.
                 .csrf(csrf -> csrf.ignoringRequestMatchers("/sso/login", "/api/integracion/**"))
+                // 17-nov-2026: el login (o el logout) enviado con un token CSRF de una sesion que ya no existe
+                // (reinicio del servidor, la pagina abierta mas de 60 min, entrar en otra pestana) salia como
+                // «403 Sin permiso para esta sección», aunque nadie hubiera revisado permisos todavia. E-035 cubrio
+                // los guardados por fetch (sesion.js); aqui se cubren los dos formularios: se regresa al login con
+                // un token nuevo y un aviso. Cualquier otro 403 sigue igual.
+                .exceptionHandling(ex -> ex.accessDeniedHandler(tokenCaducadoEnLoginHandler()))
                 .headers(headers -> headers
                         // X-XSS-Protection desactivado (header obsoleto; valor 0 es el correcto moderno)
                         .xssProtection(xss -> xss.disable())
@@ -99,6 +105,29 @@ public class SecurityConfiguration {
                                 "geolocation=(), microphone=(), camera=()")));
 
         return http.build();
+    }
+
+    /**
+     * Token CSRF caducado en POST /login o /logout: al login con token nuevo. Logout caducado = la sesion ya
+     * termino, asi que se trata como salida normal. Todo lo demas va al manejador estandar (403).
+     */
+    private static org.springframework.security.web.access.AccessDeniedHandler tokenCaducadoEnLoginHandler() {
+        var estandar = new org.springframework.security.web.access.AccessDeniedHandlerImpl();
+        return (request, response, denied) -> {
+            if (denied instanceof org.springframework.security.web.csrf.CsrfException
+                    && "POST".equalsIgnoreCase(request.getMethod())) {
+                String ruta = request.getRequestURI().substring(request.getContextPath().length());
+                if ("/login".equals(ruta)) {
+                    response.sendRedirect(request.getContextPath() + "/login?caducada");
+                    return;
+                }
+                if ("/logout".equals(ruta)) {
+                    response.sendRedirect(request.getContextPath() + "/login?logout");
+                    return;
+                }
+            }
+            estandar.handle(request, response, denied);
+        };
     }
 
     /**

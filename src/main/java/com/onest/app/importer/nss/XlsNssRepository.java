@@ -184,32 +184,35 @@ public class XlsNssRepository {
      */
     private int marcarDuplicados(LayoutNss layout, long lote) {
         String t = layout.tabla();
+        // Sin persona (NSS en ceros, aceptado en todos los layouts desde el 13-nov-2026) no hay con quien
+        // empatar por NSS: un registro del portal con ceros ese dia seria de otra persona y esconderia el
+        // renglon del Excel. El folio de incapacidad si identifica el evento, con o sin NSS.
+        String conPersona = " AND x.NSS <> '" + ValidadorNss.NSS_CEROS + "'";
         // "desde" = FROM + WHERE del cruce. Va por separado del SELECT porque EXISTS necesita
         // "SELECT 1": un "SELECT MIN(...)" sin GROUP BY regresa SIEMPRE un renglon (aunque sea
         // NULL) y EXISTS daria verdadero para todos.
         String desde = switch (layout) {
-            // Sin persona (NSS en ceros) no hay con quien empatar: una consulta del portal capturada
-            // con ceros ese dia seria de otra persona y esconderia la atencion del Excel
-            case ATENCIONES -> "FROM TBL_SERV_CONSULTA_MEDICA p WHERE p.NSS = x.NSS AND TRUNC(p.FECHA) = x.FECHA "
-                    + "AND x.NSS <> '" + ValidadorNss.NSS_CEROS + "'";
+            case ATENCIONES -> "FROM TBL_SERV_CONSULTA_MEDICA p WHERE p.NSS = x.NSS AND TRUNC(p.FECHA) = x.FECHA"
+                    + conPersona;
             case EXAMEN_INGRESO, EXAMEN_PERIODICO, EXAMEN_POS_INCAP -> "FROM SERV_MED_RESULTADO_EXAMEN_HIST p "
-                    + "WHERE p.NSS = x.NSS AND TRUNC(p.FECHA_REGISTRO) BETWEEN x.FECHA - 1 AND x.FECHA + 1";
+                    + "WHERE p.NSS = x.NSS AND TRUNC(p.FECHA_REGISTRO) BETWEEN x.FECHA - 1 AND x.FECHA + 1" + conPersona;
             // La misma prueba (antidoping o alcoholemia) de la misma persona el mismo dia
             case ANTIDOPING -> "FROM SERV_MED_ANTIDOPING_RESULTADO p WHERE p.NSS = x.NSS "
-                    + "AND TRUNC(p.FECHA_REGISTRO) = x.FECHA AND UPPER(p.TIPO_PRUEBA) = x.TIPO_PRUEBA";
+                    + "AND TRUNC(p.FECHA_REGISTRO) = x.FECHA AND UPPER(p.TIPO_PRUEBA) = x.TIPO_PRUEBA" + conPersona;
             // Un chequeo del portal de la misma persona en el mismo mes del corte: el Excel es un
             // reporte mensual, asi que la llave es el mes (decision 12-oct)
             case MATERNIDAD -> "FROM SERV_MED_MATERNIDAD_SEGUIMIENTO p WHERE p.NSS = x.NSS "
-                    + "AND TRUNC(p.FECHA_REGISTRO, 'MM') = TRUNC(x.FECHA, 'MM')";
+                    + "AND TRUNC(p.FECHA_REGISTRO, 'MM') = TRUNC(x.FECHA, 'MM')" + conPersona;
             // Inventario del consultorio: el portal no lo captura (su "consumibles" son los kits de
             // antidoping), no hay con que comparar
             case MEDICAMENTOS, MATERIAL_FIJO -> null;
-            case ACCIDENTES -> "FROM SERV_MED_ACCIDENTE p WHERE p.NSS = x.NSS AND TRUNC(p.FECHA_ACCIDENTE) = x.FECHA";
+            case ACCIDENTES -> "FROM SERV_MED_ACCIDENTE p WHERE p.NSS = x.NSS AND TRUNC(p.FECHA_ACCIDENTE) = x.FECHA"
+                    + conPersona;
             // Folio cuando hay; las internas (sin folio) por NSS + inicio. FECHA_INICIO es texto en
             // la tabla viva, con dos formatos: misma conversion que el WS de incapacidades.
             case INCAPACIDADES -> "FROM TBL_SERV_INCAPACIDAD_MEDICA p WHERE "
                     + "(x.FOLIO IS NOT NULL AND UPPER(REPLACE(p.FOLIO_INCAPACIDAD, ' ')) = UPPER(REPLACE(x.FOLIO, ' '))) "
-                    + "OR (x.FOLIO IS NULL AND p.NSS = x.NSS AND CASE "
+                    + "OR (x.FOLIO IS NULL" + conPersona + " AND p.NSS = x.NSS AND CASE "
                     + "WHEN REGEXP_LIKE(p.FECHA_INICIO, '^[0-9]{4}-[0-9]{2}-[0-9]{2}') THEN TO_DATE(SUBSTR(p.FECHA_INICIO, 1, 10), 'YYYY-MM-DD') "
                     + "WHEN REGEXP_LIKE(p.FECHA_INICIO, '^[0-9]{2}/[0-9]{2}/[0-9]{4}') THEN TO_DATE(SUBSTR(p.FECHA_INICIO, 1, 10), 'DD/MM/YYYY') "
                     + "END = x.FECHA)";

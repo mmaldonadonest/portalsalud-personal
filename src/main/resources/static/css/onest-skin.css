@@ -347,6 +347,17 @@ html[data-brand="onest"] .btn-success:active {
   border-color: var(--onest-green-700);
 }
 
+/* 17-nov-2026: botones outline que quedaban EN BLANCO despues del clic (Limpiar, Siguiente, Anterior...). El tema
+   pone el texto blanco con :focus (el color de hover) pero solo rellena el fondo con :hover; al quitar el mouse
+   el boton conserva el foco y quedaba texto blanco sobre fondo transparente. Medido con Playwright: pasa en
+   outline-secondary y outline-info. Con foco y sin mouse encima, el boton se ve como en reposo (el anillo de
+   foco de Bootstrap sigue marcando cual tiene el foco). */
+html[data-brand="onest"] .btn-outline-secondary:focus:not(:hover):not(:active):not(.active),
+html[data-brand="onest"] .btn-outline-info:focus:not(:hover):not(:active):not(.active) {
+  color: var(--bs-btn-color);
+  background-color: transparent;
+}
+
 /* Links y foco (doc §23, §35) */
 html[data-brand="onest"] a {
   color: var(--onest-blue-700);

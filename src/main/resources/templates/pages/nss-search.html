@@ -659,6 +659,7 @@
                     body.append(csrf.name, csrf.value);
                 }
                 var originalHtml = btn.innerHTML;
+                var exito = false;
                 // Resultado inline (opcional): ademas del status global de arriba (lejos de
                 // la vista si el formulario esta mas abajo en la pantalla, ej. Examen), si
                 // opts.resultElId apunta a un elemento cercano al boton, se usa para mostrar
@@ -714,6 +715,7 @@
                         if (typeof opts.onSuccess === 'function') {
                             opts.onSuccess();
                         }
+                        exito = true;
                     } else {
                         if (ventanaDoc) { ventanaDoc.close(); }
                         mostrarResultado('Error al registrar (HTTP ' + response.status + '): ' + txt, true);
@@ -722,7 +724,10 @@
                     if (ventanaDoc) { ventanaDoc.close(); }
                     mostrarResultado('Error de red al registrar.', true);
                 } finally {
-                    btn.disabled = false;
+                    // 17-nov-2026: con desactivarAlTerminar (Finalizar del EMNI) el boton se queda desactivado tras
+                    // un guardado bueno. Antes este finally lo reactivaba despues de onSuccess y un segundo clic
+                    // daba «HTTP 400: No hay nada capturado para finalizar» (el borrador ya se habia cerrado).
+                    btn.disabled = !!(exito && opts.desactivarAlTerminar);
                     btn.innerHTML = originalHtml;
                 }
             }
@@ -1492,7 +1497,17 @@
                     ? (el.parentElement.querySelector('input:not([type=hidden]), select, textarea, button') || caja) : el;
                 return { el: el, caja: caja, foco: foco };
             }
+            // 17-nov-2026: la fecha de la vacuna solo falta con la vacuna en Si (mismo criterio que el servidor,
+            // ExamenInicialService.FECHA_SI_VACUNA): al cambiarla a No, la fecha sale de la lista
+            var EXINI_FECHA_SI_VACUNA = {
+                'TAG.fechaINFLUEN': 'SERV_MED_INMUNIZACIONES.INFLUENZA',
+                'TAG.fechaTD': 'SERV_MED_INMUNIZACIONES.TD'
+            };
             function exIniFaltaLleno(root, campo, el) {
+                if (EXINI_FECHA_SI_VACUNA[campo]) {
+                    var vacuna = root.querySelector('[name="' + EXINI_FECHA_SI_VACUNA[campo] + '"]');
+                    if (!vacuna || String(vacuna.value) !== '1') { return true; }
+                }
                 var gen = /^SERV_MED_GENITALES\.(MASCULINO|FEMENINO)$/.test(campo);
                 if (gen) {
                     return ['MASCULINO', 'FEMENINO'].some(function (g) {
@@ -1515,8 +1530,50 @@
                         c.caja.classList.add('exini-falta-campo');
                     }
                 });
-                caja.hidden = !caja.querySelector('button[data-campo]');
+                var quedan = caja.querySelectorAll('button[data-campo]').length;
+                var n = caja.querySelector('#exIniFaltaN');
+                if (n) { n.textContent = quedan; }
+                // 17-nov-2026: el % del encabezado sigue a la lista (mismo criterio que el servidor: capturados / total,
+                // y 100 solo si no falta nada). Sin esto se quedaba en el % de cuando se abrio el examen.
+                var av = root.querySelector('#exIniAvance');
+                var total = av ? parseInt(av.getAttribute('data-total'), 10) : 0;
+                if (av && total > 0) {
+                    var pct = Math.round(100 * (total - quedan) / total);
+                    if (quedan > 0) { pct = Math.min(pct, 99); }
+                    av.textContent = 'Avance ' + pct + '%';
+                    if (quedan === 0) { av.title = 'Todo capturado'; }
+                }
+                caja.hidden = quedan === 0;
+                exIniFaltaAplicarPliegue(caja);
             }
+            // 17-nov-2026: ocultar o mostrar la lista. Se recuerda en este navegador (solo comodidad: si el
+            // almacenamiento no esta disponible, la lista sale abierta).
+            var EXINI_FALTA_KEY = 'portalSalud.exIniFaltaOculta';
+            var exIniFaltaMem = null;   // respaldo en memoria si el navegador no deja guardar
+            function exIniFaltaOculta() {
+                if (exIniFaltaMem !== null) { return exIniFaltaMem; }
+                try { return localStorage.getItem(EXINI_FALTA_KEY) === '1'; } catch (e) { return false; }
+            }
+            function exIniFaltaAplicarPliegue(caja) {
+                var lista = caja.querySelector('#exIniFaltaLista');
+                var btn = caja.querySelector('#exIniFaltaToggle');
+                if (!lista || !btn) { return; }
+                var oculta = exIniFaltaOculta();
+                lista.classList.toggle('d-none', oculta);
+                lista.classList.toggle('d-flex', !oculta);
+                var ayuda = caja.querySelector('.exini-falta-ayuda');
+                if (ayuda) { ayuda.classList.toggle('d-none', oculta); }
+                btn.setAttribute('aria-expanded', String(!oculta));
+                btn.querySelector('i').className = (oculta ? 'ri-arrow-down-s-line' : 'ri-arrow-up-s-line') + ' me-1';
+                btn.querySelector('span').textContent = oculta ? 'Mostrar lista' : 'Ocultar lista';
+            }
+            window.exIniFaltaPlegar = function () {
+                exIniFaltaMem = !exIniFaltaOculta();
+                try { localStorage.setItem(EXINI_FALTA_KEY, exIniFaltaMem ? '1' : '0'); } catch (e) { /* queda en memoria */ }
+                var root = exIniRoot();
+                var caja = root && root.querySelector('#exIniFalta');
+                if (caja) { exIniFaltaAplicarPliegue(caja); }
+            };
             window.exIniIrFalta = function (btn) {
                 var root = exIniRoot();
                 if (!root) { return; }
@@ -1583,6 +1640,8 @@
                     var llenos = 0;
                     campos.forEach(function (el) { if (el.value && String(el.value).trim() !== '') { llenos++; } });
                     var btn = root.querySelector('#exIniStepper button[data-ir="' + n + '"]');
+                    // 17-nov-2026: hoja que no cuenta para el avance (Ficha): sin barra ni «completa»
+                    if (btn && btn.getAttribute('data-cuenta') === 'no') { return; }
                     if (btn) {
                         var bar = btn.querySelector('.p span');
                         if (bar) { bar.style.width = (campos.length ? Math.round(100 * llenos / campos.length) : 0) + '%'; }
@@ -2369,6 +2428,8 @@
                         return contextPath + 'api/nss/examen/imprimir-pdf?nss=' + encodeURIComponent(nss);
                     },
                     abrirAlTerminar: true,
+                    // ya finalizado no hay borrador: un segundo clic solo daria «No hay nada capturado»
+                    desactivarAlTerminar: true,
                     textoBoton: 'Finalizando y generando el documento…',
                     onSuccess: function () {
                         exIniRoot().setAttribute('data-bloqueado', 'si');
