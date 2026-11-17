@@ -26,7 +26,10 @@ public class BiowsIncapacidadClient implements IncapacidadClient {
 
     private static final Logger log = LoggerFactory.getLogger(BiowsIncapacidadClient.class);
     private static final String PATH_INCAPACIDADES = "/Servcio/consulta_incapacidad";
-    private static final String PATH_INCAPACIDAD_ALTA = "/Servcio/incapacidades";
+    // E-043 (17-nov-2026): el original (/Servcio/incapacidades) guarda ST2 en la columna ALTA y viceversa. _v2 es
+    // su copia con el orden corregido (docs/script-prod/e043-01-clon-incapacidades-v2.sql). Sin respaldo al viejo a
+    // proposito: si _v2 no existe, mejor que el alta falle a que vuelva a cruzar los datos en silencio.
+    private static final String PATH_INCAPACIDAD_ALTA = "/Servcio/incapacidades_v2";
     // _cta = clon del WS original que ademas devuelve CUENTA por registro (10-sep-2026,
     // docs/ords-cuenta-en-reportes.sql). El original sigue publicado e intacto.
     private static final String PATH_REPORTE_FECHA = "/Servcio/consulta_incapacidades_fecha_cta";
