@@ -39,6 +39,7 @@
                         <thead class="thead-onest">
                             <tr>
                                 <th>Fecha del accidente</th>
+                                <th>Inicio de labores</th>
                                 <th>Tipo de riesgo</th>
                                 <th>Causa RT</th>
                                 <th>Diagnóstico</th>
@@ -54,6 +55,9 @@
                         <tbody>
                             <tr th:each="a : ${accidentes}">
                                 <td th:text="${a.fechaAccidente}">-</td>
+                                <!--/* C-092: se captura en el seguimiento del caso (ISO -> dd/mm/aaaa) */-->
+                                <td th:with="il=${iniciosLabores != null ? iniciosLabores[a.idRegistro] : null}"
+                                    th:text="${il != null and #strings.length(il) == 10 ? #strings.substring(il, 8, 10) + '/' + #strings.substring(il, 5, 7) + '/' + #strings.substring(il, 0, 4) : '-'}">-</td>
                                 <td th:text="${a.tipoRiesgo}">-</td>
                                 <td th:text="${a.causaRt}">-</td>
                                 <td th:text="${a.diagnostico}">-</td>

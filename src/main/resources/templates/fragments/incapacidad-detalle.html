@@ -57,12 +57,24 @@
                     <small class="text-muted" th:if="${a.sizeBytes != null}"
                            th:text="'(' + ${#numbers.formatInteger(a.sizeBytes / 1024, 1)} + ' KB)'">(KB)</small>
                 </span>
-                <a class="btn btn-sm btn-outline-primary" target="_blank" title="Descargar"
-                   th:href="@{'/api/nss/consulta/file/' + ${a.id}(nss=${nss})}">
-                    <i class="ri-download-2-line"></i>
-                </a>
+                <span class="d-flex gap-1">
+                    <!--/* C-091 (18-nov-2026, presentacion de SM): el PDF se ve aqui mismo, sin descargarlo */-->
+                    <button type="button" class="btn btn-sm btn-outline-secondary" title="Ver aquí"
+                            th:attr="data-src=@{'/api/nss/consulta/file/' + ${a.id}(nss=${nss})}"
+                            onclick="var v = document.getElementById('incapVisorPdf'); if (v) { v.src = this.dataset.src; v.scrollIntoView({behavior: 'smooth', block: 'nearest'}); }">
+                        <i class="ri-eye-line"></i>
+                    </button>
+                    <a class="btn btn-sm btn-outline-primary" target="_blank" title="Abrir o descargar"
+                       th:href="@{'/api/nss/consulta/file/' + ${a.id}(nss=${nss})}">
+                        <i class="ri-download-2-line"></i>
+                    </a>
+                </span>
             </li>
         </ul>
+        <!--/* el primero se muestra de entrada; el servidor lo manda inline y la seguridad permite mismo origen */-->
+        <iframe th:unless="${#lists.isEmpty(adjuntos)}" id="incapVisorPdf" class="w-100 border rounded mt-2"
+                style="height: 70vh; min-height: 420px;" title="PDF de la incapacidad"
+                th:src="@{'/api/nss/consulta/file/' + ${adjuntos[0].id}(nss=${nss})}"></iframe>
     </div>
 
 </div>

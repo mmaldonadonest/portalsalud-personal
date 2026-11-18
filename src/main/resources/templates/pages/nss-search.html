@@ -752,7 +752,8 @@
                 }
                 // Pase de salida FT-SO-02: motivo y hora de salida obligatorios (el servidor lo vuelve a revisar)
                 var fc = document.getElementById('consultaAltaForm');
-                if (fc && fc.tipoConsulta.value === 'pase_salida') {
+                var conPase = fc && (fc.tipoConsulta.value === 'pase_salida' || (fc.paseGenerar && fc.paseGenerar.checked));
+                if (conPase) {
                     var faltan = [];
                     if (!fc.paseMotivo.value) { faltan.push(fc.paseMotivo); }
                     if (!fc.paseSalida.value) { faltan.push(fc.paseSalida); }
@@ -790,6 +791,8 @@
                 var relDoc = fc ? encodeURIComponent(fc.idArchivoRel.value) : '';
                 var extras = [];
                 if (fc && fc.medGenerar.checked) { extras.push(['pase-medicamento', 'Pase de medicamento (FT-SO-29)']); }
+                // C-030: con tipo Pase de salida el FT-SO-02 ya se abre solo (documentoUrl); con la casilla, enlace
+                if (conPase && fc.tipoConsulta.value !== 'pase_salida') { extras.push(['pase-salida', 'Pase de salida (FT-SO-02)']); }
                 if (esPruebas) { extras.push(['pruebas-especiales', 'Pruebas especiales (FT-SO-23)']); }
                 guardarRegistro(btn, {
                     formId: 'consultaAltaForm', savePath: 'api/nss/consulta', fileInputId: 'consultaFiles',
@@ -953,7 +956,11 @@
                 if (!f || !wrap) {
                     return;
                 }
-                var es = f.tipoConsulta.value === 'pase_salida';
+                // C-030 (18-nov-2026): tambien con la casilla «Generar pase de salida» en cualquier consulta
+                var porTipo = f.tipoConsulta.value === 'pase_salida';
+                var casilla = document.getElementById('paseGenerarWrap');
+                if (casilla) { casilla.style.display = porTipo ? 'none' : ''; }
+                var es = porTipo || !!(f.paseGenerar && f.paseGenerar.checked);
                 wrap.style.display = es ? '' : 'none';
                 var salida = document.getElementById('paseSalida');
                 if (es && salida && !salida.value) {
@@ -966,7 +973,9 @@
                 guardarRegistro(btn, {
                     formId: 'incapacidadAltaForm', savePath: 'api/nss/incapacidades/save', fileInputId: 'incapacidadFiles',
                     label: 'incapacidad', resultElId: 'incapacidadGuardarResult',
-                    resetOnSuccess: true, onSuccess: limpiarFirmaSiExiste,
+                    resetOnSuccess: true,
+                    // tras el reset, ocultar otra vez lo de subsecuente y los calculos (C-051)
+                    onSuccess: function () { limpiarFirmaSiExiste(); if (window.incapTipo) { window.incapTipo(); window.incapRubro(); } },
                     documentoUrl: function (f) {
                         var rel = f.querySelector('input[name="idArchivoRel"]');
                         return rel && rel.value ? contextPath + 'api/nss/incapacidad/imprimir?nss=' + encodeURIComponent((input.value || '').trim())
@@ -984,6 +993,11 @@
                         return contextPath + 'api/nss/pretest/imprimir?nss=' + encodeURIComponent((input.value || '').trim()) + '&auto=1';
                     }
                 });
+            };
+
+            // C-089 (18-nov-2026): telefono del trabajador con guardado propio (no toca los contactos)
+            window.guardarTelefonoSalud = function (btn) {
+                guardarRegistro(btn, { formId: 'telefonoSaludForm', savePath: 'api/nss/examen/telefono/save', fileInputId: '__none__', label: 'teléfono', resultElId: 'telefonoSaludResult' });
             };
 
             window.guardarContactosEmergencia = function (btn) {
@@ -1258,6 +1272,11 @@
                     });
                 });
                 exIniRefrescarSwitches();
+                // 18-nov-2026: cada examen empieza sin hojas vistas; en un borrador retomado, las hojas antes de la
+                // que se dejo abierta ya se recorrieron y lo vacio en ellas sale en rojo
+                exIniFaltaHojasVistas = {};
+                exIniFaltaUltimo = null;
+                for (var hv = 1; hv < exIniHojaActiva(); hv++) { exIniFaltaMarcarHoja(hv); }
                 exIniFaltaRevisar();
                 // odontograma por caras: se pinta desde el texto guardado
                 root.querySelectorAll('.exini-odonto .diente').forEach(exIniPintarDiente);
@@ -1383,6 +1402,9 @@
                 if (exIniSucias[actual]) {
                     exIniAutosave(actual);
                 }
+                // 18-nov-2026: lo que quedo vacio en la hoja que se deja ya se pinta de rojo
+                exIniFaltaMarcarHoja(actual);
+                setTimeout(exIniFaltaRevisar, 0);
                 root.querySelectorAll('section.exini-hoja').forEach(function (s) {
                     s.hidden = parseInt(s.getAttribute('data-hoja'), 10) !== destino;
                 });
@@ -1517,22 +1539,37 @@
                 }
                 return String(el.value || '').trim() !== '';
             }
+            // 18-nov-2026 (presentacion de SM): el rojo va solo en las hojas que el medico ya dejo atras (o a las que
+            // lo llevo «Ir al siguiente faltante» o Finalizar). Un examen recien abierto no amanece todo en rojo.
+            var exIniFaltaHojasVistas = {};
+            function exIniFaltaMarcarHoja(n) { exIniFaltaHojasVistas[String(n)] = true; }
             function exIniFaltaRevisar() {
                 var root = exIniRoot();
                 var caja = root && root.querySelector('#exIniFalta');
                 if (!caja) { return; }
+                var porHoja = {};
                 caja.querySelectorAll('button[data-campo]').forEach(function (b) {
                     var c = exIniFaltaCampo(root, b.getAttribute('data-campo'));
                     if (c && exIniFaltaLleno(root, b.getAttribute('data-campo'), c.el)) {
                         c.caja.classList.remove('exini-falta-campo');
                         b.remove();
-                    } else if (c) {
-                        c.caja.classList.add('exini-falta-campo');
+                        return;
                     }
+                    var h = b.getAttribute('data-hoja');
+                    porHoja[h] = (porHoja[h] || 0) + 1;
+                    if (c) { c.caja.classList.toggle('exini-falta-campo', !!exIniFaltaHojasVistas[h]); }
+                });
+                // contador en cada pestaña del stepper
+                root.querySelectorAll('#exIniStepper [data-faltan-hoja]').forEach(function (s) {
+                    var k = porHoja[s.getAttribute('data-faltan-hoja')] || 0;
+                    s.textContent = k ? String(k) : '';
+                    s.title = k ? 'Faltan ' + k + (k === 1 ? ' campo' : ' campos') + ' en esta hoja' : '';
                 });
                 var quedan = caja.querySelectorAll('button[data-campo]').length;
                 var n = caja.querySelector('#exIniFaltaN');
                 if (n) { n.textContent = quedan; }
+                var pal = caja.querySelector('#exIniFaltaPal');
+                if (pal) { pal.textContent = quedan === 1 ? 'campo' : 'campos'; }
                 // 17-nov-2026: el % del encabezado sigue a la lista (mismo criterio que el servidor: capturados / total,
                 // y 100 solo si no falta nada). Sin esto se quedaba en el % de cuando se abrio el examen.
                 var av = root.querySelector('#exIniAvance');
@@ -1543,40 +1580,37 @@
                     av.textContent = 'Avance ' + pct + '%';
                     if (quedan === 0) { av.title = 'Todo capturado'; }
                 }
-                caja.hidden = quedan === 0;
-                exIniFaltaAplicarPliegue(caja);
+                caja.classList.toggle('d-none', quedan === 0);
+                caja.classList.toggle('d-flex', quedan > 0);
             }
-            // 17-nov-2026: ocultar o mostrar la lista. Se recuerda en este navegador (solo comodidad: si el
-            // almacenamiento no esta disponible, la lista sale abierta).
-            var EXINI_FALTA_KEY = 'portalSalud.exIniFaltaOculta';
-            var exIniFaltaMem = null;   // respaldo en memoria si el navegador no deja guardar
-            function exIniFaltaOculta() {
-                if (exIniFaltaMem !== null) { return exIniFaltaMem; }
-                try { return localStorage.getItem(EXINI_FALTA_KEY) === '1'; } catch (e) { return false; }
-            }
-            function exIniFaltaAplicarPliegue(caja) {
-                var lista = caja.querySelector('#exIniFaltaLista');
-                var btn = caja.querySelector('#exIniFaltaToggle');
-                if (!lista || !btn) { return; }
-                var oculta = exIniFaltaOculta();
-                lista.classList.toggle('d-none', oculta);
-                lista.classList.toggle('d-flex', !oculta);
-                var ayuda = caja.querySelector('.exini-falta-ayuda');
-                if (ayuda) { ayuda.classList.toggle('d-none', oculta); }
-                btn.setAttribute('aria-expanded', String(!oculta));
-                btn.querySelector('i').className = (oculta ? 'ri-arrow-down-s-line' : 'ri-arrow-up-s-line') + ' me-1';
-                btn.querySelector('span').textContent = oculta ? 'Mostrar lista' : 'Ocultar lista';
-            }
-            window.exIniFaltaPlegar = function () {
-                exIniFaltaMem = !exIniFaltaOculta();
-                try { localStorage.setItem(EXINI_FALTA_KEY, exIniFaltaMem ? '1' : '0'); } catch (e) { /* queda en memoria */ }
+            // 18-nov-2026: «Ir al siguiente faltante». Primero lo que falta en la hoja actual, despues en las hojas
+            // siguientes y al final vuelve a empezar. Cada clic avanza al siguiente aunque el anterior siga vacio.
+            var exIniFaltaUltimo = null;
+            // desdeInicio = true (Finalizar): el primero que falta empezando por la hoja 1
+            window.exIniSiguienteFalta = function (desdeInicio) {
                 var root = exIniRoot();
                 var caja = root && root.querySelector('#exIniFalta');
-                if (caja) { exIniFaltaAplicarPliegue(caja); }
+                if (!caja) { return; }
+                exIniFaltaRevisar();
+                var lista = Array.prototype.slice.call(caja.querySelectorAll('button[data-campo]'));
+                if (!lista.length) { return; }
+                var actual = desdeInicio === true ? 1 : exIniHojaActiva();
+                var hoja = function (b) { return parseInt(b.getAttribute('data-hoja'), 10); };
+                // orden: hoja actual, siguientes y luego las anteriores (vuelta completa)
+                var total = parseInt(root.getAttribute('data-total-hojas'), 10) || 10;
+                var orden = lista.slice().sort(function (a, b) {
+                    var x = (hoja(a) - actual + total) % total, y = (hoja(b) - actual + total) % total;
+                    return x - y;
+                });
+                var i = exIniFaltaUltimo ? orden.findIndex(function (b) { return b.getAttribute('data-campo') === exIniFaltaUltimo; }) : -1;
+                var sig = orden[(i + 1) % orden.length];
+                exIniFaltaUltimo = sig.getAttribute('data-campo');
+                window.exIniIrFalta(sig);
             };
             window.exIniIrFalta = function (btn) {
                 var root = exIniRoot();
                 if (!root) { return; }
+                exIniFaltaMarcarHoja(btn.getAttribute('data-hoja'));
                 exIniIr(parseInt(btn.getAttribute('data-hoja'), 10));
                 var c = exIniFaltaCampo(root, btn.getAttribute('data-campo'));
                 if (!c) { return; }
@@ -2119,6 +2153,27 @@
                 imc.value = (peso / (talla * talla)).toFixed(1);
             };
 
+            // E-045 (18-nov-2026, presentacion de SM): el examen periodico (y los demas tipos del acordeon) no
+            // calculaba el IMC. Sus campos salen genericos de ExamenService.CATALOGO, asi que se escucha aqui:
+            // mismo calculo que el examen inicial (talla en m; si capturan cm, >3, se convierte); se puede corregir.
+            document.addEventListener('input', function (e) {
+                var t = e.target;
+                if (!t || !/^SERV_MED_EXPLORACION_FISICA\.(PESO|TALLA)$/.test(t.name || '')) { return; }
+                var acordeon = t.closest('#examenAccordion');
+                if (!acordeon) { return; }   // el examen inicial ya lo hace con exIniImc
+                var val = function (n) {
+                    var x = acordeon.querySelector('[name="SERV_MED_EXPLORACION_FISICA.' + n + '"]');
+                    return x ? parseFloat(String(x.value).replace(',', '.')) : NaN;
+                };
+                var imc = acordeon.querySelector('[name="SERV_MED_EXPLORACION_FISICA.IMC"]');
+                var peso = val('PESO');
+                var talla = val('TALLA');
+                if (!imc || !(peso > 0) || !(talla > 0)) { return; }
+                if (talla > 3) { talla = talla / 100; }
+                imc.value = (peso / (talla * talla)).toFixed(1);
+                imc.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+
             window.exIniTecla = function (grupo, e) {
                 var k = (e.key || '').toLowerCase();
                 var botones = grupo.querySelectorAll('button');
@@ -2384,8 +2439,28 @@
                     setTimeout(function () { pendientes[0].querySelector('input[type=text]').focus(); }, 300);
                     return;
                 }
+                // 18-nov-2026: campos sin capturar = solo AVISO (el servidor no lo exige; el avance queda debajo de 100).
+                // Todas las hojas se pintan en rojo y, si no sigue, se lleva al primero que falta.
+                var faltaCaja = document.querySelector('#exIniFalta');
+                var faltan = faltaCaja ? Array.prototype.slice.call(faltaCaja.querySelectorAll('button[data-campo]')) : [];
+                if (faltan.length) {
+                    var hojasF = [];
+                    faltan.forEach(function (b) {
+                        var h = b.getAttribute('data-hoja');
+                        exIniFaltaMarcarHoja(h);
+                        if (hojasF.indexOf(h) < 0) { hojasF.push(h); }
+                    });
+                    exIniFaltaRevisar();
+                    if (!window.confirm('Faltan ' + faltan.length + (faltan.length === 1 ? ' campo' : ' campos') + ' por capturar (hojas '
+                            + hojasF.join(', ') + '). Están marcados en rojo.\n\n¿Finalizar de todos modos?\n(Cancelar te lleva al primero que falta.)')) {
+                        pintarResultadoInline(resultEl, 'Faltan ' + faltan.length + ' campos por capturar: el número de cada pestaña dice cuántos hay en esa hoja.', true);
+                        exIniFaltaUltimo = null;
+                        window.exIniSiguienteFalta(true);
+                        return;
+                    }
+                }
                 // Confirmacion segun el dictamen: que queda registrado y que sigue
-                var etiquetas = { apto: 'APTO', no_apto: 'NO APTO', apto_condicionado: 'APTO CONDICIONADO', apto_restringido: 'APTO RESTRINGIDO' };
+                var etiquetas ={ apto: 'APTO', no_apto: 'NO APTO', apto_condicionado: 'APTO CONDICIONADO', apto_restringido: 'APTO RESTRINGIDO' };
                 var msg = '¿Finalizar el examen inicial con dictamen ' + (etiquetas[dictamen.value] || dictamen.value) + '?\n\n';
                 if (dictamen.value === 'no_apto') {
                     msg += 'La persona quedará registrada como NO APTA para ingreso. Para cambiarlo habrá que aplicarle un nuevo examen inicial.';
@@ -2528,11 +2603,59 @@
                 });
             };
 
+            // C-037 (18-nov-2026): calculos del Excel de maternidad de SM al teclear. Misma formula que
+            // CalculoMaternidad.java (el servidor la vuelve a aplicar al guardar); si cambia alla, aqui.
+            // Fechas en UTC para que el horario de verano no corra un dia.
+            window.materCalc = function () {
+                var DIA = 86400000;
+                function leer(id) {
+                    var el = document.getElementById(id);
+                    var m = el && /^(\d{4})-(\d{2})-(\d{2})$/.exec(el.value || '');
+                    return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : null;
+                }
+                function iso(t) { return t === null ? '' : new Date(t).toISOString().substring(0, 10); }
+                function dmy(t) { var s = iso(t); return s ? s.substring(8, 10) + '/' + s.substring(5, 7) + '/' + s.substring(0, 4) : '—'; }
+                function mas(t, d) { return t === null ? null : t + d * DIA; }
+                function poner(clave, texto) {
+                    var el = document.querySelector('#maternidadCalculos [data-mc="' + clave + '"]');
+                    if (el) { el.textContent = texto; }
+                }
+                var fum = leer('maternidadFum');
+                var inicio = leer('maternidadInicioIncap');
+                var h = new Date();
+                var hoy = Date.UTC(h.getFullYear(), h.getMonth(), h.getDate());
+
+                var semEl = document.getElementById('maternidadSemanasGestacion');
+                var fppEl = document.getElementById('maternidadFechaProbableParto');
+                var mesEl = document.getElementById('maternidadMes');
+                var fpp = mas(fum, 280), fpip = mas(fpp, -42), fprl = mas(fpip, 84);
+                if (fum !== null) {
+                    // pasadas 45 semanas ya no es gestacion (mismo tope que el servidor)
+                    var sem = fum <= hoy ? Math.floor((hoy - fum) / DIA / 7) : null;
+                    if (sem !== null && sem > 45) { sem = null; }
+                    if (semEl) { semEl.value = sem === null ? '' : sem; semEl.readOnly = true; }
+                    if (fppEl) { fppEl.value = iso(fpp); fppEl.readOnly = true; }
+                    if (mesEl) { mesEl.textContent = sem === null ? '' : 'Mes de gestación: ' + (Math.round(sem / 4.5 * 10) / 10).toFixed(1); }
+                } else {
+                    if (semEl) { semEl.readOnly = false; }
+                    if (fppEl) { fppEl.readOnly = false; }
+                    if (mesEl) { mesEl.textContent = ''; }
+                }
+                var termino = mas(inicio, 83), rl = mas(termino, 1), lactFin = mas(rl, 180);
+                poner('fpip', dmy(fpip));
+                poner('fprl', dmy(fprl));
+                poner('termino', dmy(termino));
+                poner('reinicio', dmy(rl));
+                poner('lactancia', rl === null ? '—' : dmy(rl) + ' al ' + dmy(lactFin));
+                poner('normal', dmy(mas(lactFin, 1)));
+            };
+
             window.guardarMaternidad = function (btn) {
                 var formEl = document.getElementById('maternidadAltaForm');
                 var nss = formEl ? formEl.nss.value : null;
                 guardarRegistro(btn, {
-                    formId: 'maternidadAltaForm', savePath: 'api/nss/maternidad/save', fileInputId: '__none__',
+                    // C-040: la fotografia opcional sube despues del alta (relacion = maternidad_foto)
+                    formId: 'maternidadAltaForm', savePath: 'api/nss/maternidad/save', fileInputId: 'maternidadFoto',
                     label: 'chequeo de maternidad', resetOnSuccess: true, resultElId: 'maternidadResult',
                     // Vuelve a la lista tras guardar - si no, el formulario se queda en pantalla
                     // (limpio) y no hay forma de ver el registro recien guardado sin volver a
@@ -2887,6 +3010,86 @@
                 var dias = parseFloat(f.diasAutorizados.value);
                 if (sal > 0 && dias > 0) {
                     f.costo.value = (sal * dias).toFixed(2);
+                }
+            };
+
+            // --- Cadena de incapacidades (C-045, C-050, C-051, C-052, C-055; 18-nov-2026) ---
+            // Solo ayuda a capturar: el servidor recalcula terminos y fecha inicial y valida la cadena
+            // (IncapacidadService.resolverFechas). Fechas como texto AAAA-MM-DD en hora local, sin UTC.
+            function incapDos(n) { return String(n).padStart(2, '0'); }
+            function incapFecha(s) {
+                var p = (s || '').split('-');
+                return p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2]) : null;
+            }
+            function incapMas(s, n) {
+                var d = incapFecha(s);
+                if (!d) { return ''; }
+                d.setDate(d.getDate() + n);
+                return d.getFullYear() + '-' + incapDos(d.getMonth() + 1) + '-' + incapDos(d.getDate());
+            }
+            function incapDias(a, b) {
+                var x = incapFecha(a), y = incapFecha(b);
+                return x && y && y >= x ? Math.round((y - x) / 86400000) + 1 : '';
+            }
+            window.incapRubro = function () {
+                var f = document.getElementById('incapacidadAltaForm');
+                if (!f) { return; }
+                var interna = f.rubro.value === 'Interna';
+                var col = document.getElementById('incapFolioCol');
+                if (col) { col.classList.toggle('d-none', interna); }
+                if (interna) { f.folio.value = ''; }   // C-055: Interna no lleva folio
+            };
+            window.incapTipo = function () {
+                var f = document.getElementById('incapacidadAltaForm');
+                if (!f) { return; }
+                var sub = f.tipo.value === 'subsecuente';
+                var col = document.getElementById('incapAnteriorCol');
+                if (col) { col.classList.toggle('d-none', !sub); }
+                f.querySelectorAll('.incap-sub').forEach(function (el) { el.classList.toggle('d-none', !sub); });
+                // en la subsecuente la fecha inicial es la de la cadena: la pone el portal
+                f.fechaPrimera.readOnly = sub;
+                if (sub) {
+                    window.incapAnterior();
+                } else {
+                    if (f.anterior) { f.anterior.value = ''; }
+                    f.fechaInicio.value = '';
+                    window.incapRecalc();
+                }
+            };
+            window.incapAnterior = function () {
+                var f = document.getElementById('incapacidadAltaForm');
+                if (!f || !f.anterior) { return; }
+                var opt = f.anterior.options[f.anterior.selectedIndex];
+                var ini = document.getElementById('incapTerminoIni');
+                if (!opt || !opt.value) {
+                    f.fechaPrimera.value = '';
+                    ini.value = '';
+                    window.incapRecalc();
+                    return;
+                }
+                f.fechaPrimera.value = opt.dataset.primera || '';
+                ini.value = opt.dataset.termino || '';
+                // se propone termino + 1 (asi vienen en el Excel de SM); se puede cambiar
+                f.fechaInicio.value = opt.dataset.termino ? incapMas(opt.dataset.termino, 1) : '';
+                if (!f.diagnostico.value) { f.diagnostico.value = opt.dataset.diag || ''; }
+                if (!f.ramo.value && opt.dataset.ramo) { f.ramo.value = opt.dataset.ramo; }
+                if (!f.rubro.value && opt.dataset.rubro) { f.rubro.value = opt.dataset.rubro; window.incapRubro(); }
+                window.incapRecalc();
+            };
+            window.incapRecalc = function () {
+                var f = document.getElementById('incapacidadAltaForm');
+                if (!f) { return; }
+                var dias = parseInt(f.diasAutorizados.value, 10);
+                var sub = f.tipo.value === 'subsecuente';
+                var ini = document.getElementById('incapTerminoIni');
+                var term = document.getElementById('incapTerminoSub');
+                var acum = document.getElementById('incapAcumulados');
+                if (sub) {
+                    term.value = f.fechaInicio.value && dias > 0 ? incapMas(f.fechaInicio.value, dias - 1) : '';
+                    acum.value = incapDias(f.fechaPrimera.value, term.value);
+                } else {
+                    ini.value = f.fechaPrimera.value && dias > 0 ? incapMas(f.fechaPrimera.value, dias - 1) : '';
+                    acum.value = incapDias(f.fechaPrimera.value, ini.value);
                 }
             };
 
@@ -4133,6 +4336,41 @@
             // Seguimiento de un caso de accidente (historial + evidencias) en el modal.
             window.verSeguimientoAccidente = function (btn) {
                 cargarDetalle('api/nss/accidentes/detalle', btn.getAttribute('data-id-accidente'), 'Seguimiento de accidente');
+            };
+
+            // C-092 (P-044, 18-nov-2026): fecha de inicio de labores del caso; refresca la lista de atras
+            window.guardarInicioLaboresAccidente = async function (btn) {
+                var regId = btn.getAttribute('data-accidente-regid');
+                var fechaEl = document.getElementById('accInicioLabores');
+                var statusEl = document.getElementById('accInicioLaboresStatus');
+                var body = new URLSearchParams();
+                body.append('nss', btn.getAttribute('data-nss') || '');
+                body.append('accidenteRegId', regId);
+                body.append('fecha', fechaEl ? fechaEl.value : '');
+                var csrf = form.querySelector('input[type="hidden"][name]');
+                if (csrf && csrf.name) {
+                    body.append(csrf.name, csrf.value);
+                }
+                btn.disabled = true;
+                try {
+                    var response = await fetch(contextPath + 'api/nss/accidentes/inicio-labores/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'text/plain' },
+                        body: body.toString()
+                    });
+                    var txt = await response.text();
+                    if (statusEl) {
+                        statusEl.className = 'fs-sm ' + (response.ok ? 'text-success' : 'text-danger');
+                        statusEl.textContent = txt || ('Error HTTP ' + response.status);
+                    }
+                    if (response.ok) {
+                        loadModuleView('api/nss/accidentes', (input.value || '').trim());
+                    }
+                } catch (error) {
+                    if (statusEl) { statusEl.className = 'fs-sm text-danger'; statusEl.textContent = 'Error de red al guardar la fecha.'; }
+                } finally {
+                    btn.disabled = false;
+                }
             };
 
             // Agrega una entrada de seguimiento (o cierra el caso) y refresca el modal.

@@ -485,6 +485,35 @@ public class ExamenController {
     }
 
     /**
+     * C-089 (18-nov-2026, presentacion de SM): telefono actualizado del trabajador con guardado propio. Estaba dentro
+     * de «Contactos de emergencia», que no se ve en los tipos cortos (periodico, cambio de puesto, post incapacidad,
+     * egreso; VisibilidadTipo), y ese guardado reescribe los 3 contactos: por eso no se reusa.
+     */
+    @PostMapping(
+            path = "/examen/telefono/save",
+            consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+            produces = "text/plain;charset=UTF-8")
+    @ResponseBody
+    @Auditado(modulo = "Examenes", accion = "update", entidad = "Telefono del trabajador", registro = "nss")
+    public String guardarTelefono(@RequestParam("nss") String nss,
+                                  @RequestParam(name = "telefonoSalud", required = false) String tel) {
+        if (nss == null || nss.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El NSS es obligatorio");
+        }
+        String digitos = tel == null ? "" : tel.replaceAll("\\D", "");
+        if (digitos.length() != 10) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El teléfono debe tener 10 dígitos (lada + número).");
+        }
+        try {
+            var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            examenDocumentoService.guardarTelefonoSalud(nss.trim(), digitos, auth == null ? "SISTEMA" : auth.getName());
+            return "Teléfono guardado.";
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        }
+    }
+
+    /**
      * Guarda tipo de examen, SpO2, cintura y cadera (EAV via SERV_MED_TAG, independiente del
      * examen -> WS). Recibe tipoExamen, spo2, cintura, cadera.
      */

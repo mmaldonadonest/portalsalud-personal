@@ -110,12 +110,21 @@
 
     <!-- Izquierda: la LFT que realiza (asi viene en el formato). Derecha: certificacion y firma del trabajador
          (la que dio en la consulta, si la hay). -->
+    <!--/* C-093 (P-037, SM 18-nov-2026): «Realizó» = la LFT con su firma digital y «Autorizó» = Dr. Mauricio
+           Cerón (médico responsable) con la suya. Sin firma vigente, la linea queda para firmar a mano. */-->
     <div class="firmas">
         <div class="firma">
-            <div class="espacio"></div>
-            <div class="linea">LFT. Frida Yocelin Mejía Cisneros &nbsp; CP: 13268034</div>
+            <div class="espacio"><img th:if="${lft != null and lft.firmaDataUri != null}" th:src="${lft.firmaDataUri}" alt="Firma"></div>
+            <div class="linea" th:text="${lft != null ? lft.nombre + (#strings.isEmpty(lft.cedula) ? '' : '  CP: ' + lft.cedula) : ''}">LFT</div>
             <div class="sub">Realizó</div>
         </div>
+        <div class="firma">
+            <div class="espacio"><img th:if="${medico != null and medico.firmaDataUri != null}" th:src="${medico.firmaDataUri}" alt="Firma"></div>
+            <div class="linea" th:text="${medico != null ? medico.nombre + (#strings.isEmpty(medico.cedula) ? '' : '  Céd. ' + medico.cedula) : ''}">Médico</div>
+            <div class="sub">Autorizó</div>
+        </div>
+    </div>
+    <div class="firmas" style="grid-template-columns: 1fr; max-width: 60%; margin-left: auto; margin-right: auto;">
         <div class="firma">
             <div class="cert">YO CERTIFICO QUE LOS DATOS ANTERIORMENTE PROPORCIONADOS SON VERDADEROS Y ESTOY CONSCIENTE QUE
                 CUALQUIER OMISIÓN O FALSIFICACIÓN PUEDEN SER MOTIVO DE DESPIDO, Y AUTORIZO AL SERVICIO MÉDICO DE LA COMPAÑÍA

@@ -149,7 +149,8 @@
                     <textarea class="form-control" name="tratamiento" id="tratamiento" rows="3"></textarea>
                 </div>
 
-                <!-- Pase de salida FT-SO-02 (20-oct-2026): solo con tipo "Pase de Salida". Lo que pide el
+                <!-- Pase de salida FT-SO-02 (20-oct-2026): con tipo "Pase de Salida" o, desde C-030 (18-nov),
+                     con la casilla «Generar pase de salida» en cualquier consulta. Lo que pide el
                      formato y el WS no guarda; se liga a la consulta por idArchivoRel (PaseSalidaService).
                      Nada es obligatorio: lo vacio sale en blanco para llenarse a mano. -->
                 <div class="col-12" id="paseSalidaWrap" style="display:none">
@@ -239,6 +240,12 @@
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="medGenerar" value="SI" id="medGenerar" onchange="toggleFormatosConsulta();">
                             <label class="form-check-label" for="medGenerar">Generar pase de medicamento (FT-SO-29)</label>
+                        </div>
+                        <!-- C-030 (18-nov-2026): el pase de salida tambien en cualquier consulta. Con tipo
+                             «Pase de Salida» la casilla se oculta porque la seccion ya sale sola. -->
+                        <div class="form-check" id="paseGenerarWrap">
+                            <input class="form-check-input" type="checkbox" name="paseGenerar" value="SI" id="paseGenerar" onchange="togglePaseSalida();">
+                            <label class="form-check-label" for="paseGenerar">Generar pase de salida (FT-SO-02)</label>
                         </div>
                     </div>
                 </div>

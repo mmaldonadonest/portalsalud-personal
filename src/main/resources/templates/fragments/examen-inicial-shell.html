@@ -141,6 +141,10 @@
         /* !important: con el cursor dentro, el :focus de Bootstrap (borde azul, outline 0) lo tapaba */
         .exini-falta-campo { outline: 2px solid #dc3545 !important; outline-offset: 2px; border-radius: 4px;
                              border-color: #dc3545 !important; box-shadow: 0 0 0 .2rem rgba(220, 53, 69, .25) !important; }
+        /* 18-nov-2026: contador de faltantes en la pestaña del stepper */
+        .exini-stepper .exini-faltan { flex: 0 0 auto; min-width: 20px; padding: 0 6px; border-radius: 10px; font-size: 11px;
+                                       line-height: 18px; font-weight: 600; color: #fff; background: #B42318; text-align: center; }
+        .exini-stepper .exini-faltan:empty { display: none; }
     </style>
 
     <div class="card card-one">
@@ -178,23 +182,23 @@
                  la hoja y al campo, que queda marcado en rojo; al capturarlo desaparece de la lista (exIniFaltaRevisar). */-->
             <th:block th:with="conFalta=${v.hojas.?[!faltantes.isEmpty()]}">
             <!--/* th:unless va en su propia etiqueta: en la misma, Thymeleaf lo evalua ANTES que th:with */-->
-            <div class="alert alert-warning py-2 px-3 fs-sm" id="exIniFalta" th:unless="${#lists.isEmpty(conFalta)}">
-                <!--/* 17-nov-2026 (pedido del usuario): la lista se puede ocultar; el contador sigue a la vista */-->
-                <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
-                    <div><i class="ri-error-warning-line me-1"></i><strong>Falta capturar</strong>
-                        <span class="badge bg-danger ms-1" id="exIniFaltaN"
-                              th:text="${#aggregates.sum(conFalta.![faltantes.size()])}">0</span>
-                        <span class="text-muted exini-falta-ayuda">(da clic para ir al campo)</span></div>
-                    <button type="button" class="btn btn-sm btn-link py-0 px-1 text-decoration-none" id="exIniFaltaToggle"
-                            onclick="exIniFaltaPlegar();" aria-expanded="true" aria-controls="exIniFaltaLista">
-                        <i class="ri-arrow-up-s-line me-1"></i><span>Ocultar lista</span>
-                    </button>
-                </div>
-                <div class="d-flex flex-wrap gap-1" id="exIniFaltaLista">
+            <!--/* 18-nov-2026 (presentacion de SM: la lista roja larga confundia, parecia error). Ya no se ve la lista:
+                 queda el total, el boton «Ir al siguiente faltante» y el contador por pestaña del stepper; el rojo va
+                 en los campos (exIniFaltaRevisar). Los botones siguen en el HTML, ocultos, como datos de lo que falta. */-->
+            <div class="alert alert-light border py-2 px-3 fs-sm d-flex align-items-center justify-content-between flex-wrap gap-2"
+                 id="exIniFalta" th:unless="${#lists.isEmpty(conFalta)}">
+                <div><i class="ri-list-check-3 me-1"></i>Faltan
+                    <strong id="exIniFaltaN" th:text="${#aggregates.sum(conFalta.![faltantes.size()])}">0</strong>
+                    <span id="exIniFaltaPal">campos</span> por capturar
+                    <span class="text-muted">· el número de cada pestaña dice cuántos faltan en esa hoja</span></div>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="exIniFaltaSig" onclick="exIniSiguienteFalta();">
+                    <i class="ri-arrow-right-circle-line me-1"></i>Ir al siguiente faltante
+                </button>
+                <div class="d-none" id="exIniFaltaLista" aria-hidden="true">
                     <th:block th:each="hv : ${conFalta}">
-                        <button type="button" class="btn btn-sm btn-outline-danger py-0" th:each="f, st : ${hv.faltantes}"
+                        <button type="button" tabindex="-1" th:each="f, st : ${hv.faltantes}"
                                 th:attr="data-hoja=${hv.hoja.numero}, data-campo=${hv.faltaCampos[st.index]}"
-                                th:text="|${hv.hoja.numero}. ${hv.hoja.corto} › ${f}|" onclick="exIniIrFalta(this);">faltante</button>
+                                th:text="|${hv.hoja.numero}. ${hv.hoja.corto} › ${f}|">faltante</button>
                     </th:block>
                 </div>
             </div>
@@ -243,6 +247,8 @@
                             th:onclick="|exIniIr(${h.hoja.numero});|"
                             th:title="${h.total > 0} ? ${h.hoja.titulo} : ${h.hoja.titulo + ' (no cuenta para el avance)'}">
                         <span class="n" th:text="${h.hoja.numero}">1</span><span class="t" th:text="${h.hoja.corto}">Hoja</span>
+                        <!--/* 18-nov-2026: cuantos faltan en la hoja (lo llena exIniFaltaRevisar; vacio = no falta nada) */-->
+                        <span class="exini-faltan" th:attr="data-faltan-hoja=${h.hoja.numero}"></span>
                         <span class="p"><span th:style="|width:${h.total == 0 ? 100 : h.capturados * 100 / h.total}%|"></span></span>
                     </button>
                 </li>

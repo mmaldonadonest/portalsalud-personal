@@ -24,6 +24,38 @@
                 <i class="ri-error-warning-line me-1"></i> No se le puede asociar un seguimiento de maternidad.
             </div>
 
+            <!--/* C-037 (18-nov-2026): embarazo en curso, con los calculos del Excel de SM a hoy */-->
+            <div th:if="${calculo != null}" class="border rounded p-3 mb-3">
+                <h6 class="mb-2"><i class="ri-calendar-2-line me-1"></i> Embarazo en curso</h6>
+                <div class="row g-2 fs-sm">
+                    <div class="col-6 col-md-3"><span class="text-muted d-block">FUM</span><b th:text="${calculo.f(calculo.fum())}">—</b></div>
+                    <div class="col-6 col-md-3"><span class="text-muted d-block">Semanas de gestación (hoy)</span>
+                        <b th:text="${calculo.semanas() != null ? calculo.semanas() + ' (mes ' + calculo.mesTexto() + ')' : '—'}">—</b></div>
+                    <div class="col-6 col-md-3"><span class="text-muted d-block">FPP (parto probable)</span><b th:text="${calculo.f(calculo.fpp())}">—</b></div>
+                    <div class="col-6 col-md-3"><span class="text-muted d-block">FPIP (incapacidad prenatal)</span><b th:text="${calculo.f(calculo.fpip())}">—</b></div>
+                    <div class="col-6 col-md-3"><span class="text-muted d-block">FPRL (reinicio probable)</span><b th:text="${calculo.f(calculo.fprl())}">—</b></div>
+                    <div class="col-6 col-md-3"><span class="text-muted d-block">Inicio de la incapacidad</span><b th:text="${calculo.f(calculo.inicio())}">—</b></div>
+                    <div class="col-6 col-md-3"><span class="text-muted d-block">Término de la incapacidad</span><b th:text="${calculo.f(calculo.termino())}">—</b></div>
+                    <div class="col-6 col-md-3"><span class="text-muted d-block">Reinicio de labores (RL)</span><b th:text="${calculo.f(calculo.reinicio())}">—</b></div>
+                    <div class="col-6 col-md-3"><span class="text-muted d-block">Lactancia</span>
+                        <b th:text="${calculo.lactanciaInicio() != null ? calculo.f(calculo.lactanciaInicio()) + ' al ' + calculo.f(calculo.lactanciaFin()) : '—'}">—</b></div>
+                    <div class="col-6 col-md-3"><span class="text-muted d-block">Horario normal desde</span><b th:text="${calculo.f(calculo.horarioNormal())}">—</b></div>
+                </div>
+            </div>
+
+            <!--/* C-040: fotografias (opcionales) */-->
+            <div th:unless="${#lists.isEmpty(fotos)}" class="mb-3">
+                <h6 class="mb-2"><i class="ri-image-line me-1"></i> Fotografías</h6>
+                <div class="d-flex flex-wrap gap-2">
+                    <a th:each="f : ${fotos}" target="_blank" class="text-decoration-none text-center fs-xs text-muted"
+                       th:href="@{'/api/nss/consulta/file/' + ${f.id}(nss=${nss})}" th:title="${f.name}">
+                        <img th:src="@{'/api/nss/consulta/file/' + ${f.id}(nss=${nss})}" alt="Fotografía"
+                             class="rounded border d-block" style="height: 96px; width: auto; max-width: 160px; object-fit: cover;">
+                        <span th:text="${f.dateUpload != null ? #temporals.format(f.dateUpload, 'dd/MM/yyyy') : ''}"></span>
+                    </a>
+                </div>
+            </div>
+
             <div th:if="${#lists.isEmpty(seguimientos)}" class="alert alert-warning mb-0" role="alert">
                 No se encontraron chequeos de seguimiento de maternidad para este NSS.
             </div>

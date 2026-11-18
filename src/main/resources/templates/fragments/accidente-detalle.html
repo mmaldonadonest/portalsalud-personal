@@ -36,6 +36,22 @@
             </div>
         </div>
 
+        <!--/* C-092 (P-044, SM 18-nov-2026): de esta fecha salen el mes y el año del nombre de los ST */-->
+        <div class="row g-2 align-items-end mb-3">
+            <div class="col-md-6">
+                <label class="form-label mb-1 text-muted fs-sm" for="accInicioLabores">Fecha de inicio de labores</label>
+                <input type="date" class="form-control form-control-sm" id="accInicioLabores" th:value="${inicioLabores}">
+            </div>
+            <div class="col-md-6 d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-sm btn-outline-primary"
+                        th:attr="data-accidente-regid=${accidenteRegId}, data-nss=${nss}"
+                        onclick="guardarInicioLaboresAccidente(this);">
+                    <i class="ri-save-line me-1"></i> Guardar fecha
+                </button>
+                <span class="fs-sm" id="accInicioLaboresStatus"></span>
+            </div>
+        </div>
+
         <hr class="my-3">
         <h6 class="mb-2"><i class="ri-history-line me-1"></i> Historial de seguimiento</h6>
         <div th:if="${#lists.isEmpty(historial)}" class="text-muted fs-sm mb-3">Sin seguimiento todavía.</div>

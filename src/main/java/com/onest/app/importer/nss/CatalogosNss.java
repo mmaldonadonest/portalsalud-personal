@@ -21,7 +21,9 @@ public final class CatalogosNss {
     static {
         CATALOGOS.put("PREDIO", List.of("AIFA", "ATIZAPAN", "CHARCON", "MACRO I", "MACRO II", "MERCURIO",
                 "MIKELS", "U TEPALCAPA", "FLORA", "SIGLO XXI", "TOLUCA", "TULTIPARK", "WORLD PARK",
-                "Z VALLEJO", "SMO", "FORANEO", "KILOTON", "MALTA"));
+                // C-094 (P-040, SM 18-nov-2026): KILOTON es un programa de peso y MALTA una cuenta que ya no
+                // existe; ninguno es predio y desde hoy se rechazan
+                "Z VALLEJO", "SMO", "FORANEO"));
         // CLIENTE / EXTERNO: 1,227 renglones de 1 ATENCIONES. Su pestana CATALOGOS decia EXTERNO; el
         // servicio medico eligio CLIENTE / EXTERNO (P1 de preguntas-catalogos-atenciones-sm-v6, 2-nov-2026)
         CATALOGOS.put("AREA", List.of("STAFF", "CALIDAD", "CAPACITACION", "CLIENTE / EXTERNO", "COMEDOR", "DESPACHO", "EMBARQUES",
@@ -102,6 +104,10 @@ public final class CatalogosNss {
      * <p>Las P1-P7 de SM ya NO se traducen: van en NO_ELEGIDOS (3-nov-2026).
      */
     private static final Map<String, Map<String, String>> EQUIVALENCIAS = Map.of(
+            // C-094 (P-040, SM 18-nov-2026): el Excel de atenciones historicas trae estos nombres cortos
+            "PREDIO", Map.of(
+                    "SIGLO", "SIGLO XXI",
+                    "TULTITLAN", "TULTIPARK"),
             "CAUSA_CONSULTA", Map.of(
                     "OFTALMOLOGICA", "OFTALMICO",
                     "OFTALMOLOGICO", "OFTALMICO"),

@@ -30,10 +30,133 @@ public class IncapacidadService {
     // BiowsIncapacidadReporteRequest, confirmado contra php-old/rest/dashboard/generarExcelIncapa.php.
     private static final DateTimeFormatter FECHA_REPORTE = DateTimeFormatter.ofPattern("dd/MM/yy");
 
-    private final IncapacidadClient client;
+    /** C-046: folio del certificado IMSS, 2 letras + 6 numeros (asi vienen 96 de 97 folios IMSS en produccion). */
+    static final java.util.regex.Pattern MASCARA_FOLIO = java.util.regex.Pattern.compile("^[A-Z]{2}[0-9]{6}$");
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(IncapacidadService.class);
 
-    public IncapacidadService(IncapacidadClient client) {
+    private final IncapacidadClient client;
+    private final com.onest.app.catalog.incapacidad.repository.FolioIncapacidadRepository folios;
+    private final CadenaIncapacidadService cadenas;
+    // Tomcat de produccion corre en UTC (memoria zona-horaria-prod-utc): "hoy" es el de la Ciudad de Mexico
+    private static final java.time.ZoneId ZONA = java.time.ZoneId.of("America/Mexico_City");
+
+    public IncapacidadService(IncapacidadClient client,
+                              com.onest.app.catalog.incapacidad.repository.FolioIncapacidadRepository folios,
+                              CadenaIncapacidadService cadenas) {
         this.client = client;
+        this.folios = folios;
+        this.cadenas = cadenas;
+    }
+
+    /** Fechas de la incapacidad ya resueltas: lo que se manda al WS. */
+    record Fechas(String primera, String inicio, String termino, Long anterior) {
+    }
+
+    /**
+     * C-045 / C-050 / C-051 / C-053 (18-nov-2026). Resuelve las fechas que se guardan:
+     * <ul>
+     *   <li>Inicial: fecha inicial = fecha de la primera incapacidad.</li>
+     *   <li>Subsecuente: hay que elegir la incapacidad que continua, su cadena debe seguir abierta (sin Alta = Si)
+     *       y la fecha de la primera incapacidad la pone el portal (inicio de la inicial de la cadena; en el
+     *       Excel de SM se teclea y hay 14 que no cuadran). La subsecuente empieza despues del termino anterior.</li>
+     *   <li>Termino = inicio + dias autorizados - 1 (el dia de inicio cuenta), como el Excel de SM.</li>
+     *   <li>E-021: la fecha de inicio no puede ser futura (el termino si: la incapacidad sigue corriendo).</li>
+     * </ul>
+     * Los tipos viejos del PHP (enfermedad_general, accidente_trabajo...) no pasan por aqui: el formulario
+     * solo ofrece Inicial y Subsecuente; si llegara otro, se guarda como venia.
+     */
+    Fechas resolverFechas(String nss, IncapacidadAltaForm form) {
+        String tipo = form.getTipo() == null ? "" : form.getTipo().trim().toLowerCase(java.util.Locale.ROOT);
+        boolean sub = "subsecuente".equals(tipo);
+        if (tipo.isEmpty()) {
+            throw new IllegalArgumentException("Elige el tipo de incapacidad: Inicial o Subsecuente.");
+        }
+        if (!sub && !"inicial".equals(tipo)) {
+            String inicio = blankToNull(form.getFechaInicio()) != null ? form.getFechaInicio() : form.getFechaPrimera();
+            return new Fechas(form.getFechaPrimera(), inicio, form.getFechaTermino(), null);
+        }
+        Integer dias = enteroPositivo(form.getDiasAutorizados());
+        if (dias == null) {
+            throw new IllegalArgumentException("Captura los días autorizados (número entero mayor que 0): con ellos se calcula el término.");
+        }
+        LocalDate inicio;
+        LocalDate primera;
+        Long anterior = null;
+        if (sub) {
+            CadenaIncapacidadService.Cadena c = cadenas.paraSubsecuente(nss, form.getAnterior());
+            anterior = Long.valueOf(form.getAnterior().trim());
+            inicio = fechaObligatoria(form.getFechaInicio(), "Fecha subsecuente");
+            LocalDate terminoAnterior = c.termino();
+            if (terminoAnterior != null && !inicio.isAfter(terminoAnterior)) {
+                throw new IllegalArgumentException("La subsecuente debe empezar después del término de la anterior ("
+                        + CadenaIncapacidadService.fmt(terminoAnterior) + "); normalmente el día siguiente.");
+            }
+            primera = c.primera() != null ? c.primera() : inicio;
+        } else {
+            String f = blankToNull(form.getFechaPrimera()) != null ? form.getFechaPrimera() : form.getFechaInicio();
+            inicio = fechaObligatoria(f, "Fecha inicial");
+            primera = inicio;
+        }
+        if (inicio.isAfter(LocalDate.now(ZONA))) {
+            throw new IllegalArgumentException("La fecha de inicio no puede ser futura (" + CadenaIncapacidadService.fmt(inicio) + ").");
+        }
+        LocalDate termino = inicio.plusDays(dias - 1L);
+        return new Fechas(primera.toString(), inicio.toString(), termino.toString(), anterior);
+    }
+
+    private static LocalDate fechaObligatoria(String valor, String campo) {
+        if (valor == null || valor.isBlank()) {
+            throw new IllegalArgumentException("La " + campo + " es obligatoria.");
+        }
+        try {
+            return LocalDate.parse(valor.trim());
+        } catch (DateTimeParseException ex) {
+            throw new IllegalArgumentException("La " + campo + " no es una fecha válida: " + valor);
+        }
+    }
+
+    private static Integer enteroPositivo(String s) {
+        if (s == null || !s.trim().matches("\\d{1,4}")) {
+            return null;
+        }
+        int n = Integer.parseInt(s.trim());
+        return n > 0 ? n : null;
+    }
+
+    /**
+     * C-046 (17-nov-2026, decision del usuario: «avisa y no deja guardar»). Rubro IMSS: folio obligatorio, con la
+     * mascara AA999999 y que no exista ya en el sistema (portal o Excel, cualquier NSS); tampoco en una subsecuente,
+     * que lleva su propio folio. Contexto: los folios falsos llegan a Nominas. Rubro Interna no pide folio (C-055).
+     * Los repetidos viejos (21 en produccion, casi todos doble guardado) no se tocan: la regla es para lo nuevo.
+     *
+     * @return el folio normalizado (sin espacios, en mayusculas) que se guarda; el mismo valor si no es IMSS
+     */
+    String validarFolio(String rubro, String folio) {
+        if (rubro == null || !"IMSS".equalsIgnoreCase(rubro.trim())) {
+            return folio;
+        }
+        String f = folio == null ? "" : folio.replace(" ", "").trim().toUpperCase(java.util.Locale.ROOT);
+        if (f.isEmpty()) {
+            throw new IllegalArgumentException("El folio es obligatorio en rubro IMSS.");
+        }
+        if (!MASCARA_FOLIO.matcher(f).matches()) {
+            throw new IllegalArgumentException("El folio IMSS debe ser 2 letras y 6 números (ejemplo SE105771). Capturado: " + f);
+        }
+        java.util.Optional<com.onest.app.catalog.incapacidad.repository.FolioIncapacidadRepository.Existente> ya;
+        try {
+            ya = folios.buscar(f);
+        } catch (org.springframework.dao.DataAccessException ex) {
+            // Sin poder revisar no se frena la captura clinica: se guarda y queda en el log para revisarlo
+            log.warn("[incapacidad] no se pudo revisar si el folio {} ya existe: {}", f, ex.getMostSpecificCause().getMessage());
+            return f;
+        }
+        if (ya.isPresent()) {
+            var e = ya.get();
+            throw new IllegalArgumentException("El folio " + f + " ya está registrado en otra incapacidad (NSS " + e.nss()
+                    + (e.fecha() == null ? "" : ", " + e.fecha().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")))
+                    + "). No se guardó: revisa el folio del certificado.");
+        }
+        return f;
     }
 
     public List<IncapacidadDto> byNss(String nss) {
@@ -54,18 +177,20 @@ public class IncapacidadService {
                 ? form.getIdArchivoRel().trim()
                 : UUID.randomUUID().toString().replace("-", "");
 
-        // incap.php: si fecha_inicio vacia -> fecha_primera; si salario_acumulado vacio -> 0
-        String fechaInicio = blankToNull(form.getFechaInicio()) != null ? form.getFechaInicio() : form.getFechaPrimera();
+        // incap.php: si salario_acumulado vacio -> 0
         String salarioAcumulado = blankToNull(form.getSalarioAcumulado()) != null ? form.getSalarioAcumulado() : "0";
+        // C-045/C-051/C-053 y C-046: todo se valida antes de llamar al WS; si algo no pasa, no se guarda nada
+        Fechas fechas = resolverFechas(nss, form);
+        String folio = validarFolio(form.getRubro(), form.getFolio());
 
         BiowsIncapacidadAltaRequest request = new BiowsIncapacidadAltaRequest(
                 LocalDateTime.now().format(FECHA),
                 nss,
-                form.getFolio(),
+                folio,
                 form.getRamo(),
                 form.getTipo(),
-                fechaInicio,
-                form.getFechaTermino(),
+                fechas.inicio(),
+                fechas.termino(),
                 form.getDiasAutorizados(),
                 form.getSalarioIntegrado(),
                 form.getCosto(),
@@ -79,12 +204,31 @@ public class IncapacidadService {
                 form.getFirma(),
                 form.getRubro(),
                 form.getFechaAlta(),
-                form.getFechaPrimera(),
+                fechas.primera(),
                 form.getSt2(),
                 salarioAcumulado,
                 form.getAlta()
         );
-        return client.crearIncapacidad(request);
+        String proceso = client.crearIncapacidad(request);
+        // C-051/C-052: liga y diagnostico en SERV_MED_TAG. La incapacidad ya quedo en el WS: si esto falla no se
+        // pierde la captura (la subsecuente se vuelve a pegar sola por fechas), solo queda en el log
+        try {
+            cadenas.guardarExtras(nss, relacion, fechas.anterior(), form.getDiagnostico());
+        } catch (org.springframework.dao.DataAccessException ex) {
+            log.warn("[incapacidad] guardada en el WS, pero sin liga/diagnostico (rel {}): {}", relacion,
+                    ex.getMostSpecificCause().getMessage());
+        }
+        return proceso;
+    }
+
+    /** Cadenas del NSS para la lista (C-054) y el formulario (C-051); vacio si no se pueden leer. */
+    public List<CadenaIncapacidadService.Cadena> cadenas(String nss) {
+        try {
+            return cadenas.cadenas(normalizeNss(nss));
+        } catch (org.springframework.dao.DataAccessException ex) {
+            log.warn("[incapacidad] no se pudieron armar las cadenas: {}", ex.getMostSpecificCause().getMessage());
+            return List.of();
+        }
     }
 
     /**

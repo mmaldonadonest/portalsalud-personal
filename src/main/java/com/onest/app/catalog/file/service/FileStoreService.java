@@ -31,6 +31,11 @@ public class FileStoreService {
     // Las evidencias de consultas y accidentes siguen aceptando imagen y Word.
     private static final Set<String> TIPOS_SOLO_PDF = Set.of("laboratorio", "examen_medico", "nota_medica", "nota_incapacidad");
 
+    // C-040 (18-nov-2026): la fotografia de maternidad es una foto, no un documento
+    public static final String TIPO_FOTO_MATERNIDAD = "maternidad_foto";
+    private static final Set<String> TIPOS_SOLO_IMAGEN = Set.of(TIPO_FOTO_MATERNIDAD);
+    private static final Set<String> IMAGEN_EXT = Set.of("jpg", "jpeg", "png");
+
     private final FsFileRepository repository;
     private final StorageProvider storage;
 
@@ -62,6 +67,9 @@ public class FileStoreService {
             }
             if (TIPOS_SOLO_PDF.contains(relacion.trim()) && !"pdf".equals(extension)) {
                 throw new IllegalArgumentException("Aquí solo se aceptan archivos PDF: " + originalName);
+            }
+            if (TIPOS_SOLO_IMAGEN.contains(relacion.trim()) && !IMAGEN_EXT.contains(extension)) {
+                throw new IllegalArgumentException("Aquí solo se aceptan fotografías (JPG o PNG): " + originalName);
             }
             String mime = file.getContentType() != null ? file.getContentType() : mimeForExt(extension);
             byte[] bytes;

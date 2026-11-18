@@ -107,6 +107,8 @@
                                 onclick="filtrarPorOrigen(this);">Portal</button>
                         <button th:if="${conExcel}" type="button" class="btn btn-outline-secondary" data-origen-btn="EXCEL"
                                 onclick="filtrarPorOrigen(this);">Excel</button>
+                        <button type="button" class="btn btn-outline-secondary" data-origen-btn="PRETEST"
+                                onclick="filtrarPorOrigen(this);">Pretest</button>
                     </div>
                 </div>
 
@@ -146,6 +148,7 @@
                                         <span th:if="${h.origen == 'MANO'}" class="badge bg-info">Subido a mano</span>
                                         <span th:if="${h.origen == 'PORTAL'}" class="badge bg-success">Capturado en el portal</span>
                                         <span th:if="${h.origen == 'EXCEL'}" class="badge bg-secondary">Histórico Excel</span>
+                                        <span th:if="${h.origen == 'PRETEST'}" class="badge bg-warning text-dark">Pretest</span>
                                     </td>
                                     <td class="text-break">
                                         <i th:if="${h.origen == 'MANO'}" class="ri-file-pdf-2-line me-1 text-danger"></i><span th:text="${h.examen}">-</span>
@@ -160,9 +163,14 @@
                                                     th:attr="data-id=${h.archivoId}, data-nss=${nss}, data-tipo=${tipo}, data-nombre=${h.archivoNombre}"
                                                     onclick="borrarArchivo(this);"><i class="ri-delete-bin-line"></i></button>
                                         </th:block>
-                                        <a th:if="${h.pdfPortal}" class="btn btn-sm btn-outline-primary" target="_blank"
-                                           title="Ver el examen en PDF" th:href="@{/examen/imprimir-pdf(nss=${nss})}">
+                                        <!--/* E-044 (18-nov-2026): la ruta era /examen/imprimir-pdf, sin /api/nss -> 404 */-->
+                                        <a th:if="${h.pdfPortal and h.origen == 'PORTAL'}" class="btn btn-sm btn-outline-primary" target="_blank"
+                                           title="Ver el examen en PDF" th:href="@{/api/nss/examen/imprimir-pdf(nss=${nss})}">
                                             <i class="ri-file-pdf-2-line me-1"></i>PDF</a>
+                                        <!--/* C-007: el impreso del Pretest sale con las respuestas vigentes = las del ultimo */-->
+                                        <a th:if="${h.pdfPortal and h.origen == 'PRETEST'}" class="btn btn-sm btn-outline-primary" target="_blank"
+                                           title="Imprimir el Pretest" th:href="@{/api/nss/pretest/imprimir(nss=${nss})}">
+                                            <i class="ri-printer-line me-1"></i>Imprimir</a>
                                         <span th:if="${h.origen == 'PORTAL' and !h.pdfPortal}" class="text-muted fs-12"
                                               title="El PDF de exámenes anteriores se guardará como archivo cuando Servicio Médico defina la nomenclatura">—</span>
                                     </td>

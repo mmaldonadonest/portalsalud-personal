@@ -77,6 +77,75 @@ public class PretestService {
         String usuario = usuarioActual();
         fields.forEach((base, value) ->
                 repository.upsert(normalized, base + SUFFIX, value, GROUP, usuario));
+        // C-007 (18-nov-2026): los campos de arriba se sobrescriben en cada guardado; esta copia fechada es la
+        // que deja historia para Historico E.M. y el comparativo C-006. No termina en PRETEST, asi que load() y
+        // ultimoGuardado() (TYPE LIKE %PRETEST) no la ven.
+        repository.upsert(normalized, HIST + LocalDateTime.now(ZONA).format(SELLO), copia(fields), GRUPO_HIST, usuario);
+    }
+
+    static final String HIST = "PRETESTHIST.";
+    private static final String GRUPO_HIST = "PRETEST_HIST";
+    private static final java.time.ZoneId ZONA = java.time.ZoneId.of("America/Mexico_City");
+    private static final java.time.format.DateTimeFormatter SELLO = java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS");
+    private static final List<String> DATOS_COPIA = List.of("cuenta", "puesto", "agencia");
+
+    /** Respuestas Si/No (y datos de cabecera) como CLAVE=valor por renglon; sin la firma ni observaciones. */
+    static String copia(Map<String, String> fields) {
+        StringBuilder sb = new StringBuilder();
+        java.util.stream.Stream.concat(java.util.stream.Stream.concat(SALUD.stream(), SINTOMAS.stream()).map(Pregunta::codigo),
+                DATOS_COPIA.stream()).forEach(k -> {
+            String v = fields.get(k);
+            if (v != null && !v.isBlank()) {
+                sb.append(k).append('=').append(v.trim().replaceAll("[\\r\\n=]+", " ")).append('\n');
+            }
+        });
+        return sb.toString();
+    }
+
+    /** Un Pretest del historial. legado = el unico que se conoce de antes de C-007 (sus respuestas vigentes). */
+    public record Historial(LocalDateTime fecha, String usuario, Map<String, String> respuestas, boolean legado) {
+
+        /** «Síntomas: Tos, Fiebre» o «Sin síntomas»; mas las preguntas de salud contestadas Si. */
+        public String resumen() {
+            List<String> sint = SINTOMAS.stream().filter(p -> "1".equals(respuestas.get(p.codigo()))).map(Pregunta::etiqueta).toList();
+            List<String> salud = SALUD.stream().filter(p -> "1".equals(respuestas.get(p.codigo())))
+                    .map(p -> p.etiqueta().replace("¿", "").replace("?", "")).toList();
+            String r = sint.isEmpty() ? "Sin síntomas" : "Síntomas: " + String.join(", ", sint);
+            return salud.isEmpty() ? r : r + " · Sí: " + String.join("; ", salud);
+        }
+    }
+
+    /** Pretest del NSS, el mas reciente primero. */
+    public List<Historial> historial(String nss) {
+        String n = normalizeNss(nss);
+        List<Historial> out = new java.util.ArrayList<>();
+        for (MedTagRepository.Tag t : repository.todosPorPrefijo(n, HIST)) {
+            Map<String, String> r = new HashMap<>();
+            for (String linea : (t.content() == null ? "" : t.content()).split("\n")) {
+                int i = linea.indexOf('=');
+                if (i > 0) {
+                    r.put(linea.substring(0, i), linea.substring(i + 1));
+                }
+            }
+            out.add(new Historial(fecha(t), t.creadoPor(), r, false));
+        }
+        // de antes de C-007 solo existen las respuestas vigentes: se muestran como un Pretest con su fecha
+        if (out.isEmpty()) {
+            LocalDateTime ultimo = repository.ultimoGuardado(n, SUFFIX);
+            if (ultimo != null) {
+                out.add(new Historial(ultimo, null, load(n), true));
+            }
+        }
+        return out;
+    }
+
+    /** La fecha va en el TYPE (hora de la Ciudad de Mexico); CREATED_AT solo si el sello no se puede leer. */
+    private static LocalDateTime fecha(MedTagRepository.Tag t) {
+        try {
+            return LocalDateTime.parse(t.type().substring(HIST.length()), SELLO);
+        } catch (RuntimeException ex) {
+            return t.creado();
+        }
     }
 
     private String normalizeNss(String nss) {

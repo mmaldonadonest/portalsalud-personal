@@ -20,15 +20,20 @@
 
                 <div class="col-md-6">
                     <label class="form-label" for="rubro">Rubro</label>
-                    <select class="form-select" name="rubro" id="rubro">
+                    <select class="form-select" name="rubro" id="rubro" onchange="incapRubro();">
                         <option value="">Seleccionar</option>
                         <option value="Interna">Interna</option>
                         <option value="IMSS">IMSS</option>
                     </select>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label" for="folio">Folio</label>
-                    <input type="text" class="form-control" name="folio" id="folio" placeholder="Folio">
+                <div class="col-md-6" id="incapFolioCol">
+                    <!--/* C-046 (17-nov-2026): en rubro IMSS es obligatorio, 2 letras + 6 numeros y no se puede repetir;
+                         la regla la aplica el servidor (IncapacidadService.validarFolio), aqui solo se ayuda a capturarlo.
+                         C-055: en rubro Interna no se pide (incapRubro lo oculta y lo vacia) */-->
+                    <label class="form-label" for="folio">Folio <span class="text-muted fs-12">(obligatorio en IMSS)</span></label>
+                    <input type="text" class="form-control text-uppercase" name="folio" id="folio" placeholder="Ej. SE105771"
+                           maxlength="12" autocomplete="off" title="Folio del certificado IMSS: 2 letras y 6 números"
+                           oninput="this.value = this.value.toUpperCase().replace(/\s+/g, '');">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="ramo">Ramo</label>
@@ -43,39 +48,77 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="tipo">Tipo de incapacidad</label>
-                    <select class="form-select" name="tipo" id="tipo">
+                    <select class="form-select" name="tipo" id="tipo" onchange="incapTipo();">
                         <option value="">Elegir</option>
                         <option value="inicial">Inicial</option>
                         <option value="subsecuente">Subsecuente</option>
                     </select>
                 </div>
 
-                <div class="col-md-6">
-                    <label class="form-label" for="fechaPrimera">Fecha inicial (primera incapacidad)</label>
-                    <input type="date" class="form-control" name="fechaPrimera" id="fechaPrimera">
+                <!--/* C-051 (18-nov-2026): la subsecuente continua una incapacidad abierta (sin Alta = Si, C-053). De ella
+                     salen la fecha inicial de la cadena, su termino y el diagnostico; la fecha subsecuente se propone
+                     = termino + 1. El servidor vuelve a validar todo (IncapacidadService.resolverFechas). */-->
+                <div class="col-12 d-none" id="incapAnteriorCol">
+                    <label class="form-label" for="anterior">Continúa la incapacidad</label>
+                    <select class="form-select" name="anterior" id="anterior" onchange="incapAnterior();"
+                            th:disabled="${#lists.isEmpty(abiertas)}">
+                        <option value="" th:text="${#lists.isEmpty(abiertas)} ? 'Este NSS no tiene incapacidades abiertas para continuar' : 'Elegir'">Elegir</option>
+                        <option th:each="c : ${abiertas}"
+                                th:value="${c.ultimo().regId()}"
+                                th:attr="data-primera=${c.primera()}, data-termino=${c.termino()}, data-ramo=${c.inicial().ramo()},
+                                         data-rubro=${c.inicial().rubro()}, data-diag=${c.diagnostico()}, data-dias=${c.diasTotal()}"
+                                th:text="${T(com.onest.app.catalog.incapacidad.service.CadenaIncapacidadService).etiqueta(c)}
+                                         + ' · ' + ${c.diasTotal()} + ' días en ' + ${#lists.size(c.eslabones())}
+                                         + (${#lists.size(c.eslabones()) == 1} ? ' incapacidad' : ' incapacidades')
+                                         + (${c.diagnostico() != null} ? ' · ' + ${c.diagnostico()} : '')">folio</option>
+                    </select>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label" for="fechaInicio">Fecha inicial subsecuente</label>
-                    <input type="date" class="form-control" name="fechaInicio" id="fechaInicio">
+
+                <!--/* C-045: orden Fecha inicial, Fecha de termino, Fecha subsecuente y Termino de la subsecuente.
+                     Los terminos se calculan (inicio + dias - 1, el dia de inicio cuenta): no se teclean. */-->
+                <div class="col-md-3">
+                    <label class="form-label" for="fechaPrimera">Fecha inicial</label>
+                    <input type="date" class="form-control" name="fechaPrimera" id="fechaPrimera" oninput="incapRecalc();">
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label" for="fechaTermino">Fecha término</label>
-                    <input type="date" class="form-control" name="fechaTermino" id="fechaTermino">
+                <div class="col-md-3">
+                    <label class="form-label" for="incapTerminoIni">Fecha de término</label>
+                    <input type="date" class="form-control" id="incapTerminoIni" readonly tabindex="-1">
+                </div>
+                <div class="col-md-3 incap-sub d-none">
+                    <label class="form-label" for="fechaInicio">Fecha subsecuente</label>
+                    <input type="date" class="form-control" name="fechaInicio" id="fechaInicio" oninput="incapRecalc();">
+                </div>
+                <div class="col-md-3 incap-sub d-none">
+                    <label class="form-label" for="incapTerminoSub">Término de la subsecuente</label>
+                    <input type="date" class="form-control" id="incapTerminoSub" readonly tabindex="-1">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label" for="diasAutorizados">Días autorizados</label>
+                    <input type="number" min="1" step="1" class="form-control" name="diasAutorizados" id="diasAutorizados"
+                           placeholder="Días" oninput="calcCostoIncap(); incapRecalc();">
+                </div>
+                <div class="col-md-3">
+                    <!--/* C-050: acumulados = termino - fecha inicial de la cadena + 1 (como el Excel de SM); solo se muestra */-->
+                    <label class="form-label" for="incapAcumulados">Días acumulados</label>
+                    <input type="text" class="form-control" id="incapAcumulados" readonly tabindex="-1" placeholder="Se calcula">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="fechaAlta">Fecha de alta</label>
                     <input type="date" class="form-control" name="fechaAlta" id="fechaAlta">
                 </div>
 
+                <div class="col-12">
+                    <!--/* C-052: como la columna DIAGNÓSTICO del Excel de SM; la subsecuente lo hereda (se puede precisar) */-->
+                    <label class="form-label" for="diagnostico">Diagnóstico</label>
+                    <input type="text" class="form-control" name="diagnostico" id="diagnostico" maxlength="300"
+                           placeholder="Diagnóstico de la incapacidad">
+                </div>
+
                 <div class="col-md-4">
                     <label class="form-label" for="salarioIntegrado">Salario diario</label>
                     <input type="number" step="0.01" class="form-control" name="salarioIntegrado"
                            id="salarioIntegrado" placeholder="Salario" oninput="calcCostoIncap();">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label" for="diasAutorizados">Días autorizados</label>
-                    <input type="number" class="form-control" name="diasAutorizados" id="diasAutorizados"
-                           placeholder="Días" oninput="calcCostoIncap();">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label" for="costo">Costo</label>
@@ -114,7 +157,8 @@
                     </select>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label" for="alta">Alta</label>
+                    <!--/* C-053: Alta = Si cierra la incapacidad: ya no admite subsecuentes */-->
+                    <label class="form-label" for="alta">Alta <span class="text-muted fs-12">(Sí cierra la incapacidad)</span></label>
                     <select class="form-select" name="alta" id="alta">
                         <option value="">Seleccionar</option>
                         <option value="Si">Si</option>

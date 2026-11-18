@@ -24,6 +24,13 @@ public record DashboardMaternidadDto(
         List<ConteoSimpleDto> porTrimestre,
         List<PuntoMensualDto> tendenciaMensual,
         /** Partos probables por mes (fecha_probable_parto), para anticipar ausencias. */
-        List<PuntoMensualDto> partosPorMes
+        List<PuntoMensualDto> partosPorMes,
+        /**
+         * C-037 / P-028: HOY, por el estatus del ultimo seguimiento de cada embarazo. Null si no se
+         * pudo calcular (sin la vista unificada): la pantalla lo muestra como guion, no como cero.
+         */
+        Long embarazadas,
+        Long enIncapacidad,
+        Long enLactancia
 ) {
 }

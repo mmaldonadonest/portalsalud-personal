@@ -50,6 +50,22 @@ public class VistaMaternidadRepository {
     }
 
     /**
+     * C-037 / P-028 (18-nov-2026): cuantas hay HOY {laborando embarazadas, en incapacidad, en lactancia},
+     * segun el estatus laboral del ultimo seguimiento de cada embarazo (SERV_MED_V_MATERNIDAD_ACTUAL).
+     * Es una foto del presente: respeta predio y cuenta pero no el periodo de la pantalla.
+     */
+    public long[] estadoActual(String predio, String cuenta) {
+        String st = "UPPER(TRIM(e.STATUS_LABORAL))";
+        VistaFiltro f = new VistaFiltro("SELECT "
+                + "SUM(CASE WHEN " + st + " = 'LABORANDO EMBARAZADA' THEN 1 ELSE 0 END), "
+                + "SUM(CASE WHEN " + st + " = 'INCAPACIDAD' THEN 1 ELSE 0 END), "
+                + "SUM(CASE WHEN " + st + " = 'LACTANCIA' THEN 1 ELSE 0 END)"
+                + " FROM SERV_MED_V_MATERNIDAD_ACTUAL e").filtros(null, null, predio, cuenta);
+        return jdbc.queryForObject(f.sql(),
+                (rs, i) -> new long[]{rs.getLong(1), rs.getLong(2), rs.getLong(3)}, f.params());
+    }
+
+    /**
      * Semanas de gestacion de cada renglon (el promedio y el trimestre los calcula el servicio, con
      * el mismo corte de siempre). De 1 a 45: fuera de ahi es una formula sobre una FUM vacia.
      */

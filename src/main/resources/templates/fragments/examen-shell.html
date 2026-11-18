@@ -437,11 +437,43 @@
                   proposito, fuera del acordeon de tabs/#trabajosPrevios para que guardarExamen()
                   no los recoja por error.
                 -->
+                <!--/* C-089 (18-nov-2026, presentacion de SM): el telefono iba dentro de «Contactos de emergencia», que no se
+                     ve en los tipos cortos (periodico, cambio de puesto, post incapacidad, egreso): en el periodico no
+                     aparecia. Ahora tiene bloque propio, para todos los tipos, abierto y con su guardado
+                     (/examen/telefono/save; el de contactos reescribe los 3 contactos). Solo Portal Salud (tag TELSALUD). */-->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="examenExtraHeaderTel">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#examenExtraBodyTel" aria-expanded="true" aria-controls="examenExtraBodyTel">
+                            Teléfono del trabajador
+                        </button>
+                    </h2>
+                    <div class="accordion-collapse collapse show" id="examenExtraBodyTel" aria-labelledby="examenExtraHeaderTel">
+                        <div class="accordion-body">
+                            <form id="telefonoSaludForm" class="row g-2 align-items-end" novalidate onsubmit="return false;">
+                                <input type="hidden" name="nss" th:value="${nss}">
+                                <div class="col-md-4">
+                                    <label class="form-label fs-sm mb-1">Teléfono actualizado</label>
+                                    <input type="hidden" name="telefonoSalud" th:value="${telefonoSalud}">
+                                    <input type="tel" inputmode="numeric" maxlength="12" placeholder="55 1234 5678" title="10 dígitos (lada + número)"
+                                           class="form-control form-control-sm" th:value="${telefonoSalud}" oninput="exIniMascaraTel(this);" onfocus="exIniMascaraTel(this);">
+                                </div>
+                                <div class="col-md-8 d-flex align-items-center gap-3">
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="guardarTelefonoSalud(this);">
+                                        <i class="ri-save-line me-1"></i> Guardar teléfono
+                                    </button>
+                                    <span id="telefonoSaludResult" class="fs-sm"></span>
+                                    <span class="fs-xs text-muted">Se guarda solo en Portal Salud.</span>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
                 <div class="accordion-item" th:classappend="${T(com.onest.app.catalog.examen.service.VisibilidadTipo).clases('Contactos de emergencia')}">
                     <h2 class="accordion-header" id="examenExtraHeader1">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                                 data-bs-target="#examenExtraBody1" aria-expanded="false" aria-controls="examenExtraBody1">
-                            Teléfono y contactos de emergencia
+                            Contactos de emergencia
                         </button>
                     </h2>
                     <div class="accordion-collapse collapse" id="examenExtraBody1"
@@ -449,15 +481,6 @@
                         <div class="accordion-body" id="contactosEmergencia">
                             <form id="contactosEmergenciaForm" class="row g-3" novalidate>
                                 <input type="hidden" name="nss" th:value="${nss}">
-                                <!--/* C-074 (10-nov, Word SM punto 12): telefono actualizado como en el examen inicial; solo
-                                     Portal Salud (tag TELSALUD), el biometrico no se toca. Visible con mascara; viaja el hidden. */-->
-                                <div class="col-md-4">
-                                    <label class="form-label fs-sm mb-1">Teléfono actualizado del trabajador</label>
-                                    <input type="hidden" name="telefonoSalud" th:value="${telefonoSalud}">
-                                    <input type="tel" inputmode="numeric" maxlength="12" placeholder="55 1234 5678" title="10 dígitos (lada + número)"
-                                           class="form-control form-control-sm" th:value="${telefonoSalud}" oninput="exIniMascaraTel(this);" onfocus="exIniMascaraTel(this);">
-                                    <div class="fs-xs text-muted mt-1">Se guarda solo en Portal Salud.</div>
-                                </div>
                                 <div th:each="c : ${contactos}" class="col-12">
                                     <div class="text-uppercase fs-xs text-muted fw-semibold mb-2"
                                          th:text="'Contacto ' + ${c.indice}">Contacto</div>

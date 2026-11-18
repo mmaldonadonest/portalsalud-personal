@@ -6,6 +6,50 @@
   Reusa el buscador/exportar-Excel globales (filtrarConsultas / exportarConsultasExcel).
 -->
 <div th:fragment="table">
+    <!--/* C-054 / C-050 / C-053 (18-nov-2026): una fila por padecimiento = la inicial y sus subsecuentes
+         (CadenaIncapacidadService). Dias = suma de dias autorizados; acumulados = termino - fecha inicial + 1. */-->
+    <div th:if="${cadenas != null and !#lists.isEmpty(cadenas)}" class="card card-one mb-3"
+         th:with="ramoCad=${ {'enfermedad_general':'Enfermedad General','profesional':'Enfermedad profesional','rt1':'RT1','rt2':'RT2','maternidad':'Maternidad'} }">
+        <div class="card-header"><h6 class="card-title mb-0">Incapacidades por padecimiento <span class="text-muted fw-normal fs-12">(inicial y sus subsecuentes)</span></h6></div>
+        <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0" data-export-name="incapacidades-por-padecimiento">
+                <thead class="thead-onest">
+                    <tr>
+                        <th>Folio inicial</th>
+                        <th>Diagnóstico</th>
+                        <th>Rubro</th>
+                        <th>Ramo</th>
+                        <th>Periodo</th>
+                        <th class="text-end">Incapacidades</th>
+                        <th class="text-end">Días</th>
+                        <th class="text-end">Días acumulados</th>
+                        <th class="text-end">Costo</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="c : ${cadenas}">
+                        <td th:text="${c.folio() != null and !#strings.isEmpty(#strings.trim(c.folio()))} ? ${c.folio()} : '-'">-</td>
+                        <td th:text="${c.diagnostico() ?: '-'}">-</td>
+                        <td th:text="${c.inicial().rubro() ?: '-'}">-</td>
+                        <td th:text="${c.inicial().ramo() != null} ? (${ramoCad.get(c.inicial().ramo())} ?: ${c.inicial().ramo()}) : '-'">-</td>
+                        <td class="text-nowrap" th:text="${c.periodo()}">-</td>
+                        <td class="text-end" th:text="${#lists.size(c.eslabones())}">1</td>
+                        <td class="text-end" th:text="${c.diasTotal()}">0</td>
+                        <td class="text-end" th:text="${c.acumulados() ?: '-'}">-</td>
+                        <td class="text-end text-nowrap" th:text="'$' + ${#numbers.formatDecimal(c.costoTotal(), 1, 'COMMA', 2, 'POINT')}">$0.00</td>
+                        <td>
+                            <span th:if="${c.cerrada()}" class="badge bg-success">Con alta</span>
+                            <span th:unless="${c.cerrada()}" class="badge bg-warning text-dark">Abierta</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        </div>
+    </div>
+
     <div class="card card-one">
         <div class="card-header d-flex align-items-center justify-content-between">
             <h6 class="card-title mb-0">Archivo de incapacidades</h6>

@@ -19,15 +19,47 @@
             </div>
             <form id="maternidadAltaForm" class="row g-3" novalidate th:unless="${sexoHombre}">
                 <input type="hidden" name="nss" th:value="${nss}">
+                <!--/* C-040: subirAdjuntos usa idArchivoRel como relacion; la foto se liga al NSS con este tipo */-->
+                <input type="hidden" name="idArchivoRel" th:value="${tipoFoto}">
 
+                <!--/* C-037 (18-nov-2026): FUM e inicio de la incapacidad, con los calculos del Excel de SM.
+                       Vienen llenos con los del embarazo en curso; cambiar la FUM = embarazo nuevo. */-->
+                <div class="col-md-4">
+                    <label class="form-label" for="maternidadFum">FUM (fecha de última menstruación)</label>
+                    <input type="date" class="form-control" name="fum" id="maternidadFum"
+                           th:value="${calculo != null and calculo.fum() != null ? calculo.fum() : ''}"
+                           oninput="materCalc();" onchange="materCalc();">
+                </div>
                 <div class="col-md-4">
                     <label class="form-label" for="maternidadSemanasGestacion">Semanas de gestación</label>
                     <input type="number" min="0" max="45" class="form-control" name="semanasGestacion"
-                           id="maternidadSemanasGestacion" placeholder="Semanas">
+                           id="maternidadSemanasGestacion" placeholder="Semanas"
+                           th:value="${calculo != null ? calculo.semanas() : ''}"
+                           th:readonly="${calculo != null and calculo.fum() != null}">
+                    <div class="form-text" id="maternidadMes"
+                         th:text="${calculo != null and calculo.mes() != null ? 'Mes de gestación: ' + calculo.mesTexto() : ''}"></div>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label" for="maternidadFechaProbableParto">Fecha probable de parto</label>
-                    <input type="date" class="form-control" name="fechaProbableParto" id="maternidadFechaProbableParto">
+                    <label class="form-label" for="maternidadFechaProbableParto">Fecha probable de parto (FPP)</label>
+                    <input type="date" class="form-control" name="fechaProbableParto" id="maternidadFechaProbableParto"
+                           th:value="${calculo != null and calculo.fpp() != null ? calculo.fpp() : ''}"
+                           th:readonly="${calculo != null and calculo.fum() != null}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="maternidadInicioIncap">Inicio de la incapacidad</label>
+                    <input type="date" class="form-control" name="inicioIncapacidad" id="maternidadInicioIncap"
+                           th:value="${calculo != null and calculo.inicio() != null ? calculo.inicio() : ''}"
+                           oninput="materCalc();" onchange="materCalc();">
+                </div>
+                <div class="col-md-8">
+                    <div class="border rounded p-2 bg-light fs-sm h-100" id="maternidadCalculos">
+                        <div><span class="text-muted">FPIP (incapacidad prenatal):</span> <b data-mc="fpip" th:text="${calculo != null ? calculo.f(calculo.fpip()) : '—'}">—</b>
+                            · <span class="text-muted">FPRL (reinicio probable):</span> <b data-mc="fprl" th:text="${calculo != null ? calculo.f(calculo.fprl()) : '—'}">—</b></div>
+                        <div><span class="text-muted">Término de la incapacidad:</span> <b data-mc="termino" th:text="${calculo != null ? calculo.f(calculo.termino()) : '—'}">—</b>
+                            · <span class="text-muted">Reinicio de labores (RL):</span> <b data-mc="reinicio" th:text="${calculo != null ? calculo.f(calculo.reinicio()) : '—'}">—</b></div>
+                        <div><span class="text-muted">Lactancia:</span> <b data-mc="lactancia" th:text="${calculo != null and calculo.lactanciaInicio() != null ? calculo.f(calculo.lactanciaInicio()) + ' al ' + calculo.f(calculo.lactanciaFin()) : '—'}">—</b>
+                            · <span class="text-muted">Horario normal:</span> <b data-mc="normal" th:text="${calculo != null ? calculo.f(calculo.horarioNormal()) : '—'}">—</b></div>
+                    </div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label" for="maternidadProximaRevision">Próxima revisión</label>
@@ -52,6 +84,7 @@
                 <div class="col-md-6">
                     <label class="form-label" for="maternidadReincorporacion">Fecha de reincorporación</label>
                     <input type="date" class="form-control" name="reincorporacion" id="maternidadReincorporacion">
+                    <div class="form-text">Si la dejas vacía y hay inicio de incapacidad, se guarda el reinicio de labores (RL).</div>
                 </div>
 
                 <div class="col-12">
@@ -68,6 +101,12 @@
                     <label class="form-label" for="maternidadObservaciones">Observaciones</label>
                     <textarea class="form-control" name="observaciones" id="maternidadObservaciones" rows="3"
                               placeholder="Observaciones"></textarea>
+                </div>
+                <!--/* C-040 (18-nov-2026): opcional, como la columna FOTOGRAFIA (OPCIONAL) del Excel de SM */-->
+                <div class="col-md-6">
+                    <label class="form-label" for="maternidadFoto">Fotografía (opcional)</label>
+                    <input type="file" class="form-control" id="maternidadFoto" accept=".jpg,.jpeg,.png,image/jpeg,image/png">
+                    <div class="form-text">JPG o PNG.</div>
                 </div>
 
                 <div class="col-12 d-flex justify-content-end align-items-center gap-3">

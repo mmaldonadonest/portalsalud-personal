@@ -139,6 +139,17 @@
         </div>
     </div>
 
+    <!--/* C-037 / P-028 (18-nov-2026, SM: «en la pantalla de Maternidad»): cuantas hay HOY, por el estatus
+           laboral del ultimo seguimiento de cada embarazo. No depende del año ni del periodo. */-->
+    <div class="card card-one mb-3">
+        <div class="card-body d-flex flex-wrap align-items-center gap-4">
+            <div class="fs-12 text-muted fw-medium">Hoy<br><span class="fs-11">según el último seguimiento de cada embarazo</span></div>
+            <div><span class="fs-12 text-muted d-block">Embarazadas laborando</span><h3 class="kpi-value mb-0" id="kpiEmbarazadas">—</h3></div>
+            <div><span class="fs-12 text-muted d-block">En incapacidad</span><h3 class="kpi-value mb-0" id="kpiEnIncapacidad">—</h3></div>
+            <div><span class="fs-12 text-muted d-block">En lactancia</span><h3 class="kpi-value mb-0" id="kpiLactancia">—</h3></div>
+        </div>
+    </div>
+
     <div class="card card-one chart-card mb-3">
         <div class="card-header">
             <span class="chart-eyebrow chart-eyebrow--casos">Tendencia</span>
@@ -292,6 +303,11 @@
                 document.getElementById('kpiSemanas').textContent = d.promedioSemanasGestacion
                     ? d.promedioSemanasGestacion.toFixed(1) : '—';
                 document.getElementById('kpiRevision').textContent = numero(d.revisionesProximas);
+                // null = no se pudo calcular: guion, no cero
+                var hoyKpi = function (id, v) { document.getElementById(id).textContent = (v === null || v === undefined) ? '—' : numero(v); };
+                hoyKpi('kpiEmbarazadas', d.embarazadas);
+                hoyKpi('kpiEnIncapacidad', d.enIncapacidad);
+                hoyKpi('kpiLactancia', d.enLactancia);
                 document.getElementById('kpiReinc').textContent = numero(d.totalReincorporadas);
                 document.getElementById('kpiReincSub').textContent = d.totalPersonas
                     ? Math.round((d.totalReincorporadas / d.totalPersonas) * 100) + '% de los casos' : '';
@@ -381,6 +397,9 @@
                     ['Semanas de gestación (promedio)', d.promedioSemanasGestacion],
                     ['Revisiones próximas (30 días)', d.revisionesProximas],
                     ['Reincorporadas', d.totalReincorporadas],
+                    ['Hoy: embarazadas laborando', d.embarazadas === null ? '' : d.embarazadas],
+                    ['Hoy: en incapacidad', d.enIncapacidad === null ? '' : d.enIncapacidad],
+                    ['Hoy: en lactancia', d.enLactancia === null ? '' : d.enLactancia],
                     [],
                     ['Estatus', 'Casos']
                 ];

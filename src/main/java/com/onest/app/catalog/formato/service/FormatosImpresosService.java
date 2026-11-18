@@ -83,6 +83,15 @@ public class FormatosImpresosService {
     private final Set<String> rolesConFirma;
     private final SecureRandom azar = new SecureRandom();
 
+    // C-093 (18-nov-2026): la LFT de la nota de fisioterapia. Por campo y no por constructor para no
+    // tocar la firma del constructor que ya usan todos los formatos.
+    @Value("${portal.formatos.fisioterapeuta.nombre:}")
+    private String nombreFisio = "";
+    @Value("${portal.formatos.fisioterapeuta.cedula:}")
+    private String cedulaFisio = "";
+    @Value("${portal.formatos.fisioterapeuta.usuario:}")
+    private String usuarioFisio = "";
+
     public FormatosImpresosService(FirmaService firmas, DocumentoFirmadoRepository documentos,
                                    @Value("${portal.formatos.medico-responsable.nombre:}") String nombreMedico,
                                    @Value("${portal.formatos.medico-responsable.cedula:}") String cedulaMedico,
@@ -161,6 +170,19 @@ public class FormatosImpresosService {
                 model.addAttribute("elaboro", new Elaboro(elaboro.nombre(), null));
             }
         }
+    }
+
+    /**
+     * C-093 (P-037): «Realizó» de la nota de fisioterapia = la LFT con su firma digital. Va DESPUES de
+     * aplicarFirmas: su firma solo sale si esa impresion ya quedo registrada con folio (mismo principio de
+     * arriba: un impreso firmado siempre debe poder verificarse). Sin usuario configurado, linea a mano.
+     */
+    public MedicoResponsable fisioterapeuta(Model model) {
+        String firma = null;
+        if (model.containsAttribute("folioFirma") && puedeImprimirConFirma()) {
+            firma = firmas.paraImprimir(usuarioFisio).map(FirmaImpresa::dataUri).orElse(null);
+        }
+        return new MedicoResponsable(texto(nombreFisio, ""), texto(cedulaFisio, ""), firma);
     }
 
     // ---- internos ----

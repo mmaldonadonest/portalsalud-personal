@@ -20,4 +20,7 @@ public class MaternidadAltaForm {
     private String estatus;
     private String incapacidad;
     private String reincorporacion;
+    // C-037 (18-nov-2026): datos del embarazo en curso; van a SERV_MED_TAG, el WS no los tiene
+    private String fum;
+    private String inicioIncapacidad;
 }

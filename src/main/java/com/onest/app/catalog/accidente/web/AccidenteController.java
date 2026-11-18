@@ -37,11 +37,25 @@ public class AccidenteController {
     // Solo existe con portal.historico.fuente=VISTA: entonces el expediente muestra tambien lo del Excel
     private final ObjectProvider<VistaAccidenteRepository> vistaAccidentes;
 
+    private final com.onest.app.catalog.accidente.service.InicioLaboresService inicioLabores;
+
     public AccidenteController(AccidenteService accidenteService, FileStoreService fileStoreService,
-                               ObjectProvider<VistaAccidenteRepository> vistaAccidentes) {
+                               ObjectProvider<VistaAccidenteRepository> vistaAccidentes,
+                               com.onest.app.catalog.accidente.service.InicioLaboresService inicioLabores) {
         this.accidenteService = accidenteService;
         this.fileStoreService = fileStoreService;
         this.vistaAccidentes = vistaAccidentes;
+        this.inicioLabores = inicioLabores;
+    }
+
+    /** C-092: fechas de inicio de labores del NSS; si la base no responde, la pantalla sigue sin ellas. */
+    private java.util.Map<String, String> iniciosDeLabores(String nss) {
+        try {
+            return nss.isEmpty() ? java.util.Map.of() : inicioLabores.porNss(nss);
+        } catch (DataAccessException ex) {
+            log.warn("[accidentes] sin fechas de inicio de labores: {}", ex.getMessage());
+            return java.util.Map.of();
+        }
     }
 
     @PostMapping(
@@ -53,6 +67,7 @@ public class AccidenteController {
             String nss = data == null ? "" : data.trim();
             model.addAttribute("accidentes", accidenteService.byNssConEstado(data));
             model.addAttribute("nss", nss);
+            model.addAttribute("iniciosLabores", iniciosDeLabores(nss));
             agregarHistorico(nss, model);
             return "fragments/accidentes-list :: table";
         } catch (IllegalArgumentException ex) {
@@ -109,6 +124,7 @@ public class AccidenteController {
             model.addAttribute("estado", accidenteService.estadoDe(historial));
             model.addAttribute("relacionEvidencias", relacionEvidencias);
             model.addAttribute("evidencias", fileStoreService.listByRelacion(relacionEvidencias));
+            model.addAttribute("inicioLabores", iniciosDeLabores(nss).getOrDefault(serieId == null ? "" : serieId.trim(), ""));
             return "fragments/accidente-detalle :: detalle";
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
@@ -129,6 +145,32 @@ public class AccidenteController {
         try {
             String proceso = accidenteService.crearSeguimiento(accidenteRegId, tipo, observaciones);
             return (proceso == null || proceso.isBlank()) ? "Seguimiento registrado." : proceso;
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        }
+    }
+
+    /**
+     * C-092 (P-044): guarda la fecha de inicio de labores del caso. El caso debe ser del NSS abierto: asi no se
+     * escribe sobre el accidente de otra persona cambiando el numero.
+     */
+    @PostMapping(
+            path = "/accidentes/inicio-labores/save",
+            consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+            produces = "text/plain;charset=UTF-8")
+    @ResponseBody
+    @Auditado(modulo = "Accidentes", accion = "update", entidad = "Inicio de labores del accidente", registro = "accidenteRegId", detalle = {"fecha"})
+    public String guardarInicioLabores(@RequestParam("nss") String nss,
+                                       @RequestParam("accidenteRegId") String accidenteRegId,
+                                       @RequestParam(name = "fecha", required = false) String fecha) {
+        try {
+            String n = nss == null ? "" : nss.trim();
+            AccidenteDto accidente = accidenteService.byNss(n).stream()
+                    .filter(a -> accidenteRegId != null && accidenteRegId.trim().equals(a.idRegistro()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("El caso no es de este NSS."));
+            inicioLabores.guardar(n, accidenteRegId, fecha, accidente.fechaAccidente());
+            return fecha == null || fecha.isBlank() ? "Fecha de inicio de labores borrada." : "Fecha de inicio de labores guardada.";
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }

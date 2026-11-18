@@ -32,6 +32,8 @@ public class ConsultaAltaForm {
 
     // Pase de salida FT-SO-02 (20-oct-2026), solo con tipo "pase_salida": el WS no tiene estos campos;
     // van a SERV_MED_TAG ligados al idArchivoRel de la consulta (PaseSalidaService).
+    // C-030 (18-nov-2026): casilla «Generar pase de salida» en cualquier consulta (SI = generar)
+    private String paseGenerar;
     private String paseMotivo;
     private String paseFechaCita;
     private String paseSalida;

@@ -37,12 +37,20 @@ public class PaseSalidaService {
     }
 
     /**
+     * C-030 (18-nov-2026): la consulta lleva pase si es de tipo pase de salida o si en cualquier otra se
+     * marco «Generar pase de salida», igual que el pase de medicamento.
+     */
+    public static boolean aplica(ConsultaAltaForm form) {
+        return esPase(form.getTipoConsulta()) || "SI".equals(limpio(form.getPaseGenerar()));
+    }
+
+    /**
      * Motivo y hora de salida son obligatorios en un pase (decision del usuario 20-oct-2026: sin eso el
      * pase no sirve). Se revisa ANTES del WS para no dejar una consulta de pase sin sus datos.
      * null si esta bien o no es pase; si no, el mensaje para el usuario.
      */
     public static String errorObligatorios(ConsultaAltaForm form) {
-        if (!esPase(form.getTipoConsulta())) {
+        if (!aplica(form)) {
             return null;
         }
         if (limpio(form.getPaseMotivo()).isEmpty()) {
@@ -57,7 +65,7 @@ public class PaseSalidaService {
     /** Guarda el pase de la consulta recien dada de alta (solo tipo pase de salida y con idArchivoRel). */
     public void guardar(ConsultaAltaForm form) {
         String rel = limpio(form.getIdArchivoRel());
-        if (!esPase(form.getTipoConsulta()) || !rel.matches("[A-Za-z0-9]{8,64}")) {
+        if (!aplica(form) || !rel.matches("[A-Za-z0-9]{8,64}")) {
             return;
         }
         Map<String, String> campos = new LinkedHashMap<>();

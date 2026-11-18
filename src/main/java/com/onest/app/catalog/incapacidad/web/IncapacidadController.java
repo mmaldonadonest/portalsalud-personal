@@ -61,6 +61,8 @@ public class IncapacidadController {
             String nss = data == null ? "" : data.trim();
             model.addAttribute("incapacidades", incapacidadService.byNss(data));
             model.addAttribute("nss", nss);
+            // C-050/C-054: resumen por padecimiento (inicial + subsecuentes)
+            model.addAttribute("cadenas", incapacidadService.cadenas(nss));
             agregarHistorico(nss, model);
             return "fragments/incapacidades-list :: table";
         } catch (IllegalArgumentException ex) {
@@ -163,8 +165,12 @@ public class IncapacidadController {
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = MediaType.TEXT_HTML_VALUE)
     public String form(@RequestParam("data") String data, Model model) {
-        model.addAttribute("nss", data == null ? "" : data.trim());
+        String nss = data == null ? "" : data.trim();
+        model.addAttribute("nss", nss);
         model.addAttribute("idArchivoRel", UUID.randomUUID().toString().replace("-", ""));
+        // C-051/C-053: una subsecuente solo puede continuar una cadena sin Alta = Si
+        model.addAttribute("abiertas", nss.isEmpty() ? List.of()
+                : incapacidadService.cadenas(nss).stream().filter(c -> !c.cerrada()).toList());
         return "fragments/incapacidad-form :: form";
     }
 

@@ -49,6 +49,19 @@ public class MedTagRepository {
         return map;
     }
 
+    /** Un renglon de SERV_MED_TAG con su fecha (para historiales: no se queda solo con el ultimo por TYPE). */
+    public record Tag(String type, String content, java.time.LocalDateTime creado, String creadoPor) {
+    }
+
+    /** Todos los TYPE LIKE prefix% del NSS, el mas reciente primero. */
+    public java.util.List<Tag> todosPorPrefijo(String nss, String prefix) {
+        return jdbc.query(
+                "SELECT TYPE, CONTENT, CREATED_AT, CREATED_BY FROM SERV_MED_TAG WHERE NSS = ? AND TYPE LIKE ? ORDER BY ID DESC",
+                (rs, i) -> new Tag(rs.getString(1), rs.getString(2),
+                        rs.getTimestamp(3) == null ? null : rs.getTimestamp(3).toLocalDateTime(), rs.getString(4)),
+                nss, prefix + "%");
+    }
+
     /** DELETE + INSERT del valor de un campo (como insertDatsExpFis). */
     /** Fecha del ultimo registro guardado para el NSS con TYPE LIKE %suffix (null si no hay ninguno). */
     public java.time.LocalDateTime ultimoGuardado(String nss, String suffix) {

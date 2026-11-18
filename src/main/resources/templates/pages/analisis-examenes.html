@@ -65,6 +65,11 @@
             <p class="fs-12 text-muted mb-0" id="subtitulo">Dictámenes de examen médico</p>
         </div>
         <div class="d-flex gap-2">
+            <!--/* C-006 (18-nov-2026): por predio y por mes, examenes medicos y Pretest lado a lado */-->
+            <button type="button" id="btnExcelPretest" class="btn btn-success btn-sm"
+                    title="Exámenes médicos y Pretest lado a lado, por predio y por mes (mismo periodo y predio)">
+                <i class="ri-file-excel-2-line me-1"></i>Exámenes vs Pretest
+            </button>
             <button type="button" id="btnExportar" class="btn btn-outline-secondary btn-sm">
                 <i class="ri-download-2-line me-1"></i>Exportar
             </button>
@@ -260,6 +265,15 @@
                     document.getElementById(id).addEventListener('change', aplicar);
                 });
                 document.getElementById('btnExportar').addEventListener('click', exportarCsv);
+                document.getElementById('btnExcelPretest').addEventListener('click', function () {
+                    // mismo periodo y predio que las tarjetas; el servidor audita la descarga
+                    var qs = new URLSearchParams({
+                        fechaInicial: document.getElementById('fFechaInicial').value,
+                        fechaFinal: document.getElementById('fFechaFinal').value,
+                        predio: document.getElementById('fPredio').value || ''
+                    });
+                    window.location.href = contextPath + 'api/analisis/examenes/pretest/excel?' + qs.toString();
+                });
                 document.getElementById('btnNuevo').addEventListener('click', function () {
                     window.location.href = this.dataset.url;
                 });

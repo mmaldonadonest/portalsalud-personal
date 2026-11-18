@@ -156,7 +156,8 @@
             <p  style="font-size: 13px; margin-bottom: 4px;">Aptitud laboral: <b>[[${d.v('DICTAMEN')}]]</b></p>
         </div>
         <div class="col-6">
-            <p  style="font-size: 13px;">Departamento: <b>[[${d.v('cuenta')}]]</b></p>
+            <!--/* P-002 (SM 17-nov): el renglon siempre traia la cuenta; ahora se llama como lo que es */-->
+            <p  style="font-size: 13px;">Cuenta: <b>[[${d.v('cuenta')}]]</b></p>
         </div>
         <div class="col-6">
             <p  style="font-size: 13px;">Puesto: <b>[[${d.v('puesto')}]]</b></p>
@@ -193,8 +194,11 @@
         </div>
         <div class="col-6">
             <center>
+                <!--/* P-003 (SM 17-nov): fecha de REALIZACION del examen, no la de impresion. FECHAExam (campo FECHA del
+                     WS) traia la hora de la consulta (salia igual que «Impreso:»). FECHA_EXAMEN = ultimo examen
+                     guardado en el historico (sin historico, hoy), la misma que el FT-SO-05 y los formatos EMLE. */-->
                 <h6>Fecha</h6><br/>
-                <p  style="font-size:13px;font-weight:bold">[[${d.v('FECHAExam')}]]</p>
+                <p  style="font-size:13px;font-weight:bold">[[${d.v('FECHA_EXAMEN')}]]</p>
             </center>
 
         </div>

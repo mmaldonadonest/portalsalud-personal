@@ -123,11 +123,13 @@ public class ExpedienteController {
         try {
             var detalle = expedienteService.consultaDetalle(data, serieId).orElse(null);
             model.addAttribute("detalle", detalle);
-            model.addAttribute("esPase", detalle != null
-                    && com.onest.app.catalog.expediente.service.PaseSalidaService.esPase(detalle.tipoConsulta()));
             // FT-SO-29 y FT-SO-23: el boton sale solo si al dar de alta se genero ese formato
             String nssDet = data == null ? "" : data.trim();
             String relDet = detalle == null ? null : detalle.consultaRelacionada();
+            // C-030 (18-nov-2026): el pase de salida tambien sale en cualquier consulta donde se genero
+            model.addAttribute("esPase", detalle != null
+                    && (com.onest.app.catalog.expediente.service.PaseSalidaService.esPase(detalle.tipoConsulta())
+                        || tienePase(nssDet, relDet)));
             var medDet = detalle == null ? java.util.Map.<String, String>of() : camposFormato(
                     com.onest.app.catalog.expediente.service.FormatosConsultaService.MEDICAMENTO, nssDet, relDet);
             var pruebaDet = detalle == null ? java.util.Map.<String, String>of() : camposFormato(
@@ -216,8 +218,10 @@ public class ExpedienteController {
                         expedienteService.consultasByNss(nssLimpio).stream().map(c -> c.idConsulta()).toList(), rel,
                         i -> expedienteService.consultaDetalle(nssLimpio, i), d -> d.consultaRelacionada()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No existe la consulta " + (conId ? id : rel)));
-        if (!com.onest.app.catalog.expediente.service.PaseSalidaService.esPase(detalle.tipoConsulta())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El pase de salida solo aplica a consultas de tipo Pase de salida.");
+        // C-030: tipo Pase de salida, o cualquier consulta en la que se marco «Generar pase de salida»
+        if (!com.onest.app.catalog.expediente.service.PaseSalidaService.esPase(detalle.tipoConsulta())
+                && !tienePase(nssLimpio, detalle.consultaRelacionada())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Esta consulta no tiene pase de salida.");
         }
         var empleado = DocumentoImpresoService.empleado(nssSearchService, nssLimpio);
         // agencia como en los formatos del examen: base (OCR > biometrico) > elegida en el examen > GLI
@@ -239,6 +243,15 @@ public class ExpedienteController {
         formatos.aplicarFirmas(model, "FT-SO-02", "CONSULTA:" + detalle.consultaRelacionada(), nssLimpio);
         model.addAttribute("auto", auto != null && !auto.isBlank() && !"0".equals(auto));
         return "pages/formato-ft-so-02";
+    }
+
+    /** true si la consulta tiene datos de pase de salida guardados (C-030); sin base, false. */
+    private boolean tienePase(String nss, String rel) {
+        try {
+            return !paseSalida.leer(nss, rel).isEmpty();
+        } catch (org.springframework.dao.DataAccessException ex) {
+            return false;
+        }
     }
 
     /** Consulta por id (detalle) o por idArchivoRel (alta recien guardada); 400/404 si no hay. */
@@ -348,6 +361,8 @@ public class ExpedienteController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Esta consulta no tiene nota de fisioterapia.");
         }
         modeloFormatoConsulta(model, nssLimpio, detalle, "FT-SO-38", auto);
+        // C-093: Realizo = la LFT con su firma; Autorizo = el medico responsable ("medico", de aplicarFirmas)
+        model.addAttribute("lft", formatos.fisioterapeuta(model));
         model.addAttribute("fisio", fisio);
         model.addAttribute("tomas", com.onest.app.catalog.expediente.service.FisioterapiaService.tomas(fisio));
         // ficha: como la del FT-SO-17 (escolaridad y profesion del OCR si es candidato; si no, biometrico)

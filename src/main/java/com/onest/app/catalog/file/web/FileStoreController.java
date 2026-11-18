@@ -38,13 +38,17 @@ public class FileStoreController {
     private final ObjectProvider<VistaExamenRepository> vistaExamenes;
     // 4-nov-2026: los examenes guardados en el portal tambien van en Historico E.M. (antes no se veian)
     private final ExamenHistoricoRepository examenesPortal;
+    // C-007 (18-nov-2026): el Pretest tambien va en Historico E.M.
+    private final com.onest.app.catalog.pretest.service.PretestService pretests;
 
     public FileStoreController(FileStoreService fileStoreService,
                                ObjectProvider<VistaExamenRepository> vistaExamenes,
-                               ExamenHistoricoRepository examenesPortal) {
+                               ExamenHistoricoRepository examenesPortal,
+                               com.onest.app.catalog.pretest.service.PretestService pretests) {
         this.fileStoreService = fileStoreService;
         this.vistaExamenes = vistaExamenes;
         this.examenesPortal = examenesPortal;
+        this.pretests = pretests;
     }
 
     /** Sube uno o mas PDF asociados a una consulta (relacion = idArchivoRel). */
@@ -114,6 +118,7 @@ public class FileStoreController {
     static final String ORIGEN_MANO = "MANO";
     static final String ORIGEN_PORTAL = "PORTAL";
     static final String ORIGEN_EXCEL = "EXCEL";
+    static final String ORIGEN_PRETEST = "PRETEST";
 
     private static final java.util.Map<String, String> TIPO_PORTAL = java.util.Map.of(
             "1", "Admisión", "2", "Periódico", "3", "Cambio de puesto", "4", "Post incapacidad", "5", "Especial",
@@ -172,6 +177,21 @@ public class FileStoreController {
         } catch (DataAccessException ex) {
             log.warn("[expediente] examenes del portal no disponibles para el NSS: {}", ex.getMessage());
             faltan.add("los exámenes capturados en el portal");
+        }
+        // C-007: cada Pretest guardado desde el 18-nov deja su copia; de antes solo se conoce el ultimo. El impreso
+        // sale con las respuestas vigentes, asi que solo el mas reciente lleva el boton
+        try {
+            boolean primero = true;
+            for (com.onest.app.catalog.pretest.service.PretestService.Historial p : pretests.historial(nss)) {
+                String detalle = p.resumen()
+                        + (p.usuario() == null || p.usuario().isBlank() ? "" : " · Capturó " + p.usuario())
+                        + (p.legado() ? " · Solo se conserva el último Pretest de antes del 18-nov-2026" : "");
+                items.add(new HistorialItem(p.fecha(), true, ORIGEN_PRETEST, "Pretest", null, detalle, null, null, primero));
+                primero = false;
+            }
+        } catch (DataAccessException ex) {
+            log.warn("[expediente] pretest no disponible para el NSS: {}", ex.getMessage());
+            faltan.add("los Pretest");
         }
         VistaExamenRepository vista = vistaExamenes.getIfAvailable();
         if (vista != null) {

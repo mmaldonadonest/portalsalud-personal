@@ -154,7 +154,9 @@ public class DashboardMaternidadService {
                 revisionesProximas,
                 conSemanas > 0 ? (double) sumaSemanas / conSemanas : 0,
                 aConteo(porEstatus), aConteo(porPredio), aConteoOrdenClave(porTrimestre),
-                aTendencia(porMes), aTendencia(partosMes));
+                aTendencia(porMes), aTendencia(partosMes),
+                // sin la vista no hay "ultimo seguimiento por embarazo" confiable: no se inventa
+                null, null, null);
     }
 
     /**
@@ -170,6 +172,13 @@ public class DashboardMaternidadService {
         LocalDate desde = FechaFiltro.aFecha(fechaInicial).orElse(null);
         LocalDate hasta = FechaFiltro.aFecha(fechaFinal).orElse(null);
         long[] t = vista.totales(desde, hasta, predio, cuenta);
+        Long[] hoy = {null, null, null};
+        try {
+            long[] a = vista.estadoActual(predio, cuenta);
+            hoy = new Long[]{a[0], a[1], a[2]};
+        } catch (org.springframework.dao.DataAccessException ex) {
+            // el tablero sigue sin estas tres cifras
+        }
 
         Map<String, Long> porTrimestre = new LinkedHashMap<>();
         long suma = 0;
@@ -187,7 +196,8 @@ public class DashboardMaternidadService {
                 vista.porDimension("PREDIO", desde, hasta, predio, cuenta),
                 aConteoOrdenClave(porTrimestre),
                 vista.tendenciaMensual(desde, hasta, predio, cuenta),
-                vista.partosPorMes(desde, hasta, predio, cuenta));
+                vista.partosPorMes(desde, hasta, predio, cuenta),
+                hoy[0], hoy[1], hoy[2]);
     }
 
     private static String trimestre(int semanas) {
