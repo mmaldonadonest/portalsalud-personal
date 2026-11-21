@@ -466,7 +466,38 @@ public class ExpedienteController {
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = MediaType.TEXT_HTML_VALUE)
     public String icd(@RequestParam(name = "icd", required = false, defaultValue = "") String icd, Model model) {
-        model.addAttribute("claves", expedienteService.buscarIcd(icd));
+        // C-003 (19-nov-2026): con el CIE-10 completo (14,485 claves) tres letras comunes traen miles («TRA» 5,646) y
+        // «Ver todo» las 14,485; el WS no tiene limite. Se pintan solo las primeras ICD_MAXIMO: primero los nombres que
+        // EMPIEZAN con lo escrito, luego por clave. El total se avisa para que se afine la busqueda.
+        java.util.List<com.onest.app.catalog.expediente.dto.IcdDto> claves = ordenIcd(icd, expedienteService.buscarIcd(icd));
+        model.addAttribute("icdTotal", claves.size());
+        model.addAttribute("icdMaximo", ICD_MAXIMO);
+        model.addAttribute("claves", claves.size() > ICD_MAXIMO ? claves.subList(0, ICD_MAXIMO) : claves);
         return "fragments/icd-result :: table";
+    }
+
+    static final int ICD_MAXIMO = 100;
+
+    /**
+     * Primero el nombre identico a lo escrito (CEFALEA -> R51.X CEFALEA: Enter en el buscador elige el primero),
+     * luego los nombres que empiezan con lo escrito y despues por clave (el WS las regresa sin orden).
+     */
+    static java.util.List<com.onest.app.catalog.expediente.dto.IcdDto> ordenIcd(String icd,
+            java.util.List<com.onest.app.catalog.expediente.dto.IcdDto> delWs) {
+        String q = icd == null ? "" : icd.trim().toUpperCase(java.util.Locale.ROOT);
+        java.util.List<com.onest.app.catalog.expediente.dto.IcdDto> claves = new java.util.ArrayList<>(delWs == null ? java.util.List.of() : delWs);
+        claves.sort(java.util.Comparator
+                .comparingInt((com.onest.app.catalog.expediente.dto.IcdDto c) -> rangoIcd(q, c.nombreClave()))
+                .thenComparing(c -> c.claveId() == null ? "" : c.claveId()));
+        return claves;
+    }
+
+    /** 0 = nombre identico, 1 = empieza con lo escrito, 2 = lo demas. */
+    private static int rangoIcd(String q, String nombre) {
+        if (q.isEmpty() || nombre == null) {
+            return 2;
+        }
+        String n = nombre.trim().toUpperCase(java.util.Locale.ROOT);
+        return n.equals(q) ? 0 : n.startsWith(q) ? 1 : 2;
     }
 }

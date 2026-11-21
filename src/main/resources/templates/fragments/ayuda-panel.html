@@ -35,7 +35,9 @@
 <script th:inline="javascript">
     window.ayudaPermisos = {
         menus: /*[[${menusPermitidos}]]*/ null,
-        admin: /*[[${currentUserRole != null and #strings.contains(currentUserRole, 'ADMIN')}]]*/ false
+        admin: /*[[${currentUserRole != null and #strings.contains(currentUserRole, 'ADMIN')}]]*/ false,
+        // 19-nov-2026: mismo criterio que el grupo «Análisis» del menu (fragments/menu.html)
+        analista: /*[[${currentUserRole != null and #strings.contains(currentUserRole, 'MEDICO_ANALISTA')}]]*/ false
     };
 </script>
 <script th:src="@{/js/ayuda-tutoriales.js}" src="/js/ayuda-tutoriales.js"></script>

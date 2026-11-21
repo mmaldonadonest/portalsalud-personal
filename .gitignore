@@ -49,3 +49,5 @@ plan/
 respaldo-salud/
 # docker/ayuda (Meilisearch, buscador opcional de la ayuda; en produccion no se usa): fuera del repo 25-oct-2026
 docker/ayuda/
+# Evidencias de impresos con datos medicos reales (20-nov-2026, pedido del usuario: no subir a git)
+docs/pruebas/pdf/

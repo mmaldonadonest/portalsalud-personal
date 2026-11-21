@@ -1,8 +1,11 @@
 package com.onest.app.catalog.dashboard.web;
 
 import com.onest.app.audit.web.Auditado;
+import com.onest.app.catalog.dashboard.dto.ConteoDictamenDto;
 import com.onest.app.catalog.dashboard.service.ComparativoPretestService;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -49,6 +52,35 @@ public class ComparativoPretestController {
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment().filename(archivo, StandardCharsets.UTF_8).build().toString())
                 .body(xlsx);
+    }
+
+    /** 19-nov-2026: grafica examen medico vs Pretest (mismos numeros que el Excel). */
+    @GetMapping("/pretest")
+    public Map<String, List<ComparativoPretestService.Comparativo>> grafica(
+            @RequestParam(name = "fechaInicial", required = false) String fechaInicial,
+            @RequestParam(name = "fechaFinal", required = false) String fechaFinal,
+            @RequestParam(name = "predio", required = false) String predio) {
+        try {
+            return servicio.grafica(fechaInicial, fechaFinal, predio);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        } catch (IllegalStateException ex) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), ex);
+        }
+    }
+
+    /** 19-nov-2026: examenes por genero con su dictamen. */
+    @GetMapping("/genero")
+    public List<ConteoDictamenDto> genero(@RequestParam(name = "fechaInicial", required = false) String fechaInicial,
+                                          @RequestParam(name = "fechaFinal", required = false) String fechaFinal,
+                                          @RequestParam(name = "predio", required = false) String predio) {
+        try {
+            return servicio.porGenero(fechaInicial, fechaFinal, predio);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        } catch (IllegalStateException ex) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), ex);
+        }
     }
 
     private static String nvl(String v) {

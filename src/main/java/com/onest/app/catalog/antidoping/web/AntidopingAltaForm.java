@@ -17,7 +17,10 @@ public class AntidopingAltaForm {
     private String tipoPrueba;
     private String sustancia;
     private String resultado;
+    /** E-017: solo la CONCLUSION (va al WS en STATUS_CONCLUSION, como siempre). */
     private String statusConclusion;
+    /** E-017 (Word SM 10-nov, punto 15): ESTATUS aparte, LABORANDO o BAJA_NO_CONTRATADO (base del portal). */
+    private String estatus;
     private String observaciones;
 
     // C-034 / C-077 (10-nov, Word SM punto 15): la pantalla puede mandar LOS DOS tipos (casillas «tipos»), cada uno

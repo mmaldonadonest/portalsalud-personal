@@ -174,6 +174,10 @@ public class ExamenService {
         return v;
     }
 
+    /** C-003 / P-056: especificacion libre del diagnostico; tope decidido por el usuario (20-nov-2026). */
+    public static final String TAG_ESPECIFICACION_DX = "EXM_DX_ESPECIFICACION";
+    public static final int MAX_ESPECIFICACION_DX = 250;
+
     /** Prefijo de las claves de formulario que van a SERV_MED_TAG y no al WS. */
     private static final String PREFIJO_TAG = "TAG.";
     private static final String GRUPO_TAG_FISICO = "EXAMEN_FISICO";
@@ -616,8 +620,12 @@ public class ExamenService {
         // ---- Estudios / Diagnostico / Plan / Resultado ----
         CATALOGO.put("Estudios realizados", new Seccion("SERV_MED_ESTUDIOS_REALIZADOS", List.of(
                 area("RESULTADOS", "Resultados"))));
+        // C-003 / P-056 (20-nov-2026, respuesta de SM: b): «Especificación» opcional junto al diagnóstico, para el
+        // detalle que el catalogo CIE-10 no trae. Vive en SERV_MED_TAG (el WS no tiene la columna); las graficas
+        // siguen contando por la clave del diagnostico, nunca por este texto.
         CATALOGO.put("Diagnóstico", new Seccion("SERV_MED_DIAGNOSTICO", List.of(
-                area("OBSERVACIONES", "Diagnóstico actual"))));
+                area("OBSERVACIONES", "Diagnóstico actual"),
+                tagCampo("AREA", TAG_ESPECIFICACION_DX, "Especificación (opcional)"))));
         CATALOGO.put("Plan terapéutico", new Seccion("SERV_MED_PLAN_TERAPIA", List.of(
                 area("OBSERVACIONES", "Plan terapéutico"))));
         CATALOGO.put("Resultado del examen", new Seccion("SERV_MED_RESULTADO_EXAMEN", List.of(
@@ -1031,6 +1039,10 @@ public class ExamenService {
                 if (k.startsWith(PREFIJO_TAG)) {
                     String tipo = k.substring(PREFIJO_TAG.length());
                     if (tipos.contains(tipo)) {
+                        // el maxlength de la pantalla se puede saltar; el impreso tiene espacio fijo
+                        if (TAG_ESPECIFICACION_DX.equals(tipo) && v != null && v.trim().length() > MAX_ESPECIFICACION_DX) {
+                            v = v.trim().substring(0, MAX_ESPECIFICACION_DX);
+                        }
                         nuevosTags.put(tipo, v);
                     }
                 } else {

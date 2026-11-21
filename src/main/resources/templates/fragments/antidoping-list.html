@@ -43,6 +43,7 @@
                                 <th>Sustancia</th>
                                 <th>Resultado</th>
                                 <th>Conclusión</th>
+                                <th>Estatus</th>
                                 <th>Observaciones</th>
                                 <th>Usuario</th>
                                 <th data-no-export>Formato</th>
@@ -60,7 +61,13 @@
                                           th:classappend="${a.resultado == 'POSITIVO'} ? 'bg-danger' : 'bg-success'"
                                           th:text="${a.resultado}">-</span>
                                 </td>
-                                <td th:text="${a.statusConclusion == 'CAPA' ? 'TRATAMIENTO APLICADO' : a.statusConclusion}">-</td>
+                                <!--/* E-017: las pruebas de antes del 19-nov guardaban LABORANDO / BAJA_NO_APLICA en la conclusion:
+                                     eso era el estatus, y ahi se muestra */-->
+                                <td th:text="${estatusViejo != null and estatusViejo.containsKey(a.statusConclusion) ? '—'
+                                        : (a.statusConclusion == 'CAPA' ? 'TRATAMIENTO APLICADO' : a.statusConclusion)}">-</td>
+                                <td th:with="e=${estatusPorPrueba != null ? estatusPorPrueba.get(a.idRegistro) : null}"
+                                    th:text="${e != null ? (estatusTexto.get(e) ?: e)
+                                        : (estatusViejo != null and estatusViejo.containsKey(a.statusConclusion) ? estatusViejo.get(a.statusConclusion) : '—')}">-</td>
                                 <td th:text="${a.observaciones}">-</td>
                                 <td th:text="${a.usuario}">-</td>
                                 <!-- FT-SO-22 Aceptacion a CECOSAMA (20-oct-2026): solo pruebas positivas; el servidor lo vuelve a revisar -->

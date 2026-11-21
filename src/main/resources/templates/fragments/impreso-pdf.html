@@ -13,9 +13,11 @@
             size: A4;
             margin: 12mm 12mm 10mm 12mm;
             @top-left { content: "SISTEMA MEDICO ONEST"; font: bold 10px serif; color: #333; vertical-align: bottom; }
-            @top-right { content: "Impreso: [(${d.ahora})]"; font: 9px serif; color: #333; vertical-align: bottom; }
-            @bottom-left { content: "Portal Salud Personal · Examen médico"; font: 9px serif; color: #333; vertical-align: top; }
-            @bottom-right { content: "NSS [(${d.v('NSS')})]"; font: 9px serif; color: #333; vertical-align: top; }
+            /* C-008 (19-nov-2026): los documentos de layouts/documento (Pretest) no traen "d": usan los parametros
+               pie, ahora y nss del layout; el examen sigue con d */
+            @top-right { content: "Impreso: [(${pie != null ? ahora : d.ahora})]"; font: 9px serif; color: #333; vertical-align: bottom; }
+            @bottom-left { content: "[(${pie ?: 'Portal Salud Personal · Examen médico'})]"; font: 9px serif; color: #333; vertical-align: top; }
+            @bottom-right { content: "NSS [(${pie != null ? nss : d.v('NSS')})]"; font: 9px serif; color: #333; vertical-align: top; }
         }
         body, body.container { font-family: serif; color: #000; background: #fff; margin: 0; padding: 0 !important;
                                border: 0; line-height: 1.5; font-size: 14px; }
@@ -24,6 +26,15 @@
            en filas de tabla y todo el expediente salia en 2 paginas */
         .hoja-pdf { page-break-after: always; }
         .hoja-pdf.ultima { page-break-after: auto; }
+        /* E-047 (20-nov-2026, no desperdiciar hojas): si una hoja no cabe en una pagina, HtmlPdfService la vuelve a
+           generar con una de estas clases (primero la 1, luego la 2) en lugar de dejar unos renglones en una hoja
+           casi en blanco. Solo se aplica a la hoja que se pasaba y solo si con eso cabe. Las alturas son minimos:
+           una celda con texto crece lo que necesite. */
+        .hoja-pdf.apretada-1 td, .hoja-pdf.apretada-1 th { padding-top: 0 !important; padding-bottom: 0 !important;
+                                                           height: 12px !important; line-height: 1.12 !important; }
+        .hoja-pdf.apretada-2 td, .hoja-pdf.apretada-2 th { padding-top: 0 !important; padding-bottom: 0 !important;
+                                                           height: 10px !important; line-height: 1.05 !important; }
+        .hoja-pdf.apretada-2 table.f td { font-size: 7.5px !important; }
         td, th, p { font-size: 9px; }
         p { margin: 0 0 16px 0; }
         h4, h5, h6 { font-weight: normal; line-height: 1.2; margin: 0 0 8px 0; }

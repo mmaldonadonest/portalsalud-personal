@@ -47,25 +47,33 @@ public enum LayoutNss {
             catalogo("EDAD", "RANGO DE EDAD", "RANGO_EDAD", "RANGO_EDAD", true),
             catalogo("GENERO", "SEXO", "GENERO", "GENERO", true))),
 
+    // 19-nov-2026: el formato 2026 de SM («2 EXAMEN NUEVO INGRESO 2026.xlsx», hoja EMNI) titula distinto cuatro
+    // columnas (FECHA DE ATENCION, TIPO EXAMEN, PUESTO, EDAD): se aceptan las dos formas. El nombre viene dividido
+    // (APELLIDO PATERNO, APELLIDO MATERNO, NOMBRE (S)) y ademas una columna NOMBRE con el nombre completo: esa NO se
+    // carga (es la union de las otras tres; decision del usuario 19-nov), por eso NOMBRE (S) va primero. Un archivo
+    // sin NOMBRE (S) (plantilla anterior) sigue tomando NOMBRE. Ya no trae ESTADO CIVIL ni ESCOLARIDAD (opcionales).
     EXAMEN_INGRESO("EXAMEN NUEVO INGRESO", "SERV_MED_XLS_EXAMEN_ING", false, List.of(
             nss(),
-            texto("NOMBRE", "NOMBRE", 120),
-            texto("APELLIDO_PATERNO", "APELLIDO_PATERNO", 120),
-            texto("APELLIDO_MATERNO", "APELLIDO_MATERNO", 120),
-            texto("PUESTO SOLICITADO", "PUESTO_SOLICITADO", 160),
+            texto("NOMBRE (S)", "NOMBRE(S)|NOMBRES|NOMBRE", "NOMBRE", 120),
+            CampoNss.textoQuePuedeFaltar("APELLIDO_PATERNO", "APELLIDO PATERNO", "APELLIDO_PATERNO", 120),
+            CampoNss.textoQuePuedeFaltar("APELLIDO_MATERNO", "APELLIDO MATERNO", "APELLIDO_MATERNO", 120),
+            texto("PUESTO SOLICITADO", "PUESTO", "PUESTO_SOLICITADO", 160),
             catalogo("GENERO", "GENERO", "GENERO", false),
             // Rango y no edad (14-oct-2026): los Excel del servicio medico solo marcan el rango;
             // la edad exacta del candidato llega despues por OCR (fecha de nacimiento)
-            catalogo("RANGO DE EDAD", "RANGO_EDAD", "RANGO_EDAD", false),
+            catalogo("RANGO DE EDAD", "EDAD", "RANGO_EDAD", "RANGO_EDAD", false),
             texto("CUENTA", "CUENTA", 160),
             catalogo("PREDIO", "PREDIO", "PREDIO", true),
             catalogo("AREA", "AREA", "AREA", true),
-            fecha("FECHA EXAMEN", "FECHA", true),
-            catalogo("TIPO DE EXAMEN", "TIPO_EXAMEN", "TIPO_EXAMEN_INGRESO", true),
+            fecha("FECHA EXAMEN", "FECHA DE ATENCION", "FECHA", true),
+            catalogo("TIPO DE EXAMEN", "TIPO EXAMEN", "TIPO_EXAMEN", "TIPO_EXAMEN_INGRESO", true),
             catalogo("STATUS", "DICTAMEN", "DICTAMEN", false),
             texto("DIAGNOSTICO", "DIAGNOSTICO", 1000),
-            texto("ESTADO CIVIL", "ESTADO_CIVIL", 40),
-            texto("ESCOLARIDAD", "ESCOLARIDAD", 60),
+            CampoNss.textoQuePuedeFaltar("ESTADO CIVIL", null, "ESTADO_CIVIL", 40),
+            CampoNss.textoQuePuedeFaltar("ESCOLARIDAD", null, "ESCOLARIDAD", 60),
+            // 19-nov-2026: SI = contratado, NO = no contratado (SM: 4,680 / 5,015 en 2026). Columna nueva:
+            // docs/script-prod/excel-nss-19-status-contratacion.sql (base del portal) ANTES de cargar con este WAR
+            CampoNss.catalogoQuePuedeFaltar("STATUS DE CONTRATACION", "STATUS_CONTRATACION", "SI_NO"),
             // 13-oct-2026: el Excel original las trae y el layout no (DDL excel-nss-12)
             texto("RESULTADOS PENDIENTES", "RESULTADOS_PENDIENTES", 500),
             texto("OBSERVACIONES", "OBSERVACIONES", 1000))),

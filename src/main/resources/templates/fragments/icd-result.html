@@ -7,6 +7,10 @@
 -->
 <div th:fragment="table">
     <div th:if="${#lists.isEmpty(claves)}" class="text-muted fs-sm">Sin resultados ICD.</div>
+    <!--/* C-003: con el CIE-10 completo se pintan maximo icdMaximo; el total avisa que hay que afinar */-->
+    <div th:if="${icdTotal != null and icdTotal > icdMaximo}" class="text-muted fs-sm mb-1"
+         th:text="|Se muestran ${icdMaximo} de ${#numbers.formatInteger(icdTotal, 1, 'COMMA')} resultados: escribe más para afinar la búsqueda.|">
+        Se muestran 100 de 5,646 resultados</div>
     <div th:unless="${#lists.isEmpty(claves)}" class="list-group" style="max-height: 220px; overflow-y: auto;">
         <button th:each="c : ${claves}" type="button"
                 class="list-group-item list-group-item-action py-2"

@@ -71,6 +71,9 @@ public class CustodiaService {
         // C-077 (10-nov, Word SM punto 15): fecha de aplicacion (el WS solo guarda la de registro) y la lista completa
         // de sustancias de un antidoping positivo (el WS solo guarda 20 caracteres)
         campos.put("FECHA_APLICACION", form.getFechaAplicacion());
+        // E-017: el estatus del catalogo de SM (STATUS_ANTIDOPING) va aparte de la conclusion; el WS solo tiene
+        // una columna (STATUS_CONCLUSION) y ahi se queda la conclusion
+        campos.put("ESTATUS", form.getEstatus());
         if ("ANTIDOPING".equals(form.getTipoPrueba()) && "POSITIVO".equals(form.getResultado())
                 && form.getSustancias() != null && !form.getSustancias().isEmpty()) {
             campos.put("SUSTANCIAS", String.join(",", limpias(form.getSustancias())));
@@ -118,6 +121,28 @@ public class CustodiaService {
 
     private static List<String> limpias(List<String> l) {
         return l.stream().filter(x -> x != null && !x.isBlank()).map(String::trim).distinct().toList();
+    }
+
+    /** E-017: catalogo STATUS_ANTIDOPING de SM (valor guardado -> texto). */
+    public static final Map<String, String> ESTATUS = Map.of(
+            "LABORANDO", "Laborando", "BAJA_NO_CONTRATADO", "Baja / No contratado");
+
+    /**
+     * E-017: valores que el portal guardaba en la misma columna que la conclusion antes de separarlas. En las pruebas
+     * viejas son el estatus, no una conclusion.
+     */
+    public static final Map<String, String> ESTATUS_EN_CONCLUSION = Map.of(
+            "LABORANDO", "Laborando", "BAJA_NO_APLICA", "Baja / No aplica");
+
+    /** E-017: REG_ID de la prueba -> estatus capturado (solo las capturadas desde el 19-nov-2026). */
+    public Map<String, String> estatusPorNss(String nss) {
+        Map<String, String> r = new LinkedHashMap<>();
+        tags.latestByNssAndTypePrefix(nss, "FTSO14.").forEach((k, v) -> {
+            if (k.endsWith(".ESTATUS") && v != null && !v.isBlank()) {
+                r.put(k.substring("FTSO14.".length(), k.length() - ".ESTATUS".length()), v.trim());
+            }
+        });
+        return r;
     }
 
     /** Campos de custodia de una prueba (sin el prefijo); vacio para pruebas anteriores al FT-SO-14. */

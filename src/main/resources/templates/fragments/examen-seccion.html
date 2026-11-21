@@ -345,10 +345,16 @@
 
                 <!-- Diagnostico actual (29-oct-2026): editable; el buscador ICD agrega claves al final sin borrar lo
                      escrito (addIcd). Sigue obligatorio para guardar un dictamen (guardarExamen en nss-search.html). -->
+                <!-- C-003 / P-056 (20-nov-2026): la seccion Diagnostico trae tambien «Especificacion» (tag, max. 250);
+                     el id del buscador y lo obligatorio son solo del diagnostico actual -->
                 <textarea th:if="${it.type == 'AREA'}" class="form-control form-control-sm"
-                          th:rows="${seccion == 'Diagnóstico'} ? 4 : 2"
-                          th:id="${seccion == 'Diagnóstico'} ? 'examenDiagnostico'"
-                          th:placeholder="${seccion == 'Diagnóstico'} ? 'Agrega claves con el buscador ICD de arriba o escribe el diagnóstico...'"
+                          th:with="dxActual=${it.fieldName == 'SERV_MED_DIAGNOSTICO.OBSERVACIONES'},
+                                   dxEspec=${it.fieldName == 'TAG.EXM_DX_ESPECIFICACION'}"
+                          th:rows="${dxActual} ? 4 : 2"
+                          th:id="${dxActual} ? 'examenDiagnostico'"
+                          th:placeholder="${dxActual} ? 'Agrega claves con el buscador ICD de arriba o escribe el diagnóstico...'
+                                          : (${dxEspec} ? 'Detalle que el catálogo no trae (opcional, máximo 250 caracteres). No cuenta en las gráficas.' : '')"
+                          th:attr="maxlength=${dxEspec} ? 250 : null"
                           th:name="${it.fieldName}" th:text="${it.value}"></textarea>
 
                 <!-- data-guardado = dictamen en BD: la carta FT-SO-25 se habilita solo cuando el elegido ya esta guardado -->

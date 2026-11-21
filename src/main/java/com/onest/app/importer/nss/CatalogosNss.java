@@ -119,14 +119,18 @@ public final class CatalogosNss {
                     "H", "MASC", "HOMBRE", "MASC", "MASCULINO", "MASC", "1", "MASC"),
             // 12-nov-2026: el formato 2026 de SM escribe el rango con espacios ("18 - 25", "55 +")
             "RANGO_EDAD", Map.of(
-                    "18 - 25", "18-25", "26 - 35", "26-35", "36 - 45", "36-45", "46 - 55", "46-55", "55 +", "55+"));
+                    "18 - 25", "18-25", "26 - 35", "26-35", "36 - 45", "36-45", "46 - 55", "46-55", "55 +", "55+"),
+            // 19-nov-2026 (decision del usuario): el dictamen con espacio, como lo escribe SM en su catalogo y en
+            // «2 EXAMEN NUEVO INGRESO 2026»; se guarda con guion bajo, que es lo que leen las graficas
+            "DICTAMEN", Map.of(
+                    "APTO CONDICIONADO", "APTO_CONDICIONADO", "APTO RESTRINGIDO", "APTO_RESTRINGIDO", "NO APTO", "NO_APTO"));
 
     /**
      * Catalogos cuya equivalencia entra sin aviso por renglon: el genero y el rango de edad vienen en TODOS los renglones y un
      * aviso por cada uno taparia los avisos que si importan en «Entran con ajuste».
      */
     public static boolean avisaEquivalencia(String catalogo) {
-        return !"GENERO".equals(catalogo) && !"RANGO_EDAD".equals(catalogo);
+        return !"GENERO".equals(catalogo) && !"RANGO_EDAD".equals(catalogo) && !"DICTAMEN".equals(catalogo);
     }
 
     /** Valor que no se puede traducir sin adivinar: el motivo del rechazo (vacio si no es el caso). */

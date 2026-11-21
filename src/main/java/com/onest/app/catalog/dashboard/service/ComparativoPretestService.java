@@ -1,9 +1,13 @@
 package com.onest.app.catalog.dashboard.service;
 
+import com.onest.app.catalog.dashboard.dto.ConteoDictamenDto;
+import com.onest.app.catalog.dashboard.repository.VistaExamenRepository;
 import com.onest.app.catalog.dashboard.repository.VistaPretestRepository;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
@@ -22,21 +26,64 @@ import org.springframework.stereotype.Service;
 public class ComparativoPretestService {
 
     private final ObjectProvider<VistaPretestRepository> vista;
+    private final ObjectProvider<VistaExamenRepository> examenes;
 
-    public ComparativoPretestService(ObjectProvider<VistaPretestRepository> vista) {
+    public ComparativoPretestService(ObjectProvider<VistaPretestRepository> vista,
+                                     ObjectProvider<VistaExamenRepository> examenes) {
         this.vista = vista;
+        this.examenes = examenes;
     }
 
-    public byte[] excel(String fechaInicial, String fechaFinal, String predio) {
+    /** Un renglon de la grafica examen vs Pretest. */
+    public record Comparativo(String clave, long examenes, long pretest) {
+    }
+
+    /** 19-nov-2026 (pedido de SM): la grafica del mismo comparativo que el Excel, por mes y por predio. */
+    public Map<String, List<Comparativo>> grafica(String fechaInicial, String fechaFinal, String predio) {
+        VistaPretestRepository v = repositorio();
+        LocalDate[] r = rango(fechaInicial, fechaFinal);
+        return Map.of("porMes", renglones(v.porMes(r[0], r[1], predio, null)),
+                "porPredio", renglones(v.porPredio(r[0], r[1], predio, null)));
+    }
+
+    /** 19-nov-2026 (pedido de SM): examenes por genero con su desglose por dictamen. */
+    public List<ConteoDictamenDto> porGenero(String fechaInicial, String fechaFinal, String predio) {
+        VistaExamenRepository v = examenes.getIfAvailable();
+        if (v == null) {
+            throw new IllegalStateException("La grafica por genero requiere portal.historico.fuente=VISTA.");
+        }
+        LocalDate[] r = rango(fechaInicial, fechaFinal);
+        return v.porGenero(r[0], r[1], predio, null);
+    }
+
+    private static List<Comparativo> renglones(Map<String, long[]> filas) {
+        List<Comparativo> out = new ArrayList<>();
+        filas.forEach((k, n) -> out.add(new Comparativo(k == null ? "" : k, n[0], n[1])));
+        return out;
+    }
+
+    private VistaPretestRepository repositorio() {
         VistaPretestRepository v = vista.getIfAvailable();
         if (v == null) {
             throw new IllegalStateException("El comparativo requiere portal.historico.fuente=VISTA.");
         }
+        return v;
+    }
+
+    private static LocalDate[] rango(String fechaInicial, String fechaFinal) {
         LocalDate desde = FechaFiltro.aFecha(fechaInicial).orElse(null);
         LocalDate hasta = FechaFiltro.aFecha(fechaFinal).orElse(null);
         if (desde != null && hasta != null && hasta.isBefore(desde)) {
             throw new IllegalArgumentException("La fecha final es anterior a la inicial.");
         }
+        return new LocalDate[] {desde, hasta};
+    }
+
+    public byte[] excel(String fechaInicial, String fechaFinal, String predio) {
+        VistaPretestRepository v = repositorio();
+        LocalDate[] r = rango(fechaInicial, fechaFinal);
+        LocalDate desde = r[0];
+        LocalDate hasta = r[1];
         String alcance = "Exámenes médicos vs Pretest · " + (fechaInicial == null ? "" : fechaInicial.trim()) + " a "
                 + (fechaFinal == null ? "" : fechaFinal.trim())
                 + (predio == null || predio.isBlank() ? " · todos los predios" : " · " + predio.trim());

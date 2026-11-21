@@ -215,6 +215,17 @@
                 <div class="card-body"><div id="listaCie"></div></div>
             </div>
         </div>
+        <!--/* 19-nov-2026 (pedido de SM): todos los predios juntos, mes por mes */-->
+        <div class="col-12">
+            <div class="card card-one chart-card">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--mes">Por predio</span>
+                    <div class="card-title-lg">Lesiones por predio y mes</div>
+                    <p class="fs-11 text-muted mb-0" id="subPredioMes">Cada casilla = lesiones de ese predio en ese mes; más oscuro = más lesiones</p>
+                </div>
+                <div class="card-body"><div id="chartPredioMes"></div></div>
+            </div>
+        </div>
     </div>
 
     <p class="fs-11 text-muted mt-3 mb-0">
@@ -231,7 +242,7 @@
     <script th:inline="javascript">
         (function () {
             var contextPath = /*[[@{/}]]*/ '/';
-            var chartTipo = null, chartRegion = null, chartMes = null, ultimoExport = null;
+            var chartTipo = null, chartRegion = null, chartMes = null, ultimoExport = null, chartPredioMes = null;
 
             var NOMBRES_MES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
                 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -341,10 +352,63 @@
                     pintarCie(d);
                     ultimoExport = d;
                     estado.textContent = 'Actualizado.';
+                    cargarPredioMes(qs);
                 } catch (e) {
                     console.error('[analisis-musculoesqueleticas] error en cargar():', e);
                     estado.textContent = 'Error de red: ' + e.message;
                 }
+            }
+
+            // aparte: si falla, lo de arriba ya quedo pintado
+            async function cargarPredioMes(qs) {
+                try {
+                    var res = await fetch(contextPath + 'api/dashboard/musculoesqueleticas/predio-mes?' + qs);
+                    if (!res.ok) { vaciar('chartPredioMes', 'No se pudo consultar (HTTP ' + res.status + ').'); return; }
+                    pintarPredioMes(await res.json());
+                } catch (e) {
+                    console.error('[analisis-musculoesqueleticas] predio-mes', e);
+                    vaciar('chartPredioMes', 'Error de red: ' + e.message);
+                }
+            }
+
+            function pintarPredioMes(lista) {
+                lista = lista || [];
+                if (!lista.length) { vaciar('chartPredioMes', 'Sin lesiones en el periodo.'); return; }
+                var meses = [], totales = {};
+                lista.forEach(function (r) {
+                    if (meses.indexOf(r.mes) < 0) { meses.push(r.mes); }
+                    totales[r.predio] = (totales[r.predio] || 0) + r.cantidad;
+                });
+                meses.sort();
+                // el predio con mas lesiones arriba (apex pinta la ultima serie arriba)
+                var predios = Object.keys(totales).sort(function (a, b) { return totales[a] - totales[b]; });
+                var series = predios.map(function (p) {
+                    return {
+                        name: p + ' (' + numero(totales[p]) + ')',
+                        data: meses.map(function (m) {
+                            var r = lista.find(function (x) { return x.predio === p && x.mes === m; });
+                            return { x: etiquetaMes(m), y: r ? r.cantidad : 0 };
+                        })
+                    };
+                });
+                var options = {
+                    chart: { type: 'heatmap', height: Math.max(260, predios.length * 30 + 70), toolbar: { show: false } },
+                    series: series,
+                    colors: ['#C2410C'],
+                    // texto oscuro: en blanco no se leian las casillas claras (pocas lesiones)
+                    dataLabels: { enabled: true, style: { fontSize: '10px', colors: ['#1f2937'] },
+                                  formatter: function (v) { return v ? numero(v) : ''; } },
+                    xaxis: { labels: { style: { colors: '#64748b', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#64748b', fontSize: '11px' }, maxWidth: 220 } },
+                    plotOptions: { heatmap: { radius: 3, enableShades: true, shadeIntensity: 0.6 } },
+                    legend: { show: false },
+                    stroke: { width: 1, colors: ['#ffffff'] },
+                    tooltip: { y: { formatter: function (v) { return numero(v) + (v === 1 ? ' lesión' : ' lesiones'); } } }
+                };
+                document.getElementById('chartPredioMes').innerHTML = '';
+                if (chartPredioMes) { chartPredioMes.destroy(); }
+                chartPredioMes = new ApexCharts(document.querySelector('#chartPredioMes'), options);
+                chartPredioMes.render();
             }
 
             function pintarAviso(d) {

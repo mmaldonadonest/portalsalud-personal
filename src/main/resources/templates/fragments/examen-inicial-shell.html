@@ -651,9 +651,13 @@
                                                 th:text="|${it.value} (capturado antes)|" onclick="exIniChip(this);">otro</button>
                                     </div>
                                 </div>
-                                <div th:if="${it.type == 'AREA'}" style="grid-column: 1 / -1;">
+                                <!-- C-003 / P-056 (20-nov-2026): Diagnostico trae tambien «Especificacion» (tag, max. 250);
+                                     el buscador ICD y el id obligatorio son solo del diagnostico actual -->
+                                <div th:if="${it.type == 'AREA'}" style="grid-column: 1 / -1;"
+                                     th:with="dxActual=${it.fieldName == 'SERV_MED_DIAGNOSTICO.OBSERVACIONES'},
+                                              dxEspec=${it.fieldName == 'TAG.EXM_DX_ESPECIFICACION'}">
                                     <label th:text="${it.label}">Texto</label>
-                                    <div th:if="${s.nombre == 'Diagnóstico'}" class="d-flex gap-2 mb-2">
+                                    <div th:if="${dxActual}" class="d-flex gap-2 mb-2">
                                         <input type="text" class="form-control form-control-sm" id="examenIcdConsult" autocomplete="off"
                                                placeholder="Escribe al menos 3 letras del diagnóstico (catálogo ICD)..."
                                                oninput="buscarIcdDebounced('examenIcdConsult','examenIcdResult','examenDiagnostico');">
@@ -662,10 +666,12 @@
                                             <i class="ri-list-check me-1"></i>Ver catálogo
                                         </button>
                                     </div>
-                                    <div th:if="${s.nombre == 'Diagnóstico'}" id="examenIcdResult" class="mb-2"></div>
-                                    <textarea class="form-control form-control-sm" rows="3" th:name="${it.fieldName}"
-                                              th:id="${s.nombre == 'Diagnóstico'} ? 'examenDiagnostico'"
-                                              th:placeholder="${s.nombre == 'Diagnóstico'} ? 'Agrega claves con el buscador ICD de arriba o escribe el diagnóstico' : ''"
+                                    <div th:if="${dxActual}" id="examenIcdResult" class="mb-2"></div>
+                                    <textarea class="form-control form-control-sm" th:rows="${dxEspec} ? 2 : 3" th:name="${it.fieldName}"
+                                              th:id="${dxActual} ? 'examenDiagnostico'"
+                                              th:placeholder="${dxActual} ? 'Agrega claves con el buscador ICD de arriba o escribe el diagnóstico'
+                                                              : (${dxEspec} ? 'Detalle que el catálogo no trae (opcional, máximo 250 caracteres). No cuenta en las gráficas.' : '')"
+                                              th:attr="maxlength=${dxEspec} ? 250 : null, data-opcional=${dxEspec} ? 'si' : null"
                                               th:text="${it.value}"></textarea>
                                 </div>
                                 <!-- Dictamen como 4 botones grandes de color (mismos valores que el select del

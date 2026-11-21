@@ -68,6 +68,24 @@ public record CampoNss(String encabezado, String columna, Tipo tipo, int maximo,
         return new CampoNss(encabezado, columna, Tipo.TEXTO, maximo, null, false, false, null);
     }
 
+    /**
+     * Texto opcional que el formato 2026 de SM ya no trae (19-nov-2026: apellidos, estado civil y escolaridad de
+     * nuevo ingreso): si la columna no viene, el archivo se reconoce igual y el dato queda vacio.
+     */
+    static CampoNss textoQuePuedeFaltar(String encabezado, String alias, String columna, int maximo) {
+        return new CampoNss(encabezado, columna, Tipo.TEXTO, maximo, null, false, false, alias, true);
+    }
+
+    /** Catalogo opcional agregado despues (STATUS DE CONTRATACION, 19-nov-2026): si el archivo no la trae, vacio. */
+    static CampoNss catalogoQuePuedeFaltar(String encabezado, String columna, String catalogo) {
+        return new CampoNss(encabezado, columna, Tipo.CATALOGO, 0, catalogo, false, false, null, true);
+    }
+
+    /** Texto cuyo encabezado tambien se acepta con otro nombre (PUESTO SOLICITADO o PUESTO, 19-nov-2026). */
+    static CampoNss texto(String encabezado, String alias, String columna, int maximo) {
+        return new CampoNss(encabezado, columna, Tipo.TEXTO, maximo, null, false, false, alias);
+    }
+
     static CampoNss textoObligatorio(String encabezado, String columna, int maximo) {
         return new CampoNss(encabezado, columna, Tipo.TEXTO, maximo, null, true, false, null);
     }

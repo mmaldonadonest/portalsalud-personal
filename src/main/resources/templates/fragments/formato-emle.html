@@ -42,10 +42,16 @@
         .emle .cuadro.ce { background-color: #9B8AFB; }
         .emle .cuadro.cp { background-color: #D1E9FF; border-color: #0057A8; }
         .emle .cert { font-weight: 700; }
-        .emle table.firmas { width: 100%; margin-top: 8px; border-collapse: collapse; }
+        /* 20-nov-2026 (pedido del usuario: no desperdiciar hojas, se imprimen varios al dia): el EMNI se pasaba
+           dos renglones a una hoja casi en blanco. El cierre se compacta: cajas mas bajas (crecen si traen texto,
+           en la tabla height es minimo), firmas mas juntas, certificacion en letra menor, y el bloque de firmas no se
+           parte entre dos hojas. */
+        .emle table.f td.caja-c { height: 20px; }
+        .emle table.firmas { width: 100%; margin-top: 4px; border-collapse: collapse; page-break-inside: avoid; }
         .emle table.firmas td { width: 50%; text-align: center; vertical-align: bottom; padding: 0 8px; font-size: 8.5px; }
-        .emle .linea-firma { border-top: 1px solid #000; margin-top: 4px; padding-top: 2px; }
-        .emle table.firmas img { max-height: 44px; }
+        .emle .linea-firma { border-top: 1px solid #000; margin-top: 2px; padding-top: 2px; }
+        .emle table.firmas img { max-height: 38px; }
+        .emle table.firmas td.cert { font-size: 7px; line-height: 1.2; }
         /* C-090 (18-nov-2026, presentacion de SM): el impreso del periodico (FT-SO-17 y sus variantes 16, 18 y 20)
            todo en MAYUSCULAS. Solo al imprimir: lo guardado no cambia. */
         .emle.emle-mayus table.f td { text-transform: uppercase; }
@@ -355,15 +361,18 @@
     <table class="f">
         <th:block th:if="${estudios != null}">
             <tr><td class="sec" th:text="${estudios}">ESTUDIOS REALIZADOS Y RESULTADOS</td></tr>
-            <tr><td class="caja" th:text="${d.texto('RESULTADOS3')}"></td></tr>
+            <tr><td class="caja-c" th:text="${d.texto('RESULTADOS3')}"></td></tr>
         </th:block>
         <th:block th:if="${conDx}">
             <tr><td class="sec">DIAGNÓSTICO</td></tr>
-            <tr><td class="caja" th:text="${d.texto('OBSERVACIONES3')}"></td></tr>
+            <!--/* C-003 / P-056 (20-nov-2026): la especificacion va en el MISMO recuadro, para no sumar renglones */-->
+            <tr><td class="caja-c"><span th:text="${d.texto('OBSERVACIONES3')}"></span><th:block
+                    th:unless="${#strings.isEmpty(d.texto('EXM_DX_ESPECIFICACION'))}"><br><b>Especificación:</b>
+                <span style="word-wrap: break-word;" th:text="${d.texto('EXM_DX_ESPECIFICACION')}"></span></th:block></td></tr>
         </th:block>
         <th:block th:if="${conPlan}">
             <tr><td class="sec">PLAN O TERAPÉUTICA EMPLEADA</td></tr>
-            <tr><td class="caja" th:text="${d.texto('OBSERVACIONES32')}"></td></tr>
+            <tr><td class="caja-c" th:text="${d.texto('OBSERVACIONES32')}"></td></tr>
         </th:block>
     </table>
     <!--/* las CLAVES 15/45/60/30 no se imprimen (decision 16-oct-2026), solo el texto del dictamen */-->
@@ -376,7 +385,7 @@
             <td class="c">NO APTO</td><td class="x" th:text="${d.marca('DICTAMEN', 'No apto')}"></td>
         </tr>
         <tr><td colspan="8" class="e">SI NO ES APTO O APTO RESTRINGIDO CITE LAS ANORMALIDADES DESCALIFICANTES</td></tr>
-        <tr><td colspan="8" class="caja" th:text="${d.v('OBSERVACIONESRESEXAM1')}"></td></tr>
+        <tr><td colspan="8" class="caja-c" th:text="${d.v('OBSERVACIONESRESEXAM1')}"></td></tr>
     </table>
     <table class="firmas">
         <tr>
@@ -393,8 +402,8 @@
             <td>
                 <!--/* 29-oct-2026: espacio para firmar arriba de la linea, como la del medico; pegada a la linea
                      del medico no se distinguia una de otra (y la firma iba encimada al nombre) */-->
-                <div style="height:34px; margin-top:6px">
-                    <img th:if="${elaboro != null and elaboro.firmaDataUri != null}" th:src="${elaboro.firmaDataUri}" alt="Firma" style="max-height:34px">
+                <div style="height:30px; margin-top:4px">
+                    <img th:if="${elaboro != null and elaboro.firmaDataUri != null}" th:src="${elaboro.firmaDataUri}" alt="Firma" style="max-height:30px">
                 </div>
                 <div class="linea-firma">
                     <!--/* 3-nov-2026: "Autorizó" en lugar de "Realizó" (pedido del usuario, todos los impresos) */-->

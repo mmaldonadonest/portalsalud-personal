@@ -45,6 +45,40 @@ public class FileStoreService {
     }
 
     public int store(MultipartFile[] files, String nss, String relacion) {
+        return store(files, nss, relacion, null);
+    }
+
+    /** Archivos que de verdad se van a guardar (los vacios se saltan), para calcular sus nombres antes. */
+    public static int cuantos(MultipartFile[] files) {
+        int n = 0;
+        if (files != null) {
+            for (MultipartFile f : files) {
+                if (f != null && !f.isEmpty()) {
+                    n++;
+                }
+            }
+        }
+        return n;
+    }
+
+    /** Extension (minusculas) de cada archivo no vacio, en orden. */
+    public static List<String> extensiones(MultipartFile[] files) {
+        List<String> r = new java.util.ArrayList<>();
+        if (files != null) {
+            for (MultipartFile f : files) {
+                if (f != null && !f.isEmpty()) {
+                    r.add(extensionOf(sanitize(f.getOriginalFilename())));
+                }
+            }
+        }
+        return r;
+    }
+
+    /**
+     * Igual que {@link #store(MultipartFile[], String, String)}, pero con el nombre con que queda cada archivo
+     * (nomenclatura de SM), en el mismo orden que los archivos no vacios. null = su nombre original.
+     */
+    public int store(MultipartFile[] files, String nss, String relacion, List<String> nombres) {
         if (relacion == null || relacion.isBlank()) {
             throw new IllegalArgumentException("La relación (idArchivoRel) es obligatoria");
         }
@@ -79,6 +113,9 @@ public class FileStoreService {
                 throw new IllegalStateException("No se pudo leer el archivo: " + originalName, ex);
             }
 
+            if (nombres != null && count < nombres.size()) {
+                originalName = nombres.get(count);
+            }
             StoredBinary stored = storage.store(bytes, extension);
             repository.insert(nss, UUID.randomUUID().toString(), originalName, extension, mime,
                     stored.sizeBytes(), stored.checksumSha256(), stored.storagePath(), stored.storageProvider(),
@@ -86,6 +123,29 @@ public class FileStoreService {
             count++;
         }
         return count;
+    }
+
+    /**
+     * C-008: guarda un PDF que genero el propio portal (el impreso del examen), sin pasar por la subida del
+     * navegador. Regresa el id del archivo.
+     */
+    public long storePdfGenerado(byte[] pdf, String nss, String relacion, String nombre) {
+        if (pdf == null || pdf.length == 0) {
+            throw new IllegalArgumentException("El PDF está vacío.");
+        }
+        StoredBinary stored = storage.store(pdf, "pdf");
+        return repository.insert(nss, UUID.randomUUID().toString(), nombre, "pdf", "application/pdf",
+                stored.sizeBytes(), stored.checksumSha256(), stored.storagePath(), stored.storageProvider(),
+                relacion, usuarioActual());
+    }
+
+    public List<FsFileRepository.ConTipo> listByNssAndTypePrefix(String nss, String prefijo) {
+        return repository.listByNssAndTypePrefix(nss, prefijo);
+    }
+
+    /** Borrado logico de un archivo que el portal reemplaza (no lo pide el usuario). */
+    public void reemplazado(long id) {
+        repository.markDeleted(id, usuarioActual());
     }
 
     public List<MedFileMeta> listByRelacion(String relacion) {

@@ -180,10 +180,13 @@
                 ['SOLVENTE', 'Solvente'], ['OTRO', 'Otro']
             ];
             var CATALOGO_STATUS = [
-                // C-035 y C-032: cambia solo el texto; el valor guardado (CAPA, ALCOHOLEMIA) es el de siempre
-                ['N/A', 'N/A'], ['CAPA', 'Tratamiento aplicado'], ['LABORANDO', 'Laborando'], ['RECAIDA', 'Recaida'],
-                ['NO_INTERESADO_BAJA', 'No interesado / Baja'], ['NO_CONTRATADO', 'No contratado'],
-                ['BAJA_NO_APLICA', 'Baja / No aplica']
+                // C-035 y C-032: cambia solo el texto; el valor guardado (CAPA, ALCOHOLEMIA) es el de siempre.
+                // E-017: solo conclusiones; Laborando y Baja pasan a Estatus (catalogo de SM)
+                ['N/A', 'N/A'], ['CAPA', 'Tratamiento aplicado'], ['NO_INTERESADO_BAJA', 'No interesado / Baja'],
+                ['NO_CONTRATADO', 'No contratado'], ['RECAIDA', 'Recaída']
+            ];
+            var CATALOGO_ESTATUS = [
+                ['LABORANDO', 'Laborando'], ['BAJA_NO_CONTRATADO', 'Baja / No contratado']
             ];
             var CATALOGO_TIPO_PRUEBA = [
                 ['ANTIDOPING', 'Antidoping'], ['ALCOHOLEMIA', 'Alcoholimetría']
@@ -243,8 +246,12 @@
                     '        <select class="form-select campo-resultado">' + opciones(CATALOGO_RESULTADO, 'Seleccionar') + '</select>' +
                     '      </div>' +
                     '      <div class="col-md-6">' +
-                    '        <label class="form-label">Status / conclusión</label>' +
+                    '        <label class="form-label">Conclusión</label>' +
                     '        <select class="form-select campo-status">' + opciones(CATALOGO_STATUS, null) + '</select>' +
+                    '      </div>' +
+                    '      <div class="col-md-6">' +
+                    '        <label class="form-label">Estatus <span class="text-danger">*</span></label>' +
+                    '        <select class="form-select campo-estatus">' + opciones(CATALOGO_ESTATUS, 'Seleccionar') + '</select>' +
                     '      </div>' +
                     '      <div class="col-12">' +
                     '        <label class="form-label">Observaciones</label>' +
@@ -348,6 +355,7 @@
                 body.append('sustancia', card.querySelector('.campo-sustancia').value);
                 body.append('resultado', card.querySelector('.campo-resultado').value);
                 body.append('statusConclusion', card.querySelector('.campo-status').value);
+                body.append('estatus', card.querySelector('.campo-estatus').value);
                 body.append('observaciones', card.querySelector('.campo-observaciones').value);
                 var csrfName = document.getElementById('pageCsrfName').value;
                 var csrfValue = document.getElementById('pageCsrfValue').value;

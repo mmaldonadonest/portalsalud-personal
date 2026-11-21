@@ -159,6 +159,14 @@ public class CargaNssService {
                     avisos.add("renglon 2: es el renglon de ejemplo de la plantilla; no se carga");
                     return;
                 }
+                // 19-nov-2026: SM pone cuadros de totales debajo de los datos («NO CONTRATADOS 5015», «TOTAL DE EMNI»).
+                // Un renglon sin NINGUNO de los datos obligatorios del evento (fuera del NSS) no es un evento: se
+                // salta con aviso y no cuenta como rechazo. Un evento real al que le falte uno si se rechaza.
+                if (!traeAlgunObligatorio(fila, validador[0])) {
+                    avisos.add("renglon " + fila.numero() + ": ignorado, no trae ninguno de los datos obligatorios "
+                            + "(parece un total o una nota)");
+                    return;
+                }
                 leidas[0]++;
                 LectorXlsx.Fila ajustada = ajustarNss(fila, validador[0], errores, avisosFila, corregidas);
                 if (ajustada == null) {
@@ -418,6 +426,26 @@ public class CargaNssService {
     }
 
     /** La fila trae los mismos encabezados que el encabezado del archivo (sin importar mayusculas ni espacios). */
+    /**
+     * ¿El renglon trae al menos uno de los datos obligatorios del layout (sin contar el NSS)? Si el layout no tiene
+     * obligatorios fuera del NSS, se toma como que si (nunca se salta nada en ese caso).
+     */
+    static boolean traeAlgunObligatorio(LectorXlsx.Fila fila, ValidadorNss v) {
+        boolean hayObligatorios = false;
+        for (CampoNss c : v.layout().campos()) {
+            if (!c.obligatorio() || c.tipo() == CampoNss.Tipo.NSS || c.columna() == null) {
+                continue;
+            }
+            hayObligatorios = true;
+            int i = v.indice(c.columna());
+            String valor = i < 0 ? null : fila.valor(i);
+            if (valor != null && !valor.isBlank()) {
+                return true;
+            }
+        }
+        return !hayObligatorios;
+    }
+
     private static boolean mismoEncabezado(List<String> fila, List<String> encabezado) {
         List<String> a = fila.stream().filter(v -> v != null && !v.isBlank()).map(CatalogosNss::clave).toList();
         List<String> b = encabezado.stream().filter(v -> v != null && !v.isBlank()).map(CatalogosNss::clave).toList();

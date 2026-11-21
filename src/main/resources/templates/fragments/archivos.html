@@ -13,7 +13,12 @@
         </div>
         <div class="card-body">
             <div class="row g-2 align-items-end mb-1">
-                <div class="col-md-8">
+                <!--/* C-058 / C-059 (18-nov-2026): el nombre sale de la fecha del documento (EST-ENE-2026-GAMALA) */-->
+                <div class="col-md-3" th:if="${tipo == 'laboratorio' or tipo == 'nota_medica'}">
+                    <label class="form-label" for="archivoFechaDoc">Fecha del documento <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="archivoFechaDoc">
+                </div>
+                <div th:class="${tipo == 'laboratorio' or tipo == 'nota_medica'} ? 'col-md-5' : 'col-md-8'">
                     <label class="form-label" for="archivoFiles">Subir PDF</label>
                     <div class="input-group">
                         <input type="file" class="form-control" id="archivoFiles" accept="application/pdf" multiple
@@ -34,7 +39,9 @@
                 </div>
             </div>
             <!-- Mismos limites que FileStoreService.MAX_BYTES y spring.servlet.multipart -->
-            <div class="form-text">PDF, máximo 25 MB por archivo (hasta 50 MB por subida si eliges varios).</div>
+            <div class="form-text">PDF, máximo 25 MB por archivo (hasta 50 MB por subida si eliges varios).
+                <th:block th:if="${tipo == 'laboratorio' or tipo == 'nota_medica'}">Se guarda con el nombre de Servicio Médico:
+                    <span th:text="${tipo == 'laboratorio' ? 'EST' : 'DM'} + '-MES-AÑO-INICIALES'">EST-MES-AÑO-INICIALES</span>.</th:block></div>
             <!-- La linea separa la subida de la lista: los filtros no son parte de "Subir PDF" -->
             <hr class="my-3">
 
@@ -152,27 +159,36 @@
                                     </td>
                                     <td class="text-break">
                                         <i th:if="${h.origen == 'MANO'}" class="ri-file-pdf-2-line me-1 text-danger"></i><span th:text="${h.examen}">-</span>
+                                        <!--/* C-008: PDF que el portal guardo al cerrar el examen, con la nomenclatura de SM */-->
+                                        <div th:if="${(h.origen == 'PORTAL' or h.origen == 'PRETEST') and h.archivoNombre != null}" class="text-muted fs-12">
+                                            <i class="ri-file-pdf-2-line me-1 text-danger"></i><span th:text="${h.archivoNombre}">EMP-NOV-2026-GAMA.pdf</span>
+                                        </div>
                                     </td>
                                     <td th:text="${h.dictamen ?: '—'}">—</td>
                                     <td class="text-muted fs-sm text-break" th:text="${h.detalle ?: '—'}">—</td>
                                     <td class="text-end text-nowrap" data-no-export>
-                                        <th:block th:if="${h.archivoId != null}">
+                                        <th:block th:if="${h.archivoId != null and h.origen == 'MANO'}">
                                             <a class="btn btn-sm btn-outline-primary" target="_blank" title="Descargar"
                                                th:href="@{'/api/nss/consulta/file/' + ${h.archivoId}(nss=${nss})}"><i class="ri-download-2-line"></i></a>
                                             <button type="button" class="btn btn-sm btn-outline-danger" title="Borrar"
                                                     th:attr="data-id=${h.archivoId}, data-nss=${nss}, data-tipo=${tipo}, data-nombre=${h.archivoNombre}"
                                                     onclick="borrarArchivo(this);"><i class="ri-delete-bin-line"></i></button>
                                         </th:block>
-                                        <!--/* E-044 (18-nov-2026): la ruta era /examen/imprimir-pdf, sin /api/nss -> 404 */-->
-                                        <a th:if="${h.pdfPortal and h.origen == 'PORTAL'}" class="btn btn-sm btn-outline-primary" target="_blank"
+                                        <!--/* C-008: el PDF guardado de ESE examen (no se borra desde aqui: es el registro del examen) */-->
+                                        <a th:if="${(h.origen == 'PORTAL' or h.origen == 'PRETEST') and h.archivoId != null}" class="btn btn-sm btn-outline-primary" target="_blank"
+                                           th:title="${'Ver ' + h.archivoNombre}" th:href="@{'/api/nss/consulta/file/' + ${h.archivoId}(nss=${nss})}">
+                                            <i class="ri-file-pdf-2-line me-1"></i>PDF</a>
+                                        <!--/* E-044 (18-nov-2026): la ruta era /examen/imprimir-pdf, sin /api/nss -> 404.
+                                             Sin PDF guardado (examen de antes de C-008), el mas reciente se arma al momento */-->
+                                        <a th:if="${h.pdfPortal and h.origen == 'PORTAL' and h.archivoId == null}" class="btn btn-sm btn-outline-primary" target="_blank"
                                            title="Ver el examen en PDF" th:href="@{/api/nss/examen/imprimir-pdf(nss=${nss})}">
                                             <i class="ri-file-pdf-2-line me-1"></i>PDF</a>
                                         <!--/* C-007: el impreso del Pretest sale con las respuestas vigentes = las del ultimo */-->
-                                        <a th:if="${h.pdfPortal and h.origen == 'PRETEST'}" class="btn btn-sm btn-outline-primary" target="_blank"
+                                        <a th:if="${h.pdfPortal and h.origen == 'PRETEST' and h.archivoId == null}" class="btn btn-sm btn-outline-primary" target="_blank"
                                            title="Imprimir el Pretest" th:href="@{/api/nss/pretest/imprimir(nss=${nss})}">
                                             <i class="ri-printer-line me-1"></i>Imprimir</a>
-                                        <span th:if="${h.origen == 'PORTAL' and !h.pdfPortal}" class="text-muted fs-12"
-                                              title="El PDF de exámenes anteriores se guardará como archivo cuando Servicio Médico defina la nomenclatura">—</span>
+                                        <span th:if="${h.origen == 'PORTAL' and !h.pdfPortal and h.archivoId == null}" class="text-muted fs-12"
+                                              title="Examen guardado antes del 19-nov-2026: entonces no se guardaba el PDF de cada examen">—</span>
                                     </td>
                                 </tr>
                             </tbody>

@@ -301,6 +301,39 @@
                 { el: '#imagenFirma', titulo: 'Imagen', texto: 'La imagen de su firma. Se guarda cifrada.' }
             ]
         },
+        // 19-nov-2026: graficas que pidio Servicio Medico (rol MEDICO_ANALISTA, grupo «Análisis» del menu)
+        'analisis-examenes': {
+            titulo: 'Gráficas de exámenes médicos (dictamen, género, predio y Pretest)',
+            pagina: 'analisis/examenes', analista: true,
+            pasos: [
+                { el: '#fAnio', titulo: 'Año', texto: 'Elige el año que quieres ver.' },
+                { el: '#fPeriodo', titulo: 'Periodo', texto: '«Acumulado (todo el año)» suma todo el año; o elige un mes.' },
+                { el: '#fPredio', titulo: 'Predio', texto: 'Deja «Todos los predios» o elige uno. Todas las gráficas de esta pantalla usan estos tres filtros.' },
+                { el: '#chartPredio', titulo: 'Status por predio', texto: '«Resultado por predio»: cada predio con su apto, no apto, condicionado y restringido.' },
+                { el: '#chartDictamen', titulo: 'Status acumulado', texto: '«Dictamen acumulado»: cuántos exámenes hubo de cada dictamen y su porcentaje.' },
+                { el: '#chartGenero', titulo: 'Género', texto: '«Exámenes por género»: hombres y mujeres, cada uno con su dictamen. Arriba ves el total y el %.' },
+                { el: '#fPretestVista', titulo: 'Examen médico vs Pretest', texto: 'Compara cuántos exámenes y cuántos Pretest se hicieron. Cambia aquí entre «Por mes» y «Por predio».' },
+                { el: '#btnExcelPretest', titulo: 'En Excel', texto: 'El mismo comparativo se descarga en Excel, por predio y por mes.' }
+            ]
+        },
+        'analisis-musculoesqueleticas': {
+            titulo: 'Lesiones musculoesqueléticas por predio y mes',
+            pagina: 'analisis/musculoesqueleticas', analista: true,
+            pasos: [
+                { el: '#fAnio', titulo: 'Año y periodo', texto: 'Elige el año; con «Acumulado» ves todos sus meses.' },
+                { el: '#chartPredioMes', titulo: 'Por predio y mes', texto: 'Cada renglón es un predio (con su total) y cada columna un mes. El número es cuántas lesiones hubo; más oscuro = más lesiones.' },
+                { el: '#fPredio', titulo: 'Un solo predio', texto: 'Si eliges un predio aquí, todas las gráficas de la pantalla muestran solo ese predio.' },
+                { el: '#chartMes', titulo: 'Lesiones por mes', texto: 'El total mes a mes (de todos los predios o del que elegiste).' }
+            ]
+        },
+        'analisis-fisioterapia': {
+            titulo: 'Gráficas de Fisioterapia (mes, predio, edad y género)',
+            pagina: 'analisis/atenciones', analista: true,
+            pasos: [
+                { el: '#fAnio', titulo: 'Año y predio', texto: 'Elige el año (y si quieres, un predio): Fisioterapia se abre con lo que elijas aquí.' },
+                { el: '#btnFisioterapia', titulo: 'Abre Fisioterapia', texto: 'Pulsa «Fisioterapia». Se abre su detalle con: acumulado mensual, acumulado por predio, por edad, por género y las atenciones por predio de un mes. Ahí mismo puedes cambiar el año y el predio (para ver el mes a mes de un solo predio).' }
+            ]
+        },
         'mi-firma': {
             titulo: 'Registrar mi firma digitalizada',
             pagina: 'perfil/firma',
@@ -453,6 +486,7 @@
         var permisos = window.ayudaPermisos || {};
         var puede = function (tut) {
             if (tut.admin) { return !!permisos.admin; }
+            if (tut.analista) { return !!permisos.analista; }   // pantallas del grupo «Análisis»
             if (!tut.menu || !permisos.menus) { return true; } // sin menus locales (fuente ORDS): todos
             return tut.menu.some(function (c) { return permisos.menus.indexOf(c) >= 0; });
         };

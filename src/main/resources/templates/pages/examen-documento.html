@@ -295,7 +295,13 @@
         </p>
         <b class="form-check-label" style="font-size: 11px;" for="exampleCheck1">[ Sí ] Sí otorgo mi consentimiento para las siguientes transferencias de mis datos personales: P&G, Unilever de México, Inditex
             y Otros clientes.</b>
-        <p style="font-size: 11px; margin-top: 10px;">Nombre y firma del titular: ________________________________________</p>
+        <!--/* 20-nov-2026 (pedido del usuario): esta linea de las transferencias salia en blanco aunque el trabajador
+             ya firmo; lleva la misma firma y nombre que el final del aviso. Sin firma capturada queda la linea. */-->
+        <p style="font-size: 11px; margin-top: 10px;">Nombre y firma del titular:
+            <th:block th:if="${d.firmaTrabajador != null}"><img th:src="${d.firmaTrabajador}" alt="" style="height:22px; vertical-align:middle"></th:block>
+            <b th:if="${d.firmaTrabajador != null}">[[${d.v('apellidoP')}]] [[${d.v('apellidoM')}]] [[${d.v('nombre')}]]</b>
+            <th:block th:unless="${d.firmaTrabajador != null}">________________________________________</th:block>
+        </p>
         <p style="font-size: 11px;">
             ¿Cómo puede acceder, rectificar o cancelar sus datos personales, u oponerse a su uso?
         </p>
@@ -2512,7 +2518,8 @@
                     <th class="table-primary">Observaciones</th>
                 </tr>
                 <tr>
-                    <td>[[${d.v('OBSERVACIONES3')}]]</td>
+                    <td style="word-wrap: break-word;">[[${d.v('OBSERVACIONES3')}]]<th:block th:unless="${#strings.isEmpty(d.texto('EXM_DX_ESPECIFICACION'))}"><br><b>Especificación:</b>
+                        [[${d.texto('EXM_DX_ESPECIFICACION')}]]</th:block></td>
                 </tr>
             </table>
 

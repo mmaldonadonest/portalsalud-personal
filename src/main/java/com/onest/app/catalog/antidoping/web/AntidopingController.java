@@ -54,7 +54,18 @@ public class AntidopingController {
     public String antidoping(@RequestParam("data") String data, Model model) {
         try {
             model.addAttribute("antidopings", antidopingService.byNss(data));
-            model.addAttribute("nss", data == null ? "" : data.trim());
+            String nssLimpio = data == null ? "" : data.trim();
+            model.addAttribute("nss", nssLimpio);
+            // E-017: estatus capturado aparte; si la base no responde, la lista sale sin el
+            java.util.Map<String, String> estatus = java.util.Map.of();
+            try {
+                estatus = nssLimpio.isEmpty() ? java.util.Map.of() : custodia.estatusPorNss(nssLimpio);
+            } catch (org.springframework.dao.DataAccessException ex) {
+                org.slf4j.LoggerFactory.getLogger(AntidopingController.class).warn("[antidoping] sin estatus: {}", ex.getMessage());
+            }
+            model.addAttribute("estatusPorPrueba", estatus);
+            model.addAttribute("estatusTexto", CustodiaService.ESTATUS);
+            model.addAttribute("estatusViejo", CustodiaService.ESTATUS_EN_CONCLUSION);
             return "fragments/antidoping-list :: table";
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
@@ -244,6 +255,7 @@ public class AntidopingController {
         try {
             // C-034 / C-077 (10-nov, Word SM punto 15): con los dos tipos marcados se guardan DOS registros
             // (uno por tipo, cada uno con su resultado), asi se cuentan por separado. La custodia es la misma.
+            validarConclusionYEstatus(form);
             java.util.List<String[]> pruebas = pruebasDelAlta(form);
             StringBuilder mensaje = new StringBuilder();
             java.util.List<String> ids = new java.util.ArrayList<>();
@@ -283,6 +295,23 @@ public class AntidopingController {
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }
+    }
+
+    /**
+     * E-017 (Word SM 10-nov, punto 15; catalogo de SM: CONCLUSION y STATUS_ANTIDOPING): conclusion y estatus son
+     * dos datos. Se revisa ANTES del WS. No se deduce uno del otro: SM no ha dicho que dependan (preguntas de E-017).
+     */
+    static void validarConclusionYEstatus(AntidopingAltaForm form) {
+        String c = form.getStatusConclusion() == null ? "" : form.getStatusConclusion().trim();
+        if (CustodiaService.ESTATUS_EN_CONCLUSION.containsKey(c)) {
+            throw new IllegalArgumentException("«" + CustodiaService.ESTATUS_EN_CONCLUSION.get(c)
+                    + "» ya no es una conclusión: va en Estatus. Recarga la pantalla.");
+        }
+        String e = form.getEstatus() == null ? "" : form.getEstatus().trim();
+        if (!CustodiaService.ESTATUS.containsKey(e)) {
+            throw new IllegalArgumentException("Elige el estatus: Laborando o Baja / No contratado.");
+        }
+        form.setEstatus(e);
     }
 
     /**

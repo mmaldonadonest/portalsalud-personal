@@ -257,6 +257,42 @@ public class DashboardMusculoesqueleticoService {
                 aConteo(porDiagnostico, MAX_DIAGNOSTICOS));
     }
 
+    /** Un cruce predio x mes (YYYY-MM). */
+    public record PredioMes(String predio, String mes, long cantidad) {
+    }
+
+    /**
+     * 19-nov-2026 (pedido de SM): lesiones por predio y por mes, todos los predios juntos. Misma regla que
+     * {@link #resumen}: lo del portal se clasifica aqui, lo del Excel llega ya marcado. Solo con la vista
+     * (portal.historico.fuente=VISTA); sin ella regresa vacio.
+     */
+    public List<PredioMes> porPredioMes(String fechaInicial, String fechaFinal, String predio, String cuenta) {
+        VistaAtencionRepository vista = vistaAtenciones.getIfAvailable();
+        if (vista == null) {
+            return List.of();
+        }
+        LocalDate desde = FechaFiltro.aFecha(fechaInicial).orElse(null);
+        LocalDate hasta = FechaFiltro.aFecha(fechaFinal).orElse(null);
+        Map<String, Long> cruce = new TreeMap<>();
+        for (VistaAtencionRepository.FilaPortal fila : vista.filasPortal(desde, hasta, predio, cuenta)) {
+            if (fila.fecha() != null && tieneClave(fila.diagnostico())
+                    && LesionMusculoesqueletica.clasificar(fila.diagnostico(), fila.areaInvolucrada()).isPresent()) {
+                cruce.merge(fila.predio() + "|" + YearMonth.from(fila.fecha()), 1L, Long::sum);
+            }
+        }
+        vista.lesionesExcel("PREDIO_MES", desde, hasta, predio, cuenta)
+                .forEach(p -> cruce.merge(p.clave(), p.cantidad(), Long::sum));
+        List<PredioMes> out = new ArrayList<>();
+        cruce.forEach((k, n) -> {
+            int i = k.lastIndexOf('|');
+            String mes = k.substring(i + 1);
+            if (!mes.isBlank()) {   // sin fecha no se puede poner en un mes
+                out.add(new PredioMes(k.substring(0, i), mes, n));
+            }
+        });
+        return out;
+    }
+
     private static boolean tieneClave(String diagnostico) {
         return diagnostico != null && diagnostico.trim().matches("^[A-Za-z]\\d{2}.*");
     }

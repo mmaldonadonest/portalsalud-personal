@@ -412,6 +412,8 @@ public class ExamenInicialService {
                             || CAMPO_FUP.equals(it.fieldName())
                             // C-066: la observacion de cada renglon de Lenguaje es opcional
                             || ExamenService.LENGUAJE_OBS.stream().anyMatch(o -> ("TAG." + o).equals(it.fieldName()))
+                            // C-003 / P-056 (20-nov): la especificacion del diagnostico es opcional
+                            || ("TAG." + ExamenService.TAG_ESPECIFICACION_DX).equals(it.fieldName())
                             // Genitales: se captura UNO (masculino o femenino); cuenta abajo como un solo campo
                             || GENITALES.contains(it.fieldName())
                             // fecha de influenza / Td: solo cuenta si la vacuna esta en Si (el Si/No va antes en

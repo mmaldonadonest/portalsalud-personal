@@ -40,16 +40,24 @@ public class IncapacidadService {
     // Tomcat de produccion corre en UTC (memoria zona-horaria-prod-utc): "hoy" es el de la Ciudad de Mexico
     private static final java.time.ZoneId ZONA = java.time.ZoneId.of("America/Mexico_City");
 
+    // C-057: nombre del PDF de la incapacidad con la nomenclatura de SM
+    private final com.onest.app.catalog.file.service.NomenclaturaService nomenclatura;
+
     public IncapacidadService(IncapacidadClient client,
                               com.onest.app.catalog.incapacidad.repository.FolioIncapacidadRepository folios,
-                              CadenaIncapacidadService cadenas) {
+                              CadenaIncapacidadService cadenas,
+                              com.onest.app.catalog.file.service.NomenclaturaService nomenclatura) {
         this.client = client;
         this.folios = folios;
         this.cadenas = cadenas;
+        this.nomenclatura = nomenclatura;
     }
 
-    /** Fechas de la incapacidad ya resueltas: lo que se manda al WS. */
-    record Fechas(String primera, String inicio, String termino, Long anterior) {
+    /**
+     * Fechas de la incapacidad ya resueltas: lo que se manda al WS. {@code marca} = I (inicial) o S1, S2... (la
+     * subsecuente que sigue en su cadena), para el nombre del PDF (C-057, P-008); null en tipos viejos.
+     */
+    record Fechas(String primera, String inicio, String termino, Long anterior, String marca) {
     }
 
     /**
@@ -73,7 +81,11 @@ public class IncapacidadService {
         }
         if (!sub && !"inicial".equals(tipo)) {
             String inicio = blankToNull(form.getFechaInicio()) != null ? form.getFechaInicio() : form.getFechaPrimera();
-            return new Fechas(form.getFechaPrimera(), inicio, form.getFechaTermino(), null);
+            return new Fechas(form.getFechaPrimera(), inicio, form.getFechaTermino(), null, null);
+        }
+        // P-008 (SM 18-nov-2026): «Maternidad es única inicial, no hay más»
+        if (sub && "maternidad".equalsIgnoreCase(form.getRamo() == null ? "" : form.getRamo().trim())) {
+            throw new IllegalArgumentException("Maternidad es una sola incapacidad inicial: no lleva subsecuentes.");
         }
         Integer dias = enteroPositivo(form.getDiasAutorizados());
         if (dias == null) {
@@ -82,8 +94,11 @@ public class IncapacidadService {
         LocalDate inicio;
         LocalDate primera;
         Long anterior = null;
+        String marca = "I";
         if (sub) {
             CadenaIncapacidadService.Cadena c = cadenas.paraSubsecuente(nss, form.getAnterior());
+            // la cadena ya trae la inicial y las subsecuentes anteriores: esta es la S<cuantas hay>
+            marca = "S" + c.eslabones().size();
             anterior = Long.valueOf(form.getAnterior().trim());
             inicio = fechaObligatoria(form.getFechaInicio(), "Fecha subsecuente");
             LocalDate terminoAnterior = c.termino();
@@ -101,7 +116,7 @@ public class IncapacidadService {
             throw new IllegalArgumentException("La fecha de inicio no puede ser futura (" + CadenaIncapacidadService.fmt(inicio) + ").");
         }
         LocalDate termino = inicio.plusDays(dias - 1L);
-        return new Fechas(primera.toString(), inicio.toString(), termino.toString(), anterior);
+        return new Fechas(primera.toString(), inicio.toString(), termino.toString(), anterior, marca);
     }
 
     private static LocalDate fechaObligatoria(String valor, String campo) {
@@ -217,6 +232,16 @@ public class IncapacidadService {
         } catch (org.springframework.dao.DataAccessException ex) {
             log.warn("[incapacidad] guardada en el WS, pero sin liga/diagnostico (rel {}): {}", relacion,
                     ex.getMostSpecificCause().getMessage());
+        }
+        // C-057 (P-008, P-009): el PDF que el navegador sube enseguida con este rel se llamara
+        // INCAP-MES-AAAA-INICIALES-I (o -S1, -S2...), con la fecha de inicio = fecha del documento
+        if (fechas.marca() != null) {
+            try {
+                nomenclatura.apartarNombre(nss, relacion, nomenclatura.base("INCAP", LocalDate.parse(fechas.inicio()), nss)
+                        + "-" + fechas.marca());
+            } catch (RuntimeException ex) {
+                log.warn("[incapacidad] sin nombre de SM para el PDF (rel {}): {}", relacion, ex.getMessage());
+            }
         }
         return proceso;
     }

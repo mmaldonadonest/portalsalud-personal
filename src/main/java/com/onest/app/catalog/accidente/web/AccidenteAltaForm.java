@@ -21,4 +21,6 @@ public class AccidenteAltaForm {
     private String costo;
     private String dias;
     private String observaciones;
+    // C-086 (P-041, SM 18-nov-2026): con status BAJA_INCONCLUSO, PROCEDENTE (100 %) o IMPROCEDENTE (60 %)
+    private String abandono;
 }

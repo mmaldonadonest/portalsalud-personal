@@ -59,12 +59,26 @@
                         <div class="row g-3">
                             <div class="col-md-3">
                                 <label class="form-label" for="accidenteStatusCalificacion">Status de calificación</label>
-                                <select class="form-select" name="statusCalificacion" id="accidenteStatusCalificacion">
+                                <select class="form-select" name="statusCalificacion" id="accidenteStatusCalificacion"
+                                        onchange="accAbandonoToggle();">
                                     <option value="PENDIENTE">Pendiente</option>
                                     <option value="CALIFICADO">Calificado</option>
                                     <option value="IMPROCEDENTE">Improcedente</option>
                                     <option value="BAJA_INCONCLUSO">Baja / inconcluso</option>
                                 </select>
+                                <!-- C-086 (P-041, SM 18-nov-2026): con Baja / inconcluso, el abandono es procedente
+                                     (se paga al 100 %) o improcedente (al 60 %). Obligatorio; el servidor lo revisa. -->
+                                <div id="accAbandonoWrap" class="mt-2" style="display:none">
+                                    <div class="fs-sm fw-semibold mb-1">Abandono <span class="text-danger">*</span></div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="abandono" id="accAbandonoP" value="PROCEDENTE">
+                                        <label class="form-check-label" for="accAbandonoP">Procedente (100 %)</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="abandono" id="accAbandonoI" value="IMPROCEDENTE">
+                                        <label class="form-check-label" for="accAbandonoI">Improcedente (60 %)</label>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" for="accidenteSdi">Salario diario integrado (SDI)</label>

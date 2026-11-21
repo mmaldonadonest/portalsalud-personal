@@ -40,15 +40,47 @@ public class FileStoreController {
     private final ExamenHistoricoRepository examenesPortal;
     // C-007 (18-nov-2026): el Pretest tambien va en Historico E.M.
     private final com.onest.app.catalog.pretest.service.PretestService pretests;
+    private final com.onest.app.catalog.file.service.NomenclaturaService nomenclatura;
+    private final com.onest.app.catalog.examen.service.ExamenPdfService examenPdf;
 
     public FileStoreController(FileStoreService fileStoreService,
                                ObjectProvider<VistaExamenRepository> vistaExamenes,
                                ExamenHistoricoRepository examenesPortal,
-                               com.onest.app.catalog.pretest.service.PretestService pretests) {
+                               com.onest.app.catalog.pretest.service.PretestService pretests,
+                               com.onest.app.catalog.file.service.NomenclaturaService nomenclatura,
+                               com.onest.app.catalog.examen.service.ExamenPdfService examenPdf) {
         this.fileStoreService = fileStoreService;
         this.vistaExamenes = vistaExamenes;
         this.examenesPortal = examenesPortal;
         this.pretests = pretests;
+        this.nomenclatura = nomenclatura;
+        this.examenPdf = examenPdf;
+    }
+
+    /**
+     * Prefijo de la nomenclatura de SM por tipo de archivo del expediente: C-058 estudios de laboratorio (EST),
+     * C-059 documentos medicos externos del IMSS o particulares, que van en Notas medicas (DM, P-034).
+     */
+    static final java.util.Map<String, String> PREFIJOS = java.util.Map.of(
+            "laboratorio", "EST",
+            "nota_medica", "DM");
+    private static final java.time.ZoneId ZONA = java.time.ZoneId.of("America/Mexico_City");
+
+    /** Fecha del documento obligatoria con nomenclatura: no futura y desde el año 2000. */
+    static java.time.LocalDate fechaDocumento(String iso) {
+        if (iso == null || iso.isBlank()) {
+            throw new IllegalArgumentException("Captura la fecha del documento: de ella sale el nombre del archivo.");
+        }
+        java.time.LocalDate f;
+        try {
+            f = java.time.LocalDate.parse(iso.trim());
+        } catch (java.time.format.DateTimeParseException ex) {
+            throw new IllegalArgumentException("La fecha del documento no es válida.");
+        }
+        if (f.isAfter(java.time.LocalDate.now(ZONA)) || f.getYear() < 2000) {
+            throw new IllegalArgumentException("Revisa la fecha del documento: no puede ser futura ni anterior al 2000.");
+        }
+        return f;
     }
 
     /** Sube uno o mas PDF asociados a una consulta (relacion = idArchivoRel). */
@@ -60,10 +92,38 @@ public class FileStoreController {
     public String upload(
             @RequestParam("file") MultipartFile[] file,
             @RequestParam("nss") String nss,
-            @RequestParam("relacion") String relacion) {
+            @RequestParam("relacion") String relacion,
+            @RequestParam(name = "fechaDocumento", required = false) String fechaDocumento) {
         try {
-            int n = fileStoreService.store(file, nss, relacion);
-            return n + " archivo(s) adjuntado(s).";
+            String prefijo = relacion == null ? null : PREFIJOS.get(relacion.trim());
+            if (prefijo == null) {
+                // C-057: el registro dejo apartado su nombre al guardarse (incapacidad: INCAP-MES-AAAA-INICIALES-I)
+                java.util.Optional<String> apartado = java.util.Optional.empty();
+                try {
+                    apartado = nomenclatura.nombreApartado(nss, relacion);
+                } catch (org.springframework.dao.DataAccessException ex) {
+                    log.warn("[archivos] sin nombre apartado para {}: {}", relacion, ex.getMessage());
+                }
+                if (apartado.isEmpty()) {
+                    int n = fileStoreService.store(file, nss, relacion);
+                    return n + " archivo(s) adjuntado(s).";
+                }
+                var existentesRel = fileStoreService.listByRelacion(relacion.trim()).stream()
+                        .map(com.onest.app.catalog.file.dto.MedFileMeta::name).toList();
+                var nombresRel = com.onest.app.catalog.file.service.NomenclaturaService.nombres(
+                        apartado.get(), FileStoreService.extensiones(file), existentesRel);
+                int n = fileStoreService.store(file, nss == null ? "" : nss.trim(), relacion, nombresRel);
+                return n + " archivo(s) adjuntado(s) como " + String.join(", ", nombresRel.subList(0, Math.min(n, nombresRel.size()))) + ".";
+            }
+            // C-058 / C-059: PREFIJO-MES-AAAA-INICIALES con la fecha del documento; todos PDF en estos tipos
+            String n0 = nss == null ? "" : nss.trim();
+            String base = nomenclatura.base(prefijo, fechaDocumento(fechaDocumento), n0);
+            var existentes = fileStoreService.listByNssAndType(n0, relacion.trim()).stream()
+                    .map(com.onest.app.catalog.file.dto.MedFileMeta::name).toList();
+            var nombres = com.onest.app.catalog.file.service.NomenclaturaService.nombres(
+                    base, "pdf", FileStoreService.cuantos(file), existentes);
+            int n = fileStoreService.store(file, n0, relacion, nombres);
+            return n + " archivo(s) adjuntado(s) como " + String.join(", ", nombres.subList(0, Math.min(n, nombres.size()))) + ".";
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }
@@ -164,14 +224,22 @@ public class FileStoreController {
             for (ExamenHistoricoRepository.Registro r : examenesPortal.listar(nss, 500)) {
                 porDia.putIfAbsent(r.fechaExamen().toLocalDate(), r); // viene ordenado: el primero del dia es el ultimo guardado
             }
+            // C-008: PDF guardado de cada examen (desde el 19-nov-2026); si la consulta falla, el historial sigue sin el
+            java.util.Map<Long, com.onest.app.catalog.file.repository.FsFileRepository.ConTipo> pdfs = java.util.Map.of();
+            try {
+                pdfs = examenPdf.pdfsPorExamen(nss);
+            } catch (DataAccessException ex) {
+                log.warn("[expediente] sin PDF guardados de examenes: {}", ex.getMessage());
+            }
             boolean primero = true;
             for (ExamenHistoricoRepository.Registro r : porDia.values()) {
                 String tipoEx = r.tipoExamen() == null ? null : TIPO_PORTAL.getOrDefault(r.tipoExamen().trim(), r.tipoExamen());
                 String examen = (tipoEx == null ? "Examen médico" : tipoEx)
                         + (ExamenHistoricoRepository.ORIGEN_INICIAL.equals(r.origen()) ? " (examen inicial)" : "");
                 String detalle = r.usuario() == null || r.usuario().isBlank() ? null : "Capturó " + r.usuario();
+                var pdf = pdfs.get(r.id());
                 items.add(new HistorialItem(r.fechaExamen(), true, ORIGEN_PORTAL, examen, dictamen(r.dictamen()), detalle,
-                        null, null, primero));
+                        pdf == null ? null : pdf.meta().id(), pdf == null ? null : pdf.meta().name(), primero));
                 primero = false;
             }
         } catch (DataAccessException ex) {
@@ -181,12 +249,22 @@ public class FileStoreController {
         // C-007: cada Pretest guardado desde el 18-nov deja su copia; de antes solo se conoce el ultimo. El impreso
         // sale con las respuestas vigentes, asi que solo el mas reciente lleva el boton
         try {
+            // C-008: PDF guardado de cada Pretest (PRTS-...), ligado por el sello de su copia
+            java.util.Map<String, com.onest.app.catalog.file.repository.FsFileRepository.ConTipo> pdfsPretest = java.util.Map.of();
+            try {
+                pdfsPretest = examenPdf.pdfsPorPretest(nss);
+            } catch (DataAccessException ex) {
+                log.warn("[expediente] sin PDF guardados de Pretest: {}", ex.getMessage());
+            }
             boolean primero = true;
             for (com.onest.app.catalog.pretest.service.PretestService.Historial p : pretests.historial(nss)) {
                 String detalle = p.resumen()
                         + (p.usuario() == null || p.usuario().isBlank() ? "" : " · Capturó " + p.usuario())
                         + (p.legado() ? " · Solo se conserva el último Pretest de antes del 18-nov-2026" : "");
-                items.add(new HistorialItem(p.fecha(), true, ORIGEN_PRETEST, "Pretest", null, detalle, null, null, primero));
+                var pdf = p.legado() || p.fecha() == null ? null
+                        : pdfsPretest.get(com.onest.app.catalog.pretest.service.PretestService.sello(p.fecha()));
+                items.add(new HistorialItem(p.fecha(), true, ORIGEN_PRETEST, "Pretest", null, detalle,
+                        pdf == null ? null : pdf.meta().id(), pdf == null ? null : pdf.meta().name(), primero));
                 primero = false;
             }
         } catch (DataAccessException ex) {

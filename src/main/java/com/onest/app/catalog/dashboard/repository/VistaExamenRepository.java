@@ -61,6 +61,18 @@ public class VistaExamenRepository {
         return jdbc.query(f.sql() + " GROUP BY " + MES + " ORDER BY 1", (rs, i) -> conteo(rs), f.params());
     }
 
+    /**
+     * 19-nov-2026 (pedido de SM): por genero (FEM / MASC / Sin dato), con su desglose por dictamen. Nuevo ingreso
+     * trae GENERO en el Excel; periodico y portal lo toman del biometrico (el Excel de periodico no lo trae).
+     */
+    public List<ConteoDictamenDto> porGenero(LocalDate desde, LocalDate hasta, String predio, String cuenta) {
+        String genero = "NVL(e.GENERO, '" + VistaFiltro.SIN_DATO + "')";
+        VistaFiltro f = new VistaFiltro("SELECT " + genero + " clave, " + DICTAMENES + VISTA)
+                .filtros(desde, hasta, predio, cuenta);
+        return jdbc.query(f.sql() + " GROUP BY " + genero + " ORDER BY COUNT(*) DESC", (rs, i) -> conteo(rs),
+                f.params());
+    }
+
     // ---------------------------------------------------------------------------------------
     //  Expediente por NSS (paso 10 del plan)
     // ---------------------------------------------------------------------------------------

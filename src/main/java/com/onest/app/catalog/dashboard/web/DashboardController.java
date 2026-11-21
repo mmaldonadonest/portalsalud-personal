@@ -234,4 +234,19 @@ public class DashboardController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }
     }
+
+    /** 19-nov-2026 (SM): lesiones musculoesqueleticas por predio y por mes, todos los predios juntos. */
+    @GetMapping("/musculoesqueleticas/predio-mes")
+    public java.util.List<com.onest.app.catalog.dashboard.service.DashboardMusculoesqueleticoService.PredioMes>
+            musculoesqueleticasPredioMes(
+            @RequestParam("fechaInicial") String fechaInicial,
+            @RequestParam("fechaFinal") String fechaFinal,
+            @RequestParam(name = "predio", required = false) String predio,
+            @RequestParam(name = "cuenta", required = false) String cuenta) {
+        try {
+            return musculoesqueleticoService.porPredioMes(fechaInicial, fechaFinal, predio, cuenta);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        }
+    }
 }

@@ -139,6 +139,20 @@ public class PretestService {
         return out;
     }
 
+    /** C-008: sello de la copia (la clave con que se liga su PDF) a partir de su fecha del historial. */
+    public static String sello(LocalDateTime fecha) {
+        return fecha.format(SELLO);
+    }
+
+    /** Dia de un sello (yyyyMMdd...), o null si no se puede leer. */
+    public static java.time.LocalDate diaDeSello(String sello) {
+        try {
+            return java.time.LocalDate.parse(sello.substring(0, 8), java.time.format.DateTimeFormatter.BASIC_ISO_DATE);
+        } catch (RuntimeException ex) {
+            return null;
+        }
+    }
+
     /** La fecha va en el TYPE (hora de la Ciudad de Mexico); CREATED_AT solo si el sello no se puede leer. */
     private static LocalDateTime fecha(MedTagRepository.Tag t) {
         try {

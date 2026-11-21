@@ -384,6 +384,7 @@
                     return;
                 }
                 out.setAttribute('data-target', targetId);
+                input.setAttribute('data-icd-result', resultId);   // para navegar la lista con el teclado
                 if (!todo) {
                     resetIcdTodo(out);
                 }
@@ -417,6 +418,42 @@
                     out.innerHTML = '';
                 }
             };
+
+            // 19-nov-2026 (pedido del usuario): el buscador ICD se navega como un autocompletar normal.
+            // Flecha abajo/arriba mueve la seleccion (sin salir del campo), Enter elige la marcada y Esc
+            // cierra la lista. Uno solo para todos los buscadores (consulta, examen, examen inicial):
+            // buscarIcd deja en el campo cual es su lista (data-icd-result).
+            document.addEventListener('keydown', function (e) {
+                var input = e.target;
+                if (!input || !input.getAttribute || !input.getAttribute('data-icd-result')) { return; }
+                if (['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].indexOf(e.key) < 0) { return; }
+                var out = document.getElementById(input.getAttribute('data-icd-result'));
+                var items = out ? Array.prototype.slice.call(out.querySelectorAll('button[data-icd]')) : [];
+                if (!items.length) {
+                    if (e.key === 'Enter') { e.preventDefault(); }   // Enter en el buscador nunca envia el formulario
+                    return;
+                }
+                var actual = items.findIndex(function (b) { return b.classList.contains('active'); });
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    out.innerHTML = '';
+                    resetIcdTodo(out);
+                    return;
+                }
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    var elegido = items[actual >= 0 ? actual : 0];
+                    if (elegido) { window.addIcd(elegido); }
+                    return;
+                }
+                e.preventDefault();
+                var sig = e.key === 'ArrowDown'
+                    ? (actual < items.length - 1 ? actual + 1 : 0)
+                    : (actual > 0 ? actual - 1 : items.length - 1);
+                if (actual >= 0) { items[actual].classList.remove('active'); }
+                items[sig].classList.add('active');
+                items[sig].scrollIntoView({ block: 'nearest' });
+            });
 
             // Regresa el boton "Ver todo el catalogo" del buscador a su estado inicial cuando la
             // lista completa ya no esta en pantalla (se tecleo otra busqueda o se eligio una clave).
@@ -487,8 +524,15 @@
                     }
                 }
                 if (out) {
+                    // el buscador de esta lista: el foco regresa ahi con el texto seleccionado, para
+                    // escribir el siguiente diagnostico encima o borrarlo de un golpe (19-nov-2026)
+                    var buscador = out.id ? document.querySelector('[data-icd-result="' + out.id + '"]') : null;
                     out.innerHTML = '';
                     resetIcdTodo(out);
+                    if (buscador) {
+                        buscador.focus();
+                        buscador.select();
+                    }
                 }
             };
 
@@ -988,7 +1032,15 @@
                 guardarRegistro(btn, {
                     formId: 'pretestForm', savePath: 'api/nss/pretest/save', fileInputId: '__none__',
                     label: 'Pre-Test', resultElId: 'pretestGuardarResult',
-                    resetOnSuccess: true, onSuccess: limpiarFirmaSiExiste,
+                    resetOnSuccess: true,
+                    onSuccess: function () {
+                        limpiarFirmaSiExiste();
+                        // C-008 (P-006): el Pretest guardado deja su PDF (PRTS-...) en Historico E.M.
+                        var nssPt = (input.value || '').trim();
+                        setTimeout(function () {
+                            window.archivarPdfExamen(nssPt, document.getElementById('pretestGuardarResult'), 'api/nss/pretest/archivar-pdf');
+                        }, 0);
+                    },
                     documentoUrl: function () {
                         return contextPath + 'api/nss/pretest/imprimir?nss=' + encodeURIComponent((input.value || '').trim()) + '&auto=1';
                     }
@@ -1603,7 +1655,10 @@
                     return x - y;
                 });
                 var i = exIniFaltaUltimo ? orden.findIndex(function (b) { return b.getAttribute('data-campo') === exIniFaltaUltimo; }) : -1;
-                var sig = orden[(i + 1) % orden.length];
+                // OJO: nunca escribir corchete + parentesis juntos: Thymeleaf lo toma como expresion
+                // inline y truena la pagina entera (19-nov-2026: el buscador de NSS dejo de funcionar)
+                var siguiente = (i + 1) % orden.length;
+                var sig = orden[siguiente];
                 exIniFaltaUltimo = sig.getAttribute('data-campo');
                 window.exIniIrFalta(sig);
             };
@@ -2507,6 +2562,8 @@
                     desactivarAlTerminar: true,
                     textoBoton: 'Finalizando y generando el documento…',
                     onSuccess: function () {
+                        // C-008: el examen inicial finalizado deja su PDF (EMNI-...) en Historico E.M.
+                        setTimeout(function () { window.archivarPdfExamen(nss, document.getElementById('exIniResult')); }, 0);
                         exIniRoot().setAttribute('data-bloqueado', 'si');
                         if (exIniTimer) { clearTimeout(exIniTimer); exIniTimer = null; }
                         exIniMarcarGuardado('Examen finalizado', false);
@@ -2569,7 +2626,9 @@
                         : (t.ANTIDOPING && !formEl.resultado.value ? 'Elige el resultado del antidoping.'
                         : (t.ALCOHOLEMIA && !formEl.resultadoAlcohol.value ? 'Elige el resultado de la alcoholimetría.'
                         : (t.ANTIDOPING && formEl.resultado.value === 'POSITIVO' && !formEl.querySelector('input[name="sustancias"]:checked')
-                            ? 'Marca al menos una sustancia del antidoping positivo.' : '')));
+                            ? 'Marca al menos una sustancia del antidoping positivo.'
+                        // E-017: el estatus va aparte de la conclusion y es obligatorio
+                        : (formEl.estatus && !formEl.estatus.value ? 'Elige el estatus: Laborando o Baja / No contratado.' : ''))));
                 if (falta) {
                     status.textContent = falta;
                     window.alert(falta);
@@ -2593,14 +2652,39 @@
                 });
             };
 
+            // C-086 (P-041, 18-nov-2026): con Baja / inconcluso se pide si el abandono es procedente o improcedente
+            window.accAbandonoToggle = function () {
+                var sel = document.getElementById('accidenteStatusCalificacion');
+                var wrap = document.getElementById('accAbandonoWrap');
+                if (!sel || !wrap) { return; }
+                var baja = sel.value === 'BAJA_INCONCLUSO';
+                wrap.style.display = baja ? '' : 'none';
+                if (!baja) {
+                    wrap.querySelectorAll('input[name="abandono"]').forEach(function (r) { r.checked = false; });
+                }
+            };
+
             window.guardarAccidente = function (btn) {
                 var formEl = document.getElementById('accidenteAltaForm');
                 var nss = formEl ? formEl.nss.value : null;
+                if (formEl && formEl.statusCalificacion && formEl.statusCalificacion.value === 'BAJA_INCONCLUSO'
+                        && !formEl.querySelector('input[name="abandono"]:checked')) {
+                    status.textContent = 'Con «Baja / inconcluso» indica si el abandono es procedente o improcedente.';
+                    var wrapAb = document.getElementById('accAbandonoWrap');
+                    if (wrapAb) { wrapAb.scrollIntoView({ behavior: 'smooth', block: 'center' }); wrapAb.classList.add('text-danger'); }
+                    return;
+                }
                 guardarRegistro(btn, {
                     formId: 'accidenteAltaForm', savePath: 'api/nss/accidentes/save', fileInputId: '__none__',
                     label: 'accidente', resetOnSuccess: true,
                     onSuccess: function () { loadModuleView('api/nss/accidentes', nss); }
                 });
+            };
+
+            // C-086: procedente / improcedente desde el seguimiento del caso
+            window.guardarAbandonoAccidente = function (btn) {
+                var sel = document.getElementById('accAbandono');
+                guardarDatoAccidente(btn, 'api/nss/accidentes/abandono/save', 'abandono', sel ? sel.value : '', 'accAbandonoStatus');
             };
 
             // C-037 (18-nov-2026): calculos del Excel de maternidad de SM al teclear. Misma formula que
@@ -3186,9 +3270,17 @@
                     pintarResultadoInline(resultEl, problema, true);
                     return;
                 }
+                // C-058 / C-059: con nomenclatura de SM la fecha del documento es obligatoria (el servidor la revisa)
+                var fechaDoc = document.getElementById('archivoFechaDoc');
+                if (fechaDoc && !fechaDoc.value) {
+                    pintarResultadoInline(resultEl, 'Captura la fecha del documento: de ella sale el nombre del archivo.', true);
+                    fechaDoc.focus();
+                    return;
+                }
                 var fd = new FormData();
                 fd.append('nss', nss);
                 fd.append('relacion', tipo);
+                if (fechaDoc) { fd.append('fechaDocumento', fechaDoc.value); }
                 for (var i = 0; i < fileInput.files.length; i++) {
                     fd.append('file', fileInput.files[i]);
                 }
@@ -4280,6 +4372,11 @@
                         body: body.toString()
                     });
                     var txt = await response.text();
+                    // C-008: con dictamen el examen queda en el historico; su PDF se guarda aparte, despues de pintar
+                    // el resultado (el guardado no espera al PDF)
+                    if (response.ok && conDictamen) {
+                        setTimeout(function () { window.archivarPdfExamen(nss, resultEl); }, 0);
+                    }
                     // el dictamen quedo guardado: habilita (o no) la carta compromiso FT-SO-25
                     if (response.ok && dictamenEl) {
                         dictamenEl.setAttribute('data-guardado', dictamenEl.value);
@@ -4339,21 +4436,25 @@
             };
 
             // C-092 (P-044, 18-nov-2026): fecha de inicio de labores del caso; refresca la lista de atras
-            window.guardarInicioLaboresAccidente = async function (btn) {
-                var regId = btn.getAttribute('data-accidente-regid');
+            window.guardarInicioLaboresAccidente = function (btn) {
                 var fechaEl = document.getElementById('accInicioLabores');
-                var statusEl = document.getElementById('accInicioLaboresStatus');
+                guardarDatoAccidente(btn, 'api/nss/accidentes/inicio-labores/save', 'fecha', fechaEl ? fechaEl.value : '', 'accInicioLaboresStatus');
+            };
+            // Un dato extra del caso (C-092 fecha, C-086 abandono): guarda y refresca la lista de atras
+            async function guardarDatoAccidente(btn, path, campo, valor, statusId) {
+                var regId = btn.getAttribute('data-accidente-regid');
+                var statusEl = document.getElementById(statusId);
                 var body = new URLSearchParams();
                 body.append('nss', btn.getAttribute('data-nss') || '');
                 body.append('accidenteRegId', regId);
-                body.append('fecha', fechaEl ? fechaEl.value : '');
+                body.append(campo, valor);
                 var csrf = form.querySelector('input[type="hidden"][name]');
                 if (csrf && csrf.name) {
                     body.append(csrf.name, csrf.value);
                 }
                 btn.disabled = true;
                 try {
-                    var response = await fetch(contextPath + 'api/nss/accidentes/inicio-labores/save', {
+                    var response = await fetch(contextPath + path, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'text/plain' },
                         body: body.toString()
@@ -4367,11 +4468,11 @@
                         loadModuleView('api/nss/accidentes', (input.value || '').trim());
                     }
                 } catch (error) {
-                    if (statusEl) { statusEl.className = 'fs-sm text-danger'; statusEl.textContent = 'Error de red al guardar la fecha.'; }
+                    if (statusEl) { statusEl.className = 'fs-sm text-danger'; statusEl.textContent = 'Error de red al guardar.'; }
                 } finally {
                     btn.disabled = false;
                 }
-            };
+            }
 
             // Agrega una entrada de seguimiento (o cierra el caso) y refresca el modal.
             window.guardarSeguimientoAccidente = async function (btn) {
@@ -4423,35 +4524,99 @@
 
             // Sube evidencias (mismo endpoint/mecanismo que los adjuntos de Consulta,
             // relacion = "accidente-<id>") y refresca el modal.
+            // C-008: guarda el PDF del examen recien cerrado en Historico E.M. (EMP-NOV-2026-GAMA.pdf). Si falla, el
+            // examen ya quedo guardado: solo se avisa.
+            window.archivarPdfExamen = async function (nss, resultEl, ruta) {
+                var nota = document.createElement('div');
+                nota.className = 'fs-sm text-muted mt-1';
+                nota.textContent = 'Guardando el PDF en Histórico E.M.…';
+                if (resultEl) { resultEl.appendChild(nota); }
+                var body = new URLSearchParams();
+                body.append('nss', nss || '');
+                var csrf = form.querySelector('input[type="hidden"][name]');
+                if (csrf && csrf.name) {
+                    body.append(csrf.name, csrf.value);
+                }
+                try {
+                    var r = await fetch(contextPath + (ruta || 'api/nss/examen/archivar-pdf'), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'text/plain' },
+                        body: body.toString()
+                    });
+                    var t = await r.text();
+                    nota.className = 'fs-sm mt-1 ' + (r.ok ? 'text-success' : 'text-warning');
+                    nota.textContent = r.ok ? t : ('No se guardó el PDF en Histórico E.M. (lo capturado sí quedó guardado): ' + (t || ('HTTP ' + r.status)));
+                } catch (e) {
+                    nota.className = 'fs-sm mt-1 text-warning';
+                    nota.textContent = 'No se guardó el PDF en Histórico E.M. (lo capturado sí quedó guardado): error de red.';
+                }
+            };
+
+            // C-087: ST7/ST2 muestra riesgo, estatus, predio y alta de la ST2; ST 9/8/4/3 solo la ayuda
+            window.accDocumentoToggle = function () {
+                var doc = (document.getElementById('accDocumento') || {}).value || 'EVIDENCIA';
+                var codigo = document.getElementById('accStCodigoWrap');
+                var ayuda = document.getElementById('accStAyuda');
+                if (codigo) { codigo.classList.toggle('d-none', doc !== 'ST7_ST2'); }
+                if (ayuda) { ayuda.classList.toggle('d-none', doc === 'EVIDENCIA'); }
+            };
+
             window.subirEvidenciaAccidente = async function (btn) {
                 var nss = btn.getAttribute('data-nss');
                 var relacion = btn.getAttribute('data-relacion');
                 var regId = btn.getAttribute('data-accidente-regid');
                 var fileInput = document.getElementById('accEvidenciaFiles');
+                var statusEl = document.getElementById('accEvidenciaStatus');
+                var docSel = document.getElementById('accDocumento');
+                var documento = docSel ? docSel.value : 'EVIDENCIA';
+                function aviso(ok, txt) {
+                    if (statusEl) { statusEl.className = 'col-md-8 fs-sm ' + (ok ? 'text-success' : 'text-danger'); statusEl.textContent = txt; }
+                }
                 if (!fileInput || !fileInput.files || !fileInput.files.length) {
+                    aviso(false, 'Selecciona el archivo.');
                     return;
                 }
                 var fd = new FormData();
                 fd.append('nss', nss);
-                fd.append('relacion', relacion);
+                var path = 'api/nss/consulta/file';
+                if (documento === 'EVIDENCIA') {
+                    fd.append('relacion', relacion);
+                } else {
+                    path = 'api/nss/accidentes/st/upload';
+                    fd.append('accidenteRegId', regId);
+                    fd.append('documento', documento);
+                    if (documento === 'ST7_ST2') {
+                        var predio = (document.getElementById('accStPredio') || {}).value || '';
+                        if (!predio) {
+                            aviso(false, 'Selecciona el predio.');
+                            return;
+                        }
+                        fd.append('estatus', (document.getElementById('accStEstatus') || {}).value || '');
+                        fd.append('predio', predio);
+                        fd.append('fechaAltaSt2', (document.getElementById('accStAlta') || {}).value || '');
+                    }
+                }
                 for (var i = 0; i < fileInput.files.length; i++) {
                     fd.append('file', fileInput.files[i]);
                 }
-                var headers = {};
+                var headers = { 'Accept': 'text/plain' };
                 var csrf = form.querySelector('input[type="hidden"][name]');
                 if (csrf) {
                     headers['X-CSRF-TOKEN'] = csrf.value;
                 }
                 btn.disabled = true;
                 try {
-                    var response = await fetch(contextPath + 'api/nss/consulta/file', {
+                    var response = await fetch(contextPath + path, {
                         method: 'POST', headers: headers, body: fd
                     });
+                    var txt = await response.text();
                     if (response.ok) {
                         await cargarDetalle('api/nss/accidentes/detalle', regId, 'Seguimiento de accidente');
+                        statusEl = document.getElementById('accEvidenciaStatus');
                     }
+                    aviso(response.ok, txt || ('Error HTTP ' + response.status));
                 } catch (error) {
-                    // silencioso, igual que subirArchivo - el usuario ve que la lista no cambio
+                    aviso(false, 'Error de red al subir el archivo.');
                 } finally {
                     btn.disabled = false;
                 }

@@ -165,11 +165,14 @@ public class VistaAtencionRepository {
             case "TIPO" -> "e.LESION_ME";
             case "PREDIO" -> PREDIO;
             case "MES" -> MES;
+            // 19-nov-2026 (SM): predio y mes juntos, clave «PREDIO|YYYY-MM»
+            case "PREDIO_MES" -> PREDIO + " || '|' || " + MES;
             default -> throw new IllegalArgumentException("Dimension no permitida en lesiones: " + dimension);
         };
         VistaFiltro f = new VistaFiltro("SELECT " + expr + " clave, COUNT(*) cantidad" + VISTA)
                 .and("e.LESION_ME IS NOT NULL").filtros(desde, hasta, predio, cuenta);
-        return jdbc.query(f.sql() + " GROUP BY " + expr + " ORDER BY " + ("MES".equals(dimension) ? "1" : "2 DESC"),
+        return jdbc.query(f.sql() + " GROUP BY " + expr + " ORDER BY "
+                        + ("MES".equals(dimension) || "PREDIO_MES".equals(dimension) ? "1" : "2 DESC"),
                 (rs, i) -> new ConteoSimpleDto(rs.getString("clave"), rs.getLong("cantidad")), f.params());
     }
 

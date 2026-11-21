@@ -32,8 +32,18 @@ public class PretestController {
     private final NssSearchService nssSearchService;
     private final com.onest.app.catalog.formato.service.FormatosImpresosService formatos;
 
+    private final com.onest.app.catalog.examen.service.ExamenPdfService examenPdf;
+    private final com.onest.app.catalog.formato.service.HtmlPdfService htmlPdf;
+    private final org.thymeleaf.spring6.SpringTemplateEngine templateEngine;
+
     public PretestController(PretestService pretestService, NssSearchService nssSearchService,
-                             com.onest.app.catalog.formato.service.FormatosImpresosService formatos) {
+                             com.onest.app.catalog.formato.service.FormatosImpresosService formatos,
+                             com.onest.app.catalog.examen.service.ExamenPdfService examenPdf,
+                             com.onest.app.catalog.formato.service.HtmlPdfService htmlPdf,
+                             org.thymeleaf.spring6.SpringTemplateEngine templateEngine) {
+        this.examenPdf = examenPdf;
+        this.htmlPdf = htmlPdf;
+        this.templateEngine = templateEngine;
         this.formatos = formatos;
         this.pretestService = pretestService;
         this.nssSearchService = nssSearchService;
@@ -65,6 +75,45 @@ public class PretestController {
     @Auditado(modulo = "Pretest", accion = "export", entidad = "Pre-Test impreso", registro = "nss")
     public String imprimir(@RequestParam("nss") String nss,
                            @RequestParam(name = "auto", required = false) String auto, Model model) {
+        return armarImpreso(nss, auto, model);
+    }
+
+    /**
+     * C-008 (P-006, SM 18-nov-2026): deja el PDF del Pretest recien guardado en Historico E.M. como
+     * PRTS-MES-AAAA-INICIALES.pdf. Lo llama el navegador despues de un guardado correcto; si ya tiene PDF no hace
+     * nada. Si el PDF falla el Pretest ya quedo guardado.
+     */
+    @PostMapping(path = "/pretest/archivar-pdf", produces = "text/plain;charset=UTF-8")
+    @ResponseBody
+    @Auditado(modulo = "Pretest", accion = "create", entidad = "PDF del Pretest en Historico E.M.", registro = "nss")
+    public String archivarPdf(@RequestParam("nss") String nss,
+                              jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response) {
+        String n = nss == null ? "" : nss.trim();
+        try {
+            PretestService.Historial ultimo = pretestService.historial(n).stream()
+                    .filter(h -> !h.legado() && h.fecha() != null)
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("No hay Pretest guardado."));
+            return examenPdf.archivar(n, com.onest.app.catalog.examen.service.ExamenPdfService.TIPO_ARCHIVO_PRETEST,
+                    // Historico E.M. muestra CADA Pretest guardado (no uno por dia como los examenes): ninguno se
+                    // reemplaza, cada copia conserva su PDF
+                    PretestService.sello(ultimo.fecha()), ultimo.fecha().toLocalDate(), sello -> null,
+                    com.onest.app.catalog.examen.service.ExamenPdfService.PREFIJO_PRETEST, () -> {
+                        org.springframework.ui.ExtendedModelMap model = new org.springframework.ui.ExtendedModelMap();
+                        String plantilla = armarImpreso(n, null, model);
+                        model.addAttribute("pdf", true);
+                        var exchange = org.thymeleaf.web.servlet.JakartaServletWebApplication
+                                .buildApplication(request.getServletContext()).buildExchange(request, response);
+                        String html = templateEngine.process(plantilla,
+                                new org.thymeleaf.context.WebContext(exchange, java.util.Locale.of("es", "MX"), model));
+                        return htmlPdf.pdf(html, null);
+                    });
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        }
+    }
+
+    private String armarImpreso(String nss, String auto, Model model) {
         String nssLimpio = nss == null ? "" : nss.trim();
         if (nssLimpio.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "nss es obligatorio");

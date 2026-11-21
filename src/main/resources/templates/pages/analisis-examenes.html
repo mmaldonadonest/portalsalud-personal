@@ -174,6 +174,43 @@
                 <div class="card-body"><div id="chartPredio"></div></div>
             </div>
         </div>
+        <!--/* 19-nov-2026 (pedido de SM): dictamen acumulado, genero y examen medico vs Pretest, mismos filtros */-->
+        <div class="col-lg-6">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--predio">Acumulado</span>
+                    <div class="card-title-lg">Dictamen acumulado</div>
+                    <p class="fs-11 text-muted mb-0" id="subDictamen"></p>
+                </div>
+                <div class="card-body"><div id="chartDictamen"></div></div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header">
+                    <span class="chart-eyebrow chart-eyebrow--predio">Distribución</span>
+                    <div class="card-title-lg">Exámenes por género</div>
+                    <p class="fs-11 text-muted mb-0" id="subGenero">Con su dictamen</p>
+                </div>
+                <div class="card-body"><div id="chartGenero"></div></div>
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="card card-one chart-card h-100">
+                <div class="card-header d-flex flex-wrap align-items-start justify-content-between gap-2">
+                    <div>
+                        <span class="chart-eyebrow chart-eyebrow--mes">Comparativo</span>
+                        <div class="card-title-lg">Examen médico vs Pretest</div>
+                        <p class="fs-11 text-muted mb-0" id="subPretest"></p>
+                    </div>
+                    <select id="fPretestVista" class="form-select form-select-sm" style="width:auto">
+                        <option value="porMes">Por mes</option>
+                        <option value="porPredio">Por predio</option>
+                    </select>
+                </div>
+                <div class="card-body"><div id="chartPretest"></div></div>
+            </div>
+        </div>
     </div>
 
     <p class="fs-11 text-muted mt-3 mb-0">
@@ -196,6 +233,8 @@
         (function () {
             var contextPath = /*[[@{/}]]*/ '/';
             var chartMes = null, chartPredio = null, ultimoExport = null;
+            var chartGenero = null, chartPretest = null, ultimoPretest = null, chartDictamen = null;
+            var NOMBRE_GENERO = { FEM: 'Mujeres', MASC: 'Hombres' };
 
             var NOMBRES_MES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
                 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -264,6 +303,9 @@
                 ['fAnio', 'fPeriodo', 'fPredio'].forEach(function (id) {
                     document.getElementById(id).addEventListener('change', aplicar);
                 });
+                document.getElementById('fPretestVista').addEventListener('change', function () {
+                    if (ultimoPretest) { pintarPretest(ultimoPretest); }
+                });
                 document.getElementById('btnExportar').addEventListener('click', exportarCsv);
                 document.getElementById('btnExcelPretest').addEventListener('click', function () {
                     // mismo periodo y predio que las tarjetas; el servidor audita la descarga
@@ -302,8 +344,15 @@
                     pintarKpis(d);
                     pintarMes(d);
                     pintarPredio(d);
+                    pintarDictamen(d, rango);
                     ultimoExport = d;
                     estado.textContent = 'Actualizado.';
+                    // aparte: si fallan, las tarjetas de arriba ya quedaron pintadas
+                    cargarExtra('api/analisis/examenes/genero?' + qs, pintarGenero, 'chartGenero');
+                    cargarExtra('api/analisis/examenes/pretest?' + qs, function (p) {
+                        ultimoPretest = p;
+                        pintarPretest(p);
+                    }, 'chartPretest');
                 } catch (e) {
                     console.error('[analisis-examenes] error en cargar():', e);
                     estado.textContent = 'Error de red: ' + e.message;
@@ -370,6 +419,100 @@
                 if (chartPredio) { chartPredio.destroy(); }
                 chartPredio = new ApexCharts(document.querySelector('#chartPredio'), options);
                 chartPredio.render();
+            }
+
+            async function cargarExtra(ruta, pintar, idChart) {
+                try {
+                    var res = await fetch(contextPath + ruta);
+                    if (!res.ok) { vaciar(idChart, 'No se pudo consultar (HTTP ' + res.status + ').'); return; }
+                    pintar(await res.json());
+                } catch (e) {
+                    console.error('[analisis-examenes] ' + ruta, e);
+                    vaciar(idChart, 'Error de red: ' + e.message);
+                }
+            }
+
+            function pintarDictamen(d, rango) {
+                var valores = [d.totalApto, d.totalNoApto, d.totalAptoCondicionado, d.totalAptoRestringido]
+                    .map(function (v) { return v || 0; });
+                var suma = valores.reduce(function (s, v) { return s + v; }, 0);
+                document.getElementById('subDictamen').textContent = numero(suma) + ' con dictamen · ' + rango.texto;
+                if (!suma) { vaciar('chartDictamen', 'Sin exámenes en el periodo.'); return; }
+                var options = {
+                    chart: { type: 'donut', height: 300 },
+                    series: valores,
+                    labels: DICTAMENES.map(function (x) { return x.nombre; }),
+                    colors: DICTAMENES.map(function (x) { return x.color; }),
+                    legend: { position: 'right', fontSize: '12px',
+                              formatter: function (nombre, o) { return nombre + ': ' + numero(o.w.globals.series[o.seriesIndex]); } },
+                    dataLabels: { enabled: true, formatter: function (v) { return Math.round(v) + '%'; } },
+                    plotOptions: { pie: { donut: { size: '58%', labels: { show: true,
+                        total: { show: true, label: 'Total', formatter: function () { return numero(suma); } } } } } },
+                    tooltip: { y: { formatter: function (v) { return numero(v); } } }
+                };
+                document.getElementById('chartDictamen').innerHTML = '';
+                if (chartDictamen) { chartDictamen.destroy(); }
+                chartDictamen = new ApexCharts(document.querySelector('#chartDictamen'), options);
+                chartDictamen.render();
+            }
+
+            function pintarGenero(lista) {
+                lista = lista || [];
+                var total = lista.reduce(function (s, r) { return s + r.cantidad; }, 0);
+                document.getElementById('subGenero').textContent = lista.map(function (r) {
+                    return (NOMBRE_GENERO[r.clave] || r.clave) + ' ' + numero(r.cantidad)
+                        + (total ? ' (' + Math.round(r.cantidad * 100 / total) + '%)' : '');
+                }).join(' · ');
+                if (!lista.length) { vaciar('chartGenero', 'Sin exámenes en el periodo.'); return; }
+                var options = {
+                    chart: { type: 'bar', height: 260, stacked: true, toolbar: { show: false } },
+                    series: seriesDictamen(lista),
+                    colors: DICTAMENES.map(function (x) { return x.color; }),
+                    xaxis: { categories: lista.map(function (r) { return NOMBRE_GENERO[r.clave] || r.clave; }),
+                             labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#64748b', fontSize: '12px' } } },
+                    plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: '55%' } },
+                    legend: { position: 'top', horizontalAlign: 'right', fontSize: '11px', markers: { radius: 12 } },
+                    dataLabels: { enabled: false },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 }
+                };
+                document.getElementById('chartGenero').innerHTML = '';
+                if (chartGenero) { chartGenero.destroy(); }
+                chartGenero = new ApexCharts(document.querySelector('#chartGenero'), options);
+                chartGenero.render();
+            }
+
+            function pintarPretest(p) {
+                var vista = document.getElementById('fPretestVista').value;
+                var lista = (p && p[vista]) || [];
+                if (vista === 'porPredio') {
+                    lista = lista.slice().sort(function (a, b) { return (b.examenes + b.pretest) - (a.examenes + a.pretest); });
+                }
+                var te = lista.reduce(function (s, r) { return s + r.examenes; }, 0);
+                var tp = lista.reduce(function (s, r) { return s + r.pretest; }, 0);
+                document.getElementById('subPretest').textContent =
+                    'Exámenes ' + numero(te) + ' · Pretest ' + numero(tp);
+                if (!lista.length) { vaciar('chartPretest', 'Sin registros en el periodo.'); return; }
+                var horizontal = vista === 'porPredio';
+                var options = {
+                    chart: { type: 'bar', height: horizontal ? Math.max(320, lista.length * 34 + 80) : 320, toolbar: { show: false } },
+                    series: [
+                        { name: 'Examen médico', data: lista.map(function (r) { return r.examenes; }) },
+                        { name: 'Pretest', data: lista.map(function (r) { return r.pretest; }) }
+                    ],
+                    colors: ['#2563EB', '#F59E0B'],
+                    xaxis: { categories: lista.map(function (r) { return horizontal ? r.clave : etiquetaMes(r.clave); }),
+                             labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+                    plotOptions: { bar: { horizontal: horizontal, borderRadius: 3, columnWidth: '60%', barHeight: '70%' } },
+                    legend: { position: 'top', horizontalAlign: 'right', fontSize: '11px', markers: { radius: 12 } },
+                    dataLabels: { enabled: false },
+                    grid: { borderColor: '#e5e9f2', strokeDashArray: 3 }
+                };
+                document.getElementById('chartPretest').innerHTML = '';
+                if (chartPretest) { chartPretest.destroy(); }
+                chartPretest = new ApexCharts(document.querySelector('#chartPretest'), options);
+                chartPretest.render();
             }
 
             function exportarCsv() {

@@ -80,16 +80,23 @@
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label" for="antidopingStatusConclusion">Status / conclusión</label>
+                                <!-- E-017 (SM 10-nov, punto 15): Conclusion y Estatus por separado, con el catalogo de SM -->
+                                <label class="form-label" for="antidopingStatusConclusion">Conclusión</label>
                                 <select class="form-select" name="statusConclusion" id="antidopingStatusConclusion">
                                     <option value="N/A">N/A</option>
                                     <!-- C-035: SM lo llama Tratamiento aplicado; el valor guardado sigue siendo CAPA -->
                                     <option value="CAPA">Tratamiento aplicado</option>
-                                    <option value="LABORANDO">Laborando</option>
-                                    <option value="RECAIDA">Recaida</option>
                                     <option value="NO_INTERESADO_BAJA">No interesado / Baja</option>
                                     <option value="NO_CONTRATADO">No contratado</option>
-                                    <option value="BAJA_NO_APLICA">Baja / No aplica</option>
+                                    <option value="RECAIDA">Recaída</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="antidopingEstatus">Estatus <span class="text-danger">*</span></label>
+                                <select class="form-select" name="estatus" id="antidopingEstatus">
+                                    <option value="">Seleccionar</option>
+                                    <option value="LABORANDO">Laborando</option>
+                                    <option value="BAJA_NO_CONTRATADO">Baja / No contratado</option>
                                 </select>
                             </div>
                         </div>

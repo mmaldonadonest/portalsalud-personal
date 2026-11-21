@@ -16,12 +16,18 @@ import org.springframework.stereotype.Service;
  * año del nombre de los ST. El WS de accidentes no tiene la columna, asi que va a SERV_MED_TAG (base del
  * portal) con TYPE "ACC.&lt;REG_ID&gt;.INICIO_LABORES": se captura en el seguimiento del caso, cuando ya existe
  * el REG_ID (al dar de alta el accidente todavia no se conoce esa fecha).
+ *
+ * <p>C-086 (P-041, SM 18-nov-2026): en el mismo lugar, si un caso «Baja / inconcluso» es abandono PROCEDENTE
+ * (se paga al 100 %) o IMPROCEDENTE (al 60 %): "ACC.&lt;REG_ID&gt;.ABANDONO".
  */
 @Service
 public class InicioLaboresService {
 
     static final String PREFIJO = "ACC.";
     static final String CAMPO = ".INICIO_LABORES";
+    static final String CAMPO_ABANDONO = ".ABANDONO";
+    public static final String BAJA = "BAJA_INCONCLUSO";
+    public static final java.util.Set<String> ABANDONOS = java.util.Set.of("PROCEDENTE", "IMPROCEDENTE");
     private static final String GRUPO = "ACCIDENTE";
     private static final ZoneId ZONA = ZoneId.of("America/Mexico_City");
     private static final DateTimeFormatter DMY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -34,13 +40,34 @@ public class InicioLaboresService {
 
     /** REG_ID del accidente -> fecha ISO, de todos los accidentes del NSS. */
     public Map<String, String> porNss(String nss) {
+        return campo(nss, CAMPO);
+    }
+
+    /** C-086: REG_ID del accidente -> PROCEDENTE / IMPROCEDENTE. */
+    public Map<String, String> abandonosPorNss(String nss) {
+        return campo(nss, CAMPO_ABANDONO);
+    }
+
+    private Map<String, String> campo(String nss, String sufijo) {
         Map<String, String> r = new LinkedHashMap<>();
         tags.latestByNssAndTypePrefix(nss, PREFIJO).forEach((type, valor) -> {
-            if (type.endsWith(CAMPO) && valor != null && !valor.isBlank()) {
-                r.put(type.substring(PREFIJO.length(), type.length() - CAMPO.length()), valor.trim());
+            if (type.endsWith(sufijo) && valor != null && !valor.isBlank()) {
+                r.put(type.substring(PREFIJO.length(), type.length() - sufijo.length()), valor.trim());
             }
         });
         return r;
+    }
+
+    /** C-086: solo PROCEDENTE o IMPROCEDENTE (vacio lo borra). */
+    public void guardarAbandono(String nss, String regId, String abandono) {
+        if (regId == null || !regId.trim().matches("[0-9]{1,18}")) {
+            throw new IllegalArgumentException("Caso de accidente no válido.");
+        }
+        String v = abandono == null ? "" : abandono.trim().toUpperCase(java.util.Locale.ROOT);
+        if (!v.isEmpty() && !ABANDONOS.contains(v)) {
+            throw new IllegalArgumentException("El abandono es Procedente o Improcedente.");
+        }
+        tags.upsert(nss, PREFIJO + regId.trim() + CAMPO_ABANDONO, v.isEmpty() ? null : v, GRUPO, usuario());
     }
 
     /**
@@ -73,7 +100,7 @@ public class InicioLaboresService {
     }
 
     /** El WS manda la fecha del accidente como AAAA-MM-DD o DD/MM/AAAA; otra cosa no se valida. */
-    static LocalDate fecha(String v) {
+    public static LocalDate fecha(String v) {
         if (v == null || v.isBlank()) {
             return null;
         }

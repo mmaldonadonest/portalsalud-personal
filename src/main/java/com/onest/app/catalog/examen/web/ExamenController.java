@@ -43,6 +43,7 @@ public class ExamenController {
     private final com.onest.app.catalog.examen.service.CertificacionAptitudService certificacion;
     private final com.onest.app.catalog.predio.service.PredioService predios;
     private final com.onest.app.catalog.formato.service.HtmlPdfService htmlPdf;
+    private final com.onest.app.catalog.examen.service.ExamenPdfService examenPdf;
 
     /**
      * FT-SO-31 Dictamen de certificacion de aptitud medica laboral (20-oct-2026, formato B "opcional"):
@@ -149,8 +150,10 @@ public class ExamenController {
             com.onest.app.catalog.formato.service.FormatosImpresosService formatos,
             com.onest.app.catalog.examen.service.CertificacionAptitudService certificacion,
             com.onest.app.catalog.predio.service.PredioService predios,
-            com.onest.app.catalog.formato.service.HtmlPdfService htmlPdf) {
+            com.onest.app.catalog.formato.service.HtmlPdfService htmlPdf,
+            com.onest.app.catalog.examen.service.ExamenPdfService examenPdf) {
         this.htmlPdf = htmlPdf;
+        this.examenPdf = examenPdf;
         this.certificacion = certificacion;
         this.predios = predios;
         this.examenService = examenService;
@@ -189,6 +192,17 @@ public class ExamenController {
     public org.springframework.http.ResponseEntity<byte[]> imprimirPdf(@RequestParam("nss") String nss,
             @RequestParam(name = "tipo", required = false) String tipo,
             jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response) {
+        byte[] pdf = pdfDelImpreso(nss, tipo, request, response);
+        String nombre = "examen-" + nss.trim() + ".pdf";
+        return org.springframework.http.ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + nombre + "\"")
+                .header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "no-store")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
+    }
+
+    private byte[] pdfDelImpreso(String nss, String tipo,
+                                 jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response) {
         org.springframework.ui.ExtendedModelMap model = new org.springframework.ui.ExtendedModelMap();
         String plantilla = armarImpreso(nss, null, tipo, model);
         model.addAttribute("pdf", true);
@@ -197,13 +211,28 @@ public class ExamenController {
                 .buildApplication(request.getServletContext()).buildExchange(request, response);
         String html = templateEngine.process(plantilla,
                 new org.thymeleaf.context.WebContext(exchange, new java.util.Locale("es", "MX"), model));
-        byte[] pdf = htmlPdf.pdf(html, ExamenController::numerarHojas);
-        String nombre = "examen-" + nss.trim() + ".pdf";
-        return org.springframework.http.ResponseEntity.ok()
-                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + nombre + "\"")
-                .header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "no-store")
-                .contentType(MediaType.APPLICATION_PDF)
-                .body(pdf);
+        return htmlPdf.pdf(html, ExamenController::numerarHojas);
+    }
+
+    /**
+     * C-008: deja el PDF del examen recien guardado en Historico E.M. con la nomenclatura de SM. Lo llama el
+     * navegador justo despues de un guardado correcto (examen medico o examen inicial): asi el guardado, que ya
+     * es lento, no espera al PDF, y si el PDF falla el examen ya quedo. Si ese examen ya tiene PDF no hace nada.
+     */
+    @PostMapping(path = "/examen/archivar-pdf", produces = "text/plain;charset=UTF-8")
+    @ResponseBody
+    @Auditado(modulo = "Examenes", accion = "create", entidad = "PDF del examen en Historico E.M.", registro = "nss")
+    public String archivarPdf(@RequestParam("nss") String nss,
+                              jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response) {
+        String n = nss == null ? "" : nss.trim();
+        if (n.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "nss es obligatorio");
+        }
+        try {
+            return examenPdf.archivarUltimo(n, () -> pdfDelImpreso(n, null, request, response));
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        }
     }
 
     /** Lo que en el navegador hace el script del impreso: "Hoja N de M" solo con las hojas que salen. */

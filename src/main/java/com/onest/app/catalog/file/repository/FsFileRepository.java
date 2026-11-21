@@ -139,6 +139,23 @@ public class FsFileRepository {
                 nss.trim(), fileType);
     }
 
+    /** Archivo con su FILE_TYPE (cuando el tipo lleva el id del registro, p. ej. examen_pdf_123). */
+    public record ConTipo(String fileType, MedFileMeta meta) {
+    }
+
+    /** Archivos activos del NSS cuyo FILE_TYPE empieza con {@code prefijo} (C-008: un PDF por examen). */
+    public List<ConTipo> listByNssAndTypePrefix(String nss, String prefijo) {
+        if (nss == null || nss.isBlank() || prefijo == null || prefijo.isBlank()) {
+            return List.of();
+        }
+        return jdbc.query(
+                "SELECT ID, ORIGINAL_NAME, SIZE_BYTES, DATE_UPLOAD, MIME_TYPE, FILE_TYPE FROM SERV_MED_FS_FILE "
+                        // el "_" de LIKE es comodin: se escapa para que examen_pdf_ sea literal
+                        + "WHERE NSS = ? AND FILE_TYPE LIKE ? ESCAPE '\\' AND STATUS = 'ACTIVE' ORDER BY ID DESC",
+                (rs, i) -> new ConTipo(rs.getString("FILE_TYPE"), META_MAPPER.mapRow(rs, i)),
+                nss.trim(), prefijo.replace("\\", "\\\\").replace("_", "\\_").replace("%", "\\%") + "%");
+    }
+
     /**
      * Borrado LOGICO (16-oct-2026, decision del usuario: son documentos del expediente medico).
      * La fila queda con STATUS='DELETED' (permitido por SERV_MED_CK_FS_FILE_STATUS) y el binario se

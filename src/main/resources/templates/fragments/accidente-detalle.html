@@ -52,6 +52,26 @@
             </div>
         </div>
 
+        <!--/* C-086 (P-041): solo en casos Baja / inconcluso */-->
+        <div th:if="${accidente.statusCalificacion == 'BAJA_INCONCLUSO'}" class="row g-2 align-items-end mb-3">
+            <div class="col-md-6">
+                <label class="form-label mb-1 text-muted fs-sm" for="accAbandono">Abandono</label>
+                <select class="form-select form-select-sm" id="accAbandono">
+                    <option value="" th:selected="${abandono == null or abandono == ''}">Sin capturar</option>
+                    <option value="PROCEDENTE" th:selected="${abandono == 'PROCEDENTE'}">Procedente (100 %)</option>
+                    <option value="IMPROCEDENTE" th:selected="${abandono == 'IMPROCEDENTE'}">Improcedente (60 %)</option>
+                </select>
+            </div>
+            <div class="col-md-6 d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-sm btn-outline-primary"
+                        th:attr="data-accidente-regid=${accidenteRegId}, data-nss=${nss}"
+                        onclick="guardarAbandonoAccidente(this);">
+                    <i class="ri-save-line me-1"></i> Guardar abandono
+                </button>
+                <span class="fs-sm" id="accAbandonoStatus"></span>
+            </div>
+        </div>
+
         <hr class="my-3">
         <h6 class="mb-2"><i class="ri-history-line me-1"></i> Historial de seguimiento</h6>
         <div th:if="${#lists.isEmpty(historial)}" class="text-muted fs-sm mb-3">Sin seguimiento todavía.</div>
@@ -92,11 +112,57 @@
 
         <hr class="my-3">
         <h6 class="mb-2"><i class="ri-attachment-2 me-1"></i> Evidencias</h6>
+        <!-- C-087: los ST se guardan con el codigo de riesgo de SM; lo demas conserva su nombre -->
         <div class="row g-2 align-items-end mb-2">
+            <div class="col-md-4">
+                <label class="form-label fs-sm mb-1" for="accDocumento">Documento</label>
+                <select class="form-select" id="accDocumento" onchange="accDocumentoToggle();">
+                    <option value="EVIDENCIA">Otra evidencia (conserva su nombre)</option>
+                    <option value="ST7_ST2">ST7 / ST2</option>
+                    <option value="ST9">ST9</option>
+                    <option value="ST8">ST8</option>
+                    <option value="ST4">ST4</option>
+                    <option value="ST3">ST3</option>
+                </select>
+            </div>
             <div class="col-md-8">
                 <input type="file" class="form-control" id="accEvidenciaFiles"
                        accept="application/pdf,image/png,image/jpeg" multiple>
             </div>
+        </div>
+        <div class="row g-2 align-items-end mb-2 d-none" id="accStCodigoWrap">
+            <div class="col-md-3">
+                <label class="form-label fs-sm mb-1">Tipo de riesgo</label>
+                <input type="text" class="form-control" readonly
+                       th:value="${stRiesgo != null and stRiesgo != '' ? stRiesgo : 'Sin tipo de riesgo'}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fs-sm mb-1" for="accStEstatus">Estatus</label>
+                <select class="form-select" id="accStEstatus">
+                    <option value="C" th:selected="${stEstatus != 'J'}">C - Concluido</option>
+                    <option value="J" th:selected="${stEstatus == 'J'}">J - Jurídico</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fs-sm mb-1" for="accStPredio">Predio</label>
+                <select class="form-select" id="accStPredio">
+                    <option value="" th:selected="${stPredio == null or stPredio == ''}">Seleccionar</option>
+                    <option th:each="p : ${stPredios}" th:value="${p.value}" th:text="${p.key + ' (' + p.value + ')'}"
+                            th:selected="${stPredio == p.value}">AIFA (AIF)</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fs-sm mb-1" for="accStAlta">Alta de la ST2 (opcional)</label>
+                <input type="date" class="form-control" id="accStAlta">
+            </div>
+        </div>
+        <div class="fs-sm text-muted mb-2 d-none" id="accStAyuda">
+            El nombre sale de las iniciales del trabajador y del mes y año de la <b>fecha de inicio de labores</b>
+            (captúrala arriba antes de subir), p. ej. <b>GAMA-SEP2025-RT1-C-AIF</b> o <b>GAMA-SEP2025-ST9</b>.
+            Si la ST2 se dio de alta en otro año, captura su fecha y se agrega ese año (GAMA-SEP2025-2026-RT1-C-AIF).
+        </div>
+        <div class="row g-2 align-items-end mb-2">
+            <div class="col-md-8 fs-sm" id="accEvidenciaStatus"></div>
             <div class="col-md-4">
                 <button type="button" class="btn btn-primary w-100"
                         th:attr="data-nss=${nss}, data-relacion=${relacionEvidencias}, data-accidente-regid=${accidenteRegId}"

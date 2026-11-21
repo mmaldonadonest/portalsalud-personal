@@ -139,7 +139,9 @@
                 var html = esc
                     .replace(/^### (.*)$/gm, '<h5>$1</h5>').replace(/^## (.*)$/gm, '<h4>$1</h4>').replace(/^# (.*)$/gm, '<h3>$1</h3>')
                     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code>$1</code>')
-                    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="#">$1</a>')
+                    // \x5B = corchete de apertura: escrito literal junto al parentesis, Thymeleaf lo toma
+                    // como expresion inline y corta la pagina (mismo error que nss-search, 19-nov-2026)
+                    .replace(/\x5B([^\]]+)\]\(([^)]+)\)/g, '<a href="#">$1</a>')
                     .replace(/^(?:- |\* )(.*)$/gm, '<li>$1</li>').replace(/^\d+\. (.*)$/gm, '<li>$1</li>')
                     .replace(/^\|[\s|:-]+\|$/gm, '').replace(/^\|(.*)\|$/gm, function (m, c) { return '<tr><td>' + c.split('|').join('</td><td>') + '</td></tr>'; })
                     .replace(/\n{2,}/g, '<br><br>').replace(/\n/g, '<br>');

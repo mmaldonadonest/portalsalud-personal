@@ -53,6 +53,13 @@ public final class ValidadorNss {
     static final String AVISO_NEGATIVO = "negativo: entra tal cual; revisar (en el Excel viejo suele ser "
             + "una formula sin fechas, -3 dias x pago 60%)";
 
+    /**
+     * Valor de error de Excel (formula que fallo). POI entrega la celda de error como «ERROR:#VALUE!»; si la pegaron
+     * como valor llega como texto «#VALUE!»: se aceptan las dos formas.
+     */
+    static final java.util.regex.Pattern ERROR_EXCEL = java.util.regex.Pattern.compile(
+            "(?i)(ERROR:)?\\s*#(VALUE!|N/A|REF!|DIV/0!|NAME\\?|NUM!|NULL!|SPILL!|CALC!|GETTING_DATA|FIELD!|BLOCKED!|UNKNOWN!)");
+
     /** Atencion sin persona (LayoutNss.aceptaNssCeros). */
     public static final String NSS_CEROS = "00000000000";
 
@@ -190,6 +197,13 @@ public final class ValidadorNss {
             CampoNss c = e.getKey();
             String crudo = fila.valor(e.getValue());
             String v = crudo == null ? "" : crudo.trim();
+            // 19-nov-2026: una formula que fallo (#VALUE!, #N/A...) se cargaba como texto en los campos libres
+            // (11 renglones de «2 EXAMEN NUEVO INGRESO 2026» con apellido «#VALUE!»). Se rechaza en todos los campos
+            if (ERROR_EXCEL.matcher(v).matches()) {
+                errores.add(new Error(fila.numero(), c.encabezado(), v.replaceFirst("^ERROR:", ""),
+                        "la celda tiene un error de Excel: corregir la fórmula o escribir el valor"));
+                continue;
+            }
             if (c.tipo() == CampoNss.Tipo.MARCA) {
                 // 1 = aplica; 0 o vacio = no aplica. Cualquier otra cosa (X, SI...) es error, para
                 // que la captura sea uniforme (decision 13-oct-2026).
