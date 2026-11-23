@@ -25,8 +25,10 @@
                             <div class="col-md-4">
                                 <label class="form-label" for="accidenteFechaAccidente">Fecha del accidente</label>
                                 <input type="date" class="form-control" name="fechaAccidente" id="accidenteFechaAccidente"
-                                       th:max="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}"
-                                       title="No puede ser una fecha futura">
+                                       th:with="hoyMx=${#temporals.createNowForTimeZone('America/Mexico_City')}"
+                                       th:max="${#temporals.format(hoyMx, 'yyyy-MM-dd')}"
+                                       th:min="${#temporals.format(hoyMx.minusYears(2), 'yyyy-MM-dd')}"
+                                       title="No puede ser futura ni de hace más de 2 años">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="accidenteTipoRiesgo">Tipo de riesgo</label>

@@ -39,6 +39,8 @@ public class IncapacidadService {
     private final CadenaIncapacidadService cadenas;
     // Tomcat de produccion corre en UTC (memoria zona-horaria-prod-utc): "hoy" es el de la Ciudad de Mexico
     private static final java.time.ZoneId ZONA = java.time.ZoneId.of("America/Mexico_City");
+    /** E-021: anios hacia atras que se aceptan en la fecha de inicio (el formulario usa el mismo valor). */
+    static final int ANIOS_ATRAS_MAX = 2;
 
     // C-057: nombre del PDF de la incapacidad con la nomenclatura de SM
     private final com.onest.app.catalog.file.service.NomenclaturaService nomenclatura;
@@ -112,8 +114,16 @@ public class IncapacidadService {
             inicio = fechaObligatoria(f, "Fecha inicial");
             primera = inicio;
         }
-        if (inicio.isAfter(LocalDate.now(ZONA))) {
+        LocalDate hoy = LocalDate.now(ZONA);
+        if (inicio.isAfter(hoy)) {
             throw new IllegalArgumentException("La fecha de inicio no puede ser futura (" + CadenaIncapacidadService.fmt(inicio) + ").");
+        }
+        // E-021 (SM 20-nov-2026, opcion b): hasta 2 anios atras; asi no vuelve a entrar un anio 2923 o 1925.
+        // El termino no se valida aparte: sale de inicio + dias, nunca queda antes del inicio.
+        LocalDate limite = hoy.minusYears(ANIOS_ATRAS_MAX);
+        if (inicio.isBefore(limite)) {
+            throw new IllegalArgumentException("La fecha de inicio no puede ser de hace más de " + ANIOS_ATRAS_MAX
+                    + " años (antes del " + CadenaIncapacidadService.fmt(limite) + "). Revisa el año.");
         }
         LocalDate termino = inicio.plusDays(dias - 1L);
         return new Fechas(primera.toString(), inicio.toString(), termino.toString(), anterior, marca);

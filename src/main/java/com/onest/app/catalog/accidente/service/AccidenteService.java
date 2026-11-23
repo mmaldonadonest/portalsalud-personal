@@ -28,6 +28,8 @@ public class AccidenteService {
     private static final Set<String> TIPOS_SEGUIMIENTO = Set.of("SEGUIMIENTO", "CIERRE");
     // Formato confirmado en vivo el 2026-08-14 contra Servcio/accidente (ver docs/ords-accidentes.sql NOTA-2).
     private static final DateTimeFormatter FECHA_ACCIDENTE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    /** E-019: anios hacia atras que se aceptan en la fecha del accidente (el formulario usa el mismo valor). */
+    static final int ANIOS_ATRAS_MAX = 2;
     // Mismo formato de 2 digitos de anio que usa Incapacidad para su reporte por fecha
     // (ver IncapacidadService.FECHA_REPORTE) - confirmado en vivo 2026-08-17.
     private static final DateTimeFormatter FECHA_REPORTE = DateTimeFormatter.ofPattern("dd/MM/yy");
@@ -162,9 +164,16 @@ public class AccidenteService {
             throw new IllegalArgumentException("La fecha del accidente no es valida", ex);
         }
         // C-041 / B2 (9-nov): un accidente no puede ser futuro. Hora de Mexico, no la del servidor (puede estar en
-        // UTC y a partir de las 18:00 "hoy" ya seria manana). El limite de anios atras espera a SM (E-019).
-        if (fecha.isAfter(LocalDate.now(java.time.ZoneId.of("America/Mexico_City")))) {
+        // UTC y a partir de las 18:00 "hoy" ya seria manana).
+        LocalDate hoy = LocalDate.now(java.time.ZoneId.of("America/Mexico_City"));
+        if (fecha.isAfter(hoy)) {
             throw new IllegalArgumentException("La fecha del accidente no puede ser futura");
+        }
+        // E-019 (SM 20-nov-2026, opcion b): hasta 2 anios atras. Mas que eso es error de captura del anio.
+        LocalDate limite = hoy.minusYears(ANIOS_ATRAS_MAX);
+        if (fecha.isBefore(limite)) {
+            throw new IllegalArgumentException("La fecha del accidente no puede ser de hace más de "
+                    + ANIOS_ATRAS_MAX + " años (antes del " + limite.format(FECHA_ACCIDENTE) + "). Revisa el año.");
         }
         return fecha.format(FECHA_ACCIDENTE);
     }

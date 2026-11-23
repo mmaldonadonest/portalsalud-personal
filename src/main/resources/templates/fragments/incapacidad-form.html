@@ -78,7 +78,11 @@
                      Los terminos se calculan (inicio + dias - 1, el dia de inicio cuenta): no se teclean. */-->
                 <div class="col-md-3">
                     <label class="form-label" for="fechaPrimera">Fecha inicial</label>
-                    <input type="date" class="form-control" name="fechaPrimera" id="fechaPrimera" oninput="incapRecalc();">
+                    <input type="date" class="form-control" name="fechaPrimera" id="fechaPrimera" oninput="incapRecalc();"
+                           th:with="hoyMx=${#temporals.createNowForTimeZone('America/Mexico_City')}"
+                           th:max="${#temporals.format(hoyMx, 'yyyy-MM-dd')}"
+                           th:min="${#temporals.format(hoyMx.minusYears(2), 'yyyy-MM-dd')}"
+                           title="No puede ser futura ni de hace más de 2 años">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label" for="incapTerminoIni">Fecha de término</label>
@@ -86,7 +90,11 @@
                 </div>
                 <div class="col-md-3 incap-sub d-none">
                     <label class="form-label" for="fechaInicio">Fecha subsecuente</label>
-                    <input type="date" class="form-control" name="fechaInicio" id="fechaInicio" oninput="incapRecalc();">
+                    <input type="date" class="form-control" name="fechaInicio" id="fechaInicio" oninput="incapRecalc();"
+                           th:with="hoyMx=${#temporals.createNowForTimeZone('America/Mexico_City')}"
+                           th:max="${#temporals.format(hoyMx, 'yyyy-MM-dd')}"
+                           th:min="${#temporals.format(hoyMx.minusYears(2), 'yyyy-MM-dd')}"
+                           title="No puede ser futura ni de hace más de 2 años">
                 </div>
                 <div class="col-md-3 incap-sub d-none">
                     <label class="form-label" for="incapTerminoSub">Término de la subsecuente</label>
