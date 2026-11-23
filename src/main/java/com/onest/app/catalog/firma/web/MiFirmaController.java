@@ -106,15 +106,77 @@ public class MiFirmaController {
         }
     }
 
-    /** El recuadro de dibujo manda un data URL PNG; solo se acepta ese formato. */
-    private static byte[] desdeDataUrl(String dataUrl) {
+    /**
+     * Tope del dibujo: 1 MB de PNG ya decodificado. Una firma trazada a mano pesa entre 5 y 50 KB,
+     * asi que esto deja 20 veces de margen. NO se usa el tope de 25 MB de los adjuntos del
+     * expediente (spring.servlet.multipart.max-file-size): ese es para documentos escaneados.
+     */
+    private static final int FIRMA_MAX_BYTES = 1024 * 1024;
+
+    /** Los caracteres Base64 que caben en FIRMA_MAX_BYTES, con su relleno. Visible para la prueba. */
+    static final int DIBUJO_MAX_CHARS = 4 * ((FIRMA_MAX_BYTES + 2) / 3);
+
+    /**
+     * El recuadro de dibujo manda un data URL PNG; solo se acepta ese formato.
+     *
+     * <p>Visibilidad de paquete en lugar de {@code private} para que la pruebe
+     * {@code MiFirmaControllerTest}: es la frontera donde entra dato del cliente.
+     */
+    static byte[] desdeDataUrl(String dataUrl) {
         String prefijo = "data:image/png;base64,";
         if (dataUrl == null || !dataUrl.startsWith(prefijo)) {
             throw new IllegalArgumentException("Dibuja tu firma en el recuadro antes de guardar.");
         }
+        String base64 = dataUrl.substring(prefijo.length());
+        exigirBase64Estricto(base64);
         try {
-            return Base64.getDecoder().decode(dataUrl.substring(prefijo.length()));
+            return Base64.getDecoder().decode(base64);
         } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("El dibujo de la firma llegó dañado; vuelve a intentarlo.");
+        }
+    }
+
+    /**
+     * Valida el Base64 ANTES de pasarlo al decodificador (CVE-2026-114938, «Java4Shell»).
+     *
+     * <p>El decodificador intrinseco de HotSpot calcula mal la mascara de escritura del ultimo grupo
+     * cuando lleva relleno y escribe fuera del arreglo destino. En esta ruta el largo y el contenido
+     * los elige por completo quien manda la peticion: lo unico que se revisaba era el prefijo
+     * {@code data:image/png;base64,}, que el propio cliente escribe.
+     *
+     * <p>Se exige: largo acotado, multiplo de 4, solo el alfabeto Base64 estandar, y el relleno
+     * {@code =} unicamente al final (uno o dos, sin datos despues). Con eso una cadena con relleno
+     * mal formado no llega al decodificador.
+     *
+     * <p><b>Esto no sustituye actualizar el JDK</b> a 21.0.13.1 o posterior: es una contencion a
+     * nivel de aplicacion, que es lo que recomienda el aviso de CISA mientras se parcha.
+     */
+    private static void exigirBase64Estricto(String base64) {
+        if (base64.isEmpty()) {
+            throw new IllegalArgumentException("Dibuja tu firma en el recuadro antes de guardar.");
+        }
+        if (base64.length() > DIBUJO_MAX_CHARS) {
+            throw new IllegalArgumentException("El dibujo de la firma es demasiado grande; vuelve a intentarlo.");
+        }
+        if (base64.length() % 4 != 0) {
+            throw new IllegalArgumentException("El dibujo de la firma llegó dañado; vuelve a intentarlo.");
+        }
+        int relleno = 0;
+        for (int i = 0; i < base64.length(); i++) {
+            char c = base64.charAt(i);
+            boolean esDato = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
+                    || (c >= '0' && c <= '9') || c == '+' || c == '/';
+            if (esDato) {
+                if (relleno > 0) {
+                    // dato despues del relleno: cadena mal formada
+                    throw new IllegalArgumentException("El dibujo de la firma llegó dañado; vuelve a intentarlo.");
+                }
+                continue;
+            }
+            if (c == '=' && i >= base64.length() - 2) {
+                relleno++;
+                continue;
+            }
             throw new IllegalArgumentException("El dibujo de la firma llegó dañado; vuelve a intentarlo.");
         }
     }
