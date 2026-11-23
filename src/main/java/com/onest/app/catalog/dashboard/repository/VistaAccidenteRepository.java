@@ -116,6 +116,31 @@ public class VistaAccidenteRepository {
                 nss);
     }
 
+    /** Un accidente (portal o Excel) con lo que pide el reporte anual de SM (C-044). */
+    public record FilaReporte(String fuente, String nss, String nombre, LocalDate fecha, String predio,
+                              String cuenta, String area, String puesto, String genero, String tipoRiesgo,
+                              String causaRt, String statusCalificacion, java.math.BigDecimal sdi,
+                              Integer dias, java.math.BigDecimal costo) {
+    }
+
+    /**
+     * Los accidentes del rango, uno por renglon, para el reporte anual (C-044). Se agrupan en Java
+     * (ReporteAnualAccidentes) porque la hoja de SM cruza el predio con ocho dimensiones distintas:
+     * una consulta por dimension serian ocho viajes a la base por el mismo puñado de renglones.
+     */
+    public List<FilaReporte> filasReporte(LocalDate desde, LocalDate hasta, String predio) {
+        VistaFiltro f = new VistaFiltro("SELECT e.FUENTE, e.NSS, e.NOMBRE, e.FECHA, e.PREDIO, e.CUENTA, e.AREA, "
+                + "e.PUESTO, e.GENERO, e.TIPO_RIESGO, e.CAUSA_RT, e.STATUS_CALIFICACION, e.SDI, e.DIAS, e.COSTO" + VISTA)
+                .filtros(desde, hasta, predio, null);
+        return jdbc.query(f.sql() + " ORDER BY e.FECHA, e.NSS",
+                (rs, i) -> new FilaReporte(rs.getString(1), rs.getString(2), rs.getString(3),
+                        rs.getDate(4) == null ? null : rs.getDate(4).toLocalDate(),
+                        rs.getString(5), rs.getString(6), rs.getString(7), rs.getString(8), rs.getString(9),
+                        rs.getString(10), rs.getString(11), rs.getString(12), rs.getBigDecimal(13),
+                        rs.getObject(14) == null ? null : rs.getInt(14), rs.getBigDecimal(15)),
+                f.params());
+    }
+
     /** {tipo de riesgo, mes, cantidad}. */
     public List<Object[]> porTipoYMes(LocalDate desde, LocalDate hasta, String predio, String cuenta) {
         VistaFiltro f = new VistaFiltro("SELECT " + TIPO + " tipo, " + MES + " mes, COUNT(*) cantidad" + VISTA)

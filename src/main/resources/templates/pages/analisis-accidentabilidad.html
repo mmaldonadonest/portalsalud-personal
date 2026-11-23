@@ -65,6 +65,12 @@
             <p class="fs-12 text-muted mb-0" id="subtitulo">Accidentes de trabajo</p>
         </div>
         <div class="d-flex gap-2">
+            <!--/* C-044 (P-050, SM 20-nov-2026): la hoja GENERAL del Excel de accidentabilidad de SM, del año
+                 elegido (todo el año, aunque el periodo sea un mes) y del predio elegido */-->
+            <button type="button" id="btnReporteAnual" class="btn btn-success btn-sm"
+                    title="Hoja GENERAL de Servicio Médico del año elegido: por predio, mes, tipo, género, cuenta, área, puesto, calificado e improcedente, causa, costos y status">
+                <i class="ri-file-excel-2-line me-1"></i>Reporte anual
+            </button>
             <button type="button" id="btnExportar" class="btn btn-outline-secondary btn-sm">
                 <i class="ri-download-2-line me-1"></i>Exportar
             </button>
@@ -269,6 +275,14 @@
                     document.getElementById(id).addEventListener('change', aplicar);
                 });
                 document.getElementById('btnExportar').addEventListener('click', exportarCsv);
+                document.getElementById('btnReporteAnual').addEventListener('click', function () {
+                    // el servidor audita la descarga
+                    var qs = new URLSearchParams({
+                        anio: document.getElementById('fAnio').value,
+                        predio: document.getElementById('fPredio').value || ''
+                    });
+                    window.location.href = contextPath + 'api/analisis/accidentes/reporte-anual?' + qs.toString();
+                });
                 document.getElementById('btnNuevo').addEventListener('click', function () {
                     window.location.href = this.dataset.url;
                 });
