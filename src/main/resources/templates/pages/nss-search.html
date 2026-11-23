@@ -2662,6 +2662,7 @@
                 if (!baja) {
                     wrap.querySelectorAll('input[name="abandono"]').forEach(function (r) { r.checked = false; });
                 }
+                calcCostoAccidente();
             };
 
             window.guardarAccidente = function (btn) {
@@ -3085,16 +3086,64 @@
             }
 
             // Costo = salario diario * dias autorizados (legacy calcularSalario).
+            // C-043 / C-047 / C-086 (23-nov-2026): vista previa del costo con las reglas de SM. El que se guarda lo
+            // calcula el servidor (ReglasCosto.java); si se cambia una regla, cambiarla en los dos lados.
+            function costoPinta(campo, nota, r) {
+                if (!campo) { return; }
+                campo.value = r ? r.costo.toFixed(2) : '';
+                if (nota) { nota.textContent = r ? r.regla : 'Captura el SDI y los días para calcularlo.'; }
+            }
+            function costoPago(sdi, dias, pct, regla) {
+                return { costo: Math.round(sdi * dias * pct * 100) / 100, regla: regla };
+            }
+            window.costoIncapacidad = function (ramo, tipo, dictamen, dias, sdi) {
+                if (!(sdi > 0) || !(dias > 0)) { return null; }
+                ramo = (ramo || '').toLowerCase();
+                if (ramo === 'maternidad') { return costoPago(sdi, dias, 1, 'Maternidad: 100 % de los días.'); }
+                if (ramo === 'enfermedad_general') {
+                    if ((tipo || '').toLowerCase() === 'subsecuente') {
+                        return costoPago(sdi, dias, 0.6, 'Enfermedad General subsecuente: 60 % desde el primer día.');
+                    }
+                    return costoPago(sdi, Math.max(dias - 3, 0), 0.6,
+                        'Enfermedad General inicial: los 3 primeros días no se pagan; 60 % a partir del 4.° día.');
+                }
+                if (ramo === 'rt1' || ramo === 'rt2') {
+                    return dictamen === 'si_calificado'
+                        ? costoPago(sdi, dias, 1, 'Riesgo de trabajo calificado: 100 % desde el primer día.')
+                        : { costo: 0, regla: 'Riesgo de trabajo sin calificar: no se paga mientras no esté calificado.' };
+                }
+                return costoPago(sdi, dias, 1, 'Ramo sin regla de Servicio Médico: 100 % de los días, como antes.');
+            };
+            window.costoAccidente = function (status, abandono, dias, sdi) {
+                if (status === 'PENDIENTE' || !status) { return { costo: 0, regla: 'Pendiente de calificar: costo 0.' }; }
+                if (!(sdi > 0) || !(dias > 0)) { return null; }
+                if (status === 'CALIFICADO') { return costoPago(sdi, dias, 1, 'Calificado: 100 % de los días.'); }
+                if (status === 'IMPROCEDENTE') { return costoPago(sdi, Math.max(dias - 3, 0), 0.6, 'Improcedente: 60 % de los días menos 3.'); }
+                if (status === 'BAJA_INCONCLUSO') {
+                    if (abandono === 'PROCEDENTE') { return costoPago(sdi, dias, 1, 'Abandono procedente: 100 % de los días.'); }
+                    if (abandono === 'IMPROCEDENTE') { return costoPago(sdi, dias, 0.6, 'Abandono improcedente: 60 % de los días.'); }
+                    return { costo: 0, regla: 'Baja / inconcluso: indica si el abandono es procedente o improcedente.' };
+                }
+                return { costo: 0, regla: 'Estatus sin regla: costo 0.' };
+            };
             window.calcCostoIncap = function () {
                 var f = document.getElementById('incapacidadAltaForm');
                 if (!f) {
                     return;
                 }
-                var sal = parseFloat(f.salarioIntegrado.value);
-                var dias = parseFloat(f.diasAutorizados.value);
-                if (sal > 0 && dias > 0) {
-                    f.costo.value = (sal * dias).toFixed(2);
+                costoPinta(f.costo, document.getElementById('incapCostoRegla'),
+                    costoIncapacidad(f.ramo.value, f.tipo.value, f.estadoDictamen.value,
+                        parseInt(f.diasAutorizados.value, 10), parseFloat(f.salarioIntegrado.value)));
+            };
+            window.calcCostoAccidente = function () {
+                var f = document.getElementById('accidenteAltaForm');
+                if (!f) {
+                    return;
                 }
+                var ab = f.querySelector('input[name="abandono"]:checked');
+                costoPinta(f.costo, document.getElementById('accCostoRegla'),
+                    costoAccidente(f.statusCalificacion.value, ab ? ab.value : '',
+                        parseInt(f.dias.value, 10), parseFloat(f.sdi.value)));
             };
 
             // --- Cadena de incapacidades (C-045, C-050, C-051, C-052, C-055; 18-nov-2026) ---

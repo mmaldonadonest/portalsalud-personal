@@ -7,6 +7,8 @@ import com.onest.app.catalog.accidente.dto.AccidenteDto;
 import com.onest.app.catalog.accidente.dto.AccidenteReporteDto;
 import com.onest.app.catalog.accidente.dto.AccidenteSeguimientoDto;
 import com.onest.app.catalog.accidente.web.AccidenteAltaForm;
+import com.onest.app.catalog.costo.FuenteSdi;
+import com.onest.app.catalog.costo.ReglasCosto;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -35,9 +37,12 @@ public class AccidenteService {
     private static final DateTimeFormatter FECHA_REPORTE = DateTimeFormatter.ofPattern("dd/MM/yy");
 
     private final AccidenteClient client;
+    /** C-043: de donde sale el SDI (hoy el capturado; mañana un WS o una vista, P-035). */
+    private final FuenteSdi fuenteSdi;
 
-    public AccidenteService(AccidenteClient client) {
+    public AccidenteService(AccidenteClient client, FuenteSdi fuenteSdi) {
         this.client = client;
+        this.fuenteSdi = fuenteSdi;
     }
 
     public List<AccidenteDto> byNss(String nss) {
@@ -121,19 +126,34 @@ public class AccidenteService {
             throw new IllegalArgumentException("El tipo de riesgo es obligatorio");
         }
 
+        String fecha = formatFechaAccidente(form.getFechaAccidente());
+        Integer dias = parseDias(form.getDias());
+        // C-043 / C-086 (23-nov-2026): el costo lo calcula el servidor con las reglas de SM; el del formulario
+        // es solo vista previa. SDI a la fecha del accidente (P-036): la fuente oficial y, si no lo tiene, el
+        // capturado. Sin SDI o sin dias se deja lo que venga, como antes.
+        BigDecimal sdi = fuenteSdi.sdi(nss, LocalDate.parse(form.getFechaAccidente().trim()))
+                .orElse(parseDecimal(form.getSdi(), "SDI"));
+        BigDecimal costo = parseDecimal(form.getCosto(), "costo");
+        if (sdi != null && sdi.signum() > 0 && dias != null) {
+            ReglasCosto.Resultado r = ReglasCosto.accidente(form.getStatusCalificacion(), form.getAbandono(), dias, sdi);
+            costo = r.costo();
+        } else if ("PENDIENTE".equalsIgnoreCase(String.valueOf(form.getStatusCalificacion()).trim())) {
+            costo = BigDecimal.ZERO.setScale(2);
+        }
+
         BiowsAccidenteAltaRequest request = new BiowsAccidenteAltaRequest(
                 nss,
-                formatFechaAccidente(form.getFechaAccidente()),
+                fecha,
                 form.getTipoRiesgo(),
                 form.getCausaRt(),
                 form.getDiagnostico(),
-                parseDecimal(form.getSdi(), "SDI"),
+                sdi,
                 form.getStatusCalificacion(),
-                parseDecimal(form.getCosto(), "costo"),
+                costo,
                 form.getObservaciones(),
                 USUARIO_FIJO,
                 usuarioActual(),
-                parseDias(form.getDias()));
+                dias);
         return client.crearAccidente(request);
     }
 

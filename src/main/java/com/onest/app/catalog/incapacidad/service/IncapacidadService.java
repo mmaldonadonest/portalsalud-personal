@@ -1,11 +1,14 @@
 package com.onest.app.catalog.incapacidad.service;
 
+import com.onest.app.catalog.costo.FuenteSdi;
+import com.onest.app.catalog.costo.ReglasCosto;
 import com.onest.app.catalog.incapacidad.client.IncapacidadClient;
 import com.onest.app.catalog.incapacidad.client.dto.BiowsIncapacidadAltaRequest;
 import com.onest.app.catalog.incapacidad.dto.IncapacidadDetalleDto;
 import com.onest.app.catalog.incapacidad.dto.IncapacidadDto;
 import com.onest.app.catalog.incapacidad.dto.IncapacidadReporteDto;
 import com.onest.app.catalog.incapacidad.web.IncapacidadAltaForm;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -45,14 +48,19 @@ public class IncapacidadService {
     // C-057: nombre del PDF de la incapacidad con la nomenclatura de SM
     private final com.onest.app.catalog.file.service.NomenclaturaService nomenclatura;
 
+    /** C-047: de donde sale el SDI (hoy el capturado; mañana un WS o una vista, P-035). */
+    private final FuenteSdi fuenteSdi;
+
     public IncapacidadService(IncapacidadClient client,
                               com.onest.app.catalog.incapacidad.repository.FolioIncapacidadRepository folios,
                               CadenaIncapacidadService cadenas,
-                              com.onest.app.catalog.file.service.NomenclaturaService nomenclatura) {
+                              com.onest.app.catalog.file.service.NomenclaturaService nomenclatura,
+                              FuenteSdi fuenteSdi) {
         this.client = client;
         this.folios = folios;
         this.cadenas = cadenas;
         this.nomenclatura = nomenclatura;
+        this.fuenteSdi = fuenteSdi;
     }
 
     /**
@@ -195,6 +203,47 @@ public class IncapacidadService {
         return client.findIncapacidadDetail(normalizeNss(nss), idConsulta.trim());
     }
 
+    /** SDI y costo tal como se mandan al WS (texto, como el resto del request). */
+    record Costo(String sdi, String costo) {
+    }
+
+    /**
+     * C-047 (23-nov-2026): el costo lo calcula el servidor con las reglas de SM ({@link ReglasCosto}); el del
+     * formulario es solo una vista previa. SDI a la fecha de inicio (P-036): primero la fuente oficial
+     * ({@link FuenteSdi}); si no lo tiene, el que se tecleo. Sin SDI o sin dias no hay costo que calcular y se
+     * deja lo que venga del formulario, como antes.
+     */
+    Costo costo(String nss, IncapacidadAltaForm form, Fechas fechas) {
+        LocalDate inicio = null;
+        try {
+            inicio = fechas.inicio() == null ? null : LocalDate.parse(fechas.inicio().trim());
+        } catch (DateTimeParseException ex) {
+            // tipos viejos del PHP con otra forma de fecha: la fuente se consulta sin fecha
+        }
+        BigDecimal sdi = fuenteSdi.sdi(nss, inicio).orElse(decimal(form.getSalarioIntegrado()));
+        Integer dias = enteroPositivo(form.getDiasAutorizados());
+        if (sdi == null || sdi.signum() <= 0 || dias == null) {
+            return new Costo(form.getSalarioIntegrado(), form.getCosto());
+        }
+        ReglasCosto.Resultado r = ReglasCosto.incapacidad(form.getRamo(), form.getTipo(), form.getEstadoDictamen(), dias, sdi);
+        if (r.porConfirmar()) {
+            log.info("[incapacidad] costo con criterio por confirmar con SM (ramo {}, dictamen {}): {}",
+                    form.getRamo(), form.getEstadoDictamen(), r.regla());
+        }
+        return new Costo(sdi.toPlainString(), r.costo().toPlainString());
+    }
+
+    private static BigDecimal decimal(String v) {
+        if (v == null || v.isBlank()) {
+            return null;
+        }
+        try {
+            return new BigDecimal(v.trim().replace(",", ""));
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
     /** Alta de incapacidad (addIncapacidad -> /Servcio/incapacidades). Devuelve el mensaje Proceso. */
     public String crearIncapacidad(IncapacidadAltaForm form) {
         String nss = normalizeNss(form.getNss());
@@ -207,6 +256,7 @@ public class IncapacidadService {
         // C-045/C-051/C-053 y C-046: todo se valida antes de llamar al WS; si algo no pasa, no se guarda nada
         Fechas fechas = resolverFechas(nss, form);
         String folio = validarFolio(form.getRubro(), form.getFolio());
+        Costo costo = costo(nss, form, fechas);
 
         BiowsIncapacidadAltaRequest request = new BiowsIncapacidadAltaRequest(
                 LocalDateTime.now().format(FECHA),
@@ -217,8 +267,8 @@ public class IncapacidadService {
                 fechas.inicio(),
                 fechas.termino(),
                 form.getDiasAutorizados(),
-                form.getSalarioIntegrado(),
-                form.getCosto(),
+                costo.sdi(),
+                costo.costo(),
                 form.getImputable(),
                 form.getEstadoDictamen(),
                 form.getGoceSueldo(),
