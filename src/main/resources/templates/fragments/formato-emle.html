@@ -7,7 +7,7 @@
         tipo 1 Admision          FT-SO-04 (3 hojas)   tipo 7 Inicial mantenimiento  FT-SO-19 (3 hojas)
         tipo 2 Periodico         FT-SO-17 (2 hojas)   tipo 3 Cambio de puesto       FT-SO-16 (2 hojas)
         tipo 6 Egreso            FT-SO-18 (2 hojas)   tipo 8 Periodico mantenimiento FT-SO-20 (2 hojas)
-        tipo 4 Post incapacidad  FT-SO-13 (1 hoja)    tipo 5 Especial: sin formato, documento general
+        tipo 4 Post incapacidad  FT-SO-13 (1 hoja)    tipo 5 Especial: sin formato de SM, usa el FT-SO-17 (23-nov)
       examen-documento.html las incluye despues del consentimiento FT-SO-11 y el aviso FT-SO-32 (todos los llevan).
       Mismos valores que el documento general (ExamenDocumentoService.armar). Tablas y no flex: el PDF lo genera
       OpenHTMLtoPDF (HtmlPdfService), que no entiende flexbox. Cada tr.hoja es una hoja del formato.
@@ -456,7 +456,7 @@
     <th:block th:replace="~{fragments/formato-emle :: cierre(true, true, null, 'YO CERTIFICO QUE LOS DATOS ANTERIORMENTE PROPORCIONADOS SON VERDADEROS Y ESTOY CONSCIENTE QUE CUALQUIER OMISIÓN O FALSIFICACIÓN PUEDEN SER MOTIVO DE DESPIDO, Y AUTORIZO AL SERVICIO MÉDICO DE LA COMPAÑÍA PARA QUE REALICE LOS EXÁMENES NECESARIOS CON MOTIVO DE MI TRABAJO PARA DETECCIÓN OPORTUNA Y ESTUDIO DE ENFERMEDADES O ACCIDENTES')}"></th:block>
 </div></td></tr>
 
-<!-- ======================================================================= FT-SO-17 y derivados (tipos 2, 3, 6, 8) -->
+<!-- ======================================================================= FT-SO-17 y derivados (tipos 2, 3, 5, 6, 8) -->
 <!--/* 17 periodico base; 16 cambia "Antecedentes laborales" por "Cambio de puesto"; 18 agrega turno, antiguedad y
      motivo de salida, titula distinto los estudios y no lleva plan; 20 agrega laborales especificos y FUP */-->
 <th:block th:fragment="ftso17" th:with="t=${d.v('TIPO_CODIGO')},

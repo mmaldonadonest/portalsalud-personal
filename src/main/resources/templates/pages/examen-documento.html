@@ -376,11 +376,13 @@
     </div>
 </div></td></tr>
 <!--/* 29-oct-2026: cada tipo imprime las hojas de SU formato EMLE 2026 (fragments/formato-emle); el consentimiento
-     y el aviso de arriba los llevan todos. Solo Especial (5) o sin tipo siguen con las hojas generales de abajo. */-->
+     y el aviso de arriba los llevan todos. Solo sin tipo siguen con las hojas generales de abajo.
+     23-nov-2026 (decision del usuario): el Especial (5) no tiene formato EMLE de SM y se imprime con el del Periodico
+     (FT-SO-17); conserva su encabezado actual y su captura completa (lo que el 17 no pide no sale en el impreso). */-->
 <th:block th:if="${d.v('TIPO_CODIGO') == '4'}"><tr th:replace="~{fragments/formato-emle :: ftso13}"></tr></th:block>
-<th:block th:if="${#lists.contains({'2','3','6','8'}, d.v('TIPO_CODIGO'))}"><th:block th:replace="~{fragments/formato-emle :: ftso17}"></th:block></th:block>
+<th:block th:if="${#lists.contains({'2','3','5','6','8'}, d.v('TIPO_CODIGO'))}"><th:block th:replace="~{fragments/formato-emle :: ftso17}"></th:block></th:block>
 <th:block th:if="${#lists.contains({'1','7'}, d.v('TIPO_CODIGO'))}"><th:block th:replace="~{fragments/formato-emle :: ftso04}"></th:block></th:block>
-<th:block th:unless="${#lists.contains({'1','2','3','4','6','7','8'}, d.v('TIPO_CODIGO'))}">
+<th:block th:unless="${#lists.contains({'1','2','3','4','5','6','7','8'}, d.v('TIPO_CODIGO'))}">
 <tr class="hoja"><td><div class="row hoja-row">
 
     <div class="row" style="margin-top: 20px;">
