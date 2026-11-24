@@ -208,6 +208,13 @@ public class CargaNssService {
         if (encabezados[0] == null && !notas.isEmpty()) {
             encabezados[0] = notas.get(0);   // ninguna fila parecio encabezado: el rechazo dice que falta
         }
+        // 24-nov-2026: con un titulo arriba («EXAMEN MEDICO PERIODICO 2026») el rechazo comparaba contra el titulo y
+        // decia que faltaban TODAS las columnas. Se compara contra la fila que mas se parece al encabezado.
+        if (validador[0] == null && soloLayout != null && !notas.isEmpty()) {
+            encabezados[0] = notas.stream()
+                    .min(java.util.Comparator.comparingInt((List<String> n) -> ValidadorNss.faltantes(n, soloLayout).size()))
+                    .orElse(encabezados[0]);
+        }
         if (encabezados[0] == null) {
             return rechazo(archivo, null, "la primera hoja esta vacia");
         }

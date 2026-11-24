@@ -52,6 +52,8 @@ public class NssSearchController {
                 model.addAttribute("escolaridad", escolaridadOcr.isEmpty() ? extra.escolaridad() : escolaridadOcr);
                 model.addAttribute("profesion", sol == null || sol.profesionOficio() == null ? "" : sol.profesionOficio().trim());
                 model.addAttribute("departamento", extra.departamento());
+                // Baja en el biometrico (24-nov-2026): el WS Catalogo/usuario no la trae
+                model.addAttribute("baja", result.candidatoOcr() ? null : fichaBiometrico.baja(result.empleado().nss()));
                 model.addAttribute("telefonoSalud", documentoService.telefonoSalud(result.empleado().nss()));
             }
         } catch (IllegalArgumentException ex) {

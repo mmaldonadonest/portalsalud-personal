@@ -82,7 +82,9 @@ public enum LayoutNss {
             nss(),
             catalogo("PREDIO", "PREDIO", "PREDIO", true),
             catalogo("AREA", "AREA", "AREA", true),
-            fecha("FECHA EXAMEN", "FECHA", true),
+            // 24-nov-2026: SM pide «FECHA DE ATENCION» (asi viene el periodico 2026); «FECHA EXAMEN» de la
+            // plantilla anterior se sigue aceptando
+            fecha("FECHA DE ATENCION", "FECHA EXAMEN", "FECHA", true),
             catalogo("STATUS", "DICTAMEN", "DICTAMEN", false),
             texto("DIAGNOSTICO", "DIAGNOSTICO", 1000),
             texto("RESULTADOS PENDIENTES", "RESULTADOS_PENDIENTES", 500),
@@ -143,7 +145,9 @@ public enum LayoutNss {
     // se llena. En el PORTAL si debe capturarse el folio (P12 del plan).
     EXAMEN_POS_INCAP("EXAMEN POS INCAPACIDAD", "SERV_MED_XLS_EXAMEN_POS", true, List.of(
             nss(),
-            fecha("FECHA EXAMEN", "FECHA", true),
+            // 24-nov-2026: mismo sinonimo que el periodico. Si solo el periodico lo aceptara, un archivo de pos
+            // incapacidad con «FECHA DE ATENCION» se reconoceria como PERIODICO (le sobra CAUSA) y no como el suyo
+            fecha("FECHA DE ATENCION", "FECHA EXAMEN", "FECHA", true),
             catalogo("CAUSA", "CAUSA", "CAUSA_EXAMEN_POS_INCAP", false),
             catalogo("PREDIO", "PREDIO", "PREDIO", true),
             catalogo("AREA", "AREA", "AREA", true),

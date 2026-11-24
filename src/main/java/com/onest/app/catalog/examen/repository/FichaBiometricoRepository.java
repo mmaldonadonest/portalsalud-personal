@@ -48,7 +48,8 @@ public class FichaBiometricoRepository {
                             + "    LEFT JOIN BIO_NIVEL_ESTUDIOS ne ON ne.ID_ESTUDIOS = c.ID_ESTUDIOS"
                             + "    LEFT JOIN BIO_DIVISION_SAP dv ON dv.DIVISION = c.DIVISION"
                             + "   WHERE d.EMP_NSS = ?"
-                            + "   ORDER BY CASE WHEN d.EMP_STATUS = 1 THEN 0 ELSE 1 END,"
+                            // 0 = activo y 1 = baja (usuario, 24-nov-2026): con reingresos manda el registro vigente
+                            + "   ORDER BY CASE d.EMP_STATUS WHEN 0 THEN 0 WHEN 1 THEN 1 ELSE 2 END,"
                             + "            CASE WHEN dv.DIVISION_NOMBRE IS NOT NULL THEN 0 ELSE 1 END"
                             + ") WHERE ROWNUM = 1",
                     (rs, i) -> new Extra(limpio(rs.getString(1)), limpio(rs.getString(2))), nss.trim());
@@ -78,6 +79,48 @@ public class FichaBiometricoRepository {
         } catch (DataAccessException ex) {
             log.warn("[ficha] no se pudo leer el puesto de {}: {}", nss, ex.getMostSpecificCause().getMessage());
             return "";
+        }
+    }
+
+    /**
+     * Baja del empleado para el distintivo de la ficha NSS (24-nov-2026). El usuario confirmo que EMP_STATUS = 1
+     * es BAJA (caso 90099119373: 1, TIPOBAJA 'Z4' y FECHA_BAJA vacia, por eso la fecha no se usa). Multipredio:
+     * solo es baja si tiene algun renglon en 1 y ninguno en 0 (activo); 99 y 100 no cuentan para ningun lado.
+     * Devuelve null si no es baja o si no se pudo leer (la ficha no debe caerse por esto).
+     */
+    public Baja baja(String nss) {
+        if (nss == null || nss.isBlank()) {
+            return null;
+        }
+        try {
+            // Motivo: catalogo BIO_MOTIVO_BAJA (MOT_ID_SAP = clave de SAP, p. ej. Z4 = Bajo Desempeño). Si la
+            // clave no esta en el catalogo, MOTIVO queda vacio y se muestra la clave tal cual.
+            List<Baja> filas = jdbc.query(
+                    "SELECT SUM(CASE WHEN TRIM(TO_CHAR(e.EMP_STATUS)) = '1' THEN 1 ELSE 0 END) BAJAS,"
+                            + "     SUM(CASE WHEN TRIM(TO_CHAR(e.EMP_STATUS)) = '0' THEN 1 ELSE 0 END) ACTIVOS,"
+                            + "     MAX(CASE WHEN TRIM(TO_CHAR(e.EMP_STATUS)) = '1' THEN TRIM(e.TIPOBAJA) END) TIPO,"
+                            + "     MAX(CASE WHEN TRIM(TO_CHAR(e.EMP_STATUS)) = '1' THEN TRIM(m.MOT_DESCRIPCION) END) MOTIVO"
+                            + "  FROM BIO_EMPLEADO e"
+                            + "  LEFT JOIN BIO_MOTIVO_BAJA m ON TRIM(m.MOT_ID_SAP) = TRIM(e.TIPOBAJA)"
+                            + " WHERE e.EMP_NSS = ?",
+                    (rs, i) -> rs.getInt("BAJAS") > 0 && rs.getInt("ACTIVOS") == 0
+                            ? new Baja(limpio(rs.getString("TIPO")), limpio(rs.getString("MOTIVO"))) : null,
+                    nss.trim());
+            return filas.isEmpty() ? null : filas.get(0);
+        } catch (DataAccessException ex) {
+            log.warn("[ficha] no se pudo leer la baja de {}: {}", nss, ex.getMostSpecificCause().getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * tipo = BIO_EMPLEADO.TIPOBAJA tal cual (p. ej. "Z4"); motivo = su descripcion en BIO_MOTIVO_BAJA
+     * ("Bajo Desempeño"). Cualquiera puede venir vacio.
+     */
+    public record Baja(String tipo, String motivo) {
+        /** Lo que se lee en la ficha: el motivo; si no hay, la clave; si tampoco, nada. */
+        public String texto() {
+            return !motivo.isEmpty() ? motivo : tipo;
         }
     }
 

@@ -39,7 +39,8 @@ public class SociedadEmpleadoRepository {
                     "SELECT SOCIEDAD FROM ("
                             + "  SELECT TRIM(SOCIEDAD) SOCIEDAD FROM BIO_EMPLEADO"
                             + "   WHERE EMP_NSS = ? AND TRIM(SOCIEDAD) IS NOT NULL"
-                            + "   ORDER BY CASE WHEN EMP_STATUS = 1 THEN 0 ELSE 1 END"
+                            // 0 = activo y 1 = baja (usuario, 24-nov-2026): con reingresos manda el registro vigente
+                            + "   ORDER BY CASE EMP_STATUS WHEN 0 THEN 0 WHEN 1 THEN 1 ELSE 2 END"
                             + ") WHERE ROWNUM = 1",
                     String.class, nss.trim());
             return filas.stream().findFirst();

@@ -54,6 +54,11 @@
                     </div>
                     <!-- Candidato de OCR que aun no esta en el biometrico: la ficha sale de la solicitud
                          (docs/integracion-ocr-examen-inicial.md). Se marca para que el medico lo sepa. -->
+                    <!-- Baja en el biometrico (BIO_EMPLEADO.EMP_STATUS = 1 y ninguno en 0); motivo de
+                         BIO_MOTIVO_BAJA por TIPOBAJA, la clave de SAP queda en el title -->
+                    <span th:if="${baja != null}" class="badge bg-danger ms-auto" style="white-space: nowrap; font-size: .85rem;"
+                          th:title="${#strings.isEmpty(baja.tipo) ? 'Dado de baja en el biométrico' : 'Dado de baja en el biométrico (clave SAP ' + baja.tipo + ')'}"
+                          th:text="${#strings.isEmpty(baja.texto()) ? 'Baja' : 'Baja · ' + baja.texto()}">Baja</span>
                     <span th:if="${result.candidatoOcr}" class="badge bg-warning text-dark ms-auto" style="white-space: nowrap;"
                           title="Esta persona todavía no está en el biométrico; los datos vienen de la solicitud de OCR">
                         <i class="ri-user-add-line me-1"></i>Candidato (solicitud OCR)

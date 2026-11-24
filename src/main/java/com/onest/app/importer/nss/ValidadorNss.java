@@ -363,6 +363,15 @@ public final class ValidadorNss {
     }
 
     static LocalDate fecha(String v) {
+        // 24-nov-2026 (periodico 2026): la columna de fecha sin formato de fecha llega como el numero de serie de
+        // Excel (46053). Se convierte con la base de Excel (30-dic-1899); el rango de anios de abajo sigue aplicando.
+        if (v.matches("\\d{5}(\\.0+)?")) {
+            LocalDate d = LocalDate.of(1899, 12, 30).plusDays(Long.parseLong(v.replaceFirst("\\..*", "")));
+            if (d.getYear() < 2000 || d.getYear() > 2100) {
+                throw new IllegalArgumentException("no es una fecha dd/mm/aaaa");
+            }
+            return d;
+        }
         String t = v.length() >= 10 && v.charAt(4) == '-' ? v.substring(0, 10) : v;
         for (DateTimeFormatter f : FORMATOS_FECHA) {
             try {
