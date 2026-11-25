@@ -111,9 +111,10 @@
         /* 9-nov: con 7 columnas COVID y su fecha no cabian (los botones se partian y la fecha salia del
            recuadro). Quedan 5 columnas y COVID con su fecha en un tercer renglon. */
         .exini-sinos.inmunizaciones { display: grid; grid-template-columns: auto auto auto auto minmax(150px, 1fr); column-gap: 18px; align-items: center; }
-        /* C-070 (10-nov, Word SM punto 6): en heredofamiliares (hoja 3) lo normal es Sí: Sí en verde, No en rojo */
-        section[data-hoja="3"] .exini-sino .btn.activo-si { background: #2B9138; border-color: #2B9138; color: #fff; }
-        section[data-hoja="3"] .exini-sino .btn.activo-no { background: #B42318; border-color: #B42318; color: #fff; }
+        /* 25-nov-2026 (SM, revierte C-070 del 10-nov): en heredofamiliares (hoja 3) lo normal es No: No en verde
+           (con NEGADOS), Sí en rojo (hay antecedente y se escribe) */
+        section[data-hoja="3"] .exini-sino .btn.activo-no { background: #2B9138; border-color: #2B9138; color: #fff; }
+        section[data-hoja="3"] .exini-sino .btn.activo-si { background: #B42318; border-color: #B42318; color: #fff; }
         .exini-sinos.inmunizaciones .exini-sino .btn.activo-si { background: #2B9138; border-color: #2B9138; color: #fff; }
         .exini-sinos.inmunizaciones .exini-sino .btn.activo-no { background: #B42318; border-color: #B42318; color: #fff; }
         .exini-sinos.inmunizaciones > .exini-inm-extra { padding: 4px 0; }
@@ -348,9 +349,9 @@
                             <!-- modos: exploracion (aspecto general), negados (heredofamiliares: No + "NEGADOS"
                                  como el FT-SO-04), sino (todo No), okno (OK con el texto del formato) -->
                             <div class="form-check form-switch exini-switch" th:if="${(esExploracion or tieneSino or conAyuda) and s.nombre != 'Genitales'}"
-                                 th:title="${esExploracion} ? 'Encendido: Sí, serenidad y normal en lo sin contestar (no toca signos vitales). Apagado: limpia el bloque' : (${negados} ? 'Encendido: todo en Sí con observación NEGADOS. Apagado: todo sin contestar' : (${tieneSino} ? 'Encendido: todo en No. Apagado: todo sin contestar' : 'Encendido: Sí en todo el bloque (lo escrito se conserva; lo vacío toma el texto del formato). Apagado: todo vacío'))">
+                                 th:title="${esExploracion} ? 'Encendido: Sí, serenidad y normal en lo sin contestar (no toca signos vitales). Apagado: limpia el bloque' : (${negados} ? 'Encendido: todo en No con observación NEGADOS. Apagado: todo sin contestar' : (${s.nombre == 'Inmunizaciones'} ? 'Encendido: todas las vacunas en Sí (no toca COVID ni las fechas). Apagado: todo sin contestar' : (${tieneSino} ? 'Encendido: todo en No. Apagado: todo sin contestar' : 'Encendido: Sí en todo el bloque (lo escrito se conserva; lo vacío toma el texto del formato). Apagado: todo vacío')))">
                                 <input class="form-check-input" type="checkbox" role="switch" th:id="|exIniSw${h.hoja.numero}_${sStat.index}|"
-                                       th:attr="data-modo=${esExploracion} ? 'exploracion' : (${negados} ? 'negados' : (${conAyuda} ? 'okno' : (${h.hoja.numero == 3} ? 'si' : 'sino')))"
+                                       th:attr="data-modo=${esExploracion} ? 'exploracion' : (${negados} ? 'negados' : (${conAyuda} ? 'okno' : (${s.nombre == 'Inmunizaciones'} ? 'si' : 'sino')))"
                                        onchange="exIniSwitchNormal(this);">
                                 <label class="form-check-label" th:for="|exIniSw${h.hoja.numero}_${sStat.index}|">Todo normal</label>
                             </div>

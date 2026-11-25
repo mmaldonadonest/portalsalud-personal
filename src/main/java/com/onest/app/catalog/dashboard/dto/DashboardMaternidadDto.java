@@ -31,6 +31,9 @@ public record DashboardMaternidadDto(
          */
         Long embarazadas,
         Long enIncapacidad,
-        Long enLactancia
+        Long enLactancia,
+        /** SM 24-nov-2026: personas (no seguimientos) por cuenta y por rango de edad. Vacio sin la vista. */
+        List<ConteoSimpleDto> personasPorCuenta,
+        List<ConteoSimpleDto> personasPorEdad
 ) {
 }

@@ -52,16 +52,31 @@ class ReglasCostoTest {
         assertEquals("0.00", inc("rt1", "inicial", "pendiente_calificaciones", 7));
         assertEquals("0.00", inc("rt2", "inicial", "N/A", 7));
         assertFalse(ReglasCosto.incapacidad("rt1", "inicial", "pendiente_calificaciones", 7, SDI).porConfirmar());
-        // «No calificado» no lo contesto SM
-        assertTrue(ReglasCosto.incapacidad("rt1", "inicial", "no_calificado", 7, SDI).porConfirmar());
+    }
+
+    @Test
+    void riesgoDeTrabajoNoCalificadoComoEnfermedadGeneral() {
+        // P-058 (SM 24-nov): 7 dias -> 4 al 60 % = 720; 3 o menos -> 0
+        ReglasCosto.Resultado r = ReglasCosto.incapacidad("rt1", "inicial", "no_calificado", 7, SDI);
+        assertEquals("720.00", r.costo().toPlainString());
+        assertFalse(r.porConfirmar());
+        assertEquals("720.00", inc("rt2", "subsecuente", "no_calificado", 7));
+        assertEquals("0.00", inc("rt1", "inicial", "no_calificado", 3));
+    }
+
+    @Test
+    void enfermedadProfesionalAlCien() {
+        // P-057 (SM 24-nov): 100 % de los dias, ya no por confirmar
+        ReglasCosto.Resultado r = ReglasCosto.incapacidad("profesional", "inicial", "N/A", 7, SDI);
+        assertEquals("2100.00", r.costo().toPlainString());
+        assertFalse(r.porConfirmar());
     }
 
     @Test
     void ramoSinReglaComoAntesYPorConfirmar() {
-        ReglasCosto.Resultado r = ReglasCosto.incapacidad("profesional", "inicial", "N/A", 7, SDI);
+        ReglasCosto.Resultado r = ReglasCosto.incapacidad("", "inicial", "N/A", 7, SDI);
         assertEquals("2100.00", r.costo().toPlainString());
         assertTrue(r.porConfirmar());
-        assertTrue(ReglasCosto.incapacidad("", "inicial", "N/A", 7, SDI).porConfirmar());
     }
 
     @Test

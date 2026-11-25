@@ -89,6 +89,34 @@ public class VistaMaternidadRepository {
                 (rs, i) -> new ConteoSimpleDto(rs.getString("clave"), rs.getLong("cantidad")), f.params());
     }
 
+    /**
+     * SM 24-nov-2026 (preguntas del 23-nov, P-064): numero de PERSONAS por cuenta. Por persona y no por renglon:
+     * cada embarazo lleva un seguimiento por mes.
+     */
+    public List<ConteoSimpleDto> personasPorCuenta(LocalDate desde, LocalDate hasta, String predio, String cuenta) {
+        String expr = "NVL(TRIM(e.CUENTA), '" + SIN_DATO + "')";
+        VistaFiltro f = new VistaFiltro("SELECT " + expr + " clave, COUNT(DISTINCT " + PERSONA + ") cantidad" + VISTA)
+                .filtros(desde, hasta, predio, cuenta);
+        return jdbc.query(f.sql() + " GROUP BY " + expr + " ORDER BY 2 DESC, 1",
+                (rs, i) -> new ConteoSimpleDto(rs.getString("clave"), rs.getLong("cantidad")), f.params());
+    }
+
+    /**
+     * SM 24-nov-2026 (P-064): personas por rango de edad, con los mismos rangos que el resto del portal. La edad
+     * de cada persona es la mayor de sus seguimientos del periodo (si cumple anios a la mitad no se cuenta dos
+     * veces). Sin fecha de nacimiento, o con una edad imposible, cae en «Sin dato».
+     */
+    public List<ConteoSimpleDto> personasPorEdad(LocalDate desde, LocalDate hasta, String predio, String cuenta) {
+        VistaFiltro f = new VistaFiltro("SELECT " + PERSONA + " persona, MAX(e.EDAD) edad" + VISTA)
+                .filtros(desde, hasta, predio, cuenta);
+        String rango = "CASE WHEN edad IS NULL OR edad < 15 OR edad > 100 THEN '" + SIN_DATO + "'"
+                + " WHEN edad <= 25 THEN '18-25' WHEN edad <= 35 THEN '26-35' WHEN edad <= 45 THEN '36-45'"
+                + " WHEN edad <= 55 THEN '46-55' ELSE '55+' END";
+        return jdbc.query("SELECT " + rango + " clave, COUNT(*) cantidad FROM (" + f.sql() + " GROUP BY " + PERSONA
+                        + ") GROUP BY " + rango + " ORDER BY 1",
+                (rs, i) -> new ConteoSimpleDto(rs.getString("clave"), rs.getLong("cantidad")), f.params());
+    }
+
     /** Seguimientos por mes de corte. */
     public List<PuntoMensualDto> tendenciaMensual(LocalDate desde, LocalDate hasta, String predio, String cuenta) {
         VistaFiltro f = new VistaFiltro("SELECT " + MES + " mes, COUNT(*) cantidad" + VISTA)

@@ -170,7 +170,7 @@ public class ExamenInicialService {
             new Hoja(1, "Ficha", "Ficha de identificación", "Datos del trabajador (vienen del biométrico) y teléfonos de emergencia.", "FICHA", List.of()),
             new Hoja(2, "Laborales", "Antecedentes laborales", "Edad al iniciar, cuántos trabajos, pensión y hasta 4 empleos anteriores.", "LABORAL",
                     List.of("Antecedentes laborales (resumen)")),
-            new Hoja(3, "Heredofamiliares", "Antecedentes heredofamiliares", "Lo normal es Sí (en verde): «Todo normal» pone Sí y «NEGADOS» en observaciones. Marca No donde haya antecedente y escríbelo.", "SECCIONES",
+            new Hoja(3, "Heredofamiliares", "Antecedentes heredofamiliares", "Lo normal es No (en verde): «Todo normal» pone No y «NEGADOS» en observaciones. Marca Sí donde haya antecedente y escríbelo.", "SECCIONES",
                     List.of("Neurología", "Cardiopatía", "Neumopatía", "Toxicológico", "Nefropatías", "Endocrinas", "Obesidad", "Mentales", "Generales", "Otras")),
             new Hoja(4, "No patológicos", "No patológicos, inmunizaciones y gineco-obstétricos", "", "SECCIONES",
                     List.of("APNP (no patológicos)", "Inmunizaciones", "Gineco-obstétricos (AGO)")),
@@ -383,13 +383,19 @@ public class ExamenInicialService {
                         value = "0";
                     }
                     if (h.numero() == HOJA_HEREDOFAMILIARES && "SINO".equals(it.type())) {
-                        // C-070 (10-nov, Word SM punto 6, confirmado por el usuario): en heredofamiliares lo
-                        // normal es Sí (en verde) con "NEGADOS". Lo vacio abre asi; lo ya guardado no se toca.
+                        // 25-nov-2026 (SM, revierte C-070 del 10-nov): en heredofamiliares lo normal es No (en
+                        // verde) con "NEGADOS". Lo vacio abre asi.
                         if (vacio) {
-                            value = "1";
+                            value = "0";
                             if (it.obsName() != null && (obs == null || obs.isBlank()) && !SIN_NEGADOS.contains(nombre)) {
                                 obs = NEGADOS;
                             }
+                        }
+                        // Lo capturado del 10 al 25-nov con C-070: Sí + "NEGADOS" significaba «sin antecedente».
+                        // Al reabrirlo se muestra como No + "NEGADOS" (mismo significado con la regla nueva) para
+                        // que no aparezca en rojo como si hubiera antecedente. Se guarda asi al finalizar.
+                        if ("1".equals(value) && obs != null && obs.trim().toUpperCase().startsWith("NEGAD")) {
+                            value = "0";
                         }
                         // todo No sin observacion lleva "NEGADOS", tambien el No de un examen anterior
                         if ("0".equals(value) && it.obsName() != null && (obs == null || obs.isBlank())

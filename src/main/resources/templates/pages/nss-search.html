@@ -1772,10 +1772,10 @@
                 // limpia para escribir el antecedente; al volver a No (heredofamiliares) regresa.
                 var bloque = grupo.closest('.exini-bloque');
                 var sw = bloque ? bloque.querySelector('.exini-switch input[data-modo="negados"]') : null;
-                // C-070 (10-nov, Word SM punto 6): en heredofamiliares lo normal es Sí con "NEGADOS" y el No es
-                // el que lleva el antecedente escrito. En las demas hojas sigue igual (Sí = hallazgo).
-                var normal = sw ? v.si : v.no;
-                var hallazgo = sw ? v.no : v.si;
+                // 25-nov-2026 (SM, revierte C-070 del 10-nov): en heredofamiliares lo normal vuelve a ser No (en verde)
+                // con "NEGADOS"; Sí (en rojo) es el antecedente y limpia el texto para escribirlo. Igual que las demas hojas.
+                var normal = v.no;
+                var hallazgo = v.si;
                 if (obs && hidden.value === hallazgo && /NEGAD/i.test(obs.value)) {
                     obs.value = '';
                 } else if (obs && sw && hidden.value === normal && obs.value.trim() === '') {
@@ -2259,14 +2259,14 @@
                     });
                 } else if (modo === 'sino' || modo === 'negados') {
                     // negados (heredofamiliares): el FT-SO-04 trae "NEGADOS" como observacion predeterminada.
-                    // C-070 (10-nov, Word SM punto 6): ahi lo normal es Sí (en verde); en «sino» sigue siendo No.
+                    // 25-nov-2026 (SM, revierte C-070): en «negados» y en «sino» lo normal es No.
                     var obsNormal = modo === 'negados' ? 'NEGADOS' : '';
                     bloque.querySelectorAll('.exini-sino').forEach(function (g) {
                         var hidden = g.querySelector('input[type=hidden]');
                         var fila = g.closest('.exini-fila');
                         var obs = fila ? fila.querySelector('input[type=text]') : null;
                         if (obs && obs.value !== obsNormal) { obs.value = obsNormal; cambiados++; }
-                        var lo = modo === 'negados' ? exIniValoresSino(g).si : exIniValoresSino(g).no;
+                        var lo = exIniValoresSino(g).no;
                         if (hidden.value !== lo) { hidden.value = lo; exIniPintarSino(g); cambiados++; }
                     });
                 } else if (modo === 'okno') {
@@ -2360,7 +2360,7 @@
                     });
                 } else if (modo === 'sino' || modo === 'negados') {
                     bloque.querySelectorAll('.exini-sino').forEach(function (g) {
-                        var lo = modo === 'negados' ? exIniValoresSino(g).si : exIniValoresSino(g).no;   // C-070
+                        var lo = exIniValoresSino(g).no;   // 25-nov: revierte C-070
                         if (g.querySelector('input[type=hidden]').value !== lo) { ok = false; }
                         var fila = g.closest('.exini-fila');
                         var obs = fila ? fila.querySelector('input[type=text]') : null;
@@ -3107,10 +3107,16 @@
                     return costoPago(sdi, Math.max(dias - 3, 0), 0.6,
                         'Enfermedad General inicial: los 3 primeros días no se pagan; 60 % a partir del 4.° día.');
                 }
+                if (ramo === 'profesional') { return costoPago(sdi, dias, 1, 'Enfermedad profesional: 100 % de los días.'); }
                 if (ramo === 'rt1' || ramo === 'rt2') {
-                    return dictamen === 'si_calificado'
-                        ? costoPago(sdi, dias, 1, 'Riesgo de trabajo calificado: 100 % desde el primer día.')
-                        : { costo: 0, regla: 'Riesgo de trabajo sin calificar: no se paga mientras no esté calificado.' };
+                    if (dictamen === 'si_calificado') {
+                        return costoPago(sdi, dias, 1, 'Riesgo de trabajo calificado: 100 % desde el primer día.');
+                    }
+                    if (dictamen === 'no_calificado') {
+                        return costoPago(sdi, Math.max(dias - 3, 0), 0.6,
+                            'Riesgo de trabajo no calificado: como Enfermedad General, 60 % a partir del 4.° día.');
+                    }
+                    return { costo: 0, regla: 'Riesgo de trabajo sin calificar: no se paga mientras no esté calificado.' };
                 }
                 return costoPago(sdi, dias, 1, 'Ramo sin regla de Servicio Médico: 100 % de los días, como antes.');
             };

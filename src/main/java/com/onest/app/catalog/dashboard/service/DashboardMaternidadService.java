@@ -156,7 +156,9 @@ public class DashboardMaternidadService {
                 aConteo(porEstatus), aConteo(porPredio), aConteoOrdenClave(porTrimestre),
                 aTendencia(porMes), aTendencia(partosMes),
                 // sin la vista no hay "ultimo seguimiento por embarazo" confiable: no se inventa
-                null, null, null);
+                null, null, null,
+                // ni personas por cuenta o edad: el Excel viejo no tiene NSS para cruzar
+                List.of(), List.of());
     }
 
     /**
@@ -197,7 +199,9 @@ public class DashboardMaternidadService {
                 aConteoOrdenClave(porTrimestre),
                 vista.tendenciaMensual(desde, hasta, predio, cuenta),
                 vista.partosPorMes(desde, hasta, predio, cuenta),
-                hoy[0], hoy[1], hoy[2]);
+                hoy[0], hoy[1], hoy[2],
+                vista.personasPorCuenta(desde, hasta, predio, cuenta),
+                vista.personasPorEdad(desde, hasta, predio, cuenta));
     }
 
     private static String trimestre(int semanas) {

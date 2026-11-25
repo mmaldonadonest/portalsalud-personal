@@ -13,9 +13,11 @@ import java.util.Locale;
  *   <li>Maternidad: 100 % de los dias.</li>
  *   <li>Enfermedad General: 60 % a partir del 4.° dia; los 3 primeros no se pagan, y eso solo en la
  *       incapacidad inicial (la subsecuente se paga al 60 % desde su primer dia).</li>
- *   <li>RT1 y RT2: 100 % desde el primer dia si el dictamen es «Si calificado»; sin calificar no se paga.</li>
- *   <li>Lo que las reglas no cubren (Enfermedad profesional, rubro Interna sin ramo, tipos viejos del PHP)
- *       sigue como antes, SDI x dias al 100 %, y se marca para preguntarlo a SM.</li>
+ *   <li>RT1 y RT2: 100 % desde el primer dia si el dictamen es «Si calificado»; «No calificado» como Enfermedad
+ *       General (60 % a partir del 4.° dia, P-058); pendiente de calificar no se paga.</li>
+ *   <li>Enfermedad profesional: 100 % de los dias (P-057).</li>
+ *   <li>Lo que las reglas no cubren (rubro Interna sin ramo, tipos viejos del PHP) sigue como antes,
+ *       SDI x dias al 100 %, y se marca para preguntarlo a SM.</li>
  * </ul>
  *
  * <p>Accidentes (P-029, P-030, P-031, P-041): manda el estatus de calificacion.
@@ -70,14 +72,23 @@ public final class ReglasCosto {
                 return pago(sdi, pagados, SESENTA,
                         "Enfermedad General inicial: los 3 primeros días no se pagan; 60 % a partir del 4.° día.", false);
             }
+            // SM 24-nov-2026 (preguntas 23-nov, P-057): Enfermedad profesional al 100 % de los dias
+            case "PROFESIONAL", "ENFERMEDAD_PROFESIONAL", "ENFERMEDAD PROFESIONAL" -> {
+                return pago(sdi, dias, CIEN, "Enfermedad profesional: 100 % de los días.", false);
+            }
             case "RT1", "RT2" -> {
-                if ("SI_CALIFICADO".equals(norm(dictamen))) {
+                String d = norm(dictamen);
+                if ("SI_CALIFICADO".equals(d)) {
                     return pago(sdi, dias, CIEN, "Riesgo de trabajo calificado: 100 % desde el primer día.", false);
                 }
+                // SM 24-nov-2026 (P-058): «No calificado» = el IMSS no lo reconoce como RT; se paga como
+                // Enfermedad General, 60 % a partir del 4.° dia
+                if ("NO_CALIFICADO".equals(d)) {
+                    return pago(sdi, Math.max(dias - DIAS_SIN_PAGO, 0), SESENTA,
+                            "Riesgo de trabajo no calificado: como Enfermedad General, 60 % a partir del 4.° día.", false);
+                }
                 return new Resultado(cero(), 0, BigDecimal.ZERO,
-                        "Riesgo de trabajo sin calificar: no se paga mientras no esté calificado.",
-                        // «No calificado» no lo contesto SM: solo dijo que lo pendiente no se paga
-                        "NO_CALIFICADO".equals(norm(dictamen)));
+                        "Riesgo de trabajo sin calificar: no se paga mientras no esté calificado.", false);
             }
             default -> {
                 return pago(sdi, dias, CIEN,
