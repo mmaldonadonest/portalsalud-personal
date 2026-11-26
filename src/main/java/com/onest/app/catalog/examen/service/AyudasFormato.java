@@ -48,9 +48,75 @@ public final class AyudasFormato {
     /** fieldName -> ayuda, copiado celda por celda de los Excel EMLE. */
     public static final Map<String, Ayuda> AYUDAS = construir();
 
+    /**
+     * Examen inicial (EMNI), 25-nov-2026 (Word de SM «errores11252026», puntos 13 y 16-24): «Todo normal» y el
+     * Sí de cada renglon ponen ESTOS textos, que dicto SM. Solo el EMNI: el modulo Examen medico (periodico)
+     * sigue con {@link #AYUDAS}. Agudeza visual sin lentes (OD, OIZ) sale de aqui: SM pidio la medida (20/20)
+     * como texto libre, sin botones (punto 15).
+     */
+    public static final Map<String, Ayuda> AYUDAS_EMNI = construirEmni();
+
     /** true si algun campo de la lista tiene ayuda. */
     public static boolean alguno(List<com.onest.app.catalog.examen.dto.ExamItem> items) {
         return items != null && items.stream().anyMatch(i -> AYUDAS.containsKey(i.fieldName()));
+    }
+
+    private static Map<String, Ayuda> construirEmni() {
+        Map<String, Ayuda> m = new LinkedHashMap<>(AYUDAS);
+        String sdpa = "SDPA";
+        String cr = "SERV_MED_CRANEO.";
+        m.put(cr + "OJOS", Ayuda.texto("SIMETRICOS"));
+        m.put(cr + "PUPILAS", Ayuda.texto("ISOCORICAS"));
+        m.put(cr + "CONJUNTIVAS", Ayuda.texto("HIDRATADAS"));
+        m.put(cr + "REFLEJOS", Ayuda.texto("PRESENTES"));
+        m.put(cr + "FONDO_OJO", Ayuda.texto(sdpa));
+        m.remove("SERV_MED_AGUDEZA_VISUAL.OD");
+        m.remove("SERV_MED_AGUDEZA_VISUAL.OIZ");
+        m.put("SERV_MED_AGUDEZA_VISUAL.COLORES", Ayuda.texto("SDPA DE ALTERACION DE COLORIMETRIA"));
+        // Oidos: los tags no corresponden a la etiqueta (ver ExamenService): CAE, membrana, agudeza, OD, OI
+        m.put("TAG.ODCAEINPEXP", Ayuda.texto("PRESENTE"));
+        m.put("TAG.ODMEMTIMINPEXP", Ayuda.texto(sdpa));
+        m.put("TAG.ODAGAUDIINPEXP", Ayuda.texto("PRESENTE"));
+        m.put("TAG.OIMEMTIMINPEXP", Ayuda.texto(sdpa));
+        m.put("TAG.OIAGAUDIINPEXP", Ayuda.texto(sdpa));
+        m.put("SERV_MED_CUELLO.DEFORMACIONES_OBS", Ayuda.texto("AUSENTES / NO DETECTADAS"));
+        m.put("SERV_MED_CUELLO.TIROIDES_OBS", Ayuda.texto(sdpa));
+        m.put("SERV_MED_CUELLO.TRAQUEA_OBS", Ayuda.texto(sdpa));
+        m.put("SERV_MED_NARIZ.CAVIDAD_NASAL", Ayuda.texto("PRESENTE"));
+        m.put("SERV_MED_NARIZ.MUCOSA", Ayuda.texto("HIDRATADA"));
+        m.put("SERV_MED_NARIZ.TABIQUE_NASA", Ayuda.texto("LINEAL"));
+        m.put("SERV_MED_NARIZ.OLFATO", Ayuda.texto("PRESENTE SIN ALTERACION APARENTE"));
+        m.put("SERV_MED_TORAX.RUIDOS_CARDIACOS", Ayuda.texto("RITMICOS"));
+        m.put("SERV_MED_TORAX.REG_PRECORDIAL", Ayuda.texto(sdpa));
+        m.put("SERV_MED_TORAX.CAMPOS_PULM", Ayuda.texto("LIMPIOS"));
+        String cv = "SERV_MED_COLUMNA_VERTEBRAL_AUX.";
+        m.put(cv + "DEFORMACIONES", Ayuda.texto("NEGADAS / NO DETECTADAS"));
+        m.put(cv + "DOLOR", Ayuda.texto("NO REFERIDO"));
+        m.put(cv + "MOVIMIENTOS", Ayuda.texto("ADECUADO"));
+        m.put(cv + "MARCHA", Ayuda.texto("LINEAL"));
+        m.put(cv + "LASSEGUE", Ayuda.texto("NEGATIVO"));
+        m.put(cv + "PUNTA_TALON", Ayuda.texto("ADECUADO SIN ALTERACION APARENTE"));
+        m.put("SERV_MED_ABDOMEN.FORMA", Ayuda.texto("GLOBOSO"));
+        m.put("SERV_MED_ABDOMEN.VISCEROMEGALIAS", Ayuda.texto(sdpa));
+        m.put("SERV_MED_ABDOMEN.HERNIAS", Ayuda.texto("NEGADAS / NO DETECTADAS"));
+        m.put("SERV_MED_ABDOMEN.DOLOR", Ayuda.texto("NEGADAS / NO DETECTADAS"));
+        m.put("SERV_MED_ABDOMEN.PERISTALSIS", Ayuda.texto(sdpa));
+        m.put("SERV_MED_GENITALES.MASCULINO", Ayuda.texto("NO VALORADO"));
+        m.put("SERV_MED_GENITALES.FEMENINO", Ayuda.texto("NO VALORADO"));
+        m.put("SERV_MED_URINARIO.PUNTOS_URETRALES", Ayuda.texto(sdpa));
+        m.put("SERV_MED_URINARIO.FOSAS_RENALES", Ayuda.texto(sdpa));
+        m.put("SERV_MED_EXTREMIDADES.SUPERIOR", Ayuda.texto("INTEGROS Y SIMETRICOS"));
+        m.put("SERV_MED_EXTREMIDADES.INFERIOR", Ayuda.texto("INTEGROS Y SIMETRICOS"));
+        m.put("SERV_MED_EXTREMIDADES.IVP", Ayuda.texto("NO DETECTADAS / NEGADAS"));
+        m.put("SERV_MED_EXTREMIDADES.EDEMA", Ayuda.texto("NO DETECTADAS / NEGADAS"));
+        m.put("SERV_MED_PIEL.LUNARES", Ayuda.texto(sdpa));
+        // 25-nov-2026 (decision del usuario: «respetemos la imagen» del Word de SM, punto 23): «1»
+        m.put("SERV_MED_PIEL.PIGMENTACION", Ayuda.texto("1"));
+        m.put("SERV_MED_PIEL.CICATRICES_QUIRUR", Ayuda.texto("AUSENTES"));
+        m.put("SERV_MED_BOCA.LESIONES", Ayuda.texto("AUSENTES / NO DETECTADAS"));
+        m.put("SERV_MED_BOCA.ENCIAS", Ayuda.texto(sdpa));
+        m.put("SERV_MED_BOCA.OROIFARINGE", Ayuda.texto("NORMAL SDPA"));
+        return Collections.unmodifiableMap(m);
     }
 
     private static Map<String, Ayuda> construir() {

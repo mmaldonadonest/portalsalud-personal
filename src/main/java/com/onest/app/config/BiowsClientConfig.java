@@ -41,7 +41,16 @@ public class BiowsClientConfig {
     public RestClient biowsRestClient(RestClient.Builder builder, BiowsProperties properties) {
         // Timeouts explicitos: un ORDS inalcanzable no debe colgar el request
         // (critico para el login HYBRID/LEGACY_PHP que pasa por el WS).
-        return construir(builder, properties, ORDS_JSON, Duration.ofSeconds(20));
+        return construir(builder, properties.baseUrl(), properties, ORDS_JSON, Duration.ofSeconds(20));
+    }
+
+    /**
+     * 25-nov-2026: solo para el login del formulario (registro_app), que se migra a los servicios de la base de SSO
+     * (portal.biows.login-base-url). Mismos encabezados y tiempos que biows; sin esa propiedad apunta a biows.
+     */
+    @Bean
+    public RestClient loginRestClient(RestClient.Builder builder, BiowsProperties properties) {
+        return construir(builder, properties.loginBaseUrlEfectiva(), properties, ORDS_JSON, Duration.ofSeconds(20));
     }
 
     /**
@@ -52,10 +61,10 @@ public class BiowsClientConfig {
      */
     @Bean
     public RestClient biowsRestClientGuardadoLargo(RestClient.Builder builder, BiowsProperties properties) {
-        return construir(builder, properties, ORDS_JSON, Duration.ofSeconds(120));
+        return construir(builder, properties.baseUrl(), properties, ORDS_JSON, Duration.ofSeconds(120));
     }
 
-    private static RestClient construir(RestClient.Builder builder, BiowsProperties properties,
+    private static RestClient construir(RestClient.Builder builder, String baseUrl, BiowsProperties properties,
                                         ObjectMapper objectMapper, Duration lectura) {
         // Spring Boot 4 retiro ClientHttpRequestFactories: misma conexion simple (HttpURLConnection) y mismos tiempos
         SimpleClientHttpRequestFactory timeouts = new SimpleClientHttpRequestFactory();
@@ -64,7 +73,7 @@ public class BiowsClientConfig {
         // clone(): el Builder lo comparte Spring; sin copia, el segundo bean heredaria la
         // configuracion acumulada del primero (convertidores duplicados).
         return builder.clone()
-                .baseUrl(properties.baseUrl())
+                .baseUrl(baseUrl)
                 .requestFactory(timeouts)
                 .defaultHeader("x-api-key", properties.apiKey())
                 .defaultHeader("Content-Type", "application/json; charset=utf-8")

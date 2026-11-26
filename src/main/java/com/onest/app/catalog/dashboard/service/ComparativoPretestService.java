@@ -48,12 +48,17 @@ public class ComparativoPretestService {
 
     /** 19-nov-2026 (pedido de SM): examenes por genero con su desglose por dictamen. */
     public List<ConteoDictamenDto> porGenero(String fechaInicial, String fechaFinal, String predio) {
+        return porGenero(fechaInicial, fechaFinal, predio, null);
+    }
+
+    /** 25-nov-2026: con corte por tipo de examen (mismo filtro que las tarjetas). */
+    public List<ConteoDictamenDto> porGenero(String fechaInicial, String fechaFinal, String predio, String tipo) {
         VistaExamenRepository v = examenes.getIfAvailable();
         if (v == null) {
             throw new IllegalStateException("La grafica por genero requiere portal.historico.fuente=VISTA.");
         }
         LocalDate[] r = rango(fechaInicial, fechaFinal);
-        return v.porGenero(r[0], r[1], predio, null);
+        return v.porGenero(r[0], r[1], predio, null, tipo);
     }
 
     private static List<Comparativo> renglones(Map<String, long[]> filas) {

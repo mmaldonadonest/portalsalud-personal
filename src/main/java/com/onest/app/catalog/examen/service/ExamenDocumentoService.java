@@ -575,6 +575,9 @@ public class ExamenDocumentoService {
             dictamen = "Apto condicionado";
         } else if ("1".equals(limpio(data.get("SERV_MED_RESULTADO_EXAMEN.APTO_RESTRINGIDO")))) {
             dictamen = "Apto restringido";
+        } else if ("1".equals(limpio(tagValues.get(ExamenService.TAG_DICTAMEN_PENDIENTE)))) {
+            // quinto dictamen (25-nov-2026): sin bandera en el WS, vive en su tag
+            dictamen = "Pendiente estudios";
         }
         String dictamenCodigo = switch (obsRes) {
             case "4", "no_apto" -> "No apto";

@@ -1,0 +1,13 @@
+-- BASE: SSO (SSO_PRODUCTIVA, la ADB), esquema del ORDS «sso». SOLO LECTURA.
+-- 26-nov-2026. Quien puede entrar al Portal Salud con el login por SSO: app 13 + activo una sola vez en BIO_EMPLEADO.
+
+SELECT TRIM(a.EMP_NSS) AS NSS,
+       TRIM(e.EMP_NOMBRE || ' ' || e.EMP_APELLIDO || ' ' || e.EMP_APELLIDO2) AS NOMBRE,
+       CASE WHEN a.PASSWORD IS NULL OR TRIM(a.PASSWORD) IS NULL THEN 'NO: sin contrasena'
+            WHEN (SELECT COUNT(*) FROM BIO_EMPLEADO x WHERE x.EMP_NSS = a.EMP_NSS AND x.EMP_STATUS = 0) = 0 THEN 'NO: no activo en BIO_EMPLEADO'
+            WHEN (SELECT COUNT(*) FROM BIO_EMPLEADO x WHERE x.EMP_NSS = a.EMP_NSS AND x.EMP_STATUS = 0) > 1 THEN 'NO: activo mas de una vez'
+            ELSE 'SI' END AS PUEDE_ENTRAR
+  FROM TBL_APPS_USUARIO a
+  LEFT JOIN BIO_EMPLEADO e ON e.EMP_NSS = a.EMP_NSS AND e.EMP_STATUS = 0
+ WHERE a.ID_APP = 13
+ ORDER BY PUEDE_ENTRAR DESC, NOMBRE;

@@ -100,6 +100,8 @@
         .exini-dictamen .r-cond.activo { background: #B54708; border-color: #B54708; color: #fff; }
         .exini-dictamen .r-rest.activo { background: #0057A8; border-color: #0057A8; color: #fff; }
         .exini-dictamen .r-noapto.activo { background: #B42318; border-color: #B42318; color: #fff; }
+        .exini-dictamen .r-pend { border-color: #6B4FA0; color: #6B4FA0; }
+        .exini-dictamen .r-pend.activo { background: #6B4FA0; border-color: #6B4FA0; color: #fff; }
         .exini-guardado { font-size: .78rem; color: #667085; }
         .exini-guardado.err { color: #B42318; font-weight: 600; }
         .exini-ficha td:first-child { width: 38%; color: #111; }
@@ -343,15 +345,19 @@
                                   esExploracion=${s.nombre == 'Exploración física'},
                                   esApnp=${s.nombre == 'APNP (no patológicos)'},
                                   conAyuda=${v.conAyuda(s)},
-                                  negados=${h.hoja.numero == 3 and s.nombre != 'Obesidad' and s.nombre != 'Otras'}">
+                                  negados=${h.hoja.numero == 3 or h.hoja.numero == 5},
+                                  obsNegado=${h.hoja.numero == 5} ? 'NEGADO' : 'NEGADOS',
+                                  esInterrogado=${h.hoja.numero == 6}">
                         <div class="exini-bloque-h">
                             <h6 th:text="${esExploracion} ? 'Signos vitales y exploración general' : ${s.nombre}">Sección</h6>
                             <!-- modos: exploracion (aspecto general), negados (heredofamiliares: No + "NEGADOS"
-                                 como el FT-SO-04), sino (todo No), okno (OK con el texto del formato) -->
-                            <div class="form-check form-switch exini-switch" th:if="${(esExploracion or tieneSino or conAyuda) and s.nombre != 'Genitales'}"
-                                 th:title="${esExploracion} ? 'Encendido: Sí, serenidad y normal en lo sin contestar (no toca signos vitales). Apagado: limpia el bloque' : (${negados} ? 'Encendido: todo en No con observación NEGADOS. Apagado: todo sin contestar' : (${s.nombre == 'Inmunizaciones'} ? 'Encendido: todas las vacunas en Sí (no toca COVID ni las fechas). Apagado: todo sin contestar' : (${tieneSino} ? 'Encendido: todo en No. Apagado: todo sin contestar' : 'Encendido: Sí en todo el bloque (lo escrito se conserva; lo vacío toma el texto del formato). Apagado: todo vacío')))">
+                                 como el FT-SO-04; patologicos: No + "NEGADO", Word SM 25-nov), sino (todo No),
+                                 okno (OK con el texto del formato), interrogado (padecimiento: "INTERROGADO Y NEGADO") -->
+                            <div class="form-check form-switch exini-switch" th:if="${(esExploracion or tieneSino or conAyuda or esInterrogado) and s.nombre != 'Genitales'}"
+                                 th:title="${esExploracion} ? 'Encendido: Sí, serenidad y normal en lo sin contestar (no toca signos vitales). Apagado: limpia el bloque' : (${negados} ? |Encendido: todo en No con observación ${obsNegado}. Apagado: todo sin contestar| : (${esInterrogado} ? 'Encendido: INTERROGADO Y NEGADO en lo vacío. Apagado: lo quita' : (${s.nombre == 'Inmunizaciones'} ? 'Encendido: todas las vacunas en Sí (no toca COVID ni las fechas). Apagado: todo sin contestar' : (${tieneSino} ? 'Encendido: todo en No. Apagado: todo sin contestar' : 'Encendido: Sí en todo el bloque (lo escrito se conserva; lo vacío toma el texto del formato). Apagado: todo vacío'))))">
                                 <input class="form-check-input" type="checkbox" role="switch" th:id="|exIniSw${h.hoja.numero}_${sStat.index}|"
-                                       th:attr="data-modo=${esExploracion} ? 'exploracion' : (${negados} ? 'negados' : (${conAyuda} ? 'okno' : (${s.nombre == 'Inmunizaciones'} ? 'si' : 'sino')))"
+                                       th:attr="data-modo=${esExploracion} ? 'exploracion' : (${negados} ? 'negados' : (${esInterrogado} ? 'interrogado' : (${conAyuda} ? 'okno' : (${s.nombre == 'Inmunizaciones'} ? 'si' : 'sino')))),
+                                                data-obs=${negados} ? ${obsNegado} : null"
                                        onchange="exIniSwitchNormal(this);">
                                 <label class="form-check-label" th:for="|exIniSw${h.hoja.numero}_${sStat.index}|">Todo normal</label>
                             </div>
@@ -474,8 +480,10 @@
                                     <button type="button" class="btn btn-outline-secondary" th:classappend="${val == '1'} ? 'activo-si' : ''" onclick="exIniSino(this, '1');">Sí</button>
                                     <button type="button" class="btn btn-outline-secondary" th:classappend="${val == '0'} ? 'activo-no' : ''" onclick="exIniSino(this, '0');">No</button>
                                 </div>
-                                <input type="text" class="form-control form-control-sm" data-opcional th:name="${nObs}" th:value="${ef.get(nObs)}"
-                                       placeholder="Observación (opcional)" maxlength="200">
+                                <!--/* 25-nov-2026 (Word SM errores11252026, punto 12): «es Sí o No solamente»; se quita la caja
+                                     de C-066. Lo que ya estuviera escrito viaja en el hidden y no se pierde. */-->
+                                <input type="hidden" data-opcional th:name="${nObs}" th:value="${ef.get(nObs)}">
+                                <span></span>
                             </div>
                             </div>
 
@@ -501,12 +509,13 @@
                           (ExamenInicialService.oknoDelFinalizado) si el texto no cambio desde entonces.
                           OPCIONES = curvatura de columna (normal / aumentada / disminuida) en chips.
                         -->
-                        <th:block th:if="${conAyuda}" th:each="it : ${s.items}" th:with="ay=${v.ayudas[it.fieldName]}">
+                        <th:block th:if="${conAyuda}" th:each="it : ${s.items}" th:with="ay=${v.ayudas[it.fieldName]}, ant=${v.ayudasAnteriores[it.fieldName]}">
+                            <!--/* 25-nov-2026: «ant» = texto normal anterior (SIN AGREGADOS, AUSENTES...): lo capturado con el sigue abriendo en Sí */-->
                             <div class="exini-fila exini-okno" th:if="${ay != null and ay.modo != 'OPCIONES'}"
-                                 th:with="val=${it.value ?: ''}, ok=${#strings.equalsIgnoreCase(#strings.trim(it.value ?: ''), ay.normal) or #strings.equalsIgnoreCase(#strings.trim(it.value ?: ''), 'Normal') or #strings.trim(it.value ?: '') == '20/20'},
+                                 th:with="val=${it.value ?: ''}, ok=${#strings.equalsIgnoreCase(#strings.trim(it.value ?: ''), ay.normal) or #strings.equalsIgnoreCase(#strings.trim(it.value ?: ''), 'Normal') or #strings.trim(it.value ?: '') == '20/20' or (ant != null and #strings.equalsIgnoreCase(#strings.trim(it.value ?: ''), ant.normal))},
                                           elegido=${v.oknoElegidos['OKNO.' + it.fieldName]},
                                           sel=${elegido != null ? elegido : (ok ? 'SI' : (ay.modo == 'DOS' and #strings.startsWith(#strings.toUpperCase(val), ay.alterno) ? 'NO' : ''))}"
-                                 th:attr="data-normal=${ay.normal}, data-alterno=${ay.alterno}, data-exclusivo=${s.nombre == 'Genitales'} ? 'si' : null">
+                                 th:attr="data-normal=${ay.normal}, data-anterior=${ant != null and ant.normal != ay.normal} ? ${ant.normal} : null, data-alterno=${ay.alterno}, data-exclusivo=${s.nombre == 'Genitales'} ? 'si' : null">
                                 <input type="hidden" data-okno-sel th:name="${'OKNO.' + it.fieldName}" th:value="${sel}">
                                 <span class="lbl" th:text="${it.label}">Campo</span>
                                 <div class="btn-group exini-okno-btns" role="group" th:attr="aria-label=${it.label}">
@@ -533,10 +542,9 @@
                              leidos por columna: BCG/Sabin, DPT/Hepatitis B, SR, Influenza/Td (COVID va abajo con su fecha) -->
                         <div th:if="${!esDientes and tieneSino}" class="exini-sinos" th:classappend="${s.nombre == 'Inmunizaciones'} ? 'inmunizaciones' : ''">
                             <th:block th:each="it : ${s.items}" th:if="${it.type == 'SINO'}">
-                            <!--/* C-014: APP toxicologico se ve en dos bloques. Solo es acomodo: todo sigue en
-                                 SERV_MED_TOXI_NO_PATO (la columna de cargas se llama "ALT_CARGA " con espacio). */-->
-                            <div class="exini-sub" style="grid-column: 1 / -1;" th:if="${it.fieldName == 'SERV_MED_TOXI_NO_PATO.TABAQUISMO'}">Toxicológico</div>
-                            <div class="exini-sub" style="grid-column: 1 / -1;" th:if="${#strings.startsWith(it.fieldName, 'SERV_MED_TOXI_NO_PATO.ALT_CARGA')}">Otro</div>
+                            <!--/* C-014: APP toxicologico se veia con dos sub-bloques. 25-nov-2026 (Word SM, punto 8):
+                                 «Otro» es su propio bloque con banda azul marino y «Todo normal» (ExamenInicialService.
+                                 SECCION_APP_OTRO). Solo es acomodo: todo sigue en SERV_MED_TOXI_NO_PATO. */-->
                             <div class="exini-fila">
                                 <span class="lbl" th:text="${it.label}">Condición</span>
                                 <div class="btn-group exini-sino" role="group" tabindex="0" th:attr="aria-label=${it.label}" onkeydown="exIniTecla(this, event);">
@@ -570,17 +578,21 @@
                              ya probado en pantalla): Higiene personal y Alimentacion quedan SOLO como titulo del bloque.
                              Lo que ya tenian capturado se conserva en un hidden (abajo) y no cuenta para el avance. -->
                         <th:block th:if="${esApnp}"
-                                  th:with="etq=${ {'BAÑO':'Baño (veces por semana)','CAMBIO_DE_ROPA':'Cambio de ropa (veces por semana)','ASEO_BUCAL':'Aseo bucal (veces al día)','FC1':'Frecuencia deporte (veces por semana)','FC2':'Frecuencia hobbies (veces)'} }">
-                            <th:block th:each="g : ${ {{'Vivienda','HABITACION,NO_DORMITORIOS,NO_HABITANTES,PISO,TECHO,AGUA_POTABLE,LUZ,DRENAJE,AIRE_ACONDICIONADO,CONVIVENCIA_CON_ANIMALES'},{'Higiene personal','BAÑO,CAMBIO_DE_ROPA,ASEO_BUCAL'},{'Alimentación','NO_COMIDAS_AL_DIA,BALANCEADA,SUFICIENTE'},{'Actividad física y recreación','DEPORTE,FC1,HOBBIES_PASATIEMPOS,FC2'},{'Otros','RELIGION'}} }">
+                                  th:with="etq=${T(com.onest.app.catalog.exameninicial.service.ExamenInicialService).ETIQUETAS_APNP}">
+                            <!--/* 25-nov-2026 (Word SM, puntos 5-6): Aseo bucal = numero + frecuencia en texto (tag EXM_ASEO_BUCAL_FREC);
+                                 Hobbies = numero y su frecuencia en texto («DIARIO», «CADA TERCER DIA») */-->
+                            <th:block th:each="g : ${ {{'Vivienda','HABITACION,NO_DORMITORIOS,NO_HABITANTES,PISO,TECHO,AGUA_POTABLE,LUZ,DRENAJE,AIRE_ACONDICIONADO,CONVIVENCIA_CON_ANIMALES'},{'Higiene personal','BAÑO,CAMBIO_DE_ROPA,ASEO_BUCAL,ASEO_BUCAL_FREC'},{'Alimentación','NO_COMIDAS_AL_DIA,BALANCEADA,SUFICIENTE'},{'Actividad física y recreación','DEPORTE,FC1,HOBBIES_PASATIEMPOS,FC2'},{'Otros','RELIGION'}} }">
                                 <div class="exini-sub" th:text="${g[0]}">Bloque</div>
                                 <div class="exini-grid">
                                     <th:block th:each="f : ${#strings.arraySplit(g[1], ',')}">
-                                        <th:block th:each="it : ${s.items}" th:if="${it.fieldName == 'SERV_MED_ANT_PATOLOGICOS.' + f}">
+                                        <th:block th:each="it : ${s.items}" th:if="${it.fieldName == 'SERV_MED_ANT_PATOLOGICOS.' + f or it.fieldName == 'TAG.EXM_' + f}">
                                             <div th:with="esSiNo=${#lists.contains({'AGUA_POTABLE','LUZ','DRENAJE','AIRE_ACONDICIONADO','BALANCEADA','SUFICIENTE'}, f)},
-                                                          esNum=${#lists.contains({'NO_DORMITORIOS','BAÑO','CAMBIO_DE_ROPA','ASEO_BUCAL','FC1','FC2'}, f)},
+                                                          esNum=${#lists.contains({'NO_DORMITORIOS','BAÑO','CAMBIO_DE_ROPA','ASEO_BUCAL','FC1','HOBBIES_PASATIEMPOS'}, f)},
                                                           val=${it.value ?: ''},
                                                           sn=${T(com.onest.app.catalog.examen.service.ExamenService).sinoBoton(it.value)}">
-                                                <label th:text="${etq[f] ?: it.label}">Campo</label>
+                                                <!--/* 26-nov-2026: etq.get(f), NO etq[f]: en SpEL un mapa con [f] busca la clave literal "f"
+                                                     y nunca encontraba la etiqueta (salia «Baño» a secas desde noviembre) */-->
+                                                <label th:text="${etq.get(f) ?: it.label}">Campo</label>
                                                 <!--/* 12-nov-2026: guarda 1/0, como el PHP (97 % de los datos) y los demas Si/No; antes guardaba SI/NO y un
                                                      1/0 del PHP salia como "1 (capturado antes)". Lee 1/0/SI/NO; el relleno "SIN OBSERVACIONES" es vacio.
                                                      Lo que no es Si/No (p. ej. "OCASIONAL") se conserva aparte. Mismo control que Examen medico. */-->
@@ -675,7 +687,7 @@
                                               th:attr="maxlength=${dxEspec} ? 250 : null, data-opcional=${dxEspec} ? 'si' : null"
                                               th:text="${it.value}"></textarea>
                                 </div>
-                                <!-- Dictamen como 4 botones grandes de color (mismos valores que el select del
+                                <!-- Dictamen como 5 botones grandes de color (mismos valores que el select del
                                      modulo general; el hidden conserva el name). -->
                                 <div th:if="${it.type == 'RESULTADO'}" style="grid-column: 1 / -1;">
                                     <label th:text="${it.label}">Dictamen</label>
@@ -685,6 +697,8 @@
                                         <button type="button" class="btn r-cond" th:classappend="${it.value == 'apto_condicionado'} ? 'activo' : ''" data-val="apto_condicionado" onclick="exIniChip(this);"><i class="ri-error-warning-line"></i> Apto condicionado</button>
                                         <button type="button" class="btn r-rest" th:classappend="${it.value == 'apto_restringido'} ? 'activo' : ''" data-val="apto_restringido" onclick="exIniChip(this);"><i class="ri-forbid-line"></i> Apto restringido</button>
                                         <button type="button" class="btn r-noapto" th:classappend="${it.value == 'no_apto'} ? 'activo' : ''" data-val="no_apto" onclick="exIniChip(this);"><i class="ri-close-circle-line"></i> No apto</button>
+                                        <!--/* 25-nov-2026 (SM): quinto dictamen, candado de no contratacion hasta tener los estudios */-->
+                                        <button type="button" class="btn r-pend" th:classappend="${it.value == 'pendiente_estudios'} ? 'activo' : ''" data-val="pendiente_estudios" onclick="exIniChip(this);"><i class="ri-time-line"></i> Pendiente estudios</button>
                                     </div>
                                 </div>
                             </th:block>

@@ -415,7 +415,7 @@
                 th:classappend="${esSi} ? 'activo' : ''" onclick="exSinoTexto(this);">Sí</button>
     </div>
     <input type="text" class="form-control form-control-sm" placeholder="¿Cuál? (ST2, ST7, RT1, pensión...)"
-           th:value="${esSi and up != 'SI'} ? ${raw} : ''" th:disabled="${!esSi}" oninput="exSinoTextoDetalle(this);">
+           th:value="${esSi and up != 'SI'} ? ${raw} : (${esNo} ? 'NEGADO' : '')" th:disabled="${!esSi}" oninput="exSinoTextoDetalle(this);">
 </div>
 <!--
   Odontograma por caras (FT-SO-04 rev. 05), compartido por el examen inicial y el modulo Examen

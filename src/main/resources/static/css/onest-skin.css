@@ -352,8 +352,11 @@ html[data-brand="onest"] .btn-success:active {
    el boton conserva el foco y quedaba texto blanco sobre fondo transparente. Medido con Playwright: pasa en
    outline-secondary y outline-info. Con foco y sin mouse encima, el boton se ve como en reposo (el anillo de
    foco de Bootstrap sigue marcando cual tiene el foco). */
-html[data-brand="onest"] .btn-outline-secondary:focus:not(:hover):not(:active):not(.active),
-html[data-brand="onest"] .btn-outline-info:focus:not(:hover):not(:active):not(.active) {
+/* 25-nov-2026 (Word SM errores11252026, punto 3): los botones elegidos del EMNI usan sus propias clases (activo,
+   activo-si, activo-no, activo-ok, activo-hallazgo); sin excluirlas, el boton recien elegido (con foco) se veia
+   SIN elegir hasta pasar al siguiente, y el ultimo de la hoja se quedaba asi («se traba»). */
+html[data-brand="onest"] .btn-outline-secondary:focus:not(:hover):not(:active):not(.active):not(.activo):not(.activo-si):not(.activo-no):not(.activo-ok):not(.activo-hallazgo),
+html[data-brand="onest"] .btn-outline-info:focus:not(:hover):not(:active):not(.active):not(.activo) {
   color: var(--bs-btn-color);
   background-color: transparent;
 }

@@ -1779,7 +1779,8 @@
                 if (obs && hidden.value === hallazgo && /NEGAD/i.test(obs.value)) {
                     obs.value = '';
                 } else if (obs && sw && hidden.value === normal && obs.value.trim() === '') {
-                    obs.value = 'NEGADOS';
+                    // heredofamiliares «NEGADOS»; patologicos «NEGADO» (Word SM 25-nov): lo dice el switch del bloque
+                    obs.value = sw.getAttribute('data-obs') || 'NEGADOS';
                 }
                 hidden.dispatchEvent(new Event('change', { bubbles: true }));
                 // Con el hallazgo, llevar el cursor a las observaciones de esa fila
@@ -1827,12 +1828,14 @@
                 });
                 if (modo === 'si') {
                     det.disabled = false;
+                    if (/^NEGAD/i.test(det.value.trim())) { det.value = ''; }   // el «NEGADO» del No no es detalle
                     hidden.value = det.value.trim() || 'SI';
                     det.focus();
                 } else {
-                    det.value = '';
+                    // Word SM 25-nov (punto 1): con No se escribe «NEGADO» (se ve en la caja y es lo que se guarda)
+                    det.value = modo === 'no' ? 'NEGADO' : '';
                     det.disabled = true;
-                    hidden.value = modo === 'no' ? 'NO' : '';
+                    hidden.value = modo === 'no' ? 'NEGADO' : '';
                 }
                 hidden.dispatchEvent(new Event('change', { bubbles: true }));
             };
@@ -1848,7 +1851,9 @@
             // "Normal" (lo que ponia el "Todo normal" anterior) y "20/20" (agudeza visual) cuentan como OK.
             function exIniOkNoEsOk(fila, valor) {
                 var v = (valor || '').trim().toUpperCase();
-                return v !== '' && (v === (fila.getAttribute('data-normal') || '').toUpperCase() || v === 'NORMAL' || v === '20/20');
+                // data-anterior (EMNI, 25-nov-2026): el texto normal de antes del Word de SM («SIN AGREGADOS»...)
+                return v !== '' && (v === (fila.getAttribute('data-normal') || '').toUpperCase() || v === 'NORMAL' || v === '20/20'
+                        || (fila.hasAttribute('data-anterior') && v === fila.getAttribute('data-anterior').toUpperCase()));
             }
 
             // Examen inicial (CORRECION EMNI, 6-nov-2026): Sí o No se eligen; escribir ya no cambia la
@@ -1915,7 +1920,8 @@
                                 if (otra === fila) { return; }
                                 var otroInp = otra.querySelector('input[data-tipo="OKNO"]');
                                 exIniOkNoPoner(otra, '');
-                                otroInp.value = '';
+                                // Word SM 25-nov (punto 22): el que no aplica queda «N/A», sin Sí ni No
+                                otroInp.value = 'N/A';
                                 exIniOkNoPintar(otra);
                                 otroInp.dispatchEvent(new Event('change', { bubbles: true }));
                             });
@@ -2248,9 +2254,22 @@
             // exploracion: Si/serenidad/normal solo en lo sin contestar, sin tocar signos
             // vitales). APAGAR limpia el bloque (sin contestar / vacio). Tras cualquier cambio
             // el switch se recalcula para reflejar si el bloque sigue "todo normal" o no.
+            // Observacion del No en el modo «negados»: heredofamiliares NEGADOS (FT-SO-04), patologicos NEGADO (SM 25-nov)
+            function exIniObsNegado(bloque) {
+                var sw = bloque.querySelector('.exini-switch input[data-modo="negados"]');
+                return ((sw && sw.getAttribute('data-obs')) || 'NEGADOS').toUpperCase();
+            }
+            // Padecimiento actual e interrogatorio (hoja 6, Word SM 25-nov punto 14): «Todo normal» escribe esto
+            var EXINI_INTERROGADO = 'INTERROGADO Y NEGADO';
+
             function exIniAplicarNormal(bloque, modo) {
                 var cambiados = 0;
-                if (modo === 'si') {
+                if (modo === 'interrogado') {
+                    // solo lo vacio: lo que el medico ya escribio no se pisa
+                    bloque.querySelectorAll('textarea').forEach(function (t) {
+                        if (!t.value.trim()) { t.value = EXINI_INTERROGADO; cambiados++; }
+                    });
+                } else if (modo === 'si') {
                     // sub-grupos de exploracion general (actitud, orientacion, lenguaje): lo normal es Si
                     bloque.querySelectorAll('.exini-sino').forEach(function (g) {
                         var hidden = g.querySelector('input[type=hidden]');
@@ -2260,7 +2279,7 @@
                 } else if (modo === 'sino' || modo === 'negados') {
                     // negados (heredofamiliares): el FT-SO-04 trae "NEGADOS" como observacion predeterminada.
                     // 25-nov-2026 (SM, revierte C-070): en «negados» y en «sino» lo normal es No.
-                    var obsNormal = modo === 'negados' ? 'NEGADOS' : '';
+                    var obsNormal = modo === 'negados' ? exIniObsNegado(bloque) : '';
                     bloque.querySelectorAll('.exini-sino').forEach(function (g) {
                         var hidden = g.querySelector('input[type=hidden]');
                         var fila = g.closest('.exini-fila');
@@ -2322,6 +2341,13 @@
             }
 
             function exIniLimpiarBloque(bloque, modo) {
+                if (modo === 'interrogado') {
+                    // apagar quita solo el texto predeterminado; lo escrito a mano se queda
+                    bloque.querySelectorAll('textarea').forEach(function (t) {
+                        if (t.value.trim().toUpperCase() === EXINI_INTERROGADO) { t.value = ''; }
+                    });
+                    return;
+                }
                 bloque.querySelectorAll('.exini-sino').forEach(function (g) {
                     var hidden = g.querySelector('input[type=hidden]');
                     hidden.value = '';
@@ -2354,7 +2380,11 @@
             // true si el bloque esta "todo normal" segun su modo
             function exIniEsNormal(bloque, modo) {
                 var ok = true;
-                if (modo === 'si') {
+                if (modo === 'interrogado') {
+                    bloque.querySelectorAll('textarea').forEach(function (t) {
+                        if (t.value.trim().toUpperCase() !== EXINI_INTERROGADO) { ok = false; }
+                    });
+                } else if (modo === 'si') {
                     bloque.querySelectorAll('.exini-sino').forEach(function (g) {
                         if (g.querySelector('input[type=hidden]').value !== exIniValoresSino(g).si) { ok = false; }
                     });
@@ -2364,7 +2394,7 @@
                         if (g.querySelector('input[type=hidden]').value !== lo) { ok = false; }
                         var fila = g.closest('.exini-fila');
                         var obs = fila ? fila.querySelector('input[type=text]') : null;
-                        if (modo === 'negados' && obs && obs.value.trim().toUpperCase() !== 'NEGADOS') { ok = false; }
+                        if (modo === 'negados' && obs && obs.value.trim().toUpperCase() !== exIniObsNegado(bloque)) { ok = false; }
                     });
                 } else if (modo === 'okno') {
                     bloque.querySelectorAll('.exini-okno').forEach(function (fila) {
@@ -2515,7 +2545,7 @@
                     }
                 }
                 // Confirmacion segun el dictamen: que queda registrado y que sigue
-                var etiquetas ={ apto: 'APTO', no_apto: 'NO APTO', apto_condicionado: 'APTO CONDICIONADO', apto_restringido: 'APTO RESTRINGIDO' };
+                var etiquetas ={ apto: 'APTO', no_apto: 'NO APTO', apto_condicionado: 'APTO CONDICIONADO', apto_restringido: 'APTO RESTRINGIDO', pendiente_estudios: 'PENDIENTE ESTUDIOS' };
                 var msg = '¿Finalizar el examen inicial con dictamen ' + (etiquetas[dictamen.value] || dictamen.value) + '?\n\n';
                 if (dictamen.value === 'no_apto') {
                     msg += 'La persona quedará registrada como NO APTA para ingreso. Para cambiarlo habrá que aplicarle un nuevo examen inicial.';
@@ -2523,6 +2553,8 @@
                     msg += 'Quedará registrada como apta con condición. Recuerda dejar la condición en Carta compromiso / Restricciones médicas.';
                 } else if (dictamen.value === 'apto_restringido') {
                     msg += 'Quedará registrada como apta con restricción. Recuerda capturar la restricción en Restricciones médicas.';
+                } else if (dictamen.value === 'pendiente_estudios') {
+                    msg += 'Quedará PENDIENTE DE ESTUDIOS: no se puede contratar todavía. Cuando lleguen los estudios, aplica un nuevo examen inicial con el dictamen definitivo.';
                 } else {
                     msg += 'Quedará registrada como apta para ingreso.';
                 }
@@ -2824,6 +2856,9 @@
                     datos.VERSION = activa ? activa.getAttribute('data-ver') : '1';
                     if (!activa) { raiz.querySelector('.ishi-ver .btn[data-ver="1"]').classList.add('active'); }
                 }
+                // 25-nov (SM): sin «Aplicar prueba» no se guarda nada (no sale en el impreso); lo capturado queda en
+                // pantalla por si la vuelven a aplicar
+                if (raiz.querySelector('.ishi-aplicada').value === 'SI') { datos.APLICA = 'SI'; } else { datos = {}; }
                 var oculto = raiz.querySelector('.ishi-json');
                 var nuevo = Object.keys(datos).length ? JSON.stringify(datos) : '';
                 if (oculto.value !== nuevo) {
@@ -2832,13 +2867,25 @@
                 }
             }
             window.ishiGuardar = ishiGuardar;
+            // «Aplicar prueba de Ishihara» la muestra; «Quitar prueba» la oculta y deja de guardarse/imprimirse
+            window.ishiAplica = function (btn, si) {
+                var raiz = btn.closest('[data-ishi-raiz]');
+                raiz.querySelector('.ishi-aplicada').value = si ? 'SI' : '';
+                raiz.querySelector('.ishi-aplica').classList.toggle('d-none', si);
+                raiz.querySelector('.ishi-captura').classList.toggle('d-none', !si);
+                ishiGuardar(btn);
+            };
             // Versión 1 a 4 de la hoja de SM: cambia las imágenes (mismas respuestas por posición)
             window.ishiVersion = function (btn) {
                 var raiz = btn.closest('[data-ishi-raiz]');
                 raiz.querySelectorAll('.ishi-ver .btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
                 var v = btn.getAttribute('data-ver');
+                // Word SM 25-nov (punto 18, «las versiones no cambian»): la URL lleva el hash del contenido
+                // (spring.web.resources.chain: v1-1-<hash>.jpg) y el reemplazo por expresion regular nunca coincidia.
+                // Cada imagen trae sus 4 URLs ya resueltas por Thymeleaf en data-v1..data-v4.
                 raiz.querySelectorAll('.ishi-lam img').forEach(function (img) {
-                    img.src = img.src.replace(/v\d-(\d)\.jpg$/, 'v' + v + '-$1.jpg');
+                    var url = img.getAttribute('data-v' + v);
+                    if (url) { img.src = url; }
                 });
                 ishiGuardar(btn);
             };
@@ -3127,7 +3174,7 @@
                 if (status === 'IMPROCEDENTE') { return costoPago(sdi, Math.max(dias - 3, 0), 0.6, 'Improcedente: 60 % de los días menos 3.'); }
                 if (status === 'BAJA_INCONCLUSO') {
                     if (abandono === 'PROCEDENTE') { return costoPago(sdi, dias, 1, 'Abandono procedente: 100 % de los días.'); }
-                    if (abandono === 'IMPROCEDENTE') { return costoPago(sdi, dias, 0.6, 'Abandono improcedente: 60 % de los días.'); }
+                    if (abandono === 'IMPROCEDENTE') { return costoPago(sdi, dias, 0.6, 'Abandono improcedente: 60 % de todos los días (los 3 primeros sí se pagan).'); }
                     return { costo: 0, regla: 'Baja / inconcluso: indica si el abandono es procedente o improcedente.' };
                 }
                 return { costo: 0, regla: 'Estatus sin regla: costo 0.' };

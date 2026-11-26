@@ -11,32 +11,31 @@ import org.springframework.web.client.RestClientException;
 
 /**
  * Adapter de login legacy contra el WS ORDS .../login/registro_app (app::loginApiRest).
- * Reusa el RestClient de biows. Timeout/retry se controlan en la config del RestClient.
+ * 25-nov-2026: usa su propio RestClient (loginRestClient) para poder apuntar a los servicios de la base de SSO
+ * (portal.biows.login-base-url) sin mover los demas WS de biows. Mismo contrato en los dos lados.
  */
 @Component
 public class BiowsLoginClient {
 
     private static final Logger log = LoggerFactory.getLogger(BiowsLoginClient.class);
-    private static final String PATH_LOGIN = "/login/registro_app";
-
     private final RestClient biowsRestClient;
     private final BiowsProperties properties;
 
-    public BiowsLoginClient(RestClient biowsRestClient, BiowsProperties properties) {
-        this.biowsRestClient = biowsRestClient;
+    public BiowsLoginClient(RestClient loginRestClient, BiowsProperties properties) {
+        this.biowsRestClient = loginRestClient;
         this.properties = properties;
     }
 
     public boolean autenticar(String usuario, String password) {
         try {
             BiowsLoginResponse response = biowsRestClient.post()
-                    .uri(PATH_LOGIN)
+                    .uri(properties.loginPathEfectivo())
                     .body(new BiowsLoginRequest(usuario, password, properties.appId()))
                     .retrieve()
                     .body(BiowsLoginResponse.class);
 
             boolean ok = esExitoso(response);
-            log.info("[biows] POST {}{} usuario={} -> {}", properties.baseUrl(), PATH_LOGIN, usuario,
+            log.info("[biows] POST {}{} usuario={} -> {}", properties.loginBaseUrlEfectiva(), properties.loginPathEfectivo(), usuario,
                     ok ? "OK" : "RECHAZADO");
             return ok;
         } catch (RestClientException ex) {

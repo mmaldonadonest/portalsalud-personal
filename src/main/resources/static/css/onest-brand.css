@@ -246,7 +246,8 @@ a:hover {
 .ago-na input:not([type=checkbox]):not([type=hidden]), .ago-na select, .ago-na textarea { pointer-events: none; background-color: #f1f5f9; color: #64748b; }
 
 /* C-069 Prueba de Ishihara (10-nov, fragments/ishihara.html): 9 laminas en 3 columnas, respuesta debajo */
-.ishi-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.ishi-aplica { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.ishi-top {display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
 .ishi-ayuda { font-size: 12px; color: #334155; }
 .ishi-ver { display: flex; align-items: center; gap: 4px; }
 .ishi-ver .btn { min-width: 36px; }

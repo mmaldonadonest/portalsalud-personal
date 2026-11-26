@@ -46,6 +46,23 @@ final class VistaFiltro {
         return this;
     }
 
+    /**
+     * 25-nov-2026: tipo de examen de SERV_MED_V_EXAMEN. Los del Excel traen TIPO (NUEVO_INGRESO, PERIODICO,
+     * POS_INCAPACIDAD); lo capturado en el portal viene con TIPO vacio y se pide como PORTAL. Valores fuera de la
+     * lista se ignoran (sin corte), para que un parametro raro no deje la pantalla en ceros.
+     */
+    VistaFiltro tipoExamen(String tipo) {
+        String t = tipo == null ? "" : tipo.trim().toUpperCase(java.util.Locale.ROOT);
+        if ("PORTAL".equals(t)) {
+            and("e.FUENTE = 'PORTAL'");
+        } else if (TIPOS_EXAMEN_EXCEL.contains(t)) {
+            and("e.FUENTE = 'EXCEL' AND e.TIPO = ?", t);
+        }
+        return this;
+    }
+
+    static final List<String> TIPOS_EXAMEN_EXCEL = List.of("NUEVO_INGRESO", "PERIODICO", "POS_INCAPACIDAD");
+
     VistaFiltro and(String condicion, Object... valores) {
         sql.append(conWhere ? " AND " : " WHERE ").append(condicion);
         conWhere = true;

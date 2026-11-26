@@ -153,8 +153,8 @@
     <div class="card card-one chart-card mb-3">
         <div class="card-header">
             <span class="chart-eyebrow chart-eyebrow--casos">Tendencia</span>
-            <div class="card-title-lg">Casos registrados y partos probables por mes</div>
-            <p class="fs-11 text-muted mb-0">Los partos probables anticipan las ausencias por venir</p>
+            <div class="card-title-lg">Casos detectados y partos probables por mes</div>
+            <p class="fs-11 text-muted mb-0">Cada embarazo cuenta una vez, en el mes en que Servicio Médico lo registró. Los partos probables anticipan las ausencias por venir</p>
         </div>
         <div class="card-body"><div id="chartMes"></div></div>
     </div>
@@ -354,7 +354,8 @@
                 var options = {
                     chart: { type: 'bar', height: 320, toolbar: { show: false } },
                     series: [
-                        { name: 'Casos registrados', data: mapa(d.tendenciaMensual) },
+                        // SM 25-nov-2026: cada embarazo una vez, en el mes en que Servicio Medico lo registro
+                        { name: 'Casos detectados', data: mapa(d.tendenciaMensual) },
                         { name: 'Partos probables', data: mapa(d.partosPorMes) }
                     ],
                     colors: ['#DB2777', '#7C3AED'],

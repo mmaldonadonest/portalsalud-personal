@@ -104,6 +104,19 @@
                     <option value="">Todos los predios</option>
                 </select>
             </div>
+            <!--/* 25-nov-2026: tipo de examen (SERV_MED_V_EXAMEN.TIPO). Los del Excel traen su tipo por el layout de la
+                 carga; lo capturado en el portal no lo trae y va como «Capturados en el portal». No corta el
+                 comparativo con Pretest. */-->
+            <div>
+                <label class="form-label fs-12 mb-1">Tipo de examen</label>
+                <select id="fTipo" class="form-select form-select-sm" style="min-width:200px">
+                    <option value="">Todos los tipos</option>
+                    <option value="NUEVO_INGRESO">Nuevo ingreso (Excel)</option>
+                    <option value="PERIODICO">Periódico (Excel)</option>
+                    <option value="POS_INCAPACIDAD">Pos incapacidad (Excel)</option>
+                    <option value="PORTAL">Capturados en el portal</option>
+                </select>
+            </div>
             <span id="estado" class="fs-12 text-muted ms-auto"></span>
             <input type="hidden" id="fFechaInicial" value="">
             <input type="hidden" id="fFechaFinal" value="">
@@ -300,7 +313,7 @@
                     opt.textContent = y;
                     selectAnio.appendChild(opt);
                 }
-                ['fAnio', 'fPeriodo', 'fPredio'].forEach(function (id) {
+                ['fAnio', 'fPeriodo', 'fPredio', 'fTipo'].forEach(function (id) {
                     document.getElementById(id).addEventListener('change', aplicar);
                 });
                 document.getElementById('fPretestVista').addEventListener('change', function () {
@@ -334,13 +347,18 @@
                 var qs = 'fechaInicial=' + encodeURIComponent(rango.fechaInicial)
                        + '&fechaFinal=' + encodeURIComponent(rango.fechaFinal)
                        + (predio ? '&predio=' + encodeURIComponent(predio) : '');
+                var selTipo = document.getElementById('fTipo');
+                var tipo = selTipo.value;
+                // el tipo corta tarjetas y genero; el comparativo con Pretest sigue con todos (qs sin tipo)
+                var qsTipo = qs + (tipo ? '&tipo=' + encodeURIComponent(tipo) : '');
+                var textoTipo = tipo ? ' · ' + selTipo.options[selTipo.selectedIndex].text : '';
                 estado.textContent = 'Cargando...';
                 try {
-                    var res = await fetch(contextPath + 'api/dashboard/examen?' + qs);
+                    var res = await fetch(contextPath + 'api/dashboard/examen?' + qsTipo);
                     if (!res.ok) { estado.textContent = 'Error al consultar (HTTP ' + res.status + ').'; return; }
                     var d = await res.json();
                     document.getElementById('subtitulo').textContent =
-                        numero(d.totalExamenes) + ' exámenes · ' + rango.texto + (predio ? ' · ' + predio : '');
+                        numero(d.totalExamenes) + ' exámenes · ' + rango.texto + (predio ? ' · ' + predio : '') + textoTipo;
                     pintarKpis(d);
                     pintarMes(d);
                     pintarPredio(d);
@@ -348,7 +366,7 @@
                     ultimoExport = d;
                     estado.textContent = 'Actualizado.';
                     // aparte: si fallan, las tarjetas de arriba ya quedaron pintadas
-                    cargarExtra('api/analisis/examenes/genero?' + qs, pintarGenero, 'chartGenero');
+                    cargarExtra('api/analisis/examenes/genero?' + qsTipo, pintarGenero, 'chartGenero');
                     cargarExtra('api/analisis/examenes/pretest?' + qs, function (p) {
                         ultimoPretest = p;
                         pintarPretest(p);

@@ -1,6 +1,5 @@
 package com.onest.app.catalog.dashboard.repository;
 
-import static com.onest.app.catalog.dashboard.repository.VistaFiltro.MES;
 import static com.onest.app.catalog.dashboard.repository.VistaFiltro.PREDIO;
 import static com.onest.app.catalog.dashboard.repository.VistaFiltro.SIN_DATO;
 
@@ -117,12 +116,29 @@ public class VistaMaternidadRepository {
                 (rs, i) -> new ConteoSimpleDto(rs.getString("clave"), rs.getLong("cantidad")), f.params());
     }
 
-    /** Seguimientos por mes de corte. */
+    /**
+     * Casos detectados por mes (SM 25-nov-2026, preguntas-sm-24nov #4, respuesta a: «cuando Servicio Medico registro
+     * el caso»). Cada embarazo cuenta UNA vez, en el mes de su PRIMER registro. Antes contaba renglones: un embarazo
+     * con seguimiento de 6 meses salia en los 6. El primer registro se busca en todo el historial (sin el corte de
+     * fechas) y luego se recorta al periodo: un caso de enero no aparece en marzo por filtrar desde febrero.
+     */
     public List<PuntoMensualDto> tendenciaMensual(LocalDate desde, LocalDate hasta, String predio, String cuenta) {
-        VistaFiltro f = new VistaFiltro("SELECT " + MES + " mes, COUNT(*) cantidad" + VISTA)
-                .filtros(desde, hasta, predio, cuenta);
-        return jdbc.query(f.sql() + " GROUP BY " + MES + " ORDER BY 1",
-                (rs, i) -> new PuntoMensualDto(rs.getString("mes"), rs.getLong("cantidad")), f.params());
+        VistaFiltro f = new VistaFiltro("SELECT NVL(e.CLAVE_EMBARAZO, e.NSS) caso, MIN(e.FECHA) primera" + VISTA)
+                .and("e.FECHA IS NOT NULL").filtros(null, null, predio, cuenta);
+        StringBuilder sql = new StringBuilder("SELECT TO_CHAR(primera, 'YYYY-MM') mes, COUNT(*) cantidad FROM (")
+                .append(f.sql()).append(" GROUP BY NVL(e.CLAVE_EMBARAZO, e.NSS)) WHERE 1 = 1");
+        List<Object> params = new java.util.ArrayList<>(List.of(f.params()));
+        if (desde != null) {
+            sql.append(" AND primera >= ?");
+            params.add(java.sql.Date.valueOf(desde));
+        }
+        if (hasta != null) {
+            sql.append(" AND primera <= ?");
+            params.add(java.sql.Date.valueOf(hasta));
+        }
+        sql.append(" GROUP BY TO_CHAR(primera, 'YYYY-MM') ORDER BY 1");
+        return jdbc.query(sql.toString(),
+                (rs, i) -> new PuntoMensualDto(rs.getString("mes"), rs.getLong("cantidad")), params.toArray());
     }
 
     /**

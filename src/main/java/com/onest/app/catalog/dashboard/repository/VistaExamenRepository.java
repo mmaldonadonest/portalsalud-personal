@@ -41,23 +41,38 @@ public class VistaExamenRepository {
 
     /** Total del periodo con su desglose por dictamen. */
     public ConteoDictamenDto totales(LocalDate desde, LocalDate hasta, String predio, String cuenta) {
+        return totales(desde, hasta, predio, cuenta, null);
+    }
+
+    /** Igual, con corte por tipo de examen (VistaFiltro.tipoExamen; vacio = todos). */
+    public ConteoDictamenDto totales(LocalDate desde, LocalDate hasta, String predio, String cuenta, String tipo) {
         VistaFiltro f = new VistaFiltro("SELECT 'TOTAL' clave, " + DICTAMENES + VISTA)
-                .filtros(desde, hasta, predio, cuenta);
+                .filtros(desde, hasta, predio, cuenta).tipoExamen(tipo);
         return jdbc.queryForObject(f.sql(), (rs, i) -> conteo(rs), f.params());
     }
 
     /** Por predio, de mayor a menor. */
     public List<ConteoDictamenDto> porPredio(LocalDate desde, LocalDate hasta, String predio, String cuenta) {
+        return porPredio(desde, hasta, predio, cuenta, null);
+    }
+
+    /** Igual, con corte por tipo de examen (VistaFiltro.tipoExamen; vacio = todos). */
+    public List<ConteoDictamenDto> porPredio(LocalDate desde, LocalDate hasta, String predio, String cuenta, String tipo) {
         VistaFiltro f = new VistaFiltro("SELECT " + PREDIO + " clave, " + DICTAMENES + VISTA)
-                .filtros(desde, hasta, predio, cuenta);
+                .filtros(desde, hasta, predio, cuenta).tipoExamen(tipo);
         return jdbc.query(f.sql() + " GROUP BY " + PREDIO + " ORDER BY COUNT(*) DESC", (rs, i) -> conteo(rs),
                 f.params());
     }
 
     /** Por mes (YYYY-MM), en orden cronologico. */
     public List<ConteoDictamenDto> porMes(LocalDate desde, LocalDate hasta, String predio, String cuenta) {
+        return porMes(desde, hasta, predio, cuenta, null);
+    }
+
+    /** Igual, con corte por tipo de examen (VistaFiltro.tipoExamen; vacio = todos). */
+    public List<ConteoDictamenDto> porMes(LocalDate desde, LocalDate hasta, String predio, String cuenta, String tipo) {
         VistaFiltro f = new VistaFiltro("SELECT " + MES + " clave, " + DICTAMENES + VISTA)
-                .filtros(desde, hasta, predio, cuenta);
+                .filtros(desde, hasta, predio, cuenta).tipoExamen(tipo);
         return jdbc.query(f.sql() + " GROUP BY " + MES + " ORDER BY 1", (rs, i) -> conteo(rs), f.params());
     }
 
@@ -66,9 +81,14 @@ public class VistaExamenRepository {
      * trae GENERO en el Excel; periodico y portal lo toman del biometrico (el Excel de periodico no lo trae).
      */
     public List<ConteoDictamenDto> porGenero(LocalDate desde, LocalDate hasta, String predio, String cuenta) {
+        return porGenero(desde, hasta, predio, cuenta, null);
+    }
+
+    /** Igual, con corte por tipo de examen (VistaFiltro.tipoExamen; vacio = todos). */
+    public List<ConteoDictamenDto> porGenero(LocalDate desde, LocalDate hasta, String predio, String cuenta, String tipo) {
         String genero = "NVL(e.GENERO, '" + VistaFiltro.SIN_DATO + "')";
         VistaFiltro f = new VistaFiltro("SELECT " + genero + " clave, " + DICTAMENES + VISTA)
-                .filtros(desde, hasta, predio, cuenta);
+                .filtros(desde, hasta, predio, cuenta).tipoExamen(tipo);
         return jdbc.query(f.sql() + " GROUP BY " + genero + " ORDER BY COUNT(*) DESC", (rs, i) -> conteo(rs),
                 f.params());
     }

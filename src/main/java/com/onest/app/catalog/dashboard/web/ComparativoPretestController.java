@@ -73,9 +73,10 @@ public class ComparativoPretestController {
     @GetMapping("/genero")
     public List<ConteoDictamenDto> genero(@RequestParam(name = "fechaInicial", required = false) String fechaInicial,
                                           @RequestParam(name = "fechaFinal", required = false) String fechaFinal,
-                                          @RequestParam(name = "predio", required = false) String predio) {
+                                          @RequestParam(name = "predio", required = false) String predio,
+                                          @RequestParam(name = "tipo", required = false) String tipo) {
         try {
-            return servicio.porGenero(fechaInicial, fechaFinal, predio);
+            return servicio.porGenero(fechaInicial, fechaFinal, predio, tipo);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         } catch (IllegalStateException ex) {

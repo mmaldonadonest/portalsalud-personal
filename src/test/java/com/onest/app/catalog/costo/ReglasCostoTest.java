@@ -95,7 +95,8 @@ class ReglasCostoTest {
         assertEquals("3000.00", acc("BAJA_INCONCLUSO", "PROCEDENTE", 10));
         assertEquals("1800.00", acc("BAJA_INCONCLUSO", "IMPROCEDENTE", 10));
         assertEquals("0.00", acc("BAJA_INCONCLUSO", null, 10));
-        assertTrue(ReglasCosto.accidente("BAJA_INCONCLUSO", "IMPROCEDENTE", 10, SDI).porConfirmar());
+        // P-059 (SM 25-nov-2026): 60 % de todos los dias, ya confirmado
+        assertFalse(ReglasCosto.accidente("BAJA_INCONCLUSO", "IMPROCEDENTE", 10, SDI).porConfirmar());
     }
 
     @Test

@@ -176,10 +176,20 @@ public class ExamenService {
 
     /** C-003 / P-056: especificacion libre del diagnostico; tope decidido por el usuario (20-nov-2026). */
     public static final String TAG_ESPECIFICACION_DX = "EXM_DX_ESPECIFICACION";
+    /** Frecuencia en texto del aseo bucal (25-nov-2026, SM): «DIARIO», «CADA TERCER DIA». */
+    public static final String TAG_ASEO_BUCAL_FREC = "EXM_ASEO_BUCAL_FREC";
     public static final int MAX_ESPECIFICACION_DX = 250;
 
     /** Prefijo de las claves de formulario que van a SERV_MED_TAG y no al WS. */
     private static final String PREFIJO_TAG = "TAG.";
+    /**
+     * Quinto dictamen del examen inicial (25-nov-2026, pedido de SM): «Pendiente estudios», candado de no
+     * contratacion hasta que lleguen los estudios. No tiene bandera en SERV_MED_RESULTADO_EXAMEN (son 4 y viven en
+     * el procedimiento de ORDS): se guarda como tag "1" con las 4 banderas vacias. Las graficas que cuentan las
+     * banderas lo ven como «sin dictamen».
+     */
+    public static final String PENDIENTE_ESTUDIOS = "pendiente_estudios";
+    public static final String TAG_DICTAMEN_PENDIENTE = "EXM_DICTAMEN_PENDIENTE";
     private static final String GRUPO_TAG_FISICO = "EXAMEN_FISICO";
 
     /**
@@ -414,6 +424,9 @@ public class ExamenService {
                 text("BAÑO", "Baño"),
                 text("CAMBIO_DE_ROPA", "Cambio de ropa"),
                 text("ASEO_BUCAL", "Aseo bucal"),
+                // 25-nov-2026 (Word SM, punto 5): junto al numero, la frecuencia en texto («DIARIO», «CADA TERCER
+                // DIA»). La tabla no tiene columna para eso: va a SERV_MED_TAG.
+                tagSolo(TAG_ASEO_BUCAL_FREC, "Aseo bucal (frecuencia)"),
                 text("ALIMENTACION", "Alimentación"),
                 text("NO_COMIDAS_AL_DIA", "No. comidas al día"),
                 text("BALANCEADA", "Balanceada"),
@@ -788,6 +801,8 @@ public class ExamenService {
                 }
             }
         }
+        // no es campo del catalogo (lo escribe guardar() a partir del dictamen), pero se lee como los demas
+        out.add(TAG_DICTAMEN_PENDIENTE);
         return out;
     }
 
@@ -985,6 +1000,10 @@ public class ExamenService {
         if ("1".equals(data.get(seccion + ".APTO_RESTRINGIDO"))) {
             return "apto_restringido";
         }
+        // sin bandera: el quinto dictamen vive en su tag (solo llega si data trae los tags, ver cargarCamposTag)
+        if ("1".equals(mostrable(data.get(PREFIJO_TAG + TAG_DICTAMEN_PENDIENTE)).trim())) {
+            return PENDIENTE_ESTUDIOS;
+        }
         return "";
     }
 
@@ -1049,6 +1068,12 @@ public class ExamenService {
                     c.put(k, v);
                 }
             });
+        }
+        // Quinto dictamen «Pendiente estudios» (25-nov-2026, SM, solo EMNI): el WS solo tiene las 4 banderas, que
+        // viajan vacias (BiowsExamenClient); el dictamen queda en su tag. Cualquier otro dictamen lo apaga.
+        String dictamenForm = c.get("SERV_MED_RESULTADO_EXAMEN.DICTAMEN");
+        if (dictamenForm != null && !dictamenForm.isBlank()) {
+            nuevosTags.put(TAG_DICTAMEN_PENDIENTE, PENDIENTE_ESTUDIOS.equals(dictamenForm.trim()) ? "1" : "");
         }
         Map<String, String> tagsTrabajos = separarTrabajos(c);
         // E-032 (11-nov): migraña con Ñ -> el WS la lee sin Ñ; la conversion vive en BiowsExamenClient.writeKey

@@ -88,6 +88,14 @@ public class ExamenInicialService {
 
         /** Reglas de captura del FT-SO-04 rev. 05 por fieldName (para la plantilla). */
         public Map<String, AyudasFormato.Ayuda> ayudas() {
+            return AyudasFormato.AYUDAS_EMNI;
+        }
+
+        /**
+         * Textos anteriores al 25-nov-2026 («SIN AGREGADOS», «AUSENTES»...): un examen capturado con ellos sigue
+         * abriendo con Sí (la plantilla los acepta como normales).
+         */
+        public Map<String, AyudasFormato.Ayuda> ayudasAnteriores() {
             return AyudasFormato.AYUDAS;
         }
 
@@ -106,9 +114,33 @@ public class ExamenInicialService {
      * tatuajes, alergias).
      */
     private static final int HOJA_PATOLOGICOS = 5;
-    private static final Set<String> SIN_PRESELECCION = Set.of(
+    /**
+     * 25-nov-2026 (Word SM «errores11252026», puntos 8-10): estas 4 preguntas de APP toxicologico se ven en su
+     * propio bloque «APP: otro» (banda azul marino con «Todo normal»); siguen en SERV_MED_TOXI_NO_PATO. Antes
+     * abrian sin marcar; ahora abren en No con «NEGADO», como todo el resto de la hoja.
+     */
+    private static final Set<String> APP_OTRO = Set.of(
             "SERV_MED_TOXI_NO_PATO.ALT_CARGA ", "SERV_MED_TOXI_NO_PATO.PERFORACIONES",
             "SERV_MED_TOXI_NO_PATO.TATUAJES", "SERV_MED_TOXI_NO_PATO.ALERGIAS");
+    private static final String SECCION_TOXICOLOGICO = "APP: toxicológico";
+    public static final String SECCION_APP_OTRO = "APP: otro";
+    /** Hoja 5: observacion del No (SM, 25-nov). Heredofamiliares conserva «NEGADOS» del FT-SO-04. */
+    private static final String NEGADO = "NEGADO";
+    /**
+     * Etiquetas de No patologicos (25-nov-2026, Word SM puntos 4-6). Antes era un mapa literal en la plantilla y en
+     * las capturas de SM no se aplicaba (salia «Baño», «Frecuencia (hobbies)»); en Java no depende del parser.
+     */
+    public static final Map<String, String> ETIQUETAS_APNP = Map.of(
+            "BAÑO", "Baño a la semana",
+            "CAMBIO_DE_ROPA", "Cambio de ropa (veces por semana)",
+            "ASEO_BUCAL", "Aseo bucal (veces al día)",
+            "ASEO_BUCAL_FREC", "Aseo bucal (frecuencia)",
+            "FC1", "Frecuencia deporte (veces por semana)",
+            "HOBBIES_PASATIEMPOS", "Hobbies / pasatiempos (cantidad)",
+            "FC2", "Frecuencia hobbies");
+
+    /** Nombre en pantalla distinto al del catalogo (punto 11: «cardiovascular» -> «cardiopatías»). */
+    private static final Map<String, String> NOMBRE_EN_PANTALLA = Map.of("APP: cardiovascular", "APP: cardiopatías");
 
     /**
      * Hoja 3 (heredofamiliares, 15-oct-2026): el FT-SO-04 trae "NEGADOS" como observacion
@@ -116,7 +148,8 @@ public class ExamenInicialService {
      * el formato no les pone texto). El medico solo marca Si donde hay antecedente.
      */
     private static final int HOJA_HEREDOFAMILIARES = 3;
-    private static final Set<String> SIN_NEGADOS = Set.of("Obesidad", "Otras");
+    /** 25-nov-2026 (Word SM, punto 2): Obesidad y Otras tambien llevan «NEGADOS»; ya no hay excepciones. */
+    private static final Set<String> SIN_NEGADOS = Set.of();
     private static final String NEGADOS = "NEGADOS";
     /** E-030 (10-nov): no cuentan para el avance (FUP puede ir en blanco; genitales cuenta como uno). */
     private static final String CAMPO_FUP = "SERV_MED_ANT_GIN_OBSTETRICOS.FUP";
@@ -174,7 +207,7 @@ public class ExamenInicialService {
                     List.of("Neurología", "Cardiopatía", "Neumopatía", "Toxicológico", "Nefropatías", "Endocrinas", "Obesidad", "Mentales", "Generales", "Otras")),
             new Hoja(4, "No patológicos", "No patológicos, inmunizaciones y gineco-obstétricos", "", "SECCIONES",
                     List.of("APNP (no patológicos)", "Inmunizaciones", "Gineco-obstétricos (AGO)")),
-            new Hoja(5, "Patológicos", "Antecedentes personales patológicos", "Como en el formato, todo abre en No: marca Sí solo donde haya antecedente.", "SECCIONES",
+            new Hoja(5, "Patológicos", "Antecedentes personales patológicos", "Todo abre en No con «NEGADO»: marca Sí solo donde haya antecedente y escríbelo.", "SECCIONES",
                     List.of("APP: personales patológicos", "APP: oftalmológico", "APP: digestivo", "APP: renal", "APP: sistema nervioso",
                             "APP: músculo-esquelético", "APP: cardiovascular", "APP: toxicológico", "APP: endocrino")),
             new Hoja(6, "Padecimiento", "Padecimiento actual e interrogatorio", "", "SECCIONES",
@@ -326,12 +359,21 @@ public class ExamenInicialService {
         }
     }
 
+    /** Nombre del bloque como se ve en pantalla (lista «Falta capturar»): «APP: otro», «APP: cardiopatías». */
+    private static String nombreEnPantalla(String seccion, String fieldName) {
+        if (SECCION_TOXICOLOGICO.equals(seccion) && APP_OTRO.contains(fieldName)) {
+            return SECCION_APP_OTRO;
+        }
+        return NOMBRE_EN_PANTALLA.getOrDefault(seccion, seccion);
+    }
+
     private static String etiquetaDictamen(String d) {
         return switch (d == null ? "" : d) {
             case "apto" -> "Apto";
             case "no_apto" -> "No apto";
             case "apto_condicionado" -> "Apto condicionado";
             case "apto_restringido" -> "Apto restringido";
+            case ExamenService.PENDIENTE_ESTUDIOS -> "Pendiente estudios";
             default -> d == null ? "" : d;
         };
     }
@@ -378,9 +420,15 @@ public class ExamenInicialService {
                     String value = b.containsKey(it.fieldName()) ? b.get(it.fieldName()) : it.value();
                     String obs = it.obsName() != null && b.containsKey(it.obsName()) ? b.get(it.obsName()) : it.obsValue();
                     boolean vacio = value == null || value.isBlank();
-                    if (h.numero() == HOJA_PATOLOGICOS && "SINO".equals(it.type()) && vacio
-                            && !SIN_PRESELECCION.contains(it.fieldName())) {
-                        value = "0";
+                    if (h.numero() == HOJA_PATOLOGICOS && "SINO".equals(it.type())) {
+                        // 25-nov-2026 (Word SM, puntos 9-10): todo abre en No y el No lleva «NEGADO» en la
+                        // observacion (tambien el No de un examen anterior que no traia texto)
+                        if (vacio) {
+                            value = "0";
+                        }
+                        if ("0".equals(value) && it.obsName() != null && (obs == null || obs.isBlank())) {
+                            obs = NEGADO;
+                        }
                     }
                     if (h.numero() == HOJA_HEREDOFAMILIARES && "SINO".equals(it.type())) {
                         // 25-nov-2026 (SM, revierte C-070 del 10-nov): en heredofamiliares lo normal es No (en
@@ -420,6 +468,8 @@ public class ExamenInicialService {
                             || ExamenService.LENGUAJE_OBS.stream().anyMatch(o -> ("TAG." + o).equals(it.fieldName()))
                             // C-003 / P-056 (20-nov): la especificacion del diagnostico es opcional
                             || ("TAG." + ExamenService.TAG_ESPECIFICACION_DX).equals(it.fieldName())
+                            // 25-nov-2026: la frecuencia en texto del aseo bucal es nueva; no se exige
+                            || ("TAG." + ExamenService.TAG_ASEO_BUCAL_FREC).equals(it.fieldName())
                             // Genitales: se captura UNO (masculino o femenino); cuenta abajo como un solo campo
                             || GENITALES.contains(it.fieldName())
                             // fecha de influenza / Td: solo cuenta si la vacuna esta en Si (el Si/No va antes en
@@ -432,7 +482,7 @@ public class ExamenInicialService {
                     if (value != null && !value.isBlank()) {
                         capturados++;
                     } else {
-                        faltantes.add(nombre + " › " + it.label());
+                        faltantes.add(nombreEnPantalla(nombre, it.fieldName()) + " › " + it.label());
                         faltaCampos.add(it.fieldName());
                     }
                 }
@@ -446,7 +496,17 @@ public class ExamenInicialService {
                         faltaCampos.add(GENITALES.iterator().next());
                     }
                 }
-                secciones.add(new SeccionVista(nombre, items, valores));
+                if (SECCION_TOXICOLOGICO.equals(nombre)) {
+                    // punto 8: las 4 preguntas de «Otro» van en su propio bloque (solo acomodo en pantalla)
+                    List<ExamItem> otro = items.stream().filter(x -> APP_OTRO.contains(x.fieldName())).toList();
+                    items.removeIf(x -> APP_OTRO.contains(x.fieldName()));
+                    secciones.add(new SeccionVista(nombre, items, valores));
+                    if (!otro.isEmpty()) {
+                        secciones.add(new SeccionVista(SECCION_APP_OTRO, new ArrayList<>(otro), valores));
+                    }
+                } else {
+                    secciones.add(new SeccionVista(NOMBRE_EN_PANTALLA.getOrDefault(nombre, nombre), items, valores));
+                }
             }
             hojas.add(new HojaVista(h, secciones, capturados, n, faltantes, faltaCampos));
             capturadosTotal += capturados;

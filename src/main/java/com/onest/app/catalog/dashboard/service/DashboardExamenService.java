@@ -72,9 +72,17 @@ public class DashboardExamenService {
      * vacio = sin corte, identico al comportamiento anterior.
      */
     public DashboardExamenDto resumen(String fechaInicial, String fechaFinal, String predio, String cuenta) {
+        return resumen(fechaInicial, fechaFinal, predio, cuenta, null);
+    }
+
+    /**
+     * 25-nov-2026: con corte por tipo de examen (Analisis > Examenes medicos). Solo con la vista, que es la que
+     * trae el tipo; el camino viejo del WS lo ignora.
+     */
+    public DashboardExamenDto resumen(String fechaInicial, String fechaFinal, String predio, String cuenta, String tipo) {
         VistaExamenRepository vista = vistaExamenes.getIfAvailable();
         if (vista != null) {
-            return resumenDesdeVista(vista, fechaInicial, fechaFinal, predio, cuenta);
+            return resumenDesdeVista(vista, fechaInicial, fechaFinal, predio, cuenta, tipo);
         }
         List<ExamenReporteDto> filas = examenService.reportePorFecha(fechaInicial, fechaFinal).stream()
                 // Mismo bug de "fila fantasma" ya visto en los otros 3 dashboards: sin datos
@@ -183,17 +191,17 @@ public class DashboardExamenService {
      * SERV_MED_V_EXAMEN, sin llamar a ORDS. Mismo DTO que el camino de arriba.
      */
     private DashboardExamenDto resumenDesdeVista(VistaExamenRepository vista, String fechaInicial,
-                                                 String fechaFinal, String predio, String cuenta) {
+                                                 String fechaFinal, String predio, String cuenta, String tipo) {
         LocalDate desde = FechaFiltro.aFecha(fechaInicial).orElse(null);
         LocalDate hasta = FechaFiltro.aFecha(fechaFinal).orElse(null);
 
-        ConteoDictamenDto t = vista.totales(desde, hasta, predio, cuenta);
-        List<ConteoDictamenDto> porMes = vista.porMes(desde, hasta, predio, cuenta);
+        ConteoDictamenDto t = vista.totales(desde, hasta, predio, cuenta, tipo);
+        List<ConteoDictamenDto> porMes = vista.porMes(desde, hasta, predio, cuenta, tipo);
 
         return new DashboardExamenDto(
                 fechaInicial, fechaFinal,
                 t.cantidad(), t.apto(), t.noApto(), t.aptoCondicionado(), t.aptoRestringido(),
-                vista.porPredio(desde, hasta, predio, cuenta),
+                vista.porPredio(desde, hasta, predio, cuenta, tipo),
                 porMes.stream().map(m -> new PuntoMensualDto(m.clave(), m.cantidad())).toList(),
                 porMes);
     }

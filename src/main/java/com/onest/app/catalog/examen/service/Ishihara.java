@@ -60,9 +60,26 @@ public final class Ishihara {
         }
     }
 
-    /** true si se capturo algo (el impreso solo agrega la hoja en ese caso). */
+    /**
+     * 25-nov-2026 (pedido de SM): ¿aplica la prueba? "SI", "NO" o "" (sin contestar). Los examenes anteriores a la
+     * pregunta no traen APLICA: si ya tienen algo capturado cuentan como "SI" para que no se escondan sus datos.
+     */
+    public String aplica(String json) {
+        String a = Osteomuscular.valor(json, "APLICA");
+        if ("SI".equals(a) || "NO".equals(a)) {
+            return a;
+        }
+        return capturado(json) ? "SI" : "";
+    }
+
+    /** true si la prueba aplica y se capturo algo (el impreso solo agrega la hoja en ese caso). */
     public boolean tieneDatos(String json) {
+        return !"NO".equals(Osteomuscular.valor(json, "APLICA")) && capturado(json);
+    }
+
+    private static boolean capturado(String json) {
         return Osteomuscular.leer(json).entrySet().stream()
-                .anyMatch(e -> !"VERSION".equals(e.getKey()) && e.getValue() != null && !e.getValue().isBlank());
+                .anyMatch(e -> !"VERSION".equals(e.getKey()) && !"APLICA".equals(e.getKey())
+                        && e.getValue() != null && !e.getValue().isBlank());
     }
 }

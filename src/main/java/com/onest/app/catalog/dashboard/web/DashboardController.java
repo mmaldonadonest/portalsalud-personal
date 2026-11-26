@@ -165,9 +165,10 @@ public class DashboardController {
             @RequestParam("fechaInicial") String fechaInicial,
             @RequestParam("fechaFinal") String fechaFinal,
             @RequestParam(name = "predio", required = false) String predio,
-            @RequestParam(name = "cuenta", required = false) String cuenta) {
+            @RequestParam(name = "cuenta", required = false) String cuenta,
+            @RequestParam(name = "tipo", required = false) String tipo) {
         try {
-            return examenService.resumen(fechaInicial, fechaFinal, predio, cuenta);
+            return examenService.resumen(fechaInicial, fechaFinal, predio, cuenta, tipo);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }

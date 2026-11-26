@@ -25,8 +25,8 @@ import java.util.Locale;
  *   <li>Calificado: 100 % de los dias.</li>
  *   <li>Improcedente: 60 % de (dias - 3), nunca negativo.</li>
  *   <li>Pendiente: 0.</li>
- *   <li>Baja / inconcluso: abandono procedente 100 %; abandono improcedente 60 % de los dias (SM no dijo
- *       que se descuenten 3 dias: se marca para preguntarlo); sin abandono capturado, 0.</li>
+ *   <li>Baja / inconcluso: abandono procedente 100 %; abandono improcedente 60 % de TODOS los dias (SM
+ *       25-nov-2026, P-059: los 3 primeros dias SI se pagan); sin abandono capturado, 0.</li>
  * </ul>
  */
 public final class ReglasCosto {
@@ -123,7 +123,8 @@ public final class ReglasCosto {
                     return pago(sdi, dias, CIEN, "Abandono procedente: 100 % de los días.", false);
                 }
                 if ("IMPROCEDENTE".equals(a)) {
-                    return pago(sdi, dias, SESENTA, "Abandono improcedente: 60 % de los días.", true);
+                    // P-059 (SM 25-nov-2026): con 60 % los 3 primeros dias si se pagan; ya no queda por confirmar
+                    return pago(sdi, dias, SESENTA, "Abandono improcedente: 60 % de todos los días (los 3 primeros sí se pagan).", false);
                 }
                 return new Resultado(cero(), 0, BigDecimal.ZERO,
                         "Baja / inconcluso sin indicar el abandono: costo 0.", false);
