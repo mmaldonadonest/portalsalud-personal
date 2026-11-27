@@ -139,6 +139,12 @@ public final class DocumentoImpresoService {
     private static final DateTimeFormatter DIA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter DIA_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
+    /** Usuario de la sesion (login, no el nombre visible): para buscar despues su firma registrada. "" sin sesion. */
+    public static String usuarioLogin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth == null || auth.getName() == null || "anonymousUser".equals(auth.getName()) ? "" : auth.getName();
+    }
+
     /** Usuario logueado (nombre visible si lo trae el principal), para "capturo". */
     public static String usuarioActual() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

@@ -129,11 +129,28 @@ public class CargaNssService {
                     // SM deja notas arriba del encabezado ("1 ATENCIONES NOV", 3-nov-2026: nota en la fila 1,
                     // encabezado en la 2). Se busca el encabezado en las primeras filas con texto.
                     ValidadorNss v = ValidadorNss.paraEncabezados(fila.valores()).orElse(null);
+                    // 27-nov-2026, «8 MATERNIDAD 2026»: encabezado en dos filas («INCAPACIDAD» arriba, «INICIO /
+                    // TERMINO / FOLIO» abajo). Si la fila sola no se reconoce, se prueba junto con la de arriba.
+                    if (v == null && !notas.isEmpty()) {
+                        List<String> juntas = combinarEncabezados(notas.get(notas.size() - 1), fila.valores());
+                        v = ValidadorNss.paraEncabezados(juntas).orElse(null);
+                        if (v != null) {
+                            notas.remove(notas.size() - 1);
+                            encabezados[0] = juntas;
+                            avisos.add("El encabezado viene en dos filas (" + (fila.numero() - 1) + " y " + fila.numero()
+                                    + "): se leyeron juntas. Qué hacer: nada.");
+                        }
+                    }
                     if (v == null && notas.size() < MAX_FILAS_ANTES_DEL_ENCABEZADO) {
                         notas.add(fila.valores());
                         return;
                     }
-                    encabezados[0] = v != null || notas.isEmpty() ? fila.valores() : notas.get(0);
+                    if (encabezados[0] == null) {
+                        encabezados[0] = v != null || notas.isEmpty() ? fila.valores() : notas.get(0);
+                    }
+                    if (v != null) {
+                        v.anioDelArchivo(anioDelArchivo(notas, archivo));
+                    }
                     if (v != null && !notas.isEmpty()) {
                         avisos.add("El encabezado está en la fila " + fila.numero() + ": se ignoraron " + notas.size()
                                 + " fila(s) de arriba (notas). Qué hacer: nada.");
@@ -211,7 +228,12 @@ public class CargaNssService {
         // 24-nov-2026: con un titulo arriba («EXAMEN MEDICO PERIODICO 2026») el rechazo comparaba contra el titulo y
         // decia que faltaban TODAS las columnas. Se compara contra la fila que mas se parece al encabezado.
         if (validador[0] == null && soloLayout != null && !notas.isEmpty()) {
-            encabezados[0] = notas.stream()
+            // 27-nov-2026: tambien cada par de filas juntas, por si el encabezado viene en dos filas y le falta algo
+            List<List<String>> candidatos = new ArrayList<>(notas);
+            for (int i = 1; i < notas.size(); i++) {
+                candidatos.add(combinarEncabezados(notas.get(i - 1), notas.get(i)));
+            }
+            encabezados[0] = candidatos.stream()
                     .min(java.util.Comparator.comparingInt((List<String> n) -> ValidadorNss.faltantes(n, soloLayout).size()))
                     .orElse(encabezados[0]);
         }
@@ -453,6 +475,59 @@ public class CargaNssService {
         return !hayObligatorios;
     }
 
+    /**
+     * Junta un encabezado de dos filas en una (27-nov-2026). Una celda combinada a lo ancho («INCAPACIDAD» sobre
+     * INICIO, TERMINO y FOLIO) solo tiene texto en su primera columna: ese titulo de grupo se antepone a cada
+     * subtitulo de abajo hasta la siguiente columna con titulo propio. Una celda combinada a lo alto («NSS») deja
+     * vacia la fila de abajo y queda tal cual. Si el subtitulo ya empieza con el grupo («PROBABLE REINICIO...» bajo
+     * «PROBABLE») no se repite.
+     */
+    static List<String> combinarEncabezados(List<String> arriba, List<String> abajo) {
+        List<String> r = new ArrayList<>();
+        String grupo = null;
+        for (int i = 0; i < Math.max(arriba.size(), abajo.size()); i++) {
+            String a = i < arriba.size() ? arriba.get(i) : null;
+            String b = i < abajo.size() ? abajo.get(i) : null;
+            boolean hayA = a != null && !a.isBlank();
+            boolean hayB = b != null && !b.isBlank();
+            if (hayA) {
+                grupo = hayB ? a.trim() : null;   // solo un titulo con subtitulos debajo es grupo
+            } else if (!hayB) {
+                grupo = null;
+            }
+            if (!hayB) {
+                r.add(a);
+            } else if (grupo == null || CatalogosNss.clave(b).startsWith(CatalogosNss.clave(grupo))) {
+                r.add(b.trim());
+            } else {
+                r.add(grupo + " " + b.trim());
+            }
+        }
+        return r;
+    }
+
+    /**
+     * Anio del archivo para los layouts que traen el mes sin anio (MES DETECCION de maternidad): el primer anio
+     * escrito en las filas de titulo («MATERNIDAD 2026»), sin contar fechas (SM deja un =HOY() arriba); si no hay,
+     * el del nombre del archivo («8 MATERNIDAD 2026.xlsx»). null si ninguno lo trae.
+     */
+    static Integer anioDelArchivo(List<List<String>> notas, Path archivo) {
+        java.util.regex.Pattern anio = java.util.regex.Pattern.compile("(?<![\\d-])(20\\d{2})(?![\\d-])");
+        for (List<String> fila : notas) {
+            for (String v : fila) {
+                if (v == null || v.matches("\\d{4}-\\d{2}-\\d{2}.*")) {
+                    continue;
+                }
+                java.util.regex.Matcher m = anio.matcher(v);
+                if (m.find()) {
+                    return Integer.valueOf(m.group(1));
+                }
+            }
+        }
+        java.util.regex.Matcher m = anio.matcher(archivo.getFileName().toString());
+        return m.find() ? Integer.valueOf(m.group(1)) : null;
+    }
+
     private static boolean mismoEncabezado(List<String> fila, List<String> encabezado) {
         List<String> a = fila.stream().filter(v -> v != null && !v.isBlank()).map(CatalogosNss::clave).toList();
         List<String> b = encabezado.stream().filter(v -> v != null && !v.isBlank()).map(CatalogosNss::clave).toList();
@@ -538,7 +613,8 @@ public class CargaNssService {
             } else if (c.predio() != null && !CatalogosNss.clave(c.predio())
                     .equals(CatalogosNss.clave(String.valueOf(fila.valor(validador.indice("PREDIO")))))) {
                 motivo = "la correccion es de PREDIO " + c.predio() + ": no es este renglon";
-            } else if (c.fecha() != null && !c.fecha().equals(fechaO(fila.valor(validador.indice("FECHA"))))) {
+            } else if (c.fecha() != null && validador.indice("FECHA") >= 0   // maternidad: FECHA no viene en el archivo
+                    && !c.fecha().equals(fechaO(fila.valor(validador.indice("FECHA"))))) {
                 motivo = "la correccion es de FECHA " + c.fecha() + ": no es este renglon";
             }
             if (motivo != null) {

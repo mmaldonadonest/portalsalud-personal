@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--/*
+  26-nov-2026 Pruebas adicionales del examen inicial (FT-SO-08, FT-SO-10, FT-SO-01, FT-SO-14). Ver PruebasAdicionales.java.
+  «¿Lo requiere?» Si despliega la captura; No la oculta y guarda APLICA=NO. Todo viaja en el hidden TAG.EXM_FTSOxx
+  (JSON) que paGuardar() (nss-search) reescribe y le dispara change para el autoguardado. data-opcional: no cuenta en
+  el avance. Los controles de la captura NO tienen name (no viajan sueltos).
+*/-->
+<div th:fragment="captura(it)" class="pa" data-pa-raiz
+     th:with="PA=${T(com.onest.app.catalog.examen.service.PruebasAdicionales).INSTANCIA}, p=${PA.prueba(#strings.substringAfter(it.fieldName, 'TAG.'))},
+              j=${it.value}, aplica=${PA.aplica(j)}">
+    <input type="hidden" class="pa-json" data-opcional th:name="${it.fieldName}" th:value="${it.value}">
+    <div class="pa-enc">
+        <div class="pa-titulo"><span class="pa-codigo" th:text="${p.codigo}">FT-SO-00</span> <span th:text="${p.titulo}">Prueba</span></div>
+        <div class="pa-req">
+            <span class="fs-sm me-2">¿Lo requiere?</span>
+            <div class="exini-chips">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-pa-req="SI"
+                        th:classappend="${aplica == 'SI'} ? 'activo' : ''" onclick="paRequiere(this);">Sí</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-pa-req="NO"
+                        th:classappend="${aplica == 'NO'} ? 'activo' : ''" onclick="paRequiere(this);">No</button>
+            </div>
+        </div>
+    </div>
+    <div class="pa-captura" th:classappend="${aplica == 'SI'} ? '' : 'd-none'">
+        <div class="text-end mb-2">
+            <!--/* Los valores los define SM (PruebasAdicionales.prellenado); sin valores el boton queda deshabilitado.
+                 27-nov-2026 (Word SM): el boton se llama «Todo normal» (antes «Prellenado») */-->
+            <!--/* 27-nov-2026 (usuario): interruptor como el «Todo normal» de las secciones del EMNI (antes boton).
+                 Encendido pone los valores normales; apagado quita solo esos (lo escrito a mano se queda). Sin valores
+                 definidos (FT-SO-10) no se pinta */-->
+            <div class="form-check form-switch pa-switch d-inline-flex" th:unless="${#strings.isEmpty(p.prellenadoJson)}"
+                 title="Encendido: pone los valores normales. Apagado: los quita">
+                <input class="form-check-input pa-prellenar" type="checkbox" role="switch" th:id="|paSw${p.tag}|"
+                       th:attr="data-prellenado=${p.prellenadoJson}" th:checked="${PA.esNormal(j, p)}" onchange="paTodoNormal(this);">
+                <label class="form-check-label" th:for="|paSw${p.tag}|">Todo normal</label>
+            </div>
+        </div>
+        <th:block th:each="g : ${p.grupos}">
+            <div class="pa-grupo" th:text="${g.key}">Grupo</div>
+            <div class="pa-campos">
+                <div class="pa-campo" th:each="c : ${g.value}" th:classappend="${c.tipo == 'CHECKS' or (c.tipo == 'TEXTO' and #strings.length(c.etiqueta) > 40)} ? 'pa-ancho' : ''">
+                    <label th:text="${c.etiqueta}">Campo</label>
+                    <!--/* 27-nov-2026 (Word SM): la respuesta normal (la del «Todo normal») va en verde: pa-normal */-->
+                    <div th:if="${c.tipo == 'SINO'}" class="exini-chips" th:attr="data-pa-uno=${c.clave}"
+                         th:with="nor=${p.prellenado.get(c.clave)}">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-val="SI"
+                                th:classappend="${(PA.v(j, c.clave) == 'SI' ? 'activo ' : '') + (nor == 'SI' ? 'pa-normal' : '')}" onclick="paUno(this);">Sí</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-val="NO"
+                                th:classappend="${(PA.v(j, c.clave) == 'NO' ? 'activo ' : '') + (nor == 'NO' ? 'pa-normal' : '')}" onclick="paUno(this);">No</button>
+                    </div>
+                    <div th:if="${c.tipo == 'OPCION'}" class="exini-chips" th:attr="data-pa-uno=${c.clave}">
+                        <button type="button" th:each="o : ${c.opciones}" class="btn btn-sm btn-outline-secondary"
+                                th:classappend="${PA.v(j, c.clave) == o} ? 'activo' : ''" th:attr="data-val=${o}" th:text="${o}"
+                                onclick="paUno(this);">op</button>
+                    </div>
+                    <div th:if="${c.tipo == 'CHECKS'}" class="exini-chips" th:attr="data-pa-varios=${c.clave}">
+                        <button type="button" th:each="o : ${c.opciones}" class="btn btn-sm btn-outline-secondary"
+                                th:classappend="${PA.marcado(j, c.clave, o)} ? 'activo' : ''" th:attr="data-val=${o}" th:text="${o}"
+                                onclick="paVarios(this);">op</button>
+                    </div>
+                    <input th:if="${c.tipo == 'TEXTO'}" type="text" class="form-control form-control-sm" maxlength="300"
+                           th:attr="data-pa=${c.clave}" th:value="${PA.v(j, c.clave)}" th:placeholder="${c.ejemplo}" oninput="paGuardar(this);">
+                    <!--/* 27-nov-2026 (Word SM): numero (% BASC), hora y fecha de realizacion */-->
+                    <input th:if="${c.tipo == 'NUM'}" type="text" inputmode="decimal" class="form-control form-control-sm" maxlength="10"
+                           th:attr="data-pa=${c.clave}" th:value="${PA.v(j, c.clave)}"
+                           oninput="this.value = this.value.replace(/[^0-9.]/g, ''); paGuardar(this);">
+                    <input th:if="${c.tipo == 'HORA'}" type="time" class="form-control form-control-sm"
+                           th:attr="data-pa=${c.clave}" th:value="${PA.v(j, c.clave)}" oninput="paGuardar(this);" onchange="paGuardar(this);">
+                    <!--/* 27-nov-2026: «Realizó» = usuario con la sesion abierta (lo guardado se conserva); solo lectura */-->
+                    <th:block th:if="${c.tipo == 'REALIZO'}"
+                              th:with="DI=${T(com.onest.app.catalog.expediente.service.DocumentoImpresoService)}, guardado=${PA.v(j, c.clave)}">
+                        <input type="text" class="form-control form-control-sm" readonly th:attr="data-pa=${c.clave}"
+                               th:value="${#strings.isEmpty(guardado) ? DI.usuarioActual() : guardado}"
+                               title="Se toma del usuario con la sesión abierta">
+                        <!--/* login de quien realizo: el impreso busca con el su firma registrada (FormatosImpresosService) */-->
+                        <input type="hidden" th:attr="data-pa=${c.clave + '_USR'}"
+                               th:value="${#strings.isEmpty(guardado) ? DI.usuarioLogin() : PA.v(j, c.clave + '_USR')}">
+                    </th:block>
+                    <input th:if="${c.tipo == 'FECHA'}" type="date" class="form-control form-control-sm" data-pa-hoy
+                           th:attr="data-pa=${c.clave}" th:value="${PA.v(j, c.clave)}" oninput="paGuardar(this);" onchange="paGuardar(this);">
+                    <div th:if="${c.tipo == 'PE'}" class="pa-pe">
+                        <div class="input-group input-group-sm"><span class="input-group-text">P</span>
+                            <input type="text" class="form-control" maxlength="10" th:attr="data-pa=${c.clave + '_P'}" th:value="${PA.v(j, c.clave + '_P')}" oninput="paGuardar(this);"></div>
+                        <div class="input-group input-group-sm"><span class="input-group-text">E</span>
+                            <input type="text" class="form-control" maxlength="10" th:attr="data-pa=${c.clave + '_E'}" th:value="${PA.v(j, c.clave + '_E')}" oninput="paGuardar(this);"></div>
+                    </div>
+                </div>
+            </div>
+        </th:block>
+    </div>
+</div>
+
+<!--/* ===================== IMPRESO FT-SO-14 Cadena de custodia (27-nov-2026, Word SM «cambioserrores27112026»)
+     Como el Excel de SM (FT-SO-14 rev. 05): datos de la persona, identificacion, prueba, tratamiento, «Autorización»
+     con el texto «Certifico...» y la firma del trabajador o candidato (la misma del examen), y el bloque del
+     responsable de la toma: fecha, hora, lugar, resultado, «Realizó» (usuario que la capturo) y su firma registrada
+     (ExamenController pone ftso14FirmaRealizo; sin firma, linea para firmar a mano). Solo si se requirio (APLICA = SI).
+     Usa d (ExamenDocumentoService.Documento) y el estilo .emle de fragments/formato-emle. */-->
+<th:block th:fragment="impresoFtso14"
+    th:with="PA=${T(com.onest.app.catalog.examen.service.PruebasAdicionales).INSTANCIA}, j=${d.v('EXM_FTSO14')},
+             fecha=${PA.v(j, 'FECHA')}, x='[X]', o='[  ]'">
+<tr class="hoja" th:if="${PA.aplica(j) == 'SI'}"><td><div class="emle ftso14-imp">
+    <table class="f enc">
+        <tr>
+            <td rowspan="4" style="width:22%; vertical-align:middle; text-align:center">
+                <img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" style="max-width:100%; max-height:48px">
+            </td>
+            <td colspan="2" class="titulo">CADENA DE CUSTODIA</td>
+        </tr>
+        <tr><td>F. Implementación: 14 de septiembre de 2026</td><td>Revisión: 05</td></tr>
+        <tr><td>Clave de control: FT-SO-14</td><td>Reemplaza a: 04</td></tr>
+        <tr><td colspan="2">Motivo del cambio: Actualización por vigencia</td></tr>
+    </table>
+    <table class="f" style="margin-top:6px">
+        <tr><td class="e" style="width:16%">FOLIO</td><td th:text="${PA.v(j, 'FOLIO')}"></td>
+            <td class="e" style="width:16%">FECHA</td>
+            <td th:text="${#strings.length(fecha) == 10 ? #strings.substring(fecha, 8, 10) + '/' + #strings.substring(fecha, 5, 7) + '/' + #strings.substring(fecha, 0, 4) : fecha}"></td></tr>
+        <tr><td class="e">PUESTO</td><td th:text="${d.v('puesto')}"></td><td class="e">CUENTA</td><td th:text="${d.v('cuenta')}"></td></tr>
+    </table>
+    <table class="f" style="margin-top:4px">
+        <tr><td class="e" style="width:33%">APELLIDO PATERNO</td><td class="e" style="width:33%">APELLIDO MATERNO</td><td class="e">NOMBRE (S)</td></tr>
+        <tr><td th:text="${d.v('apellidoP')}"></td><td th:text="${d.v('apellidoM')}"></td><td th:text="${d.v('nombre')}"></td></tr>
+        <tr><td class="e">FECHA DE NACIMIENTO</td><td class="e">EDAD</td><td class="e">SEXO</td></tr>
+        <tr><td th:text="${d.v('fechaNacimiento')}"></td><td th:text="${d.v('edad')}"></td><td th:text="${d.v('sexo')}"></td></tr>
+    </table>
+    <table class="f" style="margin-top:4px">
+        <tr><td class="e" style="width:30%">TIPO DE IDENTIFICACIÓN</td><td th:text="${PA.v(j, 'ID_TIPO')}"></td></tr>
+        <tr><td class="e">EMITIDA POR</td><td th:text="${PA.v(j, 'ID_EMITIDA')}"></td></tr>
+        <tr><td class="e">NO. DE IDENTIFICACIÓN</td><td th:text="${PA.v(j, 'ID_NUMERO')}"></td></tr>
+    </table>
+    <table class="f" style="margin-top:4px">
+        <tr><td class="e" style="width:30%">RAZÓN DE LA PRUEBA</td>
+            <td th:text="|ALEATORIA ${PA.v(j, 'RAZON') == 'ALEATORIA' ? x : o}    PERIÓDICO ${PA.v(j, 'RAZON') == 'PERIÓDICO' ? x : o}    OTRO ${PA.v(j, 'RAZON') == 'OTRO' ? x : o}|"></td></tr>
+        <tr><td class="e">ELEMENTOS A DETECTAR</td>
+            <td><th:block th:each="e : ${ {'AMP', 'COC', 'OPI', 'THC', 'MET', 'BENZO', 'BARB'} }">[[${e}]] [[${PA.marcado(j, 'ELEMENTOS', e) ? x : o}]]&nbsp;&nbsp; </th:block></td></tr>
+        <tr><td class="e">% BASC (PORCENTAJE DE ALCOHOL EN AIRE ESPIRADO)</td><td th:text="${PA.v(j, 'BASC')}"></td></tr>
+    </table>
+    <table class="f" style="margin-top:4px">
+        <tr><td class="e" style="width:30%">¿SE ENCUENTRA BAJO TRATAMIENTO MÉDICO?</td>
+            <td th:text="|SÍ ${PA.v(j, 'TRATAMIENTO') == 'SI' ? x : o}    NO ${PA.v(j, 'TRATAMIENTO') == 'NO' ? x : o}|"></td></tr>
+        <tr><td class="e">DIAGNÓSTICO ACTUAL</td><td th:text="${PA.v(j, 'DX')}"></td></tr>
+        <tr><td class="e">MEDICAMENTO PRESCRITO</td><td th:text="${PA.v(j, 'MEDICAMENTO')}"></td></tr>
+        <tr><td class="e">RECETADO POR</td><td th:text="${PA.v(j, 'RECETADO')}"></td></tr>
+    </table>
+    <table class="f" style="margin-top:8px">
+        <tr><td class="sec">AUTORIZACIÓN</td></tr>
+        <tr><td style="text-align:justify; padding:6px">CERTIFICO QUE HE LEÍDO Y ENTENDIDO LA HOJA DE CONSENTIMIENTO PARA REALIZAR LA PRUEBA DE
+            SUSTANCIAS CONTROLADAS Y AUTORIZO LA TOMA DE MUESTRA DE ORINA O AIRE ESPIRADO, INFORMANDO DE FORMA INMEDIATA EL
+            RESULTADO DE ESTA, ASÍ MISMO, AUTORIZO EN CASO DE SER NECESARIO, QUE EL RESULTADO DE METABOLITOS DE SUSTANCIAS SEA
+            CONFIRMADO A TRAVES CROMATOGRAFÍA DE GASES O DETERMINACION SANGUINEA DE ALCOHOL.</td></tr>
+    </table>
+    <div style="margin:10px auto 0; width:55%; text-align:center; font-size:10px">
+        <div style="height:46px; display:flex; align-items:flex-end; justify-content:center">
+            <img th:if="${d.firmaTrabajador != null}" th:src="${d.firmaTrabajador}" alt="Firma del trabajador" style="max-height:44px"></div>
+        <div style="border-top:1px solid #000; font-weight:bold">[[${d.v('nombre')}]] [[${d.v('apellidoP')}]] [[${d.v('apellidoM')}]]</div>
+        <div>NOMBRE Y FIRMA DEL TRABAJADOR O CANDIDATO</div>
+    </div>
+    <table class="f" style="margin-top:12px">
+        <tr><td colspan="4" class="sec">RESPONSABLE DE LA TOMA DE LA MUESTRA</td></tr>
+        <tr><td colspan="4" style="text-align:justify; padding:6px">CERTIFICADO QUE LA MUESTRA QUE PRESENTO EL DONANTE ES EN TIEMPO REAL Y
+            EN PRESENCIA DE ESTE SE PROPORCIONA RESULTADO</td></tr>
+        <tr><td class="e" style="width:18%">FECHA</td>
+            <td th:text="${#strings.length(fecha) == 10 ? #strings.substring(fecha, 8, 10) + '/' + #strings.substring(fecha, 5, 7) + '/' + #strings.substring(fecha, 0, 4) : fecha}"></td>
+            <td class="e" style="width:18%">HORA</td><td th:text="${PA.v(j, 'HORA')}"></td></tr>
+        <tr><td class="e">LUGAR DE LA RECOLECCIÓN</td><td th:text="${PA.v(j, 'LUGAR')}"></td>
+            <td class="e">RESULTADO</td>
+            <td><b th:text="${PA.v(j, 'RESULTADO')}"></b><th:block th:if="${!#strings.isEmpty(PA.v(j, 'SUSTANCIA'))}"> ([[${PA.v(j, 'SUSTANCIA')}]])</th:block></td></tr>
+    </table>
+    <div style="margin:10px auto 0; width:55%; text-align:center; font-size:10px">
+        <div style="height:46px; display:flex; align-items:flex-end; justify-content:center">
+            <img th:if="${pruebasFirmaRealizo != null and pruebasFirmaRealizo['EXM_FTSO14'] != null}" th:src="${pruebasFirmaRealizo['EXM_FTSO14']}" alt="Firma de quien realizó" style="max-height:44px"></div>
+        <div style="border-top:1px solid #000; font-weight:bold" th:text="${PA.v(j, 'REALIZO')}"></div>
+        <div>NOMBRE Y FIRMA DEL RESPONSABLE</div>
+    </div>
+</div></td></tr>
+</th:block>
+
+<!--/* ===================== IMPRESOS FT-SO-08, FT-SO-10 y FT-SO-01 (27-nov-2026, Word SM: «hojas impresas, sí»)
+     El formato de papel trae varias columnas de FECHA (seguimiento); el portal captura una vez por examen: se imprime
+     una sola columna con la fecha del examen. Solo si se requirio (APLICA = SI). Encabezados del Excel de SM (Downloads,
+     26-nov). Firmas: FT-SO-08 la del medico del examen; FT-SO-01 la de quien realizo (usuario que capturo); FT-SO-10
+     linea para firmar a mano (la captura solo trae iniciales); la del trabajador, la del examen. */-->
+<th:block th:fragment="encabezado(titulo, implementacion, revision, clave, reemplaza)">
+    <table class="f enc">
+        <tr>
+            <td rowspan="4" style="width:22%; vertical-align:middle; text-align:center">
+                <img th:src="@{/img/examen/Imagen1.png}" src="/img/examen/Imagen1.png" alt="" style="max-width:100%; max-height:48px">
+            </td>
+            <td colspan="2" class="titulo" th:text="${titulo}">TITULO</td>
+        </tr>
+        <tr><td>F. Implementación: [[${implementacion}]]</td><td>Revisión: [[${revision}]]</td></tr>
+        <tr><td>Clave de control: [[${clave}]]</td><td>Reemplaza a: [[${reemplaza}]]</td></tr>
+        <tr><td colspan="2">Motivo del cambio: Actualización por vigencia</td></tr>
+    </table>
+</th:block>
+
+<th:block th:fragment="firma(img, nombre, leyenda)">
+    <div style="margin:10px auto 0; width:55%; text-align:center; font-size:10px">
+        <div style="height:46px; display:flex; align-items:flex-end; justify-content:center">
+            <img th:if="${img != null}" th:src="${img}" alt="Firma" style="max-height:44px"></div>
+        <div style="border-top:1px solid #000; font-weight:bold" th:text="${nombre}"></div>
+        <div th:text="${leyenda}">NOMBRE Y FIRMA</div>
+    </div>
+</th:block>
+
+<!--/* FT-SO-08 Examen medico para uso de respirador */-->
+<th:block th:fragment="impresoFtso08"
+    th:with="PA=${T(com.onest.app.catalog.examen.service.PruebasAdicionales).INSTANCIA}, j=${d.v('EXM_FTSO08')},
+             p=${PA.prueba('EXM_FTSO08')}, x='[X]', o='[  ]'">
+<tr class="hoja" th:if="${PA.aplica(j) == 'SI'}"><td><div class="emle ftso-imp">
+    <th:block th:replace="~{fragments/pruebas-adicionales :: encabezado('EXAMEN MÉDICO PARA USO DE RESPIRADOR', '14 de septiembre de 2026', '04', 'FT-SO-08', '03')}"></th:block>
+    <table class="f" style="margin-top:6px">
+        <tr><td class="e" style="width:14%">NOMBRE</td><td>[[${d.v('nombre')}]] [[${d.v('apellidoP')}]] [[${d.v('apellidoM')}]]</td>
+            <td class="e" style="width:12%">PUESTO</td><td th:text="${d.v('puesto')}"></td></tr>
+        <tr><td class="e">HISTORIA MÉDICA RELEVANTE</td><td th:text="${PA.v(j, 'HISTORIA')}"></td>
+            <td class="e">EDAD</td><td th:text="${d.v('edad')}"></td></tr>
+        <tr><td class="e">FECHA</td><td colspan="3" th:text="${d.v('FECHA_EXAMEN')}"></td></tr>
+    </table>
+    <table class="f" style="margin-top:6px">
+        <tr><td class="e" style="width:26%"></td><td class="e" style="width:44%"></td><td class="e c" style="width:15%">SÍ</td><td class="e c" style="width:15%">NO</td></tr>
+        <th:block th:each="g : ${p.grupos}" th:unless="${g.key == 'Historia médica'}">
+            <tr th:each="c, cs : ${g.value}">
+                <td class="e" th:if="${cs.first}" th:rowspan="${cs.size}" th:text="${#strings.toUpperCase(g.key)}" style="vertical-align:middle">GRUPO</td>
+                <td th:text="${#strings.toUpperCase(c.etiqueta)}">CAMPO</td>
+                <th:block th:if="${c.tipo == 'SINO'}">
+                    <td class="c" th:text="${PA.v(j, c.clave) == 'SI' ? x : o}"></td>
+                    <td class="c" th:text="${PA.v(j, c.clave) == 'NO' ? x : o}"></td>
+                </th:block>
+                <td th:unless="${c.tipo == 'SINO'}" colspan="2" class="c"><b th:text="${PA.v(j, c.clave)}"></b></td>
+            </tr>
+        </th:block>
+    </table>
+    <th:block th:replace="~{fragments/pruebas-adicionales :: firma(${medico != null ? medico.firmaDataUri : null}, ${medico != null ? medico.nombre : ''}, 'INICIALES Y FIRMA DEL MÉDICO')}"></th:block>
+</div></td></tr>
+</th:block>
+
+<!--/* FT-SO-10 Registro de skin prick test (SPT); NAT y MAN vienen N/A en el formato: si no se capturaron, N/A */-->
+<th:block th:fragment="impresoFtso10"
+    th:with="PA=${T(com.onest.app.catalog.examen.service.PruebasAdicionales).INSTANCIA}, j=${d.v('EXM_FTSO10')}, x='[X]', o='[  ]'">
+<tr class="hoja" th:if="${PA.aplica(j) == 'SI'}"><td><div class="emle ftso-imp">
+    <th:block th:replace="~{fragments/pruebas-adicionales :: encabezado('REGISTRO DE SKIN PRICK TEST (SPT)', '14 de septiembre de 2026', '07', 'FT-SO-10', '06')}"></th:block>
+    <table class="f" style="margin-top:6px">
+        <tr><td class="e" style="width:26%">NOMBRE</td><td>[[${d.v('nombre')}]] [[${d.v('apellidoP')}]] [[${d.v('apellidoM')}]]</td></tr>
+        <tr><td class="e">INFORMACIÓN MÉDICA RELEVANTE</td><td th:text="${PA.v(j, 'INFO')}"></td></tr>
+        <tr><td class="e">PUESTO</td><td th:text="${d.v('puesto')}"></td></tr>
+        <tr><td class="e">FECHA DE REALIZACIÓN</td><td th:text="${d.v('FECHA_EXAMEN')}"></td></tr>
+    </table>
+    <table class="f" style="margin-top:6px; width:50%">
+        <tr><td class="e" style="width:40%"></td><td class="e c">P</td><td class="e c">E</td></tr>
+        <tr th:each="k : ${ {'POS', 'SAB', 'LIP', 'NAT', 'STA', 'FNA', 'MAN', 'NEG'} }"
+            th:with="na=${(k == 'NAT' or k == 'MAN') and #strings.isEmpty(PA.v(j, k + '_P')) and #strings.isEmpty(PA.v(j, k + '_E'))}">
+            <td class="e c" th:text="${k == 'POS' ? '+' : (k == 'NEG' ? '−' : k)}">SAB</td>
+            <td class="c" th:text="${na ? 'N/A' : PA.v(j, k + '_P')}"></td>
+            <td class="c" th:text="${na ? 'N/A' : PA.v(j, k + '_E')}"></td>
+        </tr>
+    </table>
+    <table class="f" style="margin-top:6px">
+        <tr><td class="e" style="width:30%">INGESTA DE MEDICAMENTO ACTUAL</td>
+            <td th:text="|SÍ ${PA.v(j, 'MED') == 'SI' ? x : o}    NO ${PA.v(j, 'MED') == 'NO' ? x : o}|"></td></tr>
+        <tr><td class="e">¿CUÁL EN CASO POSITIVO?</td><td th:text="${PA.v(j, 'MED_CUAL')}"></td></tr>
+        <tr><td class="e">INICIALES DE QUIÉN REALIZA</td><td th:text="${PA.v(j, 'INICIALES')}"></td></tr>
+    </table>
+    <th:block th:replace="~{fragments/pruebas-adicionales :: firma(null, '', 'FIRMA DE QUIÉN REALIZA')}"></th:block>
+    <th:block th:replace="~{fragments/pruebas-adicionales :: firma(${d.firmaTrabajador}, ${d.v('nombre') + ' ' + d.v('apellidoP') + ' ' + d.v('apellidoM')}, 'FIRMA DEL TRABAJADOR')}"></th:block>
+</div></td></tr>
+</th:block>
+
+<!--/* FT-SO-01 Cuestionario de alergias */-->
+<th:block th:fragment="impresoFtso01"
+    th:with="PA=${T(com.onest.app.catalog.examen.service.PruebasAdicionales).INSTANCIA}, j=${d.v('EXM_FTSO01')}, x='[X]', o='[  ]'">
+<tr class="hoja" th:if="${PA.aplica(j) == 'SI'}"><td><div class="emle ftso-imp">
+    <th:block th:replace="~{fragments/pruebas-adicionales :: encabezado('CUESTIONARIO DE ALERGIAS', '14 de septiembre de 2026', '04', 'FT-SO-01', '03')}"></th:block>
+    <table class="f" style="margin-top:6px">
+        <tr><td class="e" style="width:12%">NOMBRE</td><td>[[${d.v('nombre')}]] [[${d.v('apellidoP')}]] [[${d.v('apellidoM')}]]</td>
+            <td class="e" style="width:12%">PUESTO</td><td th:text="${d.v('puesto')}"></td></tr>
+        <tr><td class="e">ÁREA</td><td th:text="${d.v('DEPARTAMENTO')}"></td><td class="e">CUENTA</td><td th:text="${d.v('cuenta')}"></td></tr>
+        <tr><td class="e">FECHA</td><td colspan="3" th:text="${d.v('FECHA_EXAMEN')}"></td></tr>
+    </table>
+    <table class="f" style="margin-top:6px">
+        <tr><td class="e" style="width:52%"></td><td class="e c" style="width:8%">SÍ</td><td class="e c" style="width:8%">NO</td><td class="e" style="width:32%">ESPECIFIQUE</td></tr>
+        <tr th:each="q : ${ {'PADECE', 'MEDICAMENTO', 'ALERGICO'} }">
+            <td th:text="${q == 'PADECE' ? '¿PADECE ALGUNA ENFERMEDAD ALÉRGICA COMO ASMA, RINITIS, DERMATITIS, ETC?'
+                         : (q == 'MEDICAMENTO' ? '¿ACTUALMENTE TOMA ALGÚN MEDICAMENTO?'
+                         : '¿ES USTED ALÉRGICO A ALGÚN MEDICAMENTO, ALIMENTO, ANIMAL, PLANTA, MATERIAL U OTROS?')}">PREGUNTA</td>
+            <td class="c" th:text="${PA.v(j, q) == 'SI' ? x : o}"></td>
+            <td class="c" th:text="${PA.v(j, q) == 'NO' ? x : o}"></td>
+            <td th:text="${PA.v(j, q + '_ESP')}"></td>
+        </tr>
+    </table>
+    <table class="f" style="margin-top:6px">
+        <tr><td class="e" colspan="2">EN CASO DE SER ALÉRGICO, ¿QUÉ SÍNTOMAS PRESENTA?</td></tr>
+        <tr th:each="par : ${ { {'COMEZÓN EN OJOS', 'ESTORNUDOS'}, {'ENROJECIMIENTO DE OJOS', 'URTICARIA'}, {'LAGRIMEO', 'ECCEMA'},
+                               {'PRURITO NASAL', 'DISNEA'}, {'RINORREA/RINITIS', 'BRONCOESPASMO'} } }">
+            <td th:each="s : ${par}" style="width:50%">[[${PA.marcado(j, 'SINTOMAS', s) ? x : o}]] [[${s}]]</td>
+        </tr>
+    </table>
+    <div style="display:flex; gap:20px">
+        <div style="flex:1"><th:block th:replace="~{fragments/pruebas-adicionales :: firma(${d.firmaTrabajador}, ${d.v('nombre') + ' ' + d.v('apellidoP') + ' ' + d.v('apellidoM')}, 'NOMBRE Y FIRMA DEL TRABAJADOR')}"></th:block></div>
+        <div style="flex:1"><th:block th:replace="~{fragments/pruebas-adicionales :: firma(${pruebasFirmaRealizo != null ? pruebasFirmaRealizo['EXM_FTSO01'] : null}, ${PA.v(j, 'REALIZO')}, 'REALIZÓ')}"></th:block></div>
+    </div>
+</div></td></tr>
+</th:block>
+</body>
+</html>

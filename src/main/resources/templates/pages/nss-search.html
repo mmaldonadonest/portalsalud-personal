@@ -1323,6 +1323,7 @@
                         }
                     });
                 });
+                formEl.querySelectorAll('.exini-vitales input[name$=".IMC"]').forEach(exIniImcColor);
                 exIniRefrescarSwitches();
                 // 18-nov-2026: cada examen empieza sin hojas vistas; en un borrador retomado, las hojas antes de la
                 // que se dejo abierta ya se recorrieron y lo vacio en ellas sale en rojo
@@ -1873,8 +1874,12 @@
                 var v = inp.value.trim();
                 var elegido = exIniOkNoSel(fila);
                 if (elegido) {
-                    b[0].classList.toggle('activo-ok', elegido.value === 'SI');
-                    b[1].classList.toggle('activo-hallazgo', elegido.value === 'NO');
+                    // 27-nov-2026: donde lo normal es No (data-normal-no) los colores se invierten
+                    var nn = fila.hasAttribute('data-normal-no');
+                    b[0].classList.toggle('activo-ok', !nn && elegido.value === 'SI');
+                    b[0].classList.toggle('activo-hallazgo', nn && elegido.value === 'SI');
+                    b[1].classList.toggle('activo-hallazgo', !nn && elegido.value === 'NO');
+                    b[1].classList.toggle('activo-ok', nn && elegido.value === 'NO');
                     // Solo avisa: no impide guardar
                     var falta = elegido.value !== '' && v === '';
                     inp.classList.toggle('is-invalid', falta);
@@ -1909,8 +1914,12 @@
                         if (predeterminado) { inp.value = ''; }
                     } else {
                         elegido.value = nuevo;
-                        if (predeterminado) { inp.value = ok ? normal : (alterno ? alterno + ' ' : ''); }
-                        if (!ok) {
+                        // 27-nov-2026: el boton «normal» es No donde lo normal es No (data-normal-no). Genitales: No
+                        // escribe «N/A» tal cual (sin espacio para seguir escribiendo)
+                        var normalClic = fila.hasAttribute('data-normal-no') ? !ok : ok;
+                        var exclusivo = fila.hasAttribute('data-exclusivo');
+                        if (predeterminado) { inp.value = normalClic ? normal : (alterno ? alterno + (exclusivo ? '' : ' ') : ''); }
+                        if (!normalClic && !exclusivo) {
                             inp.focus();
                             inp.setSelectionRange(inp.value.length, inp.value.length);
                         }
@@ -2076,6 +2085,15 @@
 
             // Agencia (FT-SO-04 rev. 05) cuando la base no la trae: predeterminado del formato u
             // "Otro" especificando. El valor que se guarda vive en el hidden agenciaExamen.
+            // 27-nov-2026: motivo del examen (consentimiento FT-SO-11); siempre uno elegido (no se puede quitar)
+            window.exIniMotivo = function (btn) {
+                var box = btn.closest('.exini-motivo');
+                var hid = box.querySelector('input[name="motivoExamen"]');
+                box.querySelectorAll('[data-motivo]').forEach(function (b) { b.classList.toggle('activo', b === btn); });
+                hid.value = btn.getAttribute('data-motivo');
+                hid.dispatchEvent(new Event('change', { bubbles: true }));
+            };
+
             window.exIniAgencia = function (el, modo) {
                 var box = el.closest('.exini-agencia');
                 var hid = box.querySelector('input[name="agenciaExamen"]');
@@ -2212,6 +2230,39 @@
                 }
                 if (talla > 3) { talla = talla / 100; }
                 imc.value = (peso / (talla * talla)).toFixed(1);
+                exIniImcColor(imc);
+            };
+
+            // 26-nov-2026 (usuario, imagen de rangos): color del IMC segun su rango. Tambien al corregirlo a mano
+            // y al abrir el examen con un IMC ya guardado (exIniInit).
+            var EXINI_IMC_RANGOS = [
+                [18.5, 'imc-c1', 'Por debajo'], [25, 'imc-c2', 'Saludable'], [30, 'imc-c3', 'Sobrepeso'],
+                [35, 'imc-c4', 'Obesidad I'], [40, 'imc-c5', 'Obesidad II'], [Infinity, 'imc-c6', 'Obesidad III'] ];   // sin corchetes dobles juntos (inline de Thymeleaf)
+            window.exIniImcColor = function (imc) {
+                var cat = imc.closest('.exini-vitales > div');
+                cat = cat && cat.querySelector('.exini-imc-cat');
+                var v = parseFloat(imc.value), rango = null;
+                if (v > 0) {
+                    rango = EXINI_IMC_RANGOS.filter(function (r) { return v < r[0]; })[0];
+                }
+                EXINI_IMC_RANGOS.forEach(function (r) {
+                    imc.classList.remove(r[1]);
+                    if (cat) { cat.classList.remove(r[1]); }
+                });
+                if (cat) {
+                    // silueta del rango (solo en pantalla) + nombre
+                    var img = cat.querySelector('img'), txt = cat.querySelector('span');
+                    var n = rango ? EXINI_IMC_RANGOS.indexOf(rango) + 1 : 0;
+                    if (img) {
+                        if (n) { img.src = cat.getAttribute('data-img' + n); img.alt = rango[2]; }
+                        img.hidden = !n;
+                    }
+                    if (txt) { txt.textContent = rango ? rango[2] : ''; }
+                }
+                if (rango) {
+                    imc.classList.add(rango[1]);
+                    if (cat) { cat.classList.add(rango[1]); }
+                }
             };
 
             // E-045 (18-nov-2026, presentacion de SM): el examen periodico (y los demas tipos del acordeon) no
@@ -2297,10 +2348,12 @@
                         var sel = exIniOkNoSel(fila);
                         if (!sel) { return; }
                         var inp = fila.querySelector('input[data-tipo="OKNO"]');
-                        if (sel.value === 'SI' && inp.value.trim() !== '') { return; }
-                        if (sel.value === 'NO' || inp.value.trim() === '') { inp.value = fila.getAttribute('data-normal') || ''; }
+                        // 27-nov-2026: donde lo normal es No (data-normal-no), «Todo normal» pone No
+                        var normalSel = fila.hasAttribute('data-normal-no') ? 'NO' : 'SI';
+                        if (sel.value === normalSel && inp.value.trim() !== '') { return; }
+                        if (sel.value !== normalSel || inp.value.trim() === '') { inp.value = fila.getAttribute('data-normal') || ''; }
                         fila.classList.remove('pide-hallazgo');
-                        exIniOkNoPoner(fila, 'SI');
+                        exIniOkNoPoner(fila, normalSel);
                         exIniOkNoPintar(fila);
                         cambiados++;
                     });
@@ -2400,7 +2453,8 @@
                     bloque.querySelectorAll('.exini-okno').forEach(function (fila) {
                         // examen inicial: manda el Sí elegido (el texto puede ser SIMETRICOS, 20/40...)
                         var sel = exIniOkNoSel(fila);
-                        if (sel ? sel.value !== 'SI' : !exIniOkNoEsOk(fila, fila.querySelector('input[data-tipo="OKNO"]').value)) { ok = false; }
+                        var normalSel = fila.hasAttribute('data-normal-no') ? 'NO' : 'SI';   // 27-nov-2026
+                        if (sel ? sel.value !== normalSel : !exIniOkNoEsOk(fila, fila.querySelector('input[data-tipo="OKNO"]').value)) { ok = false; }
                     });
                     bloque.querySelectorAll('.exini-chips[data-normal]').forEach(function (g) {
                         if (g.querySelector('input[type=hidden]').value.toUpperCase() !== g.getAttribute('data-normal').toUpperCase()) { ok = false; }
@@ -2858,7 +2912,9 @@
                 }
                 // 25-nov (SM): sin «Aplicar prueba» no se guarda nada (no sale en el impreso); lo capturado queda en
                 // pantalla por si la vuelven a aplicar
-                if (raiz.querySelector('.ishi-aplicada').value === 'SI') { datos.APLICA = 'SI'; } else { datos = {}; }
+                // 26-nov: «¿Lo requiere?» No guarda solo APLICA=NO (queda registrado que no se requirio)
+                var aplicada = raiz.querySelector('.ishi-aplicada').value;
+                if (aplicada === 'SI') { datos.APLICA = 'SI'; } else { datos = aplicada === 'NO' ? { APLICA: 'NO' } : {}; }
                 var oculto = raiz.querySelector('.ishi-json');
                 var nuevo = Object.keys(datos).length ? JSON.stringify(datos) : '';
                 if (oculto.value !== nuevo) {
@@ -2867,17 +2923,131 @@
                 }
             }
             window.ishiGuardar = ishiGuardar;
-            // «Aplicar prueba de Ishihara» la muestra; «Quitar prueba» la oculta y deja de guardarse/imprimirse
-            window.ishiAplica = function (btn, si) {
+
+            // 26-nov-2026 Pruebas adicionales (FT-SO-08/10/01/14, fragments/pruebas-adicionales): como Ishihara, los
+            // controles no tienen name; se arma el JSON del hidden TAG.EXM_FTSOxx y se le dispara change.
+            function paGuardar(el) {
+                var raiz = el.closest('[data-pa-raiz]');
+                var req = raiz.querySelector('[data-pa-req].activo');
+                var datos = {};
+                if (req && req.getAttribute('data-pa-req') === 'SI') {
+                    datos.APLICA = 'SI';
+                    raiz.querySelectorAll('input[data-pa]').forEach(function (i) {
+                        if (i.value.trim()) { datos[i.getAttribute('data-pa')] = i.value.trim(); }
+                    });
+                    raiz.querySelectorAll('[data-pa-uno]').forEach(function (g) {
+                        var b = g.querySelector('button.activo');
+                        if (b) { datos[g.getAttribute('data-pa-uno')] = b.getAttribute('data-val'); }
+                    });
+                    raiz.querySelectorAll('[data-pa-varios]').forEach(function (g) {
+                        var v = Array.prototype.map.call(g.querySelectorAll('button.activo'), function (b) { return b.getAttribute('data-val'); });
+                        if (v.length) { datos[g.getAttribute('data-pa-varios')] = v.join(','); }
+                    });
+                } else if (req) {
+                    // No: solo queda registrado que no se requirio; lo capturado se queda en pantalla por si cambian a Si
+                    datos.APLICA = 'NO';
+                }
+                paSincronizarNormal(raiz, datos);
+                var oculto = raiz.querySelector('.pa-json');
+                var nuevo = Object.keys(datos).length ? JSON.stringify(datos) : '';
+                if (oculto.value !== nuevo) {
+                    oculto.value = nuevo;
+                    oculto.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+            window.paGuardar = paGuardar;
+            // ¿Lo requiere? Si despliega la captura, No la oculta (clic en el activo lo quita)
+            window.paRequiere = function (btn) {
+                var raiz = btn.closest('[data-pa-raiz]');
+                var quitar = btn.classList.contains('activo');
+                raiz.querySelectorAll('[data-pa-req]').forEach(function (b) { b.classList.toggle('activo', !quitar && b === btn); });
+                var si = !quitar && btn.getAttribute('data-pa-req') === 'SI';
+                raiz.querySelector('.pa-captura').classList.toggle('d-none', !si);
+                // 27-nov-2026 (Word SM, FT-SO-14): la fecha de realizacion sale con la de hoy si esta vacia
+                if (si) {
+                    var hoy = new Date();
+                    var iso = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
+                    raiz.querySelectorAll('input[data-pa-hoy]').forEach(function (f) { if (!f.value) { f.value = iso; } });
+                }
+                paGuardar(btn);
+            };
+            // Si/No y opciones: una sola activa (clic en la activa la quita)
+            window.paUno = function (btn) {
+                var g = btn.closest('[data-pa-uno]');
+                var quitar = btn.classList.contains('activo');
+                g.querySelectorAll('button').forEach(function (b) { b.classList.toggle('activo', !quitar && b === btn); });
+                paGuardar(btn);
+            };
+            // Varias opciones (sintomas, elementos a detectar)
+            window.paVarios = function (btn) {
+                btn.classList.toggle('activo');
+                paGuardar(btn);
+            };
+            // «Todo normal» (27-nov-2026: interruptor, antes boton «Prellenado»). Encendido: pone los valores normales que
+            // definio SM (PruebasAdicionales.prellenado). Apagado: quita solo los que siguen con el valor normal; lo
+            // capturado a mano se queda.
+            window.paTodoNormal = function (sw) {
+                var raiz = sw.closest('[data-pa-raiz]');
+                var valores = {};
+                try { valores = JSON.parse(sw.getAttribute('data-prellenado') || '{}'); } catch (e) { return; }
+                var poner = sw.checked;
+                Object.keys(valores).forEach(function (k) {
+                    var v = valores[k];
+                    var inp = raiz.querySelector('input[data-pa="' + k + '"]');
+                    if (inp) {
+                        if (poner) { inp.value = v; } else if (inp.value === v) { inp.value = ''; }
+                        return;
+                    }
+                    var uno = raiz.querySelector('[data-pa-uno="' + k + '"]');
+                    if (uno) {
+                        uno.querySelectorAll('button').forEach(function (b) {
+                            var esNormal = b.getAttribute('data-val') === v;
+                            if (poner) { b.classList.toggle('activo', esNormal); } else if (esNormal) { b.classList.remove('activo'); }
+                        });
+                        return;
+                    }
+                    var varios = raiz.querySelector('[data-pa-varios="' + k + '"]');
+                    if (varios && poner) {
+                        var lista = String(v).split(',');
+                        varios.querySelectorAll('button').forEach(function (b) { b.classList.toggle('activo', lista.indexOf(b.getAttribute('data-val')) >= 0); });
+                    }
+                });
+                paGuardar(sw);
+            };
+            // El interruptor refleja lo capturado: encendido solo si todo esta en su valor normal
+            function paSincronizarNormal(raiz, datos) {
+                var sw = raiz.querySelector('input.pa-prellenar[type=checkbox]');
+                if (!sw) { return; }
+                var valores = {};
+                try { valores = JSON.parse(sw.getAttribute('data-prellenado') || '{}'); } catch (e) { return; }
+                sw.checked = Object.keys(valores).length > 0 && Object.keys(valores).every(function (k) { return datos[k] === valores[k]; });
+            }
+            // 26-nov-2026: «¿Lo requiere? Si/No» (como las demas pruebas adicionales); clic en el activo lo quita
+            window.ishiRequiere = function (btn) {
                 var raiz = btn.closest('[data-ishi-raiz]');
-                raiz.querySelector('.ishi-aplicada').value = si ? 'SI' : '';
-                raiz.querySelector('.ishi-aplica').classList.toggle('d-none', si);
-                raiz.querySelector('.ishi-captura').classList.toggle('d-none', !si);
+                var quitar = btn.classList.contains('activo');
+                raiz.querySelectorAll('[data-ishi-req]').forEach(function (b) { b.classList.toggle('activo', !quitar && b === btn); });
+                var valor = quitar ? '' : btn.getAttribute('data-ishi-req');
+                raiz.querySelector('.ishi-aplicada').value = valor;
+                raiz.querySelector('.ishi-captura').classList.toggle('d-none', valor !== 'SI');
                 ishiGuardar(btn);
             };
-            // Versión 1 a 4 de la hoja de SM: cambia las imágenes (mismas respuestas por posición)
+            // Versión 1 a 4 de la hoja de SM: cambia las imágenes
             window.ishiVersion = function (btn) {
                 var raiz = btn.closest('[data-ishi-raiz]');
+                // 27-nov-2026 (SM): «se queda grabado en las 4 láminas lo que eliges; es elegir una de las 4». Se aplica
+                // UNA hoja: las respuestas son de la hoja en la que se capturaron. Al cambiar de version se borran (con
+                // confirmacion si ya habia algo), para que no queden como respuestas de otra hoja.
+                var actual = raiz.querySelector('.ishi-ver .btn.active');
+                if (actual !== btn) {
+                    var capturadas = Array.prototype.filter.call(raiz.querySelectorAll('input[data-ishi]'),
+                        function (i) { return i.value.trim(); });
+                    if (capturadas.length && !confirm('Al cambiar a la versión ' + btn.getAttribute('data-ver')
+                            + ' se borran las respuestas capturadas en esta versión. ¿Continuar?')) {
+                        return;
+                    }
+                    capturadas.forEach(function (i) { i.value = ''; });
+                }
                 raiz.querySelectorAll('.ishi-ver .btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
                 var v = btn.getAttribute('data-ver');
                 // Word SM 25-nov (punto 18, «las versiones no cambian»): la URL lleva el hash del contenido

@@ -318,7 +318,7 @@ public class ExamenDocumentoService {
             "TRAQUEA_OBSINP", "ciruOBS", "observaciones2", "observaciones3", "CCA", "Drenaje", "DIENTE_2");
 
     private static final Map<String, String> TIPO_EXAMEN = Map.of(
-            "0", "No seleccionado", "1", "Admisión", "2", "Périodico", "3", "Cambio de puesto",
+            "0", "No seleccionado", "1", "Admisión", "2", "Periódico", "3", "Cambio de puesto",
             "4", "Post incapacidad", "5", "Especial", "6", "Egreso", "7", "Inicial mantenimiento",
             "8", "Periódico mantenimiento");
 
@@ -370,6 +370,36 @@ public class ExamenDocumentoService {
 
     /** Telefono del trabajador actualizado en el examen: solo Portal Salud, no toca el biometrico. */
     public static final String TAG_TELEFONO = "TELSALUD";
+
+    /**
+     * Motivo del examen para el consentimiento FT-SO-11 (27-nov-2026, usuario): en Tepalcapa el periodico se captura
+     * con el formato inicial (EMNI), que siempre guarda el tipo Admision, y en el papel subrayan «PERIODICO». El
+     * medico lo elige en la ficha del EMNI (codigo 1-5, como el tipo de examen); el modulo Examen medico no lo usa:
+     * ahi el motivo es el propio tipo. Empieza con EXM_: el documento lo recibe solo (armar()).
+     */
+    public static final String TAG_MOTIVO = "EXM_MOTIVO_EXAMEN";
+
+    /** Motivos del titulo del FT-SO-11 rev. 05, en su orden; clave = codigo del tipo de examen. */
+    public static final Map<String, String> MOTIVOS_CONSENTIMIENTO;
+
+    static {
+        Map<String, String> m = new java.util.LinkedHashMap<>();
+        m.put("1", "ADMISIÓN");
+        m.put("2", "PERIÓDICO");
+        m.put("3", "CAMBIO DE ROL");
+        m.put("4", "POST INCAPACIDAD");
+        m.put("5", "ESPECIAL");
+        MOTIVOS_CONSENTIMIENTO = java.util.Collections.unmodifiableMap(m);
+    }
+
+    /** Motivo elegido en el ultimo EMNI ("" si nunca se eligio). */
+    public String motivoCapturado(String nss) {
+        try {
+            return limpio(tags.latestByNssAndTypePrefix(nss, TAG_MOTIVO).get(TAG_MOTIVO));
+        } catch (RuntimeException ex) {
+            return "";
+        }
+    }
 
     /**
      * C-074 (10-nov-2026, Word SM punto 12): el examen periodico tambien actualiza el telefono, igual que el
@@ -552,6 +582,13 @@ public class ExamenDocumentoService {
         for (String t : List.of("APPHEMATOPATIAS", "APPTRANSFUSIONALES", "APPQUIRURGICOS")) {
             v.putIfAbsent(t, limpio(tagValues.get(t)));
         }
+        // Motivo que se subraya en el titulo del consentimiento FT-SO-11 (27-nov-2026): con formato inicial (tipo 1)
+        // el que eligio el medico en el EMNI (Tepalcapa: periodico); en los demas tipos, el propio tipo. Egreso y
+        // los de mantenimiento (6-8) no estan en el titulo del formato: no se subraya ninguno.
+        String tipoCrudo = limpio(v.get("tipoExamenInputO"));
+        String motivoEmni = limpio(v.get(TAG_MOTIVO));
+        v.put("MOTIVO_CONSENTIMIENTO", "1".equals(tipoCrudo) && MOTIVOS_CONSENTIMIENTO.containsKey(motivoEmni) ? motivoEmni
+                : MOTIVOS_CONSENTIMIENTO.containsKey(tipoCrudo) ? tipoCrudo : "");
         // Encabezado de calidad segun el tipo de examen (codigo crudo, antes de pasarlo a texto)
         Encabezado enc = encabezado(limpio(v.get("tipoExamenInputO")));
         v.put("ENC_TITULO", enc.titulo());

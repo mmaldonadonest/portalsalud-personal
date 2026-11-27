@@ -74,7 +74,13 @@ public class ExamenInicialService {
                         boolean tablaBorrador, Candado candado, boolean candidatoOcr,
                         com.onest.app.integration.ocr.SolicitudExamen solicitud, boolean atendidoPorOtro,
                         String agencia, String agenciaElegida, String telefonoSalud,
-                        Map<String, String> oknoElegidos, Map<String, String> certificacion) {
+                        Map<String, String> oknoElegidos, Map<String, String> certificacion,
+                        String motivoExamen) {
+
+        /** Motivos del consentimiento FT-SO-11 (codigo -> texto), para los botones de la ficha. */
+        public Map<String, String> motivosExamen() {
+            return com.onest.app.catalog.examen.service.ExamenDocumentoService.MOTIVOS_CONSENTIMIENTO;
+        }
 
         /** Los 10 tipos de trabajo del FT-SO-31, en su orden (para la plantilla). */
         public List<String> trabajosCertificacion() {
@@ -130,17 +136,23 @@ public class ExamenInicialService {
      * Etiquetas de No patologicos (25-nov-2026, Word SM puntos 4-6). Antes era un mapa literal en la plantilla y en
      * las capturas de SM no se aplicaba (salia «Baño», «Frecuencia (hobbies)»); en Java no depende del parser.
      */
+    // 26-nov-2026 (usuario): etiquetas sin parentesis para que se vean unificadas (solo pantalla; el impreso no cambia)
     public static final Map<String, String> ETIQUETAS_APNP = Map.of(
             "BAÑO", "Baño a la semana",
-            "CAMBIO_DE_ROPA", "Cambio de ropa (veces por semana)",
-            "ASEO_BUCAL", "Aseo bucal (veces al día)",
-            "ASEO_BUCAL_FREC", "Aseo bucal (frecuencia)",
-            "FC1", "Frecuencia deporte (veces por semana)",
-            "HOBBIES_PASATIEMPOS", "Hobbies / pasatiempos (cantidad)",
-            "FC2", "Frecuencia hobbies");
+            "CAMBIO_DE_ROPA", "Cambio de ropa a la semana",
+            // 26-nov-2026 (SM): Si/No (hay quien no acostumbra el aseo bucal) + frecuencia en texto aparte
+            "ASEO_BUCAL", "Aseo bucal",
+            "ASEO_BUCAL_FREC", "Frecuencia aseo bucal",
+            // 27-nov-2026 (usuario, captura de SM): «Frecuencia semanal» en las dos; ya van junto a su Deporte u Hobbies
+            "FC1", "Frecuencia semanal",
+            // 26-nov-2026 (usuario): igual que Deporte -> Hobbies en texto («NINGUNO», «LEER») y frecuencia numerica
+            "HOBBIES_PASATIEMPOS", "Hobbies / pasatiempos",
+            "FC2", "Frecuencia semanal");
 
     /** Nombre en pantalla distinto al del catalogo (punto 11: «cardiovascular» -> «cardiopatías»). */
-    private static final Map<String, String> NOMBRE_EN_PANTALLA = Map.of("APP: cardiovascular", "APP: cardiopatías");
+    // 26-nov-2026: la banda de Ishihara se llama «Pruebas adicionales» (Ishihara + FT-SO-08/10/01/14)
+    private static final Map<String, String> NOMBRE_EN_PANTALLA = Map.of("APP: cardiovascular", "APP: cardiopatías",
+            com.onest.app.catalog.examen.service.Ishihara.SECCION, "Pruebas adicionales");
 
     /**
      * Hoja 3 (heredofamiliares, 15-oct-2026): el FT-SO-04 trae "NEGADOS" como observacion
@@ -164,6 +176,8 @@ public class ExamenInicialService {
 
     /** Clave del borrador con la agencia elegida (solo existe si la base no trae agencia). */
     private static final String CAMPO_AGENCIA = "agenciaExamen";
+    /** Motivo del examen para el consentimiento FT-SO-11 (27-nov-2026), en la ficha; tag EXM_MOTIVO_EXAMEN. */
+    private static final String CAMPO_MOTIVO = "motivoExamen";
 
     /** Clave del borrador con el telefono actualizado del trabajador (solo Portal Salud). */
     private static final String CAMPO_TELEFONO = "telefonoSalud";
@@ -462,6 +476,8 @@ public class ExamenInicialService {
                             || "OSTEO".equals(it.type())
                             // C-069: Ishihara tambien es opcional
                             || "ISHIHARA".equals(it.type())
+                            // 26-nov-2026: las demas pruebas adicionales (FT-SO-08/10/01/14) tambien
+                            || com.onest.app.catalog.examen.service.PruebasAdicionales.TIPO_ITEM.equals(it.type())
                             // E-030 (10-nov, Word SM punto 9): FUP puede quedar en blanco (sin partos; punto 7)
                             || CAMPO_FUP.equals(it.fieldName())
                             // C-066: la observacion de cada renglon de Lenguaje es opcional
@@ -586,7 +602,15 @@ public class ExamenInicialService {
                 b.containsKey(CAMPO_AGENCIA) ? b.get(CAMPO_AGENCIA) : documentoService.agenciaCapturada(limpio),
                 b.containsKey(CAMPO_TELEFONO) ? b.get(CAMPO_TELEFONO) : documentoService.telefonoSalud(limpio),
                 oknoElegidos(limpio, tablaBorrador, b, hojas),
-                certificacionCaptura(limpio, tablaBorrador, b, empleado));
+                certificacionCaptura(limpio, tablaBorrador, b, empleado),
+                // Motivo del consentimiento (27-nov-2026): borrador > el del ultimo EMNI > Admision
+                motivoExamen(b.containsKey(CAMPO_MOTIVO) ? b.get(CAMPO_MOTIVO) : documentoService.motivoCapturado(limpio)));
+    }
+
+    /** Codigo 1-5 valido del motivo del examen; cualquier otra cosa (vacio, viejo) = Admision. */
+    private static String motivoExamen(String v) {
+        String m = v == null ? "" : v.trim();
+        return com.onest.app.catalog.examen.service.ExamenDocumentoService.MOTIVOS_CONSENTIMIENTO.containsKey(m) ? m : TIPO_ADMISION;
     }
 
     /**
@@ -818,7 +842,10 @@ public class ExamenInicialService {
             }
         }
         String firmaFinal = firma != null && !firma.isBlank() ? firma : null;
-        // El tag de tipo se escribe ANTES del guardado para que la foto del historico lo lleve
+        // El tag de tipo se escribe ANTES del guardado para que la foto del historico lo lleve. El motivo del
+        // consentimiento (27-nov-2026) tambien: el formato sigue siendo el inicial (tipo 1), solo cambia lo subrayado
+        tags.upsert(limpio, com.onest.app.catalog.examen.service.ExamenDocumentoService.TAG_MOTIVO,
+                motivoExamen(b.get(CAMPO_MOTIVO)), "PERMISO_EXAMEN", usuarioActual());
         datosGeneralesExamenService.guardarDesdeInicial(limpio, Map.of("tipoExamen", TIPO_ADMISION,
                 "spo2", b.getOrDefault("spo2", ""), "cintura", b.getOrDefault("cintura", ""), "cadera", b.getOrDefault("cadera", "")));
         String proceso = examenService.guardar(limpio, camposWs, firmaFinal, ExamenHistoricoRepository.ORIGEN_INICIAL);

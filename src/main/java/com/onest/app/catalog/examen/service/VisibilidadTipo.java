@@ -52,6 +52,10 @@ public final class VisibilidadTipo {
             Map.entry("Genitales", Set.of("4")), Map.entry("Urinario", Set.of("4")),
             Map.entry("Extremidades", Set.of("4")), Map.entry("Piel", Set.of("4")),
             Map.entry("Dientes", Set.of("4")),
+            // 27-nov-2026 (usuario): FT-SO-08/10/01/14 SOLO en el periodico (2), ni en 5 Especial (excepcion a «ve
+            // todo») ni en 8 Periodico mantenimiento; el inicial las trae en su propia captura (examen inicial)
+            // "" = «Sin tipo de examen» (clase ocultar-en-, CSS #examenAccordion.tipo-): tampoco ahi
+            Map.entry(PruebasAdicionales.SECCION, Set.of("", "1", "3", "4", "5", "6", "7", "8")),
             Map.entry("Estudios realizados y resultados", Set.of("4")),
             Map.entry("Diagnóstico", Set.of("7")),
             Map.entry("Plan o terapéutica empleada", Set.of("6")));

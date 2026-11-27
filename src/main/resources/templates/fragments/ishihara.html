@@ -9,20 +9,25 @@
 <div th:fragment="captura(it)" class="ishi" data-ishi-raiz
      th:with="I=${T(com.onest.app.catalog.examen.service.Ishihara).INSTANCIA}, j=${it.value}, ver=${I.version(j)}, aplica=${I.aplica(j)}">
     <input type="hidden" class="ishi-json" data-opcional th:name="${it.fieldName}" th:value="${it.value}">
-    <!--/* 25-nov-2026 (pedido de SM y del usuario): NO es pregunta. Oculta por defecto y con un solo boton para
-         aplicarla; asi nadie la toma como obligatoria en predios donde no aplica. Solo se imprime si se aplico y
-         se capturo algo. Examenes anteriores con datos abren aplicada. */-->
-    <div class="ishi-aplica" th:classappend="${aplica == 'SI'} ? 'd-none' : ''">
-        <span class="fs-sm text-muted me-2"><i class="ri-information-line me-1"></i>Opcional: solo si el predio la requiere.</span>
-        <button type="button" class="btn btn-sm btn-outline-secondary" data-aplicar="SI" onclick="ishiAplica(this, true);">
-            <i class="ri-add-line"></i> Aplicar prueba de Ishihara</button>
+    <!--/* 26-nov-2026: la banda ahora es «Pruebas adicionales»; Ishihara lleva su propio titulo */-->
+    <!--/* 26-nov-2026 (usuario): igual que las demas pruebas adicionales, «¿Lo requiere? Si/No». Antes (25-nov) era
+         el boton «Aplicar prueba de Ishihara». Si despliega la captura; No guarda APLICA=NO. Solo se imprime si se
+         requirio y se capturo algo. Examenes anteriores con datos abren en Si (Ishihara.aplica). */-->
+    <div class="pa-enc">
+        <!--/* hueco del tamaño de la clave FT-SO para que el texto quede alineado con los demas (Ishihara no tiene clave) */-->
+        <div class="pa-titulo"><span class="pa-codigo" style="visibility:hidden" aria-hidden="true">FT-SO-00</span> Prueba de Ishihara</div>
+        <div class="pa-req">
+            <span class="fs-sm me-2">¿Lo requiere?</span>
+            <div class="exini-chips">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-ishi-req="SI"
+                        th:classappend="${aplica == 'SI'} ? 'activo' : ''" onclick="ishiRequiere(this);">Sí</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-ishi-req="NO"
+                        th:classappend="${aplica == 'NO'} ? 'activo' : ''" onclick="ishiRequiere(this);">No</button>
+            </div>
+        </div>
     </div>
-    <input type="hidden" class="ishi-aplicada" th:value="${aplica == 'SI'} ? 'SI' : ''">
-    <div class="ishi-captura" th:classappend="${aplica == 'SI'} ? '' : 'd-none'">
-    <div class="text-end mb-2">
-        <button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="ishiAplica(this, false);">
-            <i class="ri-close-line"></i> Quitar prueba (no se aplicó)</button>
-    </div>
+    <input type="hidden" class="ishi-aplicada" th:value="${aplica}">
+    <div class="ishi-captura mt-2" th:classappend="${aplica == 'SI'} ? '' : 'd-none'">
     <div class="ishi-top">
         <span class="ishi-ayuda"><i class="ri-information-line me-1"></i>Elige la versión de la hoja que se aplicó y anota lo que el trabajador ve en cada círculo.</span>
         <div class="ishi-ver" role="group" aria-label="Versión de la hoja">
@@ -85,15 +90,16 @@
     <p style="margin:8px 0 4px"><b>INDICACIONES</b><br>Observa detenidamente los círculos y anota en la línea que está debajo de ellos lo que observas.</p>
     <table style="width:100%; border-collapse:collapse">
         <tr th:each="fila : ${ {0, 3, 6} }">
-            <td th:each="c : ${ {1, 2, 3} }" style="width:33%; text-align:center; padding:6px 4px"
+            <!--/* 27-nov-2026 (Word SM «cambioserrores27112026»): «dejar un poco más de espacio» en el impreso */-->
+            <td th:each="c : ${ {1, 2, 3} }" style="width:33%; text-align:center; padding:16px 4px"
                 th:with="k=${fila + c}">
                 <img th:src="@{|/img/ishihara/v${ver}-${k}.jpg|}" alt="" style="width:120px; height:auto">
-                <div style="border-bottom:1px solid #000; width:90px; margin:4px auto 0; min-height:16px; font-weight:bold"
+                <div style="border-bottom:1px solid #000; width:90px; margin:10px auto 0; min-height:18px; font-weight:bold"
                      th:text="${I.v(j, 'R' + k)}"></div>
             </td>
         </tr>
     </table>
-    <div style="margin:18px 0 0 auto; width:40%; text-align:center">
+    <div style="margin:40px 0 0 auto; width:40%; text-align:center">
         <img th:if="${d.firmaTrabajador != null}" th:src="${d.firmaTrabajador}" alt="Firma del trabajador" style="max-height:44px">
         <div style="border-top:1px solid #000">FIRMA</div>
     </div>

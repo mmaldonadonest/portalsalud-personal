@@ -77,9 +77,28 @@ public final class ValidadorNss {
             DateTimeFormatter.ofPattern("d-M-uuuu").withResolverStyle(java.time.format.ResolverStyle.STRICT),
             DateTimeFormatter.ofPattern("d/M/uu").withResolverStyle(java.time.format.ResolverStyle.STRICT));
 
+    /**
+     * MES DETECCION de maternidad (27-nov-2026): SM escribe el mes abreviado a su manera (MZO, MYO) o completo.
+     * Clave = como viene (normalizado); valor = numero de mes.
+     */
+    private static final Map<String, Integer> MESES_ABREVIADOS = Map.ofEntries(
+            Map.entry("ENE", 1), Map.entry("FEB", 2), Map.entry("MAR", 3), Map.entry("MZO", 3), Map.entry("ABR", 4),
+            Map.entry("MAY", 5), Map.entry("MYO", 5), Map.entry("JUN", 6), Map.entry("JUL", 7), Map.entry("AGO", 8),
+            Map.entry("SEP", 9), Map.entry("SEPT", 9), Map.entry("SET", 9), Map.entry("OCT", 10), Map.entry("NOV", 11),
+            Map.entry("DIC", 12));
+
+    static final String AVISO_FECHA_1900 = "fecha 1900 (la fórmula del Excel no tenía dato): se toma vacía";
+
     private final LayoutNss layout;
     /** encabezado del layout -> indice de columna en el archivo */
     private final Map<CampoNss, Integer> indices;
+    /** Anio del archivo (titulo «MATERNIDAD 2026» o nombre): completa el MES DETECCION, que viene sin anio. */
+    private Integer anioDelArchivo;
+
+    /** Ver {@link #anioDelArchivo}; lo pone CargaNssService al reconocer el encabezado. */
+    public void anioDelArchivo(Integer anio) {
+        this.anioDelArchivo = anio;
+    }
 
     private ValidadorNss(LayoutNss layout, Map<CampoNss, Integer> indices) {
         this.layout = layout;
@@ -222,6 +241,13 @@ public final class ValidadorNss {
                 }
                 continue;
             }
+            // 27-nov-2026, «8 MATERNIDAD 2026»: sin incapacidad, las columnas de termino, reinicio y lactancia traen
+            // 1900 (formula sobre una celda vacia pegada como valor; 37 de 86 casos). Es «sin dato», no un error del
+            // caso: entra vacia y se avisa. Solo maternidad: en los demas layouts 1900 sigue rechazando el renglon.
+            if (layout == LayoutNss.MATERNIDAD && c.tipo() == CampoNss.Tipo.FECHA && v.matches("^(1900-|1899-12-3[01]).*")) {
+                avisos.add(new Error(fila.numero(), c.encabezado(), v.substring(0, 10), AVISO_FECHA_1900));
+                continue;
+            }
             // AÑO capturado como fecha con formato "yyyy" (se ve 2026, pero la celda es una fecha):
             // LectorXlsx la entrega como yyyy-MM-dd; se toma solo el ano
             if ("ANIO".equals(c.columna()) && v.matches("^\\d{4}-\\d{2}-\\d{2}.*")) {
@@ -263,6 +289,15 @@ public final class ValidadorNss {
         // Maternidad: el embarazo se identifica por NSS + FUM, o NSS + fecha probable de parto si
         // falta la FUM (decision 12-oct). Sin ninguna de las dos el renglon no se puede ligar a su
         // embarazo y el historial quedaria suelto.
+        if (layout == LayoutNss.MATERNIDAD && valores.get("MES_DETECCION") != null) {
+            String mes = (String) valores.get("MES_DETECCION");
+            try {
+                valores.put("FECHA", mesDeteccion(mes, anioDelArchivo));
+                valores.put("MES_DETECCION", CatalogosNss.clave(mes));
+            } catch (IllegalArgumentException ex) {
+                errores.add(new Error(fila.numero(), "MES DETECCION", mes, ex.getMessage()));
+            }
+        }
         if (layout == LayoutNss.MATERNIDAD && valores.get("NSS") != null) {
             LocalDate fum = (LocalDate) valores.get("FUM");
             LocalDate fpp = (LocalDate) valores.get("FECHA_PROB_PARTO");
@@ -302,6 +337,38 @@ public final class ValidadorNss {
             }
         }
         return new Resultado(errores.isEmpty() ? new Registro(fila.numero(), valores) : null, errores, avisos);
+    }
+
+    /**
+     * Dia 1 del mes en que se detecto el embarazo: es la FECHA con la que maternidad cuenta los casos. Acepta el mes
+     * abreviado (ENE, MZO, MYO), completo (MARZO), en numero (3) o una fecha (si la celda trae fecha, su mes y anio).
+     * Solo el anio («2025», como vienen los 29 casos que antes decian «AÑO ANTERIOR») se rechaza: sin el mes no se
+     * puede contar en la grafica mensual; como se cuentan lo decide Servicio Medico (preguntas-sm-26nov-maternidad).
+     */
+    static LocalDate mesDeteccion(String v, Integer anio) {
+        String t = CatalogosNss.clave(v).replace(".", "");
+        if (t.matches("\\d{4}-\\d{2}-\\d{2}.*")) {
+            return fecha(t).withDayOfMonth(1);
+        }
+        if (t.matches("(19|20)\\d{2}") || "ANO ANTERIOR".equals(t)) {
+            throw new IllegalArgumentException("trae solo el año, falta el mes de detección");
+        }
+        Integer mes = MESES_ABREVIADOS.get(t);
+        if (mes == null && MESES.contains(t)) {
+            mes = MESES.indexOf(t) + 1;
+        }
+        if (mes == null && t.matches("\\d{1,2}(\\.0+)?")) {
+            int n = Integer.parseInt(t.replaceFirst("\\..*", ""));
+            mes = n >= 1 && n <= 12 ? n : null;
+        }
+        if (mes == null) {
+            throw new IllegalArgumentException("no es un mes (ENE, FEB, MZO... o el nombre completo)");
+        }
+        if (anio == null) {
+            throw new IllegalArgumentException("no se sabe el año: el título o el nombre del archivo debe traerlo "
+                    + "(por ejemplo «MATERNIDAD 2026»)");
+        }
+        return LocalDate.of(anio, mes, 1);
     }
 
     private static Object convertir(CampoNss c, String v) {

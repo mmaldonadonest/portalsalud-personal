@@ -74,6 +74,31 @@
         .exini-okno input.is-invalid { border-color: #B42318; }
         .exini-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px 14px; }
         .exini-grid label { font-size: .9rem; margin-bottom: 2px; color: #111; }
+        /* 26-nov-2026: una etiqueta de dos renglones («Frecuencia hobbies (veces por semana)») bajaba su caja y el renglon
+           se descuadraba: las etiquetas quedan arriba en el mismo renglon y las cajas alineadas abajo */
+        .exini-grid > div { display: flex; flex-direction: column; }
+        .exini-grid > div > label { flex-grow: 1; }
+        /* 26-nov-2026 (usuario): el boton «X (capturado antes)» se oculta; el valor viejo sigue en el hidden y se
+           guarda igual mientras no elijan Si/No (o la dosis) */
+        .exini-antes { display: none !important; }
+        /* 26-nov-2026: pruebas adicionales (fragments/pruebas-adicionales): estilos en static/css/onest-brand.css
+           desde el 27-nov, porque el periodico del modulo Examen medico tambien las pinta */
+        /* 26-nov-2026: rangos de IMC (imagen del usuario): <18.5, 18.5-24.9, 25-29.9, 30-34.9, 35-39.9, >=40 */
+        /* silueta del rango (recortes de la infografia de IMC que paso el usuario, obesidadybariatrica.com, en static/img/imc); solo pantalla, el impreso no la lleva.
+           URL por data-imgN: el resource chain le pone hash al nombre (ver E-050 Ishihara) */
+        /* 26-nov-2026 (usuario): flotante ARRIBA del IMC, encimada sobre el encabezado; no cambia la altura del renglon */
+        .exini-vitales > div:has(> .exini-imc-cat) { position: relative; }
+        .exini-imc-cat { position: absolute; left: 0; bottom: calc(100% + 2px); z-index: 5; pointer-events: none;
+            font-size: .78rem; font-weight: 700; display: flex; align-items: flex-end; gap: 8px;
+            text-shadow: 0 0 3px #fff, 0 0 3px #fff; }
+        .exini-imc-cat img { height: 64px; width: auto; filter: drop-shadow(0 0 1px #fff); }
+        input.imc-c1 { background: #5CBAE3 !important; } .exini-imc-cat.imc-c1 { color: #2B86AD; }
+        input.imc-c2 { background: #A3B42B !important; } .exini-imc-cat.imc-c2 { color: #6E8518; }
+        input.imc-c3 { background: #F9851F !important; } .exini-imc-cat.imc-c3 { color: #C25F10; }
+        input.imc-c4 { background: #E84437 !important; } .exini-imc-cat.imc-c4 { color: #D93A2B; }
+        input.imc-c5 { background: #BD3A91 !important; } .exini-imc-cat.imc-c5 { color: #B03A8E; }
+        input.imc-c6 { background: #943BBD !important; } .exini-imc-cat.imc-c6 { color: #7B3FA6; }
+        input.imc-c1, input.imc-c2, input.imc-c3, input.imc-c4, input.imc-c5, input.imc-c6 { color: #fff !important; font-weight: 700; }
         /* Exploracion fisica: signos vitales con unidad, y opciones como botones */
         .exini-sub { font-size: .82rem; text-transform: uppercase; letter-spacing: .05em; color: #002850; font-weight: 700;
             margin: 12px -14px 6px; padding: 5px 14px; background: #EAF3FA; border-left: 4px solid #003E75; }
@@ -307,6 +332,18 @@
                                                            th:value="${esOtro} ? ${eleg} : ''" th:hidden="${!esOtro}" oninput="exIniAgencia(this, 'texto');">
                                                 </div>
                                             </td></tr>
+                                        <!--/* 27-nov-2026 (usuario): motivo que se subraya en el consentimiento FT-SO-11. El
+                                             formato sigue siendo el inicial; en Tepalcapa el periodico se hace con el EMNI */-->
+                                        <tr><td>Motivo del examen</td>
+                                            <td><div class="exini-motivo">
+                                                <input type="hidden" name="motivoExamen" th:value="${v.motivoExamen}">
+                                                <div class="exini-chips">
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" th:each="m : ${v.motivosExamen}"
+                                                            th:classappend="${m.key == v.motivoExamen} ? 'activo' : ''" th:attr="data-motivo=${m.key}"
+                                                            th:text="${#strings.capitalize(#strings.toLowerCase(m.value))}" onclick="exIniMotivo(this);">Admisión</button>
+                                                </div>
+                                                <span class="fs-xs text-muted">Se subraya en el consentimiento.</span>
+                                            </div></td></tr>
                                         <tr><td>Cuenta</td><td th:text="${v.empleado == null} ? '' : ${v.empleado.cuenta ?: ''}">—</td></tr>
                                         <tr><td>Puesto</td><td th:text="${v.empleado == null or v.empleado.nombrePuesto == null or #strings.containsIgnoreCase(v.empleado.nombrePuesto, 'no existe')} ? '' : ${v.empleado.nombrePuesto}">—</td></tr>
                                         <tr><td>Estado civil</td><td th:text="${v.empleado == null} ? '' : ${v.empleado.estadoCivil ?: ''}">—</td></tr>
@@ -383,7 +420,9 @@
                             <div class="exini-vitales">
                                 <div><label>Peso</label><div class="input-group input-group-sm"><input type="number" step="0.1" min="0" class="form-control" th:name="${p + 'PESO'}" th:value="${ef[p + 'PESO']}" placeholder="70.5" oninput="exIniImc(this);"><span class="input-group-text">kg</span></div></div>
                                 <div><label>Talla</label><div class="input-group input-group-sm"><input type="number" step="0.01" min="0" class="form-control" th:name="${p + 'TALLA'}" th:value="${ef[p + 'TALLA']}" placeholder="1.70" oninput="exIniImc(this);"><span class="input-group-text">m</span></div></div>
-                                <div><label>IMC <span class="text-muted">(auto)</span></label><div class="input-group input-group-sm"><input type="number" step="0.1" class="form-control" th:name="${p + 'IMC'}" th:value="${ef[p + 'IMC']}" placeholder="24.4"><span class="input-group-text">kg/m²</span></div></div>
+                                <!--/* 26-nov-2026 (usuario, imagen de rangos): el IMC se pinta del color de su rango y abajo dice cual es */-->
+                                <div><label>IMC <span class="text-muted">(auto)</span></label><div class="input-group input-group-sm"><input type="number" step="0.1" class="form-control" th:name="${p + 'IMC'}" th:value="${ef[p + 'IMC']}" placeholder="24.4" oninput="exIniImcColor(this);"><span class="input-group-text">kg/m²</span></div><div class="exini-imc-cat"
+                                     th:attr="data-img1=@{/img/imc/imc-1.png},data-img2=@{/img/imc/imc-2.png},data-img3=@{/img/imc/imc-3.png},data-img4=@{/img/imc/imc-4.png},data-img5=@{/img/imc/imc-5.png},data-img6=@{/img/imc/imc-6.png}"><img alt="" hidden><span></span></div></div>
                                 <div><label>FC</label><div class="input-group input-group-sm"><input type="number" min="0" class="form-control" th:name="${p + 'FC'}" th:value="${ef[p + 'FC']}" placeholder="72"><span class="input-group-text">lpm</span></div></div>
                                 <div><label>FR</label><div class="input-group input-group-sm"><input type="number" min="0" class="form-control" th:name="${p + 'FR'}" th:value="${ef[p + 'FR']}" placeholder="16"><span class="input-group-text">rpm</span></div></div>
                                 <div><label>T/A</label><div class="input-group input-group-sm"><input type="text" class="form-control" th:name="${p + 'TA'}" th:value="${ef[p + 'TA']}" placeholder="120/80"><span class="input-group-text">mmHg</span></div></div>
@@ -511,16 +550,22 @@
                         -->
                         <th:block th:if="${conAyuda}" th:each="it : ${s.items}" th:with="ay=${v.ayudas[it.fieldName]}, ant=${v.ayudasAnteriores[it.fieldName]}">
                             <!--/* 25-nov-2026: «ant» = texto normal anterior (SIN AGREGADOS, AUSENTES...): lo capturado con el sigue abriendo en Sí */-->
+                            <!--/* 27-nov-2026 (Word SM): nn = renglon donde lo normal es No (AyudasFormato.NORMAL_NO_EMNI): No en
+                                 verde con el texto del formato, Si en rojo para el hallazgo. Se deduce del texto: con el
+                                 texto normal abre en No aunque antes se hubiera guardado Si */-->
                             <div class="exini-fila exini-okno" th:if="${ay != null and ay.modo != 'OPCIONES'}"
                                  th:with="val=${it.value ?: ''}, ok=${#strings.equalsIgnoreCase(#strings.trim(it.value ?: ''), ay.normal) or #strings.equalsIgnoreCase(#strings.trim(it.value ?: ''), 'Normal') or #strings.trim(it.value ?: '') == '20/20' or (ant != null and #strings.equalsIgnoreCase(#strings.trim(it.value ?: ''), ant.normal))},
                                           elegido=${v.oknoElegidos['OKNO.' + it.fieldName]},
-                                          sel=${elegido != null ? elegido : (ok ? 'SI' : (ay.modo == 'DOS' and #strings.startsWith(#strings.toUpperCase(val), ay.alterno) ? 'NO' : ''))}"
-                                 th:attr="data-normal=${ay.normal}, data-anterior=${ant != null and ant.normal != ay.normal} ? ${ant.normal} : null, data-alterno=${ay.alterno}, data-exclusivo=${s.nombre == 'Genitales'} ? 'si' : null">
+                                          nn=${T(com.onest.app.catalog.examen.service.AyudasFormato).NORMAL_NO_EMNI.contains(it.fieldName)},
+                                          sel=${nn ? (ok ? 'NO' : (#strings.isEmpty(elegido) or #strings.isEmpty(#strings.trim(val)) ? '' : 'SI'))
+                                                    : (elegido != null ? elegido : (ok ? 'SI' : (ay.modo == 'DOS' and #strings.startsWith(#strings.toUpperCase(val), ay.alterno) ? 'NO' : '')))}"
+                                 th:attr="data-normal=${ay.normal}, data-anterior=${ant != null and ant.normal != ay.normal} ? ${ant.normal} : null, data-alterno=${ay.alterno}, data-exclusivo=${s.nombre == 'Genitales'} ? 'si' : null,
+                                          data-normal-no=${nn} ? 'si' : null">
                                 <input type="hidden" data-okno-sel th:name="${'OKNO.' + it.fieldName}" th:value="${sel}">
                                 <span class="lbl" th:text="${it.label}">Campo</span>
                                 <div class="btn-group exini-okno-btns" role="group" th:attr="aria-label=${it.label}">
-                                    <button type="button" class="btn btn-outline-secondary" th:classappend="${sel == 'SI'} ? 'activo-ok' : ''" onclick="exIniOkNo(this, true);">Sí</button>
-                                    <button type="button" class="btn btn-outline-secondary" th:classappend="${sel == 'NO'} ? 'activo-hallazgo' : ''" onclick="exIniOkNo(this, false);">No</button>
+                                    <button type="button" class="btn btn-outline-secondary" th:classappend="${sel == 'SI'} ? (${nn} ? 'activo-hallazgo' : 'activo-ok') : ''" onclick="exIniOkNo(this, true);">Sí</button>
+                                    <button type="button" class="btn btn-outline-secondary" th:classappend="${sel == 'NO'} ? (${nn} ? 'activo-ok' : 'activo-hallazgo') : ''" onclick="exIniOkNo(this, false);">No</button>
                                 </div>
                                 <input type="text" class="form-control form-control-sm" data-tipo="OKNO" th:name="${it.fieldName}" th:value="${val}"
                                        th:placeholder="${ay.modo == 'DOS'} ? (${ay.normal} + ' / ' + ${ay.alterno} + ' (agregado)') : (${ay.normal} + ' (agregado)')"
@@ -567,7 +612,7 @@
                                                 class="btn btn-sm btn-outline-secondary" th:classappend="${it.value == o[0]} ? 'activo' : ''"
                                                 th:attr="data-val=${o[0]}" th:text="${o[1]}" onclick="exIniChip(this);">dosis</button>
                                         <button type="button" th:if="${!#strings.isEmpty(it.value) and !#lists.contains({'0','1','2','3'}, it.value)}"
-                                                class="btn btn-sm btn-outline-secondary activo" th:attr="data-val=${it.value}"
+                                                class="btn btn-sm btn-outline-secondary activo exini-antes" th:attr="data-val=${it.value}"
                                                 th:text="|${it.value} (capturado antes)|" onclick="exIniChip(this);">otro</button>
                                     </div>
                                 </div>
@@ -579,15 +624,17 @@
                              Lo que ya tenian capturado se conserva en un hidden (abajo) y no cuenta para el avance. -->
                         <th:block th:if="${esApnp}"
                                   th:with="etq=${T(com.onest.app.catalog.exameninicial.service.ExamenInicialService).ETIQUETAS_APNP}">
+                            <!--/* 26-nov-2026 (SM): Aseo bucal = botones Si/No (1/0, como los demas Si/No; un numero de antes sale
+                                 «N (capturado antes)») + «Aseo bucal (frecuencia)» en texto (tag EXM_ASEO_BUCAL_FREC). */-->
                             <!--/* 25-nov-2026 (Word SM, puntos 5-6): Aseo bucal = numero + frecuencia en texto (tag EXM_ASEO_BUCAL_FREC);
-                                 Hobbies = numero y su frecuencia en texto («DIARIO», «CADA TERCER DIA») */-->
+                                 26-nov-2026 (usuario, estaba al reves): Hobbies en texto («NINGUNO») y su frecuencia numerica, como Deporte */-->
                             <th:block th:each="g : ${ {{'Vivienda','HABITACION,NO_DORMITORIOS,NO_HABITANTES,PISO,TECHO,AGUA_POTABLE,LUZ,DRENAJE,AIRE_ACONDICIONADO,CONVIVENCIA_CON_ANIMALES'},{'Higiene personal','BAÑO,CAMBIO_DE_ROPA,ASEO_BUCAL,ASEO_BUCAL_FREC'},{'Alimentación','NO_COMIDAS_AL_DIA,BALANCEADA,SUFICIENTE'},{'Actividad física y recreación','DEPORTE,FC1,HOBBIES_PASATIEMPOS,FC2'},{'Otros','RELIGION'}} }">
                                 <div class="exini-sub" th:text="${g[0]}">Bloque</div>
                                 <div class="exini-grid">
                                     <th:block th:each="f : ${#strings.arraySplit(g[1], ',')}">
                                         <th:block th:each="it : ${s.items}" th:if="${it.fieldName == 'SERV_MED_ANT_PATOLOGICOS.' + f or it.fieldName == 'TAG.EXM_' + f}">
-                                            <div th:with="esSiNo=${#lists.contains({'AGUA_POTABLE','LUZ','DRENAJE','AIRE_ACONDICIONADO','BALANCEADA','SUFICIENTE'}, f)},
-                                                          esNum=${#lists.contains({'NO_DORMITORIOS','BAÑO','CAMBIO_DE_ROPA','ASEO_BUCAL','FC1','HOBBIES_PASATIEMPOS'}, f)},
+                                            <div th:with="esSiNo=${#lists.contains({'AGUA_POTABLE','LUZ','DRENAJE','AIRE_ACONDICIONADO','BALANCEADA','SUFICIENTE','ASEO_BUCAL'}, f)},
+                                                          esNum=${#lists.contains({'NO_DORMITORIOS','BAÑO','CAMBIO_DE_ROPA','FC1','FC2'}, f)},
                                                           val=${it.value ?: ''},
                                                           sn=${T(com.onest.app.catalog.examen.service.ExamenService).sinoBoton(it.value)}">
                                                 <!--/* 26-nov-2026: etq.get(f), NO etq[f]: en SpEL un mapa con [f] busca la clave literal "f"
@@ -601,7 +648,7 @@
                                                     <button type="button" class="btn btn-sm btn-outline-secondary" th:classappend="${sn == '1'} ? 'activo' : ''" data-val="1" onclick="exIniChip(this);">Sí</button>
                                                     <button type="button" class="btn btn-sm btn-outline-secondary" th:classappend="${sn == '0'} ? 'activo' : ''" data-val="0" onclick="exIniChip(this);">No</button>
                                                     <button type="button" th:if="${sn != '' and sn != '1' and sn != '0'}"
-                                                            class="btn btn-sm btn-outline-secondary activo" th:attr="data-val=${sn}" th:text="|${sn} (capturado antes)|" onclick="exIniChip(this);">otro</button>
+                                                            class="btn btn-sm btn-outline-secondary activo exini-antes" th:attr="data-val=${sn}" th:text="|${sn} (capturado antes)|" onclick="exIniChip(this);">otro</button>
                                                 </div>
                                                 <input th:if="${esNum}" type="text" inputmode="numeric" class="form-control form-control-sm" data-tipo="TEXT" th:name="${it.fieldName}" th:value="${val}" oninput="exIniSoloNumero(this);">
                                                 <input th:if="${!esSiNo and !esNum}" type="text" class="form-control form-control-sm" data-tipo="TEXT" th:name="${it.fieldName}" th:value="${val}">
@@ -622,6 +669,10 @@
                         <!--/* C-069 (10-nov): prueba de Ishihara, captura propia (fragments/ishihara) */-->
                         <th:block th:each="it : ${s.items}" th:if="${it.type == 'ISHIHARA'}">
                             <th:block th:replace="~{fragments/ishihara :: captura(${it})}"></th:block>
+                        </th:block>
+                        <!--/* 26-nov-2026: pruebas adicionales FT-SO-08/10/01/14 (fragments/pruebas-adicionales) */-->
+                        <th:block th:each="it : ${s.items}" th:if="${it.type == 'PRUEBA_ADIC'}">
+                            <th:block th:replace="~{fragments/pruebas-adicionales :: captura(${it})}"></th:block>
                         </th:block>
 
                         <!-- Resto: texto / fecha / area / resultado en cuadricula -->
@@ -660,7 +711,7 @@
                                                 class="btn btn-sm btn-outline-secondary" th:classappend="${it.value == o[0]} ? 'activo' : ''"
                                                 th:attr="data-val=${o[0]}" th:text="${o[1]}" onclick="exIniChip(this);">dosis</button>
                                         <button type="button" th:if="${!#strings.isEmpty(it.value) and !#lists.contains({'0','1','2','3'}, it.value)}"
-                                                class="btn btn-sm btn-outline-secondary activo" th:attr="data-val=${it.value}"
+                                                class="btn btn-sm btn-outline-secondary activo exini-antes" th:attr="data-val=${it.value}"
                                                 th:text="|${it.value} (capturado antes)|" onclick="exIniChip(this);">otro</button>
                                     </div>
                                 </div>

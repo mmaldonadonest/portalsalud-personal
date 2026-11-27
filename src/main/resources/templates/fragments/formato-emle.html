@@ -576,13 +576,15 @@
         <tr><td class="e">CONVIVENCIA CON ANIMALES</td><td th:text="${d.texto('CONVIVENCIA_CON_ANIMALES')}"></td><td class="e">AIRE ACONDICIONADO</td><td th:text="${d.texto('AIRE_ACONDICIONADO')}"></td>
             <td class="e">HIGIENE PERSONAL</td><td colspan="3" th:text="${d.texto('HIGIENE_PERSONAL')}"></td></tr>
         <tr><td class="e">BAÑO</td><td th:text="${d.texto('BAÑO')}"></td><td class="e">CAMBIO DE ROPA</td><td th:text="${d.texto('CAMBIO_DE_ROPA')}"></td>
-            <!--/* 25-nov-2026 (Word SM): numero + frecuencia en texto (tag EXM_ASEO_BUCAL_FREC) */-->
-            <td class="e">ASEO BUCAL</td><td>[[${d.texto('ASEO_BUCAL')}]]<th:block th:if="${!#strings.isEmpty(d.texto('EXM_ASEO_BUCAL_FREC'))}"> · [[${d.texto('EXM_ASEO_BUCAL_FREC')}]]</th:block></td><td class="e">NUM. COMIDAS POR DÍA</td><td th:text="${d.texto('NO_COMIDAS_AL_DIA')}"></td></tr>
+            <!--/* 25-nov-2026 (Word SM): numero + frecuencia en texto (tag EXM_ASEO_BUCAL_FREC).
+                 26-nov-2026: ASEO_BUCAL ahora es Si/No (1/0) -> siNo(); un numero de antes sale tal cual */-->
+            <td class="e">ASEO BUCAL</td><td>[[${d.siNo('ASEO_BUCAL')}]]<th:block th:if="${!#strings.isEmpty(d.texto('EXM_ASEO_BUCAL_FREC'))}"> · [[${d.texto('EXM_ASEO_BUCAL_FREC')}]]</th:block></td><td class="e">NUM. COMIDAS POR DÍA</td><td th:text="${d.texto('NO_COMIDAS_AL_DIA')}"></td></tr>
         <tr><td class="e">ALIMENTACIÓN</td><td th:text="${d.texto('ALIMENTACION')}"></td><td class="e">BALANCEADA</td><td th:text="${d.texto('BALANCEADA')}"></td>
             <td class="e">SUFICIENTE</td><td colspan="3" th:text="${d.texto('SUFICIENTE')}"></td></tr>
         <tr><td class="e">DEPORTE</td><td>[[${d.texto('DEPORTE')}]] <th:block th:if="${!#strings.isEmpty(d.texto('FC1'))}">· [[${d.texto('FC1')}]] veces por [[${d.texto('cadaCuandoDep')}]]</th:block></td>
-            <td class="e">HOBBIES O PASATIEMPOS</td><td colspan="5">[[${d.texto('HOBBIES_PASATIEMPOS')}]] <th:block th:if="${!#strings.isEmpty(d.texto('FC2'))}">· [[${d.texto('FC2')}]]<th:block th:if="${#strings.matches(d.texto('FC2'), '[0-9]+')}"> veces por [[${d.texto('cadaCuandoPasa')}]]</th:block></th:block></td></tr>
-            <!--/* 25-nov-2026 (Word SM): FC2 ahora es texto («DIARIO»); «veces por ...» solo para el numero de antes */-->
+            <td class="e">HOBBIES O PASATIEMPOS</td><td colspan="5">[[${d.texto('HOBBIES_PASATIEMPOS')}]] <th:block th:if="${!#strings.isEmpty(d.texto('FC2'))}">· [[${d.texto('FC2')}]]<th:block th:if="${d.texto('FC2') matches '[0-9]+'}"> veces por [[${d.texto('cadaCuandoPasa')}]]</th:block></th:block></td></tr>
+            <!--/* «veces por ...» solo si FC2 es numero (hay capturas en texto). 26-nov-2026: era #strings.matches, que NO
+                 existe en Thymeleaf -> 500 al imprimir en cuanto FC2 traia algo; se usa el operador matches de SpEL */-->
     </table>
     <th:block th:if="${t == '1'}">
         <th:block th:replace="~{fragments/formato-emle :: inmunizaciones('INMUNIZACIONES')}"></th:block>

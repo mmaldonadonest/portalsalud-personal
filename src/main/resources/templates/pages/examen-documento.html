@@ -121,8 +121,14 @@
                 <tbody>
                     <tr>
                         <td colspan="2" style="font-size: 12px;font-weight:bold;">
-                            <!--/* 17-nov-2026: sin tipo de examen salia "()." */-->
-                            <center>CONSENTIMIENTO DE REALIZACIÓN DE EXAMEN MÉDICO<th:block th:unless="${#strings.isEmpty(d.v('tipoExamenInputO'))}"><br/> ([[${d.v('tipoExamenInputO')}]]).</th:block></center>
+                            <!--/* 27-nov-2026 (usuario): titulo completo como el FT-SO-11 de papel, con el motivo del examen
+                                 subrayado (el titulo ya va en negritas). MOTIVO_CONSENTIMIENTO lo arma ExamenDocumentoService:
+                                 en el EMNI el que eligio el medico (Tepalcapa: periodico), en el modulo el tipo de examen.
+                                 Antes solo salia el tipo: «(Admisión).» */-->
+                            <center>CONSENTIMIENTO DE REALIZACIÓN DE EXAMEN MÉDICO<br/>(<th:block
+                                th:each="m, ms : ${T(com.onest.app.catalog.examen.service.ExamenDocumentoService).MOTIVOS_CONSENTIMIENTO}"><span
+                                th:text="${m.value}" th:style="${m.key == d.v('MOTIVO_CONSENTIMIENTO')} ? 'text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 2px;' : null">ADMISIÓN</span><th:block
+                                th:unless="${ms.last}">, </th:block></th:block>).</center>
                         </td>
                     </tr>
                     <!-- FT-SO-11 rev. 05 (formato 2026 de SM, docs/formatosnuevos/10202026, 20-oct-2026) -->
@@ -1129,7 +1135,8 @@
                         </tr>
                         <tr>
                             <td>Aseo Bucal</td>
-                            <td>[[${d.v('ASEO_BUCAL')}]] veces por día</td>
+                            <!--/* 26-nov-2026: en el EMNI ASEO_BUCAL es Si/No (1/0); «veces por día» solo para un numero de antes (2, 3...) */-->
+                            <td>[[${d.siNo('ASEO_BUCAL')}]]<th:block th:if="${d.v('ASEO_BUCAL') matches '[2-9]|[1-9][0-9]+'}"> veces por día</th:block></td>
                         </tr>
                         <tr>
                             <td>Alimentación</td>
@@ -2604,6 +2611,14 @@
 <tr th:replace="~{fragments/osteomuscular :: impreso}"></tr>
 <!--/* C-069 Prueba de Ishihara (10-nov-2026): solo examen inicial (tipo 1) y solo si se capturo */-->
 <th:block th:if="${d.v('TIPO_CODIGO') == '1'}"><th:block th:replace="~{fragments/ishihara :: impreso}"></th:block></th:block>
+<!--/* Pruebas adicionales FT-SO-08, FT-SO-10, FT-SO-01 y FT-SO-14 (27-nov-2026): EMNI (1) y periodico (2), donde se
+     capturan; cada hoja solo si se requirio */-->
+<th:block th:if="${d.v('TIPO_CODIGO') == '1' or d.v('TIPO_CODIGO') == '2'}">
+    <th:block th:replace="~{fragments/pruebas-adicionales :: impresoFtso08}"></th:block>
+    <th:block th:replace="~{fragments/pruebas-adicionales :: impresoFtso10}"></th:block>
+    <th:block th:replace="~{fragments/pruebas-adicionales :: impresoFtso01}"></th:block>
+    <th:block th:replace="~{fragments/pruebas-adicionales :: impresoFtso14}"></th:block>
+</th:block>
 <!--/* FT-SO-31 (13-nov-2026): solo EMNI y solo si al finalizar se contesto «¿Desea emitir dictamen?» = Sí
      (ExamenController pone ftso31 con el dictamen expedido en ese momento). Firma: el medico del examen. */-->
 <tr class="hoja" th:if="${ftso31 != null}"><td><div class="emle"

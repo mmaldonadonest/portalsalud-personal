@@ -185,6 +185,18 @@ public class FormatosImpresosService {
         return new MedicoResponsable(texto(nombreFisio, ""), texto(cedulaFisio, ""), firma);
     }
 
+    /**
+     * 27-nov-2026 (Word SM, FT-SO-14): firma de quien realizo una prueba adicional (el usuario que la capturo). Mismo
+     * principio que {@link #fisioterapeuta}: va DESPUES de aplicarFirmas y solo sale si esa impresion quedo registrada
+     * con folio; si no, null y el impreso deja la linea para firmar a mano.
+     */
+    public String firmaDeQuienRealizo(Model model, String usuario) {
+        if (usuario == null || usuario.isBlank() || !model.containsAttribute("folioFirma") || !puedeImprimirConFirma()) {
+            return null;
+        }
+        return firmas.paraImprimir(usuario.trim()).map(FirmaImpresa::dataUri).orElse(null);
+    }
+
     // ---- internos ----
 
     private Autor autorActual(String registro, String origen) {

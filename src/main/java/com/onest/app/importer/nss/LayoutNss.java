@@ -174,36 +174,54 @@ public enum LayoutNss {
             catalogo("STATUS", "STATUS", "STATUS_ANTIDOPING", false),
             texto("OBSERVACIONES", "OBSERVACIONES", 1000))),
 
-    // Seguimiento con historial (decision 12-oct): un renglon por caso por MES REPORTADO (FECHA =
-    // fecha de corte). El embarazo = NSS + FUM (o + FECHA PROBABLE DE PARTO si falta la FUM), en
-    // CLAVE_EMBARAZO, que arma ValidadorNss. El folio NO identifica el embarazo. DDL excel-nss-08.
+    // 27-nov-2026: layout de SM «8 MATERNIDAD 2026» (un renglon por caso, encabezado en dos filas que junta
+    // CargaNssService.combinarEncabezados). FECHA ya no viene en el archivo: es el dia 1 del MES DETECCION
+    // (lo arma ValidadorNss), y con esa FECHA se cuentan los casos en las graficas y se reemplaza por predio y
+    // mes. El embarazo = NSS + FUM (o + FECHA PROBABLE DE PARTO si falta la FUM), en CLAVE_EMBARAZO. El folio
+    // NO identifica el embarazo. DDL excel-nss-08, -16 y -20.
+    // Antes (12-oct a 26-nov) FECHA era la fecha de corte y se llamo FECHA, FECHA DE CORTE o FECHA DE INGRESO;
+    // en el formato de SM «FECHA DE INGRESO» es el ingreso a la empresa (2015-2026) y por eso cambio.
     MATERNIDAD("MATERNIDAD", "SERV_MED_XLS_MATERNIDAD", true, List.of(
             nss(),
             catalogo("PREDIO", "PREDIO", "PREDIO", true),
             catalogo("AREA", "AREA", "AREA", true),
-            // Es la fecha de corte / mes reportado. La plantilla la llamo FECHA (10-oct), FECHA DE CORTE
-            // (12-oct) y FECHA DE INGRESO (15-oct, mismo significado, decision del usuario): se aceptan las tres
-            fecha("FECHA DE INGRESO", "FECHA DE CORTE|FECHA", "FECHA", true),
-            catalogo("STATUS LABORAL", "STATUS_LABORAL", "ESTATUS_LABORAL", true),
+            // ENE..DIC (abreviado o completo) sin anio: el anio sale del titulo o del nombre del archivo
+            textoObligatorio("MES DETECCION", "MES_DETECCION", 20),
+            fecha("FECHA DE INGRESO", "FECHA_INGRESO", false),
+            // «SATAUS LABORAL»: asi viene en el formato de SM (error de dedo); se aceptan las dos
+            catalogo("STATUS LABORAL", "SATAUS LABORAL", "STATUS_LABORAL", "ESTATUS_LABORAL", true),
+            // EDAD (rango «26 - 35»), CUENTA y PUESTO del archivo van en columnas propias: la de las graficas
+            // (EDAD, CUENTA, PUESTO) sigue siendo la del biometrico hasta que SM conteste cual se usa
+            CampoNss.catalogoQuePuedeFaltar("EDAD", "RANGO DE EDAD", "RANGO_EDAD", "RANGO_EDAD"),
+            CampoNss.textoQuePuedeFaltar("CUENTA", null, "CUENTA_ARCHIVO", 160),
+            CampoNss.textoQuePuedeFaltar("PUESTO", null, "PUESTO_ARCHIVO", 160),
             fecha("FUM", "FUM", false),
-            // 15-oct-2026: columnas nuevas de la plantilla (se capturan, no se calculan de la FUM).
-            // Los archivos de antes no las traen y se siguen reconociendo (DDL excel-nss-16)
+            // 15-oct-2026: SEMANA y MES GESTACION de la plantilla anterior. El formato de SM trae «EDAD GESTACIONAL
+            // SEMANAS / MESES» calculadas al dia en que se abre el archivo (106 semanas en un caso ya terminado):
+            // no se leen
             enteroNuevo("SEMANA GESTACION", "SEMANA_GESTACION"),
             enteroNuevo("MES GESTACION", "MES_GESTACION"),
-            fecha("FECHA PROBABLE DE PARTO", "FECHA_PROB_PARTO", false),
-            fecha("FECHA PROBABLE DE INCAP PRENATAL", "FECHA_PROB_INCAP_PRENATAL", false),
-            fecha("FECHA PROBABLE REINICIO DE LABORES", "FECHA_PROB_REINICIO", false),
-            fecha("FECHA REAL DE REINICIO DE LABORES", "FECHA_REAL_REINICIO", false),
-            fecha("FECHA DE INICIO DE INCAPACIDAD", "FECHA_INICIO_INCAP", false),
+            // Los alias son los encabezados de dos filas ya juntados («PROBABLE» + «FECHA DE PARTO»)
+            fecha("FECHA PROBABLE DE PARTO", "PROBABLE FECHA DE PARTO", "FECHA_PROB_PARTO", false),
+            fecha("FECHA PROBABLE DE INCAP PRENATAL", "PROBABLE FECHA DE INCAP PRENATAL", "FECHA_PROB_INCAP_PRENATAL", false),
+            fecha("FECHA PROBABLE REINICIO DE LABORES", "PROBABLE REINICIO DE LABORES", "FECHA_PROB_REINICIO", false),
+            // SM usa una sola columna para el reinicio real y el inicio de la lactancia: llena las dos
+            fecha("FECHA REAL DE REINICIO DE LABORES", "REINICIO DE LABORES (FECHA REAL) E INICIO DE LACTANCIA",
+                    "FECHA_REAL_REINICIO", false),
+            fecha("FECHA DE INICIO DE INCAPACIDAD", "INCAPACIDAD INICIO", "FECHA_INICIO_INCAP", false),
             // La plantilla trae "INCAOACIDAD" (error de dedo); se acepta tambien bien escrito
-            fecha("FECHA DE TERMINO DE INCAOACIDAD", "FECHA DE TERMINO DE INCAPACIDAD", "FECHA_TERMINO_INCAP", false),
-            texto("FOLIO DE INCAPACIDAD", "FOLIO_INCAPACIDAD", 20),
-            fecha("FECHA INICIO DE LACTANCIA", "FECHA_INICIO_LACTANCIA", false),
-            fecha("FECHA TERMINO DE LACTANCIA", "FECHA_TERMINO_LACTANCIA", false),
-            fecha("FECHA DE REANUDACION DE ACTIVIDADES EN HORARIO NORMAL", "FECHA_REANUDA_HORARIO", false),
-            fecha("CORREO DE AVISO EMBARAZO", "CORREO_AVISO_EMBARAZO", false),
-            fecha("CORREO DE AVISO LACTANCIA", "CORREO_AVISO_LACTANCIA", false),
-            fecha("CORREO DE AVISO TERMINO DE LACTANCIA", "CORREO_AVISO_TERM_LACT", false))),
+            fecha("FECHA DE TERMINO DE INCAOACIDAD", "FECHA DE TERMINO DE INCAPACIDAD|INCAPACIDAD TERMINO",
+                    "FECHA_TERMINO_INCAP", false),
+            texto("FOLIO DE INCAPACIDAD", "INCAPACIDAD FOLIO", "FOLIO_INCAPACIDAD", 20),
+            fecha("FECHA INICIO DE LACTANCIA", "REINICIO DE LABORES (FECHA REAL) E INICIO DE LACTANCIA",
+                    "FECHA_INICIO_LACTANCIA", false),
+            fecha("FECHA TERMINO DE LACTANCIA", "LACTANCIA TERMINA", "FECHA_TERMINO_LACTANCIA", false),
+            fecha("FECHA DE REANUDACION DE ACTIVIDADES EN HORARIO NORMAL",
+                    "LACTANCIA REANUDA ACTIVIDADES EN HORARIO NORMAL", "FECHA_REANUDA_HORARIO", false),
+            // El formato de SM ya no los trae
+            CampoNss.fechaQuePuedeFaltar("CORREO DE AVISO EMBARAZO", "CORREO_AVISO_EMBARAZO"),
+            CampoNss.fechaQuePuedeFaltar("CORREO DE AVISO LACTANCIA", "CORREO_AVISO_LACTANCIA"),
+            CampoNss.fechaQuePuedeFaltar("CORREO DE AVISO TERMINO DE LACTANCIA", "CORREO_AVISO_TERM_LACT"))),
 
     // Consumibles: inventario del consultorio, sin NSS ni biometrico (empleado = false) y sin
     // contraparte en el portal. DDL en excel-nss-07-ddl-consumibles.sql.
@@ -293,7 +311,7 @@ public enum LayoutNss {
     public List<String> columnasDerivadas() {
         return switch (this) {
             case MEDICAMENTOS -> List.of("FECHA");
-            case MATERNIDAD -> List.of("CLAVE_EMBARAZO");
+            case MATERNIDAD -> List.of("FECHA", "CLAVE_EMBARAZO");   // FECHA = dia 1 del MES DETECCION
             case ANTIDOPING -> List.of("SUSTANCIA");
             default -> List.of();
         };

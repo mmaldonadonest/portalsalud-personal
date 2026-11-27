@@ -261,6 +261,20 @@ public class ExamenController {
         // firma del medico y de quien elaboro (modulo de firmas, 20-oct-2026); antes era la imagen publica
         // static/img/examen/firmaDoc.png heredada del PHP, que se quito del proyecto
         formatos.aplicarFirmas(model, "EXAMEN", registroExamen(nssLimpio, d), nssLimpio);
+        // Pruebas adicionales FT-SO-14 y FT-SO-01 (27-nov-2026, Word SM): firma de quien la realizo (usuario que la
+        // capturo), por tag. Las hojas impresas estan en fragments/pruebas-adicionales
+        var pa = com.onest.app.catalog.examen.service.PruebasAdicionales.INSTANCIA;
+        Map<String, String> firmasRealizo = new java.util.HashMap<>();
+        for (String tag : java.util.List.of("EXM_FTSO14", "EXM_FTSO01")) {
+            String json = d.v(tag);
+            if ("SI".equals(pa.aplica(json))) {
+                String firma = formatos.firmaDeQuienRealizo(model, pa.v(json, "REALIZO_USR"));
+                if (firma != null) {
+                    firmasRealizo.put(tag, firma);
+                }
+            }
+        }
+        model.addAttribute("pruebasFirmaRealizo", firmasRealizo);
         // EMNI (13-nov-2026, pedido del usuario): si al finalizar se contesto «¿Desea emitir dictamen?» = Sí,
         // el FT-SO-31 expedido sale como una hoja mas del impreso. Solo examen inicial (tipo 1).
         if ("1".equals(d.v("TIPO_CODIGO"))) {

@@ -288,3 +288,28 @@ a:hover {
 .osteo-cel.g-4 { background: #fbd5d5; color: #9f1239; border-color: #e48a9b; font-weight: 800; }
 .osteo-ayuda { font-size: 12px; color: #334155; flex: 1; min-width: 200px; }
 .osteo .osteo-g.osteo-alto { background-color: #fde2e2; border-color: #B42318; color: #B42318; font-weight: 700; }
+
+/* Pruebas adicionales FT-SO-08/10/01/14 (fragments/pruebas-adicionales): examen inicial (26-nov-2026) y periodico del
+   modulo Examen medico (27-nov-2026). Antes vivian en examen-inicial-shell.html */
+.pa { border-top: 1px solid #E3E8EE; padding: 10px 0 4px; margin-top: 10px; }
+.pa-enc { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pa-titulo { font-weight: 600; color: #002850; }
+.pa-codigo { display: inline-block; min-width: 74px; text-align: center; background: #EAF3FA; color: #003E75; border-radius: 4px; padding: 1px 6px; font-size: .8rem; margin-right: 4px; }
+.pa-req { display: flex; align-items: center; }
+.pa-captura { margin-top: 8px; padding: 8px 12px; background: #FAFCFE; border: 1px solid #E3E8EE; border-radius: 6px; }
+.pa-grupo { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: #002850; font-weight: 700; margin: 10px 0 4px; }
+.pa-campos { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px 14px; }
+.pa-campo { display: flex; flex-direction: column; }
+.pa-campo > label { font-size: .88rem; margin-bottom: 2px; flex-grow: 1; }
+.pa-campo.pa-ancho { grid-column: 1 / -1; }
+.pa-pe { display: flex; gap: 6px; }
+.exsec .pa:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+/* 27-nov-2026 (Word SM): la respuesta normal de una prueba adicional (la del «Todo normal») va en verde, como en el EMNI */
+.pa .exini-chips .btn.activo.pa-normal { background: #2B9138; border-color: #2B9138; color: #fff; }
+/* 27-nov-2026 (usuario): «Todo normal» de las pruebas adicionales como interruptor, igual que el de las secciones del EMNI
+   (.exini-switch + .exini-switch-claro de examen-inicial-shell); aqui global porque el periodico tambien lo pinta */
+.pa-switch { margin: 0; padding-left: 3.2em; min-height: 0; display: flex; align-items: center; }
+.pa-switch .form-check-input { width: 2.6em; height: 1.35em; margin-left: -3.2em; margin-top: 0; cursor: pointer; background-color: #fff; border-color: #98A2B3; }
+.pa-switch .form-check-input:focus { box-shadow: 0 0 0 .2rem rgba(0,87,168,.25); border-color: #98A2B3; }
+.pa-switch .form-check-input:checked { background-color: #2B9138; border-color: #2B9138; }
+.pa-switch .form-check-label { color: #002850; font-size: .85rem; font-weight: 600; margin-left: 8px; cursor: pointer; }

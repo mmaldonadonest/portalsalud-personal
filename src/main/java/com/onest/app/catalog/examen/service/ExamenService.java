@@ -627,8 +627,18 @@ public class ExamenService {
 
         // C-069 (10-nov-2026): prueba de Ishihara, todo en un tag JSON (ver Ishihara). Solo la pinta el examen
         // inicial (hoja de Exploracion); NO va en GRUPOS, asi que el modulo Examen medico no la muestra.
-        CATALOGO.put(Ishihara.SECCION, new Seccion("SERV_MED_ISHIHARA", List.of(
-                tagCampo("ISHIHARA", Ishihara.TAG, "Prueba de Ishihara"))));
+        // 26-nov-2026: la misma banda, en pantalla «Pruebas adicionales», trae ademas FT-SO-08/10/01/14 (un tag JSON
+        // cada uno, ver PruebasAdicionales)
+        List<Campo> adicionales = new java.util.ArrayList<>();
+        adicionales.add(tagCampo("ISHIHARA", Ishihara.TAG, "Prueba de Ishihara"));
+        PruebasAdicionales.PRUEBAS.forEach(p -> adicionales.add(
+                tagCampo(PruebasAdicionales.TIPO_ITEM, p.tag(), p.codigo() + " " + p.titulo())));
+        CATALOGO.put(Ishihara.SECCION, new Seccion("SERV_MED_ISHIHARA", List.copyOf(adicionales)));
+        // 27-nov-2026 (usuario): las 4 pruebas FT-SO (sin Ishihara) tambien en el examen periodico del modulo Examen
+        // medico. Mismos tags que en el examen inicial (el tag es por NSS, como todos los del modulo); que tipos la
+        // ven lo dice VisibilidadTipo
+        CATALOGO.put(PruebasAdicionales.SECCION, new Seccion("SERV_MED_PRUEBAS_ADIC", PruebasAdicionales.PRUEBAS.stream()
+                .map(p -> tagCampo(PruebasAdicionales.TIPO_ITEM, p.tag(), p.codigo() + " " + p.titulo())).toList()));
 
         // ---- Estudios / Diagnostico / Plan / Resultado ----
         CATALOGO.put("Estudios realizados", new Seccion("SERV_MED_ESTUDIOS_REALIZADOS", List.of(
@@ -689,6 +699,8 @@ public class ExamenService {
                     "Urinario", "Extremidades", "Piel", "Dientes")),
             // FT-SO-05 (9-nov-2026): grupo propio, en todos los tipos de examen (no va en VisibilidadTipo)
             Map.entry("Cuestionario osteomuscular (FT-SO-05)", List.of(Osteomuscular.SECCION)),
+            // 27-nov-2026: FT-SO-08/10/01/14; solo en el periodico (VisibilidadTipo)
+            Map.entry(PruebasAdicionales.SECCION, List.of(PruebasAdicionales.SECCION)),
             Map.entry("Estudios realizados y resultados", List.of(
                     "Estudios realizados")),
             Map.entry("Diagnóstico", List.of(

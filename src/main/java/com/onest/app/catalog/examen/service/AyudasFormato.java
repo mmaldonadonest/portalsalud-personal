@@ -56,6 +56,15 @@ public final class AyudasFormato {
      */
     public static final Map<String, Ayuda> AYUDAS_EMNI = construirEmni();
 
+    /**
+     * EMNI, 27-nov-2026 (Word SM «cambioserrores27112026»): en estos renglones lo normal es «No» (no hay lesiones,
+     * deformaciones, hernias...). No va en verde y escribe el texto del formato; Sí es el hallazgo (rojo) y deja
+     * escribirlo. «Todo normal» pone No. El texto guardado no cambia.
+     */
+    public static final java.util.Set<String> NORMAL_NO_EMNI = java.util.Set.of(
+            "SERV_MED_BOCA.LESIONES", "SERV_MED_CUELLO.DEFORMACIONES_OBS",
+            "SERV_MED_ABDOMEN.VISCEROMEGALIAS", "SERV_MED_ABDOMEN.HERNIAS", "SERV_MED_ABDOMEN.DOLOR");
+
     /** true si algun campo de la lista tiene ayuda. */
     public static boolean alguno(List<com.onest.app.catalog.examen.dto.ExamItem> items) {
         return items != null && items.stream().anyMatch(i -> AYUDAS.containsKey(i.fieldName()));
@@ -101,8 +110,9 @@ public final class AyudasFormato {
         m.put("SERV_MED_ABDOMEN.HERNIAS", Ayuda.texto("NEGADAS / NO DETECTADAS"));
         m.put("SERV_MED_ABDOMEN.DOLOR", Ayuda.texto("NEGADAS / NO DETECTADAS"));
         m.put("SERV_MED_ABDOMEN.PERISTALSIS", Ayuda.texto(sdpa));
-        m.put("SERV_MED_GENITALES.MASCULINO", Ayuda.texto("NO VALORADO"));
-        m.put("SERV_MED_GENITALES.FEMENINO", Ayuda.texto("NO VALORADO"));
+        // 27-nov-2026 (Word SM «cambioserrores27112026»): Sí escribe «NO VALORADO» y No escribe «N/A»
+        m.put("SERV_MED_GENITALES.MASCULINO", Ayuda.dos("NO VALORADO", "N/A"));
+        m.put("SERV_MED_GENITALES.FEMENINO", Ayuda.dos("NO VALORADO", "N/A"));
         m.put("SERV_MED_URINARIO.PUNTOS_URETRALES", Ayuda.texto(sdpa));
         m.put("SERV_MED_URINARIO.FOSAS_RENALES", Ayuda.texto(sdpa));
         m.put("SERV_MED_EXTREMIDADES.SUPERIOR", Ayuda.texto("INTEGROS Y SIMETRICOS"));

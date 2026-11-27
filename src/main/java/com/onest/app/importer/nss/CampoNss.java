@@ -81,6 +81,19 @@ public record CampoNss(String encabezado, String columna, Tipo tipo, int maximo,
         return new CampoNss(encabezado, columna, Tipo.CATALOGO, 0, catalogo, false, false, null, true);
     }
 
+    /** Catalogo opcional con encabezado alterno, que puede no venir (EDAD de maternidad 2026, 27-nov-2026). */
+    static CampoNss catalogoQuePuedeFaltar(String encabezado, String alias, String columna, String catalogo) {
+        return new CampoNss(encabezado, columna, Tipo.CATALOGO, 0, catalogo, false, false, alias, true);
+    }
+
+    /**
+     * Fecha opcional que el formato de SM dejo de traer (27-nov-2026: los 3 CORREO DE AVISO de maternidad): el
+     * archivo se reconoce igual y la columna queda vacia.
+     */
+    static CampoNss fechaQuePuedeFaltar(String encabezado, String columna) {
+        return new CampoNss(encabezado, columna, Tipo.FECHA, 0, null, false, false, null, true);
+    }
+
     /** Texto cuyo encabezado tambien se acepta con otro nombre (PUESTO SOLICITADO o PUESTO, 19-nov-2026). */
     static CampoNss texto(String encabezado, String alias, String columna, int maximo) {
         return new CampoNss(encabezado, columna, Tipo.TEXTO, maximo, null, false, false, alias);
