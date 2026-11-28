@@ -106,9 +106,13 @@ public class VistaMaternidadRepository {
      * veces). Sin fecha de nacimiento, o con una edad imposible, cae en «Sin dato».
      */
     public List<ConteoSimpleDto> personasPorEdad(LocalDate desde, LocalDate hasta, String predio, String cuenta) {
-        VistaFiltro f = new VistaFiltro("SELECT " + PERSONA + " persona, MAX(e.EDAD) edad" + VISTA)
+        // 27-nov-2026 (SM, preguntas-sm-27nov-maternidad #2 = a): manda el rango de edad DEL ARCHIVO (RANGO_EDAD de la
+        // vista, excel-nss-21); el archivo solo trae el rango («26 - 35»), no la edad. Sin rango (casos del portal o
+        // cargas anteriores) se calcula con la edad del biometrico, como antes.
+        VistaFiltro f = new VistaFiltro("SELECT " + PERSONA + " persona, MAX(e.EDAD) edad, MAX(e.RANGO_EDAD) rango_archivo" + VISTA)
                 .filtros(desde, hasta, predio, cuenta);
-        String rango = "CASE WHEN edad IS NULL OR edad < 15 OR edad > 100 THEN '" + SIN_DATO + "'"
+        String rango = "CASE WHEN rango_archivo IS NOT NULL THEN rango_archivo"
+                + " WHEN edad IS NULL OR edad < 15 OR edad > 100 THEN '" + SIN_DATO + "'"
                 + " WHEN edad <= 25 THEN '18-25' WHEN edad <= 35 THEN '26-35' WHEN edad <= 45 THEN '36-45'"
                 + " WHEN edad <= 55 THEN '46-55' ELSE '55+' END";
         return jdbc.query("SELECT " + rango + " clave, COUNT(*) cantidad FROM (" + f.sql() + " GROUP BY " + PERSONA
